@@ -4,6 +4,7 @@ name = "capnp-futures-test"
 version = "0.0.0"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>"  ]
 build = "build.rs"
+edition = "2018"
 
 [lib]
 
@@ -17,5 +18,5 @@ capnpc = { path = "../../capnpc" }
 capnp-futures = {path = "./../"}
 capnp = { path = "../../capnp" }
 futures = "0.3.0"
-async-std = "1.0"
+async-std = { version = "1.6", features = ["unstable"] }
 

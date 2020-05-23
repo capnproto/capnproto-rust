@@ -16,7 +16,7 @@ capnpc = { path = "../../../capnpc" }
 [dependencies]
 capnp = { path = "../../../capnp" }
 futures = "0.3.0"
-async-std = "1.0"
+async-std = { version = "1.6", features = ["unstable"] }
 
 [dependencies.capnp-rpc]
 path = "../.."

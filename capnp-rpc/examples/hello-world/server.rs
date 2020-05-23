@@ -24,7 +24,6 @@ use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use crate::hello_world_capnp::hello_world;
 
-use futures::task::LocalSpawn;
 use futures::{AsyncReadExt, FutureExt};
 use std::net::ToSocketAddrs;
 
@@ -60,10 +59,7 @@ pub fn main() {
         .next()
         .expect("could not parse address");
 
-    let mut exec = futures::executor::LocalPool::new();
-    let spawner = exec.spawner();
-
-    exec.run_until(async move {
+    async_std::task::block_on(async move {
         let listener = async_std::net::TcpListener::bind(&addr).await.unwrap();
         let hello_world_client: hello_world::Client = capnp_rpc::new_client(HelloWorldImpl);
 
@@ -81,9 +77,7 @@ pub fn main() {
             let rpc_system =
                 RpcSystem::new(Box::new(network), Some(hello_world_client.clone().client));
 
-            spawner
-                .spawn_local_obj(Box::pin(rpc_system.map(|_| ())).into())
-                .unwrap();
+            async_std::task::spawn_local(rpc_system.map(|_| ()));
         }
     });
 }

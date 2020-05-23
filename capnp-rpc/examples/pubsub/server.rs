@@ -29,7 +29,6 @@ use crate::pubsub_capnp::{publisher, subscriber, subscription};
 use capnp::capability::Promise;
 
 use futures::{AsyncReadExt, FutureExt, StreamExt};
-use futures::task::LocalSpawn;
 
 struct SubscriberHandle {
     client: subscriber::Client<::capnp::text::Owned>,
@@ -110,13 +109,9 @@ pub fn main() {
         return;
     }
 
-    let mut exec = futures::executor::LocalPool::new();
-    let spawner1 = exec.spawner();
-    let spawner2 = exec.spawner();
-
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
 
-    let result: Result<(), Box<dyn std::error::Error>> = exec.run_until(async move {
+    let result: Result<(), Box<dyn std::error::Error>> = async_std::task::block_on(async move {
         let listener = async_std::net::TcpListener::bind(&addr).await?;
         let (publisher_impl, subscribers) = PublisherImpl::new();
         let publisher: publisher::Client<_> = capnp_rpc::new_client(publisher_impl);
@@ -133,8 +128,7 @@ pub fn main() {
 
                 let rpc_system = RpcSystem::new(Box::new(network), Some(publisher.clone().client));
 
-                spawner1.spawn_local_obj(
-                    Box::pin(rpc_system.map(|_| ())).into())?;
+                async_std::task::spawn_local(rpc_system.map(|_| ()));
             }
             Ok::<(), Box<dyn std::error::Error>>(())
         };
@@ -158,8 +152,8 @@ pub fn main() {
                         request.get().set_message(
                             &format!("system time is: {:?}", ::std::time::SystemTime::now())[..])?;
                         let subscribers2 = subscribers1.clone();
-                        spawner2.spawn_local_obj(
-                            Box::pin(request.send().promise.map(move |r| {
+                        async_std::task::spawn_local(
+                            request.send().promise.map(move |r| {
                                 match r {
                                     Ok(_) => {
                                         subscribers2.borrow_mut().subscribers.get_mut(&idx).map(|ref mut s| {
@@ -171,7 +165,7 @@ pub fn main() {
                                         subscribers2.borrow_mut().subscribers.remove(&idx);
                                     }
                                 }
-                            })).into())?;
+                            }));
                     }
                 }
             }

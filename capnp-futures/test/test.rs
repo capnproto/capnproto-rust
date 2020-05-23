@@ -29,7 +29,7 @@ pub mod addressbook_capnp {
 
 #[cfg(test)]
 mod tests {
-    use addressbook_capnp::{address_book, person};
+    use crate::addressbook_capnp::{address_book, person};
 
     fn populate_address_book(address_book: address_book::Builder) {
         let mut people = address_book.init_people(2);
@@ -81,7 +81,6 @@ mod tests {
         use capnp_futures;
         use futures::future::{FutureExt};
         use futures::stream::{StreamExt};
-        use futures::task::LocalSpawn;
 
         use std::cell::Cell;
         use std::rc::Rc;
@@ -111,20 +110,17 @@ mod tests {
 
         let mut m = capnp::message::Builder::new_default();
         populate_address_book(m.init_root());
-        let mut exec = futures::executor::LocalPool::new();
-        let spawner = exec.spawner();
-        spawner.spawn_local_obj(Box::new(sender.send(m).map(|_|())).into()).expect("spawing write task");
-        drop(sender);
-
-        exec.run_until(io);
-
-        assert_eq!(messages_read1.get(), 1);
+        async_std::task::block_on(async {
+            async_std::task::spawn_local(sender.send(m).map(|_|()));
+            drop(sender);
+            io.await;
+            assert_eq!(messages_read1.get(), 1);
+        });
     }
 
     fn fill_and_send_message(mut message: capnp::message::Builder<capnp::message::HeapAllocator>) {
         use capnp_futures::serialize;
         use futures::{FutureExt, TryFutureExt};
-        use futures::task::LocalSpawn;
 
         {
             let mut address_book = message.init_root::<address_book::Builder>();
@@ -147,11 +143,10 @@ mod tests {
                 }
             });
 
-        let mut exec = futures::executor::LocalPool::new();
-        let spawner = exec.spawner();
-        spawner.spawn_local_obj(Box::new(f0).into()).expect("spawing write task");
-
-        exec.run_until(f1).expect("read task");
+        async_std::task::block_on(async {
+            async_std::task::spawn_local(f0);
+            f1.await
+        }).expect("read task");
     }
 
     #[test]

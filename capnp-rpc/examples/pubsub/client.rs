@@ -48,8 +48,7 @@ pub fn main() {
 
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
 
-    let mut exec = futures::executor::LocalPool::new();
-    let result: Result<(), Box<dyn std::error::Error>> = exec.run_until(async move {
+    let result: Result<(), Box<dyn std::error::Error>> = async_std::task::block_on(async move {
         let stream = async_std::net::TcpStream::connect(&addr).await?;
         stream.set_nodelay(true)?;
         let (reader, writer) = stream.split();
