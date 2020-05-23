@@ -375,8 +375,7 @@ pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>)
 
 #[cfg(test)]
 pub mod test {
-
-    use std::io::{Cursor, Write};
+    use std::io::Write;
 
     use quickcheck::{quickcheck, TestResult};
 
@@ -402,7 +401,7 @@ pub mod test {
         buf.extend([0,0,0,0, // 1 segments
                     0,0,0,0] // 0 length
                     .iter().cloned());
-        let segment_lengths_builder = read_segment_table(&mut Cursor::new(&buf[..]),
+        let segment_lengths_builder = read_segment_table(&mut &buf[..],
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(0, segment_lengths_builder.total_words());
         assert_eq!(vec![(0,0)], segment_lengths_builder.to_segment_indices());
@@ -411,7 +410,7 @@ pub mod test {
         buf.extend([0,0,0,0, // 1 segments
                     1,0,0,0] // 1 length
                     .iter().cloned());
-        let segment_lengths_builder = read_segment_table(&mut Cursor::new(&buf[..]),
+        let segment_lengths_builder = read_segment_table(&mut &buf[..],
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(1, segment_lengths_builder.total_words());
         assert_eq!(vec![(0,1)], segment_lengths_builder.to_segment_indices());
@@ -422,7 +421,7 @@ pub mod test {
                     1,0,0,0, // 1 length
                     0,0,0,0] // padding
                     .iter().cloned());
-        let segment_lengths_builder = read_segment_table(&mut Cursor::new(&buf[..]),
+        let segment_lengths_builder = read_segment_table(&mut &buf[..],
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(2, segment_lengths_builder.total_words());
         assert_eq!(vec![(0,1), (1, 2)], segment_lengths_builder.to_segment_indices());
@@ -433,7 +432,7 @@ pub mod test {
                     1,0,0,0, // 1 length
                     0,1,0,0] // 256 length
                     .iter().cloned());
-        let segment_lengths_builder = read_segment_table(&mut Cursor::new(&buf[..]),
+        let segment_lengths_builder = read_segment_table(&mut &buf[..],
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(258, segment_lengths_builder.total_words());
         assert_eq!(vec![(0,1), (1, 2), (2, 258)], segment_lengths_builder.to_segment_indices());
@@ -446,7 +445,7 @@ pub mod test {
                     99,0,0,0, // 99 length
                     0,0,0,0]  // padding
                     .iter().cloned());
-        let segment_lengths_builder = read_segment_table(&mut Cursor::new(&buf[..]),
+        let segment_lengths_builder = read_segment_table(&mut &buf[..],
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(200, segment_lengths_builder.total_words());
         assert_eq!(vec![(0,77), (77, 100), (100, 101), (101, 200)], segment_lengths_builder.to_segment_indices());
@@ -460,23 +459,23 @@ pub mod test {
 
         buf.extend([0,2,0,0].iter().cloned()); // 513 segments
         buf.extend([0; 513 * 4].iter().cloned());
-        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+        assert!(read_segment_table(&mut &buf[..],
                                    message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([0,0,0,0].iter().cloned()); // 1 segments
-        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+        assert!(read_segment_table(&mut &buf[..],
                                    message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([0,0,0,0].iter().cloned()); // 1 segments
         buf.extend([0; 3].iter().cloned());
-        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+        assert!(read_segment_table(&mut &buf[..],
                                    message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([255,255,255,255].iter().cloned()); // 0 segments
-        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+        assert!(read_segment_table(&mut &buf[..],
                                    message::ReaderOptions::new()).is_err());
         buf.clear();
     }
@@ -544,12 +543,10 @@ pub mod test {
     fn check_round_trip() {
         fn round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
-            let mut cursor = Cursor::new(Vec::new());
+            let mut buf: Vec<u8> = Vec::new();
 
-            write_message_segments(&mut cursor, &segments);
-            cursor.set_position(0);
-
-            let message = read_message(&mut cursor, message::ReaderOptions::new()).unwrap();
+            write_message_segments(&mut buf, &segments);
+            let message = read_message(&mut &buf[..], message::ReaderOptions::new()).unwrap();
             let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
