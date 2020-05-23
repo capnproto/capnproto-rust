@@ -26,9 +26,6 @@ install:
   - cd ../
 
 script:
-  - cargo build
-  - cargo test
-  - cargo clean
   - cargo build --all
   - cargo test --all
   - ./target/debug/addressbook write | ./target/debug/addressbook read
