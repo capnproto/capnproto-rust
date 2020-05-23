@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use common::*;
-use eval_capnp::{expression, evaluation_result, Operation};
+use crate::common::*;
+use crate::eval_capnp::{expression, evaluation_result, Operation};
 
 fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth : u32) -> i32 {
     exp.set_op(::capnp::traits::FromU16::from_u16(rng.next_less_than( Operation::Modulus as u32 + 1) as u16).unwrap());
@@ -73,7 +73,7 @@ fn evaluate_expression(exp: expression::Reader) -> ::capnp::Result<i32> {
 
 pub struct Eval;
 
-impl ::TestCase for Eval {
+impl crate::TestCase for Eval {
     type Request = expression::Owned;
     type Response = evaluation_result::Owned;
     type Expectation = i32;

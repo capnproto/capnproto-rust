@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate capnp;
-
 use std::{mem, io};
 
 use capnp::{message, serialize, serialize_packed};
@@ -49,10 +47,10 @@ trait TestCase {
     type Response: for<'a> Owned<'a>;
     type Expectation;
 
-    fn setup_request(&self, &mut common::FastRand, <Self::Request as Owned>::Builder) -> Self::Expectation;
-    fn handle_request(&self, <Self::Request as Owned>::Reader, <Self::Response as Owned>::Builder)
+    fn setup_request(&self, rnd: &mut crate::common::FastRand, b: <Self::Request as Owned>::Builder) -> Self::Expectation;
+    fn handle_request(&self, r: <Self::Request as Owned>::Reader, b: <Self::Response as Owned>::Builder)
                       -> ::capnp::Result<()>;
-    fn check_response(&self, <Self::Response as Owned>::Reader, Self::Expectation) -> ::capnp::Result<()>;
+    fn check_response(&self, r: <Self::Response as Owned>::Reader, e: Self::Expectation) -> ::capnp::Result<()>;
 }
 
 trait Serialize {

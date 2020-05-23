@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use common::*;
-use carsales_capnp::{parking_lot, total_value, Color, car};
+use crate::common::*;
+use crate::carsales_capnp::{parking_lot, total_value, Color, car};
 
 trait CarValue {
     fn car_value(self) -> ::capnp::Result<u64>;
@@ -128,7 +128,7 @@ pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
 
 pub struct CarSales;
 
-impl ::TestCase for CarSales {
+impl crate::TestCase for CarSales {
     type Request = parking_lot::Owned;
     type Response = total_value::Owned;
     type Expectation = u64;

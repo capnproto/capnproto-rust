@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use common::*;
-use catrank_capnp::*;
+use crate::common::*;
+use crate::catrank_capnp::*;
 
 #[derive(Clone, Copy)]
 pub struct ScoredResult<'a> {
@@ -32,7 +32,7 @@ const URL_PREFIX: &'static str = "http://example.com";
 
 pub struct CatRank;
 
-impl ::TestCase for CatRank {
+impl crate::TestCase for CatRank {
     type Request = search_result_list::Owned;
     type Response = search_result_list::Owned;
     type Expectation = i32;
