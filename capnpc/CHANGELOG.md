@@ -1,3 +1,7 @@
+### v0.12.4
+- Add `CompilerCommand.capnp_executable()`.
+- Remove obsolete `RustEdition` enum.
+
 ### v0.12.3
 - Generate code for new capnp::capability::FromServer trait.
 
