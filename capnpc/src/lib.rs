@@ -139,8 +139,6 @@ impl CompilerCommand {
     /// Adds the --no-standard-import flag, indicating that the default import paths of
     /// /usr/include and /usr/local/include should not bet included.
     pub fn no_standard_import(&mut self) -> &mut CompilerCommand {
-        assert!(!self.no_standard_import, "no_standard_import() must only be called once");
-
         self.no_standard_import = true;
         self
     }
@@ -150,8 +148,6 @@ impl CompilerCommand {
     where
         P: AsRef<Path>,
     {
-        assert!(self.executable_path.is_none(), "output_path() must only be called once");
-
         self.output_path = Some(path.as_ref().to_path_buf());
         self
     }
@@ -162,8 +158,6 @@ impl CompilerCommand {
     where
         P: AsRef<Path>
     {
-        assert!(self.executable_path.is_none(), "capnp_executable() must only be called once");
-
         self.executable_path = Some(path.as_ref().to_path_buf());
         self
     }
