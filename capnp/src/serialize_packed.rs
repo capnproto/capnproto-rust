@@ -362,7 +362,6 @@ pub fn write_message<W, A>(write: &mut W, message: &crate::message::Builder<A>) 
 mod tests {
     use std::io::{Write, Read};
 
-    use std::io::Cursor;
     use quickcheck::{quickcheck, TestResult};
 
     use crate::message::{ReaderOptions};
@@ -431,11 +430,10 @@ mod tests {
         fn round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
             use crate::message::ReaderSegments;
             if segments.len() == 0 { return TestResult::discard(); }
-            let mut cursor = Cursor::new(Vec::new());
+            let mut buf: Vec<u8> = Vec::new();
 
-            write_message_segments(&mut PackedWrite { inner: &mut cursor }, &segments);
-            cursor.set_position(0);
-            let message = read_message(&mut cursor, ReaderOptions::new()).unwrap();
+            write_message_segments(&mut PackedWrite { inner: &mut buf }, &segments);
+            let message = read_message(&mut &buf[..], ReaderOptions::new()).unwrap();
             let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
@@ -512,10 +510,8 @@ mod tests {
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0]);
 
-        let mut cursor = Cursor::new(packed_buf);
-
         // At one point, this failed due to serialize::read_message()
         // reading the segment table only one word at a time.
-        read_message(&mut cursor, Default::default()).unwrap();
+        read_message(&mut &packed_buf[..], Default::default()).unwrap();
     }
 }
