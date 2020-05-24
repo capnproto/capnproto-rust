@@ -133,7 +133,7 @@ impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     }
 }
 
-impl <'a> ::std::iter::IntoIterator for Reader<'a> {
+impl <'a> ::core::iter::IntoIterator for Reader<'a> {
     type Item = Result<crate::data::Reader<'a>>;
     type IntoIter = ListIter<Reader<'a>, Self::Item>;
 

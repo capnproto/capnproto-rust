@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 
 extern crate capnp;
+extern crate core;
+
 pub mod addressbook_capnp {
   include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }

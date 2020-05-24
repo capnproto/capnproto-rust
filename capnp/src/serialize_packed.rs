@@ -22,8 +22,9 @@
 //! Reading and writing of messages using the
 //! [packed stream encoding](https://capnproto.org/encoding.html#packing).
 
-use std::{io, mem, ptr, slice};
-use std::io::{Read, BufRead, Write};
+use alloc::string::ToString;
+use core::{mem, ptr, slice};
+use crate::io::{Read, BufRead, Write};
 
 use crate::serialize;
 use crate::Result;
@@ -34,8 +35,7 @@ struct PackedRead<R> where R: BufRead {
 }
 
 impl <R> PackedRead<R> where R: BufRead {
-
-    fn get_read_buffer(&mut self) -> io::Result<(*const u8, *const u8)> {
+    fn get_read_buffer(&mut self) -> Result<(*const u8, *const u8)> {
         let buf = self.inner.fill_buf()?;
         Ok((buf.as_ptr(), buf.as_ptr().wrapping_offset(buf.len() as isize)))
     }
@@ -57,19 +57,17 @@ macro_rules! refresh_buffer(
             $size = ptr_sub($in_end, $in_ptr);
             $buffer_begin = b;
             if $size == 0 {
-                return Err(io::Error::new(io::ErrorKind::Other,
-                                          "Premature end of packed input."));
+                return Err(crate::Error::failed("Premature end of packed input.".to_string()));
             }
         }
         );
     );
 
 impl <R> Read for PackedRead<R> where R: BufRead {
-
-    fn read(&mut self, out_buf: &mut [u8]) -> io::Result<usize> {
+    fn read_exact(&mut self, out_buf: &mut [u8]) -> Result<()> {
         let len = out_buf.len();
 
-        if len == 0 { return Ok(0); }
+        if len == 0 { return Ok(()); }
 
         assert!(len % 8 == 0, "PackedRead reads must be word-aligned.");
 
@@ -81,7 +79,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
             let mut buffer_begin = in_ptr;
             let mut size = ptr_sub(in_end, in_ptr);
             if size == 0 {
-                return Ok(0);
+                return Ok(());
             }
 
             loop {
@@ -141,8 +139,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                     in_ptr = in_ptr.offset(1);
 
                     if run_length > ptr_sub(out_end, out) {
-                        return Err(io::Error::new(io::ErrorKind::Other,
-                                                  "Packed input did not end cleanly on a segment boundary."));
+                        return Err(crate::Error::failed("Packed input did not end cleanly on a segment boundary.".to_string()));
                     }
 
                     ptr::write_bytes(out, 0, run_length);
@@ -156,8 +153,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                     in_ptr = in_ptr.offset(1);
 
                     if run_length > ptr_sub(out_end, out) {
-                        return Err(io::Error::new(io::ErrorKind::Other,
-                                                  "Packed input did not end cleanly on a segment boundary."));
+                        return Err(crate::Error::failed("Packed input did not end cleanly on a segment boundary.".to_string()));
                     }
 
                     let in_remaining = ptr_sub(in_end, in_ptr);
@@ -181,7 +177,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                         out = out.offset(run_length as isize);
 
                         if out == out_end {
-                            return Ok(len);
+                            return Ok(());
                         } else {
                             let (b, e) = self.get_read_buffer()?;
                             in_ptr = b;
@@ -195,7 +191,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
                 if out == out_end {
                     self.inner.consume(ptr_sub(in_ptr, buffer_begin));
-                    return Ok(len);
+                    return Ok(());
                 }
             }
         }
@@ -203,13 +199,13 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 }
 
 /// Reads a packed message from a stream using the provided options.
-pub fn read_message<R>(read: &mut R,
+pub fn read_message<R>(read: R,
                        options: message::ReaderOptions)
                        -> Result<crate::message::Reader<serialize::OwnedSegments>>
     where R: BufRead
 {
-    let mut packed_read = PackedRead { inner: read };
-    serialize::read_message(&mut packed_read, options)
+    let packed_read = PackedRead { inner: read };
+    serialize::read_message(packed_read, options)
 }
 
 struct PackedWrite<W> where W: Write {
@@ -217,7 +213,7 @@ struct PackedWrite<W> where W: Write {
 }
 
 impl <W> Write for PackedWrite<W> where W: Write {
-    fn write(&mut self, in_buf: &[u8]) -> io::Result<usize> {
+    fn write_all(&mut self, in_buf: &[u8]) -> Result<()> {
         unsafe {
             let mut buf_idx: usize = 0;
             let mut buf: [u8; 64] = [0; 64];
@@ -343,24 +339,25 @@ impl <W> Write for PackedWrite<W> where W: Write {
             }
 
             self.inner.write_all(&buf[..buf_idx])?;
-            Ok(in_buf.len())
+            Ok(())
         }
     }
-
-   fn flush(&mut self) -> io::Result<()> { self.inner.flush() }
 }
 
 /// Writes a packed message to a stream.
-pub fn write_message<W, A>(write: &mut W, message: &crate::message::Builder<A>) -> io::Result<()>
+pub fn write_message<W, A>(write: W, message: &crate::message::Builder<A>) -> Result<()>
     where W: Write, A: crate::message::Allocator
 {
-    let mut packed_write = PackedWrite { inner: write };
-    serialize::write_message(&mut packed_write, message)
+    let packed_write = PackedWrite { inner: write };
+    serialize::write_message(packed_write, message)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Write, Read};
+    use alloc::string::ToString;
+    use alloc::vec::Vec;
+
+    use crate::io::{Write, Read};
 
     use quickcheck::{quickcheck, TestResult};
 
@@ -375,8 +372,7 @@ mod tests {
         let mut bytes: Vec<u8> = vec![0; unpacked.len()];
         packed_read.read_exact(&mut bytes[..]).unwrap();
 
-        let mut buf = [0; 8];
-        assert_eq!(packed_read.read(&mut buf).unwrap(), 0); // EOF
+        assert!(packed_read.inner.is_empty()); // nothing left to read
         assert_eq!(bytes, unpacked);
     }
 
@@ -387,7 +383,7 @@ mod tests {
         let mut bytes: Vec<u8> = vec![0; packed.len()];
         {
             let mut packed_write = PackedWrite { inner: &mut bytes[..] };
-            packed_write.write(unpacked).unwrap();
+            packed_write.write_all(unpacked).unwrap();
         }
 
         assert_eq!(bytes, packed);
@@ -471,7 +467,7 @@ mod tests {
             Ok(_) => panic!("should have been an error"),
             Err(e) => {
                 assert_eq!(e.to_string(),
-                           "Packed input did not end cleanly on a segment boundary.");
+                           "Failed: Packed input did not end cleanly on a segment boundary.");
             }
         }
     }
@@ -485,7 +481,7 @@ mod tests {
             match packed_read.read_exact(&mut bytes[..]) {
                 Ok(_) => panic!("should have been an error"),
                 Err(e) => {
-                    assert_eq!(e.to_string(), "Premature end of packed input.");
+                    assert_eq!(e.to_string(), "Failed: Premature end of packed input.");
                 }
             }
         }

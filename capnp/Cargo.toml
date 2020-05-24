@@ -25,9 +25,13 @@ quickcheck = { version = "0.9", optional = true }
 quickcheck = "0.9"
 
 [features]
+default = ["std"]
+
 rpc_try = []
 
 # If enabled, relaxes alignment requirements on segments.
 # This has a performance cost on some targets (e.g. ARMv6).
 unaligned = []
+
+std = []
 

@@ -21,7 +21,7 @@
 
 //! List of structs.
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
 use crate::traits::{FromPointerReader, FromPointerBuilder,
@@ -171,7 +171,7 @@ impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     }
 }
 
-impl <'a, T> ::std::iter::IntoIterator for Reader<'a, T>
+impl <'a, T> ::core::iter::IntoIterator for Reader<'a, T>
     where T: for<'b> crate::traits::OwnedStruct<'b>
 {
     type Item = <T as crate::traits::OwnedStruct<'a>>::Reader;

@@ -21,6 +21,9 @@
 
 //! Dynamically typed value.
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
 use crate::capability::FromClientHook;
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
 use crate::private::layout::{PointerReader, PointerBuilder};

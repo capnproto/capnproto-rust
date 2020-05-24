@@ -27,7 +27,7 @@ use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuil
                              TwoBytes, PrimitiveElement};
 use crate::{NotInSchema, Result};
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 #[derive(Clone, Copy)]
 pub struct Owned<T> {
@@ -52,7 +52,7 @@ impl <'a, T: FromU16> Reader<'a, T> {
 
     pub fn len(&self) -> u32 { self.reader.len() }
 
-    pub fn iter(self) -> ListIter<Reader<'a, T>, ::std::result::Result<T, NotInSchema>>{
+    pub fn iter(self) -> ListIter<Reader<'a, T>, ::core::result::Result<T, NotInSchema>>{
         let l = self.len();
         ListIter::new(self, l)
     }
@@ -65,14 +65,14 @@ impl <'a, T : FromU16> FromPointerReader<'a> for Reader<'a, T> {
     }
 }
 
-impl <'a, T: FromU16>  IndexMove<u32, ::std::result::Result<T, NotInSchema>> for Reader<'a, T>{
-    fn index_move(&self, index: u32) -> ::std::result::Result<T, NotInSchema> {
+impl <'a, T: FromU16>  IndexMove<u32, ::core::result::Result<T, NotInSchema>> for Reader<'a, T>{
+    fn index_move(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         self.get(index)
     }
 }
 
 impl <'a, T : FromU16> Reader<'a, T> {
-    pub fn get(&self, index: u32) -> ::std::result::Result<T, NotInSchema> {
+    pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         assert!(index < self.len());
         let result: u16 = PrimitiveElement::get(&self.reader, index);
         FromU16::from_u16(result)
@@ -119,7 +119,7 @@ impl <'a, T : FromU16> FromPointerBuilder<'a> for Builder<'a, T> {
 }
 
 impl <'a, T : ToU16 + FromU16>  Builder<'a, T> {
-    pub fn get(&self, index: u32) -> ::std::result::Result<T, NotInSchema> {
+    pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         assert!(index < self.len());
         let result: u16 = PrimitiveElement::get_from_builder(&self.builder, index);
         FromU16::from_u16(result)
@@ -138,8 +138,8 @@ impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> 
     }
 }
 
-impl <'a, T: FromU16> ::std::iter::IntoIterator for Reader<'a, T> {
-    type Item = ::std::result::Result<T, NotInSchema>;
+impl <'a, T: FromU16> ::core::iter::IntoIterator for Reader<'a, T> {
+    type Item = ::core::result::Result<T, NotInSchema>;
     type IntoIter = ListIter<Reader<'a, T>, Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {

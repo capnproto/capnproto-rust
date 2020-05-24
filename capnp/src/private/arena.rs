@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::cell::{Cell, RefCell};
-use std::slice;
-use std::u64;
+use alloc::vec::Vec;
+use core::cell::{Cell, RefCell};
+use core::slice;
+use core::u64;
 
 use crate::private::units::*;
 use crate::message;
@@ -340,7 +341,7 @@ impl BuilderArena for NullArena {
     }
 
     fn get_segment_mut(&self, _id: u32) -> (*mut u8, u32) {
-        (::std::ptr::null_mut(), 0)
+        (core::ptr::null_mut(), 0)
     }
 
     fn as_reader<'a>(&'a self) -> &'a dyn ReaderArena {
