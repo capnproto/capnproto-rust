@@ -13,7 +13,16 @@ keywords = ["async"]
 
 [dependencies]
 capnp = { version = "0.13.0-alpha", path = "../capnp" }
-futures = "0.3.0"
+
+[dependencies.futures]
+version = "0.3.0"
+default-features = false
+features = ["std", "executor"]
+
+[dev-dependencies.futures]
+version = "0.3.0"
+default-features = false
+features = ["executor"]
 
 [dev-dependencies]
 capnp = { version = "0.13.0-alpha", path = "../capnp", features = ["quickcheck"] }
