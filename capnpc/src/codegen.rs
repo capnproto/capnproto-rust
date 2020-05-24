@@ -1717,38 +1717,6 @@ fn generate_node(gen: &GeneratorContext,
                             Line("}".to_string())]))),
                 Line("}".to_string())]));
 
-            // TODO(versionbump): Remove this, as it has been superseded by capnp_rpc::new_client().
-            mod_interior.push(
-                Branch(vec!(
-                    (if is_generic {
-                        Branch(vec!(
-                            Line(format!("pub struct ToClient<_U,{}> {} {{", params.params, params.where_clause)),
-                            Indent(Box::new(Branch(vec!(
-                                Line("pub u: _U,".to_string()),
-                                Line(params.phantom_data_type.clone()),
-                            )))),
-                            Line("}".to_string()),
-                            Line(format!("impl <{0}, _U: Server<{0}> + 'static> ToClient<_U,{0}> {1} {{",
-                                         params.params, params.where_clause_with_static)),
-                            Indent(Box::new(Line(format!(
-                                "pub fn new(u: _U) -> ToClient<_U, {}> {{ ToClient {{u, _phantom: ::std::marker::PhantomData}} }}",
-                                params.params)))),
-                        ))
-                    } else {
-                        Branch(vec!(
-                            Line("pub struct ToClient<_U>{pub u: _U}".to_string()),
-                            Line("impl <_U: Server + 'static> ToClient<_U> {".to_string()),
-                            Indent(Box::new(Line("pub fn new(u: _U) -> ToClient<_U> { ToClient {u} }".to_string()))),
-                        ))
-                    }),
-                    Indent(Box::new(Branch( vec!(
-                        Line(format!("pub fn into_client<_T: ::capnp::private::capability::ServerHook>(self) -> Client{} {{", bracketed_params)),
-                        Indent(
-                            Box::new(Line(format!("Client {{ client: _T::new_client(::std::boxed::Box::new(ServerDispatch {{ server: ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data_value, params.phantom_data_value)))),
-                        Line("}".to_string()))))),
-                    Line("}".to_string()))));
-
-
             mod_interior.push(
                 Branch(vec!(
                     Line(format!("impl {0} ::capnp::traits::HasTypeId for Client{0} {{",

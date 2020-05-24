@@ -73,11 +73,6 @@ impl Clone for Box<dyn ClientHook> {
     }
 }
 
-// TODO(versionbump) remove this. It has been superseded by capnp::capability::FromServer.
-pub trait ServerHook: 'static {
-    fn new_client(server: Box<dyn crate::capability::Server>) -> crate::capability::Client;
-}
-
 pub trait ResultsHook {
     fn get<'a>(&'a mut self) -> crate::Result<any_pointer::Builder<'a>>;
     fn allow_cancellation(&self);

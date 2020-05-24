@@ -69,7 +69,7 @@ use futures::{Future, FutureExt, TryFutureExt};
 use futures::channel::oneshot;
 use capnp::Error;
 use capnp::capability::Promise;
-use capnp::private::capability::{ClientHook, ServerHook};
+use capnp::private::capability::{ClientHook};
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
@@ -295,25 +295,6 @@ impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
     type Output = Result<(),Error>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         Pin::new(&mut self.tasks).poll(cx)
-    }
-}
-
-/// Hook that allows local implementations of interfaces to be passed to the RPC system
-/// so that they can be called remotely.
-///
-/// To use this, you need to do the following dance:
-///
-/// ```ignore
-/// let client = foo::ToClient::new(FooImpl).into_client::<::capnp_rpc::Server>());
-/// ```
-#[deprecated(since="capnp-rpc-v0.12.2",
-             note="Use capnp_rpc::new_client() instead. You may need to do `cargo update -p capnpc` too.")]
-pub struct Server;
-
-#[allow(deprecated)]
-impl ServerHook for Server {
-    fn new_client(server: Box<dyn (::capnp::capability::Server)>) -> ::capnp::capability::Client {
-        ::capnp::capability::Client::new(Box::new(local::Client::new(server)))
     }
 }
 
