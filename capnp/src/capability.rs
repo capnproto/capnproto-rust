@@ -23,18 +23,17 @@
 //!
 //! Roughly corresponds to capability.h in the C++ implementation.
 
+use alloc::boxed::Box;
+use core::future::{Future};
+use core::pin::{Pin};
+use core::marker::{PhantomData, Unpin};
+use core::task::Poll;
+#[cfg(feature = "rpc_try")]
+use core::ops::Try;
+
 use crate::{any_pointer, Error, MessageSize};
 use crate::traits::{Pipelined, Owned};
 use crate::private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
-
-use std::future::{Future};
-use std::pin::{Pin};
-use std::marker::Unpin;
-use std::task::Poll;
-#[cfg(feature = "rpc_try")]
-use std::ops::Try;
-
-use std::marker::PhantomData;
 
 /// A computation that might eventually resolve to a value of type `T` or to an error
 ///  of type `E`. Dropping the promise cancels the computation.
@@ -45,7 +44,7 @@ pub struct Promise<T, E> {
 
 enum PromiseInner<T, E> {
     Immediate(Result<T,E>),
-    Deferred(Pin<Box<dyn Future<Output=std::result::Result<T,E>> + 'static>>),
+    Deferred(Pin<Box<dyn Future<Output=core::result::Result<T,E>> + 'static>>),
     Empty,
 }
 
@@ -62,7 +61,7 @@ impl <T, E> Promise<T, E> {
     }
 
     pub fn from_future<F>(f: F) -> Promise<T, E>
-        where F: Future<Output=std::result::Result<T,E>> + 'static
+        where F: Future<Output=core::result::Result<T,E>> + 'static
     {
         Promise { inner: PromiseInner::Deferred(Box::pin(f)) }
     }
@@ -70,13 +69,13 @@ impl <T, E> Promise<T, E> {
 
 impl <T, E> Future for Promise<T, E>
 {
-    type Output = std::result::Result<T,E>;
+    type Output = core::result::Result<T,E>;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut ::std::task::Context) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut ::core::task::Context) -> Poll<Self::Output> {
         match self.get_mut().inner {
             PromiseInner::Empty => panic!("Promise polled after done."),
             ref mut imm @ PromiseInner::Immediate(_) => {
-                match std::mem::replace(imm, PromiseInner::Empty) {
+                match core::mem::replace(imm, PromiseInner::Empty) {
                     PromiseInner::Immediate(r) => Poll::Ready(r),
                     _ => unreachable!(),
                 }
@@ -254,7 +253,7 @@ pub trait Server {
 /// Trait to track the relationship between generated Server traits and Client structs.
 pub trait FromServer<S> : FromClientHook {
     // Implemented by the generated ServerDispatch struct.
-    type Dispatch: Server + 'static + std::ops::DerefMut<Target=S>;
+    type Dispatch: Server + 'static + core::ops::DerefMut<Target=S>;
 
     fn from_server(s: S) -> Self::Dispatch;
 }

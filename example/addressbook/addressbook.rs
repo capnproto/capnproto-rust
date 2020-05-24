@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 
 extern crate capnp;
+extern crate core;
+
 pub mod addressbook_capnp {
   include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }
@@ -28,7 +30,7 @@ pub mod addressbook {
     use addressbook_capnp::{address_book, person};
     use capnp::serialize_packed;
 
-    pub fn write_address_book() -> ::std::io::Result<()> {
+    pub fn write_address_book() -> ::capnp::Result<()> {
         let mut message = ::capnp::message::Builder::new_default();
         {
             let address_book = message.init_root::<address_book::Builder>();
@@ -68,7 +70,6 @@ pub mod addressbook {
     }
 
     pub fn print_address_book() -> ::capnp::Result<()> {
-
         let stdin = ::std::io::stdin();
         let message_reader = serialize_packed::read_message(&mut stdin.lock(),
                                                             ::capnp::message::ReaderOptions::new())?;

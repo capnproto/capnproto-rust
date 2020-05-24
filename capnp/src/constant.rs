@@ -23,7 +23,7 @@
 //! `constant::Reader` does not do bounds-checking, so it is unsafe to
 //! manually construct one of these.
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use crate::any_pointer;
 use crate::private::layout::PointerReader;

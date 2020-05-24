@@ -60,9 +60,9 @@ pub const WORDS_PER_POINTER : WordCount = 1;
 pub const POINTER_SIZE_IN_WORDS : WordCount = 1;
 
 pub fn _bytes_per_element<T>() -> ByteCount {
-    ::std::mem::size_of::<T>()
+    ::core::mem::size_of::<T>()
 }
 
 pub fn bits_per_element<T>() -> BitCount0 {
-    8 * ::std::mem::size_of::<T>()
+    8 * ::core::mem::size_of::<T>()
 }

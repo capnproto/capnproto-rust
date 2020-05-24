@@ -20,7 +20,8 @@
 
 //! List of capabilities.
 
-use std::marker::PhantomData;
+use alloc::boxed::Box;
+use core::marker::PhantomData;
 
 use crate::capability::{FromClientHook};
 use crate::private::capability::ClientHook;
@@ -152,7 +153,7 @@ impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     }
 }
 
-impl <'a, T> ::std::iter::IntoIterator for Reader<'a, T>
+impl <'a, T> ::core::iter::IntoIterator for Reader<'a, T>
     where T: FromClientHook
 {
     type Item = Result<T>;

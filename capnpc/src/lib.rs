@@ -70,10 +70,26 @@ mod pointer_constants;
 
 use std::path::{Path, PathBuf};
 
+// Copied from capnp/src/lib.rs, where this conversion lives behind the "std" feature flag,
+// which we don't want to depend on here.
+pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
+    use std::io;
+    let kind = match err.kind() {
+        io::ErrorKind::TimedOut => capnp::ErrorKind::Overloaded,
+        io::ErrorKind::BrokenPipe |
+        io::ErrorKind::ConnectionRefused |
+        io::ErrorKind::ConnectionReset |
+        io::ErrorKind::ConnectionAborted |
+        io::ErrorKind::NotConnected  => capnp::ErrorKind::Disconnected,
+        _ => capnp::ErrorKind::Failed,
+    };
+    capnp::Error { description: format!("{}", err), kind: kind }
+}
+
 fn run_command(mut command: ::std::process::Command, path: &PathBuf) -> ::capnp::Result<()> {
-    let mut p = command.spawn()?;
+    let mut p = command.spawn().map_err(convert_io_err)?;
     crate::codegen::generate_code(p.stdout.take().unwrap(), path.as_path())?;
-    let exit_status = p.wait()?;
+    let exit_status = p.wait().map_err(convert_io_err)?;
     if !exit_status.success() {
         Err(::capnp::Error::failed(format!(
             "Non-success exit status: {}",

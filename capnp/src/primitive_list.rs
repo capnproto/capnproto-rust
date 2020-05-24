@@ -21,7 +21,7 @@
 
 //! List of primitives.
 
-use std::{marker};
+use core::{marker};
 
 use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
@@ -139,7 +139,7 @@ impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     }
 }
 
-impl <'a, T> ::std::iter::IntoIterator for Reader<'a, T>
+impl <'a, T> ::core::iter::IntoIterator for Reader<'a, T>
     where T: PrimitiveElement
 {
     type Item = T;

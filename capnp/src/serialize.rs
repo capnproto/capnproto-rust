@@ -23,8 +23,9 @@
 //! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream),
 //! where each message is preceded by a segment table indicating the size of its segments.
 
-use std::convert::TryInto;
-use std::io::{Read, Write};
+use alloc::vec::Vec;
+use core::convert::TryInto;
+use crate::io::{Read, Write};
 
 use crate::message;
 use crate::private::units::BYTES_PER_WORD;
@@ -91,14 +92,14 @@ pub struct OwnedSegments {
     owned_space: Vec<crate::Word>,
 }
 
-impl std::ops::Deref for OwnedSegments {
+impl core::ops::Deref for OwnedSegments {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
         crate::Word::words_to_bytes(&self.owned_space[..])
     }
 }
 
-impl std::ops::DerefMut for OwnedSegments {
+impl core::ops::DerefMut for OwnedSegments {
     fn deref_mut(&mut self) -> &mut [u8] {
         crate::Word::words_to_bytes_mut(&mut self.owned_space[..])
     }
@@ -286,20 +287,20 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8
 ///
 /// For optimal performance, `write` should be a buffered writer. `flush` will not be called on
 /// the writer.
-pub fn write_message<W, A>(write: &mut W, message: &message::Builder<A>) -> ::std::io::Result<()>
+pub fn write_message<W, A>(mut write: W, message: &message::Builder<A>) -> Result<()>
  where W: Write, A: message::Allocator {
     let segments = message.get_segments_for_output();
-    write_segment_table(write, &segments)?;
-    write_segments(write, &segments)
+    write_segment_table(&mut write, &segments)?;
+    write_segments(&mut write, &segments)
 }
 
-pub fn write_message_segments<W, R>(write: &mut W, segments: &R) -> ::std::io::Result<()>
+pub fn write_message_segments<W, R>(mut write: W, segments: &R) -> Result<()>
  where W: Write, R: message::ReaderSegments {
-    write_segment_table_internal(write, segments)?;
-    write_segments(write, segments)
+    write_segment_table_internal(&mut write, segments)?;
+    write_segments(&mut write, segments)
 }
 
-fn write_segment_table<W>(write: &mut W, segments: &[&[u8]]) -> ::std::io::Result<()>
+fn write_segment_table<W>(write: &mut W, segments: &[&[u8]]) -> Result<()>
 where W: Write {
     write_segment_table_internal(write, segments)
 }
@@ -307,7 +308,7 @@ where W: Write {
 /// Writes a segment table to `write`.
 ///
 /// `segments` must contain at least one segment.
-fn write_segment_table_internal<W, R>(write: &mut W, segments: &R) -> ::std::io::Result<()>
+fn write_segment_table_internal<W, R>(write: &mut W, segments: &R) -> Result<()>
 where W: Write, R: message::ReaderSegments + ?Sized {
     let mut buf: [u8; 8] = [0; 8];
     let segment_count = segments.len();
@@ -343,7 +344,7 @@ where W: Write, R: message::ReaderSegments + ?Sized {
 }
 
 /// Writes segments to `write`.
-fn write_segments<W, R: message::ReaderSegments + ?Sized>(write: &mut W, segments: &R) -> ::std::io::Result<()>
+fn write_segments<W, R: message::ReaderSegments + ?Sized>(write: &mut W, segments: &R) -> Result<()>
 where W: Write {
     for i in 0.. {
         if let Some(segment) = segments.get_segment(i) {
@@ -375,7 +376,9 @@ pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>)
 
 #[cfg(test)]
 pub mod test {
-    use std::io::Write;
+    use alloc::vec::Vec;
+
+    use crate::io::Write;
 
     use quickcheck::{quickcheck, TestResult};
 

@@ -116,11 +116,11 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             }).collect::<Vec<String>>().join(", ") + " ");
             let phantom_data_type = if params.len() == 1 {
                 // omit parens to avoid linter error
-                format!("_phantom: ::std::marker::PhantomData<{}>", type_parameters)
+                format!("_phantom: ::core::marker::PhantomData<{}>", type_parameters)
             } else {
-                format!("_phantom: ::std::marker::PhantomData<({})>", type_parameters)
+                format!("_phantom: ::core::marker::PhantomData<({})>", type_parameters)
             };
-            let phantom_data_value = "_phantom: ::std::marker::PhantomData,".to_string();
+            let phantom_data_value = "_phantom: ::core::marker::PhantomData,".to_string();
 
             TypeParameterTexts {
                 expanded_list: params,

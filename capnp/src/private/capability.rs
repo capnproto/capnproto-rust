@@ -19,6 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
 use crate::any_pointer;
 use crate::MessageSize;
 use crate::capability::{Params, Promise, Request, RemotePromise, Results};
@@ -87,15 +90,15 @@ pub trait ParamsHook {
 
 // Where should this live?
 pub fn internal_get_typed_params<T>(typeless: Params<any_pointer::Owned>) -> Params<T> {
-    Params { hook: typeless.hook, marker: ::std::marker::PhantomData }
+    Params { hook: typeless.hook, marker: ::core::marker::PhantomData }
 }
 
 pub fn internal_get_typed_results<T>(typeless: Results<any_pointer::Owned>) -> Results<T> {
-    Results { hook: typeless.hook, marker: ::std::marker::PhantomData }
+    Results { hook: typeless.hook, marker: ::core::marker::PhantomData }
 }
 
 pub fn internal_get_untyped_results<T>(typeful: Results<T>) -> Results<any_pointer::Owned> {
-    Results { hook: typeful.hook, marker: ::std::marker::PhantomData }
+    Results { hook: typeful.hook, marker: ::core::marker::PhantomData }
 }
 
 pub trait PipelineHook {

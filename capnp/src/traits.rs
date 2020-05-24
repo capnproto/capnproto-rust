@@ -23,7 +23,7 @@ use crate::{Result};
 use crate::private::layout::{CapTable, ListReader, StructReader, StructBuilder, StructSize,
                              PointerBuilder, PointerReader};
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 pub trait FromStructReader<'a> {
     fn new(reader: StructReader<'a>) -> Self;
@@ -100,7 +100,7 @@ pub trait ToU16 {
 }
 
 pub trait FromU16 : Sized {
-    fn from_u16(value: u16) -> ::std::result::Result<Self, crate::NotInSchema>;
+    fn from_u16(value: u16) -> ::core::result::Result<Self, crate::NotInSchema>;
 }
 
 pub trait IndexMove<I, T> {
@@ -120,9 +120,9 @@ impl <T, U> ListIter<T, U>{
     }
 }
 
-impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
+impl <U, T : IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
     type Item = U;
-    fn next(&mut self) -> ::std::option::Option<U> {
+    fn next(&mut self) -> ::core::option::Option<U> {
         if self.index < self.size {
             let result = self.list.index_move(self.index);
             self.index += 1;
@@ -149,14 +149,14 @@ impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
     }
 }
 
-impl <U, T: IndexMove<u32, U>> ::std::iter::ExactSizeIterator for ListIter<T, U>{
+impl <U, T: IndexMove<u32, U>> ::core::iter::ExactSizeIterator for ListIter<T, U>{
     fn len(&self) -> usize{
         self.size as usize
     }
 }
 
-impl <U, T: IndexMove<u32, U>> ::std::iter::DoubleEndedIterator for ListIter<T, U>{
-    fn next_back(&mut self) -> ::std::option::Option<U> {
+impl <U, T: IndexMove<u32, U>> ::core::iter::DoubleEndedIterator for ListIter<T, U>{
+    fn next_back(&mut self) -> ::core::option::Option<U> {
         if self.size > self.index {
             self.size -= 1;
             Some(self.list.index_move(self.size))
