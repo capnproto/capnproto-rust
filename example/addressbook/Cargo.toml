@@ -3,6 +3,7 @@
 name = "addressbook"
 version = "0.0.0"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>"  ]
+edition = "2018"
 build = "build.rs"
 
 [[bin]]

@@ -19,15 +19,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate capnp;
-extern crate core;
-
 pub mod addressbook_capnp {
   include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }
 
 pub mod addressbook {
-    use addressbook_capnp::{address_book, person};
+    use crate::addressbook_capnp::{address_book, person};
     use capnp::serialize_packed;
 
     pub fn write_address_book() -> ::capnp::Result<()> {
