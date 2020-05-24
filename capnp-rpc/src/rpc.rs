@@ -359,7 +359,6 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
     Error { description: format!("remote exception: {}", reason), kind: kind }
 }
 
-
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
     weak_state: Weak<ConnectionState<VatId>>,
 }

@@ -1630,7 +1630,7 @@ fn generate_node(gen: &GeneratorContext,
                     let the_mod = gen.scope_map[&type_id].join("::");
 
                     base_dispatch_arms.push(Line(format!(
-                        "0x{:x} => {}::dispatch_call_internal(&mut *self.server, method_id, params, results),",
+                        "0x{:x} => {}::dispatch_call_internal(&mut self.server, method_id, params, results),",
                         type_id,
                         do_branding(
                             gen, type_id, brand, Leaf::ServerDispatch, the_mod.clone(), None)?)));
@@ -1744,7 +1744,7 @@ fn generate_node(gen: &GeneratorContext,
                                           Line("}".to_string()))));
 
             mod_interior.push(Branch(vec!(Line(format!("pub struct ServerDispatch<_T,{}> {{", params.params)),
-                                          Indent(Box::new(Line("pub server: Box<_T>,".to_string()))),
+                                          Indent(Box::new(Line("pub server: _T,".to_string()))),
                                           Indent(Box::new(Branch(if is_generic {
                                             vec!(Line(params.phantom_data_type.clone())) } else { vec!() } ))),
                                           Line("}".to_string()))));
@@ -1756,7 +1756,7 @@ fn generate_node(gen: &GeneratorContext,
                 Indent(Box::new(Branch(vec![
                     Line(format!("type Dispatch = ServerDispatch<_S, {}>;", params.params)),
                     Line(format!("fn from_server(s: _S) -> ServerDispatch<_S, {}> {{", params.params)),
-                    Indent(Box::new(Line(format!("ServerDispatch {{ server: ::capnp::private::new_box(s), {} }}", params.phantom_data_value)))),
+                    Indent(Box::new(Line(format!("ServerDispatch {{ server: s, {} }}", params.phantom_data_value)))),
                     Line("}".to_string()),
                 ]))),
                 Line("}".to_string()),
@@ -1795,7 +1795,7 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::Promise<(), ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match interface_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(
-                        Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<_T, {}>::dispatch_call_internal(&mut *self.server, method_id, params, results),",params.params)))))))),
+                        Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<_T, {}>::dispatch_call_internal(&mut self.server, method_id, params, results),",params.params)))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(base_dispatch_arms))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"Method not implemented.\".to_string())) }".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),

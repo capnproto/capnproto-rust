@@ -31,12 +31,6 @@ mod mask;
 pub mod units;
 mod zero;
 
-/// Creates a new Box<T>. Generated code uses this function to avoid the
-/// need to directly refer to the alloc crate, which requires an `extern crate alloc`.
-pub fn new_box<T>(x: T) -> alloc::boxed::Box<T> {
-    alloc::boxed::Box::new(x)
-}
-
 #[cfg(test)]
 mod layout_test;
 
