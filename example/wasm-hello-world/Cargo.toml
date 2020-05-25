@@ -1,0 +1,18 @@
+[package]
+name = "wasm-hello-world"
+version = "0.1.0"
+edition = "2018"
+build = "build.rs"
+
+# Avoid getting picked up by parent workspaces.
+[workspace]
+members = ["."]
+
+[dependencies]
+wasmer-runtime = "0.16.0"
+
+[dependencies.capnp]
+path = "../../capnp"
+
+[build-dependencies.capnpc]
+path = "../../capnpc"

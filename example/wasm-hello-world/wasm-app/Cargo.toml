@@ -1,0 +1,20 @@
+[package]
+name = "wasm-app"
+version = "0.1.0"
+edition = "2018"
+build = "build.rs"
+
+# Avoid getting picked up by parent workspaces.
+[workspace]
+members = ["."]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies.capnp]
+path = "../../../capnp"
+default-features = false
+features = ["unaligned"]
+
+[build-dependencies.capnpc]
+path = "../../../capnpc"
