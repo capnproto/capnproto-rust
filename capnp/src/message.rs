@@ -263,8 +263,11 @@ impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
 pub unsafe trait Allocator {
     /// Allocates zeroed memory for a new segment, returning a pointer to the start of the segment
-    /// and a u32 indicating the length of the segment (in words). The allocated segment must be
-    /// at least `minimum_size` words long.
+    /// and a u32 indicating the length of the segment in words. The allocated segment must be
+    /// at least `minimum_size` words long (`minimum_size * 8` bytes long). Allocators commonly
+    /// allocate much more than the minimum, to reduce the total number of segments needed. A
+    /// reasonable strategy is to allocate the maximum of `minimum_size` and twice the size of the
+    /// previous segment.
     ///
     /// UNSAFETY ALERT: Implementors must ensure all of the following:
     ///     1. the returned memory is initialized to all zeroes,
