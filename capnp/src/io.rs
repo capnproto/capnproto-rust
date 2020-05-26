@@ -113,13 +113,12 @@ mod no_std_impls {
 
     impl <'a> Read for &'a [u8] {
         fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-            if buf.len() > self.len() {
-                return Err(Error::failed("buffer is not large enough".to_string()));
-            }
-            let (a, b) = self.split_at(buf.len());
-            buf.copy_from_slice(a);
+            let amt = core::cmp::min(buf.len(), self.len());
+            let (a, b) = self.split_at(amt);
+
+            buf[..amt].copy_from_slice(a);
             *self = b;
-            Ok(buf.len())
+            Ok(amt)
         }
     }
 

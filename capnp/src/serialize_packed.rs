@@ -206,6 +206,16 @@ pub fn read_message<R>(read: R,
     serialize::read_message(packed_read, options)
 }
 
+/// Like read_message(), but returns None instead of an error if there are zero bytes left in `read`.
+pub fn try_read_message<R>(read: R,
+                           options: message::ReaderOptions)
+                           -> Result<Option<crate::message::Reader<serialize::OwnedSegments>>>
+    where R: BufRead
+{
+    let packed_read = PackedRead { inner: read };
+    serialize::try_read_message(packed_read, options)
+}
+
 struct PackedWrite<W> where W: Write {
     inner: W,
 }
