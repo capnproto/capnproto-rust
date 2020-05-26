@@ -1919,8 +1919,14 @@ struct ReadWrapper<R> where R: std::io::Read {
 }
 
 impl <R> capnp::io::Read for ReadWrapper<R> where R: std::io::Read {
-    fn read_exact(&mut self, buf: &mut [u8]) -> capnp::Result<()> {
-        std::io::Read::read_exact(&mut self.inner, buf).map_err(convert_io_err)
+    fn read(&mut self, buf: &mut [u8]) -> capnp::Result<usize> {
+        loop {
+            match std::io::Read::read(&mut self.inner, buf) {
+                Ok(n) => return Ok(n),
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                Err(e) => return Err(convert_io_err(e)),
+            }
+        }
     }
 }
 

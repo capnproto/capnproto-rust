@@ -64,10 +64,9 @@ macro_rules! refresh_buffer(
     );
 
 impl <R> Read for PackedRead<R> where R: BufRead {
-    fn read_exact(&mut self, out_buf: &mut [u8]) -> Result<()> {
+    fn read(&mut self, out_buf: &mut [u8]) -> Result<usize> {
         let len = out_buf.len();
-
-        if len == 0 { return Ok(()); }
+        if len == 0 { return Ok(0); }
 
         assert!(len % 8 == 0, "PackedRead reads must be word-aligned.");
 
@@ -79,11 +78,10 @@ impl <R> Read for PackedRead<R> where R: BufRead {
             let mut buffer_begin = in_ptr;
             let mut size = ptr_sub(in_end, in_ptr);
             if size == 0 {
-                return Ok(());
+                return Ok(0);
             }
 
             loop {
-
                 let tag: u8;
 
                 assert_eq!(ptr_sub(out, out_buf.as_mut_ptr()) % 8, 0,
@@ -177,7 +175,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                         out = out.offset(run_length as isize);
 
                         if out == out_end {
-                            return Ok(());
+                            return Ok(len);
                         } else {
                             let (b, e) = self.get_read_buffer()?;
                             in_ptr = b;
@@ -191,7 +189,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
                 if out == out_end {
                     self.inner.consume(ptr_sub(in_ptr, buffer_begin));
-                    return Ok(());
+                    return Ok(len);
                 }
             }
         }
@@ -365,6 +363,15 @@ mod tests {
     use crate::serialize::test::write_message_segments;
     use crate::serialize_packed::{PackedRead, PackedWrite};
     use super::read_message;
+
+    #[test]
+    pub fn premature_eof() {
+        let input_bytes: &[u8] = &[];
+        let mut packed_read = PackedRead { inner: input_bytes };
+
+        let mut output_bytes: Vec<u8> = vec![0; 8];
+        assert!(packed_read.read_exact(&mut output_bytes[..]).is_err());
+    }
 
     pub fn check_unpacks_to(packed: &[u8], unpacked: &[u8]) {
         let mut packed_read = PackedRead { inner: packed };

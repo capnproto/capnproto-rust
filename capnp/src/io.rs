@@ -1,17 +1,46 @@
 //! Custom I/O traits that roughly mirror `std::io::{Read, BufRead, Write}`.
 //! This extra layer of indirection enables support of no-std environments.
 
+use alloc::string::ToString;
+
 use crate::Result;
 
+/// A rough approximation of std::io::Read.
 pub trait Read {
-    fn read_exact(&mut self, buf: &mut [u8]) -> Result<()>;
+    /// Attempts to read some bytes into `buf` and returns the number of bytes read.
+    /// A return value of Ok(0) means that the end of the stream was reached.
+    ///
+    /// Unlike with std::io::Read, implementations are expected to handle EINTR
+    /// (i.e. std::io::ErrorKind::Interrupted) internally, by looping until either success
+    /// is achieved or some other error is hit.
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize>;
+
+    fn read_exact(&mut self, mut buf: &mut [u8]) -> Result<()> {
+        while !buf.is_empty() {
+            match self.read(buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    let tmp = buf;
+                    buf = &mut tmp[n..];
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+        if !buf.is_empty() {
+            Err(crate::Error::failed("failed to fill the whole buffer".to_string()))
+        } else {
+            Ok(())
+        }
+    }
 }
 
+/// A rough approximation of std::io::BufRead.
 pub trait BufRead : Read {
     fn fill_buf(&mut self) -> Result<&[u8]>;
     fn consume(&mut self, amt: usize);
 }
 
+/// A rough approximation of std::io::Write.
 pub trait Write {
     fn write_all(&mut self, buf: &[u8]) -> Result<()>;
 }
@@ -22,9 +51,14 @@ mod std_impls {
     use crate::io::{Read, BufRead, Write};
 
     impl <R> Read for R where R: std::io::Read {
-        fn read_exact(&mut self, buf: &mut [u8]) -> Result<()> {
-            std::io::Read::read_exact(self, buf)?;
-            Ok(())
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+            loop {
+                match std::io::Read::read(self, buf) {
+                    Ok(n) => return Ok(n),
+                    Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                    Err(e) => return Err(e.into()),
+                }
+            }
         }
     }
 
@@ -78,20 +112,20 @@ mod no_std_impls {
     }
 
     impl <'a> Read for &'a [u8] {
-        fn read_exact(&mut self, buf: &mut [u8]) -> Result<()> {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
             if buf.len() > self.len() {
                 return Err(Error::failed("buffer is not large enough".to_string()));
             }
             let (a, b) = self.split_at(buf.len());
             buf.copy_from_slice(a);
             *self = b;
-            Ok(())
+            Ok(buf.len())
         }
     }
 
     impl <R: ?Sized> Read for &mut R where R: Read {
-        fn read_exact(&mut self, buf: &mut [u8]) -> Result<()> {
-            (**self).read_exact(buf)
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+            (**self).read(buf)
         }
     }
 
