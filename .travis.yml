@@ -3,10 +3,10 @@ sudo: false
 language: rust
 matrix:
   include:
-    #- rust: stable
+    - rust: stable
     - rust: beta
     - rust: nightly
-    #- rust: 1.44.0
+    - rust: 1.44.0
 env:
   global:
     - export PATH="$PATH:$HOME/bin"
