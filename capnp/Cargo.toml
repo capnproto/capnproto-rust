@@ -33,5 +33,7 @@ rpc_try = []
 # This has a performance cost on some targets (e.g. ARMv6).
 unaligned = []
 
+# If disabled, turns on no_std, which tells rustc to not link
+# with the Rust standard library.
 std = []
 
