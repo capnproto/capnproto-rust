@@ -54,8 +54,12 @@ continue to work without being altered:
 ```rust
 #[cfg(feature="std")]
 mod std_impls {
-  impl <R> crate::io::Read for R where R: std::io::Read { ... }
-  impl <W> crate::io::Write for W where W: std::io::Write { ... }
+  impl <R: std::io::Read> crate::io::Read for R {
+    ...
+  }
+  impl <W: std::io::Write> crate::io::Write for W {
+    ...
+  }
 }
 ```
 
