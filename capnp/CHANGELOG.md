@@ -1,3 +1,9 @@
+## v0.13.0
+- Add no_std support, via a new "std" feature flag.
+- Simplify `message::Allocator` trait and `ScratchSpaceHeapAllocator`.
+- Add `serialize.try_read_message()` and `serialize_packed::try_read_message()`.
+- Remove deprecated `ServerHook` trait.
+
 ## v0.12.3
 - Fix bug where ScratchSpaceHeapAllocator returned an incorrect buffer length.
 

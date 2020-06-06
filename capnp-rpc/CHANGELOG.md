@@ -1,3 +1,6 @@
+## v0.13.0
+- Remove deprecated `ServerHook` impl.
+
 ## v0.12.3
 - Expand deprecation note for capnp_rpc::Server.
 

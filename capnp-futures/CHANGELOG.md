@@ -1,3 +1,6 @@
+## v0.13.0
+- Remove some requirements for 'static lifetimes.
+
 ## v0.12.0
 - Use new capnp::serialize::SegmentLengthsBuilder API.
 

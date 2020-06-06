@@ -1,3 +1,8 @@
+### v0.13.0
+- Update to work without requiring "std" feature of capnp base crate.
+- Refer to `core` instead of `std` in generated code.
+- Remove deprecated `ToClient` structs from generated code.
+
 ### v0.12.4
 - Add `CompilerCommand.capnp_executable()`.
 - Remove obsolete `RustEdition` enum.
