@@ -463,6 +463,15 @@ impl <'a> ScratchSpaceHeapAllocator<'a> {
     /// you can call `message::Builder::into_allocator()` to recover the allocator from
     /// the previous message and then pass it into the new message.
     pub fn new(scratch_space: &'a mut [u8]) -> ScratchSpaceHeapAllocator<'a> {
+        #[cfg(not(feature = "unaligned"))]
+        {
+            if scratch_space.as_ptr() as usize % BYTES_PER_WORD != 0 {
+                panic!("Allocator provided unligned segment. You must either ensure all of your \
+                        segments are 8-byte aligned, or you must enable the  \"unaligned\" \
+                        feature in the capnp crate");
+            }
+        }
+
         // We need to ensure that the buffer is zeroed.
         for b in &mut scratch_space[..] {
             *b = 0;
