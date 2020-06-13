@@ -264,9 +264,9 @@ impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
 pub unsafe trait Allocator {
     /// Allocates zeroed memory for a new segment, returning a pointer to the start of the segment
     /// and a u32 indicating the length of the segment in words. The allocated segment must be
-    /// at least `minimum_size` words long (`minimum_size * 8` bytes long). Allocators commonly
-    /// allocate much more than the minimum, to reduce the total number of segments needed. A
-    /// reasonable strategy is to allocate the maximum of `minimum_size` and twice the size of the
+    /// at least `minimum_size` words long (`minimum_size * 8` bytes long). Allocator implementations
+    /// commonly allocate much more than the minimum, to reduce the total number of segments needed.
+    /// A reasonable strategy is to allocate the maximum of `minimum_size` and twice the size of the
     /// previous segment.
     ///
     /// UNSAFETY ALERT: Implementors must ensure all of the following:
@@ -439,7 +439,6 @@ unsafe impl Allocator for HeapAllocator {
             alloc::alloc::dealloc(ptr,
                                   alloc::alloc::Layout::from_size_align(word_size as usize * BYTES_PER_WORD, 8).unwrap());
         }
-        // TODO move this next_size stuff out of what the Allocator trait should be resposible for.
         self.next_size = SUGGESTED_FIRST_SEGMENT_WORDS;
     }
 }
