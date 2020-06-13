@@ -466,8 +466,7 @@ impl <'a> ScratchSpaceHeapAllocator<'a> {
         #[cfg(not(feature = "unaligned"))]
         {
             if scratch_space.as_ptr() as usize % BYTES_PER_WORD != 0 {
-                panic!("Allocator provided unligned segment. You must either ensure all of your \
-                        segments are 8-byte aligned, or you must enable the  \"unaligned\" \
+                panic!("Scratch space must be 8-byte aligned, or you must enable the \"unaligned\" \
                         feature in the capnp crate");
             }
         }

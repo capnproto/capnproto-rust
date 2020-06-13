@@ -95,7 +95,7 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
                     if seg.as_ptr() as usize % BYTES_PER_WORD != 0 {
                         return Err(Error::failed(
                             format!("Detected unaligned segment. You must either ensure all of your \
-                                     segments are 8-byte aligned, or you must enable the  \"unaligned\" \
+                                     segments are 8-byte aligned, or you must enable the \"unaligned\" \
                                      feature in the capnp crate")))
                     }
                 }
