@@ -1,3 +1,6 @@
+## v0.13.1
+- Add alignment check in `ScratchSpaceHeapAllocator::new()`.
+
 ## v0.13.0
 - Add no_std support, via a new "std" feature flag.
 - Simplify `message::Allocator` trait and `ScratchSpaceHeapAllocator`.
