@@ -411,7 +411,7 @@ pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>)
 pub mod test {
     use alloc::vec::Vec;
 
-    use crate::io::Write;
+    use crate::io::{Write, Read};
 
     use quickcheck::{quickcheck, TestResult};
 
@@ -437,7 +437,6 @@ pub mod test {
 
     #[test]
     fn test_read_segment_table() {
-
         let mut buf = vec![];
 
         buf.extend([0,0,0,0, // 1 segments
@@ -492,6 +491,34 @@ pub mod test {
         assert_eq!(200, segment_lengths_builder.total_words());
         assert_eq!(vec![(0,77), (77, 100), (100, 101), (101, 200)], segment_lengths_builder.to_segment_indices());
         buf.clear();
+    }
+
+    struct MaxRead<R> where R: Read {
+        inner: R,
+        max: usize,
+    }
+
+    impl <R> Read for MaxRead<R> where R: Read {
+        fn read(&mut self, buf: &mut [u8]) -> crate::Result<usize> {
+            if buf.len() <= self.max {
+                self.inner.read(buf)
+            } else {
+                self.inner.read(&mut buf[0..self.max])
+            }
+        }
+    }
+
+    #[test]
+    fn test_read_segment_table_max_read() {
+        // Make sure things still work well when we read less than a word at a time.
+        let mut buf: Vec<u8> = vec![];
+        buf.extend([0,0,0,0, // 1 segments
+                    1,0,0,0] // 1 length
+                    .iter().cloned());
+        let segment_lengths_builder = read_segment_table(&mut MaxRead { inner: &buf[..], max: 2},
+                                                         message::ReaderOptions::new()).unwrap().unwrap();
+        assert_eq!(1, segment_lengths_builder.total_words());
+        assert_eq!(vec![(0,1)], segment_lengths_builder.to_segment_indices());
     }
 
     #[test]
