@@ -213,22 +213,16 @@ fn read_segment_table<R>(read: &mut R,
                          -> Result<Option<SegmentLengthsBuilder>>
     where R: Read
 {
-    let mut buf: [u8; 8] = [0; 8];
-
     // read the first Word, which contains segment_count and the 1st segment length
-    let mut read_count = 0;
-    while read_count < 8 {
-        let n = read.read(&mut buf[read_count..])?;
+    let mut buf: [u8; 8] = [0; 8];
+    {
+        let n = read.read(&mut buf[..])?;
         if n == 0 {
-            if read_count == 0 {
-                // clean EOF on message boundary
-                return Ok(None)
-            } else {
-                // EOF in the middle of segment table
-                return Err(Error::failed("Premature end of file".to_string()))
-            }
+            // Clean EOF on message boundary
+            return Ok(None)
+        } else if n < 8 {
+            read.read_exact(&mut buf[n..])?;
         }
-        read_count += n;
     }
 
     let segment_count = u32::from_le_bytes(buf[0..4].try_into().unwrap()).wrapping_add(1) as usize;
