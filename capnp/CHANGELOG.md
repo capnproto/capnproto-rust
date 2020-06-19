@@ -1,3 +1,6 @@
+## v0.13.2
+- Fix bug where `read_segment_table()` wrongly handled short reads.
+
 ## v0.13.1
 - Add alignment check in `ScratchSpaceHeapAllocator::new()`.
 
