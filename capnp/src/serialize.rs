@@ -218,7 +218,7 @@ fn read_segment_table<R>(read: &mut R,
     // read the first Word, which contains segment_count and the 1st segment length
     let mut read_count = 0;
     while read_count < 8 {
-        let n = read.read(&mut buf)?;
+        let n = read.read(&mut buf[read_count..])?;
         if n == 0 {
             if read_count == 0 {
                 // clean EOF on message boundary
