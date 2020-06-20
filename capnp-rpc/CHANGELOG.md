@@ -1,3 +1,6 @@
+## v0.13.1
+- Turn some disconnect panics into error results.
+
 ## v0.13.0
 - Remove deprecated `ServerHook` impl.
 
