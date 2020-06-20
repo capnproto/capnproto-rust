@@ -1211,7 +1211,7 @@ impl <VatId> ConnectionState<VatId> {
                         connection_state.exports_by_cap.borrow_mut().remove(&exp.client_hook.get_ptr());
                         exp.client_hook = resolution.clone();
                     } else {
-                        unreachable!()
+                        return Err(Error::failed("export table entry not found".to_string()));
                     }
 
                     if brand != connection_state.get_brand() {
