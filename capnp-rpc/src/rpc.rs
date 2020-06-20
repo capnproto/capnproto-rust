@@ -422,6 +422,13 @@ impl <VatId> ConnectionState<VatId> {
         (tasks, state)
     }
 
+    fn new_outgoing_message(&self, first_segment_words: u32) -> capnp::Result<Box<dyn crate::OutgoingMessage>> {
+        match self.connection.borrow_mut().as_mut() {
+            Err(e) => Err(e.clone()),
+            Ok(c) => Ok(c.new_outgoing_message(first_segment_words)),
+        }
+    }
+
     fn disconnect(&self, error: ::capnp::Error) {
         if self.connection.borrow().is_err() {
             // Already disconnected.
@@ -611,9 +618,7 @@ impl <VatId> ConnectionState<VatId> {
 
     fn send_unimplemented(connection_state: Rc<ConnectionState<VatId>>,
                           message: Box<dyn crate::IncomingMessage>) -> capnp::Result<()> {
-        let mut out_message = connection_state.connection.borrow_mut().as_mut()
-            .expect("no connection?")
-            .new_outgoing_message(50); // XXX size hint
+        let mut out_message = connection_state.new_outgoing_message(50)?; // XXX size hint
         {
             let mut root: message::Builder = out_message.get_body()?.get_as()?;
             root.set_unimplemented(message.get_body()?.get_as()?)?;
@@ -679,8 +684,7 @@ impl <VatId> ConnectionState<VatId> {
                     return Ok(());
                 }
 
-                let mut response = connection_state.connection.borrow_mut().as_mut().expect("no connection?")
-                    .new_outgoing_message(50); // XXX size hint
+                let mut response = connection_state.new_outgoing_message(50)?; // XXX size hint
 
                 let result_exports = {
                     let mut ret = response.get_body()?.init_as::<message::Builder>().init_return();
@@ -1225,8 +1229,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
 
                     // OK, we have to send a `Resolve` message.
-                    let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
-                        .new_outgoing_message(100); // XXX size hint?
+                    let mut message = connection_state.new_outgoing_message(100)?; // XXX size hint?
                     {
                         let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
@@ -1239,8 +1242,7 @@ impl <VatId> ConnectionState<VatId> {
                 }
                 Err(e) => {
                     // send error resolution
-                    let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
-                        .new_outgoing_message(100); // XXX size hint?
+                    let mut message = connection_state.new_outgoing_message(100)?; // XXX size hint?
                     {
                         let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
@@ -1619,10 +1621,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
            _size_hint: Option<::capnp::MessageSize>,
            target: Client<VatId>) -> ::capnp::Result<Request<VatId>> {
 
-        let message = match connection_state.connection.borrow_mut().as_mut() {
-            Ok(ref mut c) => c.new_outgoing_message(100),
-            Err(e) => return Err(e.clone()),
-        };
+        let message = connection_state.new_outgoing_message(100)?;
         Ok(Request {
             connection_state: connection_state,
             target: target,
@@ -2097,8 +2096,7 @@ impl <VatId> ResultsHook for Results<VatId> {
                 // optimize out the return trip.
                 if let Some((question_id, promise, pipeline)) = request.tail_send() {
 
-                    let mut message = state.connection.borrow_mut().as_mut().expect("not connected?")
-                        .new_outgoing_message(100); // size hint?
+                    let mut message = state.new_outgoing_message(100).expect("no connection?"); // size hint?
 
                     {
                         let root: message::Builder = message.get_body().unwrap().init_as();
@@ -2512,8 +2510,7 @@ impl <VatId> PromiseClient<VatId> {
             let embargo = Embargo::new(fulfiller);
             let embargo_id = connection_state.embargoes.borrow_mut().push(embargo);
 
-            let mut message = connection_state.connection.borrow_mut().as_mut().expect("no connection?")
-                .new_outgoing_message(50); // XXX size hint
+            let mut message = connection_state.new_outgoing_message(50).expect("no connection?"); // XXX size hint
             {
                 let root: message::Builder = message.get_body().unwrap().init_as();
                 let mut disembargo = root.init_disembargo();

@@ -190,8 +190,14 @@ fn rpc_top_level<F, G>(main: F)
     let client: test_capnp::bootstrap::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
     async_std::task::block_on(async move {
+        let disconnector = rpc_system.get_disconnector();
         spawn(rpc_system);
         main(client).await.unwrap();
+
+        // Need to explicitly disconnect. Otherwise the spawned task will stick around.
+        // If we were using tokio::task::LocalSet, this would not be necessary, as dropping
+        // the LocalSet would drop all tasks spawned to it.
+        disconnector.await.unwrap();
     });
     join_handle.join().expect("thread exited unsuccessfully");
 }

@@ -20,6 +20,5 @@ path = "../"
 [dependencies]
 capnp = { path = "../../capnp" }
 futures = "0.3.0"
-async-std = { version = "=1.6.0", features = ["unstable"] }
-smol = "=0.1.10"
+async-std = { version = "1.6.0", features = ["unstable"] }
 
