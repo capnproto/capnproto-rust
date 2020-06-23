@@ -109,6 +109,16 @@ pub trait ReaderSegments {
     }
 }
 
+impl <S> ReaderSegments for &S where S: ReaderSegments {
+    fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [u8]> {
+        (**self).get_segment(idx)
+    }
+
+    fn len(&self) -> usize {
+        (**self).len()
+    }
+}
+
 /// An array of segments.
 pub struct SegmentArray<'a> {
     segments: &'a [&'a [u8]],
