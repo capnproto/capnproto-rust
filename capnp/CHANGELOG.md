@@ -1,3 +1,6 @@
+## v0.13.3
+- Add `impl <S> ReaderSegments for &S where S: ReaderSegments`.
+
 ## v0.13.2
 - Fix bug where `read_segment_table()` wrongly handled short reads.
 
