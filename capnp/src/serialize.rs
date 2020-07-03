@@ -276,13 +276,15 @@ where R: Read {
     Ok(crate::message::Reader::new(owned_segments, options))
 }
 
-/// Constructs a flat vector containing the entire message.
+/// Constructs a flat vector containing the entire message, including a segment header.
 pub fn write_message_to_words<A>(message: &message::Builder<A>) -> Vec<u8>
     where A: message::Allocator
 {
     flatten_segments(&*message.get_segments_for_output())
 }
 
+/// Like `write_message_to_words()`, but takes a `ReaderSegments`, allowing it to be
+/// used on `message::Reader` objects (via `into_segments()`).
 pub fn write_message_segments_to_words<R>(message: &R) -> Vec<u8>
     where R: message::ReaderSegments
 {
@@ -321,6 +323,8 @@ pub fn write_message<W, A>(mut write: W, message: &message::Builder<A>) -> Resul
     write_segments(&mut write, &segments)
 }
 
+/// Like `write_message()`, but takes a `ReaderSegments`, allowing it to be
+/// used on `message::Reader` objects (via `into_segments()`).
 pub fn write_message_segments<W, R>(mut write: W, segments: &R) -> Result<()>
  where W: Write, R: message::ReaderSegments {
     write_segment_table_internal(&mut write, segments)?;
