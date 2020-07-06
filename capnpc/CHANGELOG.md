@@ -1,3 +1,6 @@
+### v0.13.1
+- Fix some more clippy warnings in generated code.
+
 ### v0.13.0
 - Update to work without requiring "std" feature of capnp base crate.
 - Refer to `core` instead of `std` in generated code.
