@@ -1333,7 +1333,7 @@ fn generate_node(gen: &GeneratorContext,
                 Indent(
                     Box::new(Branch(vec!(
                         Line(format!("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,{}> {{", params.params)),
-                        Indent(Box::new(Line(format!("Reader {{ reader: reader, {} }}", params.phantom_data_value)))),
+                        Indent(Box::new(Line(format!("Reader {{ reader, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1404,7 +1404,7 @@ fn generate_node(gen: &GeneratorContext,
                 Indent(
                     Box::new(Branch(vec!(
                         Line(format!("fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, {}> {{", params.params)),
-                        Indent(Box::new(Line(format!("Builder {{ builder: builder, {} }}", params.phantom_data_value)))),
+                        Indent(Box::new(Line(format!("Builder {{ builder, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
