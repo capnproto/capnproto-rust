@@ -18,11 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use core::pin::Pin;
+use core::task::{Context, Poll};
+use alloc::boxed::Box;
+
 use futures::future::Future;
 use futures::stream::Stream;
-use futures::{AsyncRead};
+use crate::async_io::AsyncRead;
+// use futures::{AsyncRead};
 
 use capnp::{Error, message};
 

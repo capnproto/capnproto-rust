@@ -32,7 +32,8 @@ use futures::{future, Future, FutureExt, TryFutureExt};
 use futures::channel::oneshot;
 
 use std::vec::Vec;
-use std::collections::hash_map::HashMap;
+// use std::collections::hash_map::HashMap;
+use alloc::collections::BTreeMap as HashMap;
 use std::collections::binary_heap::BinaryHeap;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};

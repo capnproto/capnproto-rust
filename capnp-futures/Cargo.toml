@@ -11,19 +11,29 @@ edition = "2018"
 
 keywords = ["async"]
 
-[dependencies]
-capnp = { version = "0.13.0", path = "../capnp" }
+[dependencies.capnp]
+version = "0.13.0"
+path = "../capnp"
+default-features = false
 
 [dependencies.futures]
 version = "0.3.0"
 default-features = false
-features = ["std", "executor"]
+features = ["alloc"]
 
 [dev-dependencies.futures]
 version = "0.3.0"
 default-features = false
-features = ["executor"]
 
-[dev-dependencies]
-capnp = { version = "0.13.0", path = "../capnp", features = ["quickcheck"] }
-quickcheck = "0.9"
+[dev-dependencies.capnp]
+version = "0.13.0"
+path = "../capnp"
+default-features = false
+
+#[dev-dependencies]
+#capnp = { version = "0.13.0", path = "../capnp", features = ["quickcheck"] }
+#quickcheck = "0.9"
+
+[features]
+default = ["std"]
+std = ["futures/std", "futures/executor", "capnp/std"]

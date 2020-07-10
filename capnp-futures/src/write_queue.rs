@@ -20,11 +20,12 @@
 
 use futures::future::Future;
 use futures::channel::oneshot;
-use futures::{AsyncWrite, AsyncWriteExt, StreamExt, TryFutureExt};
+use futures::{StreamExt, TryFutureExt};
+use crate::async_io::{AsyncWrite, AsyncWriteExt};
 
-use capnp::{Error};
+use capnp::Error;
 
-use crate::serialize::{AsOutputSegments};
+use crate::serialize::AsOutputSegments;
 
 enum Item<M> where M: AsOutputSegments {
     Message(M, oneshot::Sender<M>),

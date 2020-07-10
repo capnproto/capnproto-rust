@@ -21,8 +21,17 @@ path = "src/lib.rs"
 [dependencies.futures]
 version = "0.3.0"
 default-features = false
-features = ["std"]
 
-[dependencies]
-capnp-futures = { version = "0.13.0", path = "../capnp-futures" }
-capnp = {version = "0.13.0", path = "../capnp"}
+[dependencies.capnp]
+version = "0.13.0"
+path = "../capnp"
+default-features = false
+
+[dependencies.capnp-futures]
+version = "0.13.0"
+path = "../capnp-futures"
+default-features = false
+
+[features]
+default = ["std"]
+std = ["futures/std", "capnp/std", "capnp-futures/std"]

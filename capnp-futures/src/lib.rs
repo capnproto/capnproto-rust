@@ -18,6 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[macro_use]
+extern crate alloc;
 extern crate futures;
 
 pub use read_stream::ReadStream;
@@ -26,3 +30,4 @@ pub use write_queue::{write_queue, Sender};
 pub mod serialize;
 mod read_stream;
 mod write_queue;
+pub mod async_io;

@@ -21,12 +21,12 @@
 //! Asynchronous reading and writing of messages using the
 //! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream).
 
-use std::convert::TryInto;
+use core::convert::TryInto;
 
 use capnp::{message, Error, Result, OutputSegments};
 use capnp::serialize::{OwnedSegments, SegmentLengthsBuilder};
 
-use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use crate::async_io::{AsyncRead, AsyncWrite, AsyncReadExt, AsyncWriteExt};
 
 /// Begins an asynchronous read of a message from `reader`.
 pub async fn read_message<R>(mut reader: R, options: message::ReaderOptions) -> Result<Option<message::Reader<OwnedSegments>>>
@@ -144,7 +144,7 @@ impl <A> AsOutputSegments for message::Builder<A> where A: message::Allocator {
     }
 }*/
 
-impl <A> AsOutputSegments for ::std::rc::Rc<message::Builder<A>> where A: message::Allocator {
+impl <A> AsOutputSegments for alloc::rc::Rc<message::Builder<A>> where A: message::Allocator {
     fn as_output_segments<'a>(&'a self) -> OutputSegments<'a> {
         self.get_segments_for_output()
     }
@@ -160,7 +160,7 @@ pub async fn write_message<W,M>(mut writer: W, message: M) -> Result<()>
     Ok(())
 }
 
-async fn write_segment_table<W>(mut write: W, segments: &[&[u8]]) -> ::std::io::Result<()>
+async fn write_segment_table<W>(mut write: W, segments: &[&[u8]]) -> capnp::Result<()>
     where W: AsyncWrite + Unpin
 {
     let mut buf: [u8; 8] = [0; 8];
@@ -215,7 +215,8 @@ pub mod test {
     use std::pin::Pin;
     use std::task::{Context, Poll};
 
-    use futures::{AsyncRead, AsyncWrite};
+    // use futures::{AsyncRead, AsyncWrite};
+    use crate::async_io::{AsyncRead, AsyncWrite};
     use futures::io::Cursor;
 
     use quickcheck::{quickcheck, TestResult};
