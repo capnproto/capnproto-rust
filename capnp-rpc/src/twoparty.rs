@@ -140,7 +140,7 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
     }
 
     fn receive_incoming_message(&mut self) -> Promise<Option<Box<dyn crate::IncomingMessage + 'static>>, ::capnp::Error> {
-        let mut inner = self.inner.borrow_mut();
+        let inner = self.inner.borrow_mut();
         let maybe_input_stream = ::std::mem::replace(&mut *inner.input_stream.borrow_mut(), None);
         let return_it_here = inner.input_stream.clone();
         match maybe_input_stream {
