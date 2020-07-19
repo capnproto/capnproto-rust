@@ -209,7 +209,7 @@ impl RequestHook for Request {
     fn get_brand(&self) -> usize {
         0
     }
-    fn send<'a>(self: Box<Self>) -> capability::RemotePromise<any_pointer::Owned> {
+    fn send(self: Box<Self>) -> capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let Request { message, cap_table, interface_id, method_id, client } = tmp;
         let params = Params::new(message, cap_table);

@@ -1691,7 +1691,7 @@ impl <VatId> RequestHook for Request<VatId> {
     fn get_brand<'a>(&self) -> usize {
         self.connection_state.get_brand()
     }
-    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
+    fn send(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let Request { connection_state, target, mut message, cap_table } = tmp;
         let write_target_result = {

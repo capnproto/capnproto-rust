@@ -70,7 +70,7 @@ impl RequestHook for Request {
     fn get_brand(&self) -> usize {
         0
     }
-    fn send<'a>(self: Box<Self>) -> RemotePromise<any_pointer::Owned> {
+    fn send(self: Box<Self>) -> RemotePromise<any_pointer::Owned> {
         let pipeline = Pipeline::new(self.error.clone());
         RemotePromise {
             promise: Promise::err(self.error),
