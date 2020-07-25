@@ -165,7 +165,7 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
     }
 }
 
-/// A vat networks with two parties, the client and the server.
+/// A vat network with two parties, the client and the server.
 pub struct VatNetwork<T> where T: AsyncRead + 'static + Unpin {
     connection: Option<Connection<T>>,
 
