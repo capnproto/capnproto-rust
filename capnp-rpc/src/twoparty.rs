@@ -23,7 +23,8 @@
 
 use capnp::message::ReaderOptions;
 use capnp::capability::Promise;
-use futures::{AsyncRead, AsyncWrite, FutureExt, TryFutureExt};
+use futures::{FutureExt, TryFutureExt};
+use capnp_futures::async_io::{AsyncRead, AsyncWrite};
 use futures::channel::oneshot;
 
 use std::cell::RefCell;

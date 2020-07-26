@@ -14,7 +14,6 @@ readme = "README.md"
 keywords = ["encoding", "protocol", "serialization"]
 
 [lib]
-
 name = "capnp"
 path = "src/lib.rs"
 

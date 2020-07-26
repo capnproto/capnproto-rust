@@ -58,20 +58,23 @@
 //!
 //! For a more complete example, see https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator
 
+#![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate capnp;
 extern crate capnp_futures;
 extern crate futures;
+extern crate alloc;
 
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use core::pin::Pin;
+use core::task::{Context, Poll};
+use core::cell::{RefCell};
+use alloc::rc::Rc;
+
 use futures::{Future, FutureExt, TryFutureExt};
 use futures::channel::oneshot;
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook};
-use std::cell::{RefCell};
-use std::rc::{Rc};
 
 use crate::task_set::TaskSet;
 pub use crate::rpc::Disconnector;
@@ -92,9 +95,9 @@ pub mod rpc_twoparty_capnp;
 macro_rules! pry {
     ($expr:expr) => (
         match $expr {
-            ::std::result::Result::Ok(val) => val,
-            ::std::result::Result::Err(err) => {
-                return ::capnp::capability::Promise::err(::std::convert::From::from(err))
+            ::core::result::Result::Ok(val) => val,
+            ::core::result::Result::Err(err) => {
+                return ::capnp::capability::Promise::err(::core::convert::From::from(err))
             }
         })
 }
