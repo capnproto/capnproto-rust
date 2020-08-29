@@ -401,14 +401,21 @@ impl <A> ReaderSegments for Builder<A> where A: Allocator {
 /// Standard segment allocator. Allocates each segment via `alloc::alloc::alloc_zeroed()`.
 #[derive(Debug)]
 pub struct HeapAllocator {
+    // Minimum number of words in the next allocation.
     next_size: u32,
+
+    // How to update next_size after an allocation.
     allocation_strategy: AllocationStrategy,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub enum AllocationStrategy {
+    /// Allocates the same number of words for each segment, to the extent possible.
+    /// This strategy is primarily useful for testing cross-segment pointers.
     FixedSize,
-    GrowHeuristically
+
+    /// Increases segment size by a multiplicative factor for each subsequent segment.
+    GrowHeuristically,
 }
 
 pub const SUGGESTED_FIRST_SEGMENT_WORDS: u32 = 1024;
@@ -420,11 +427,13 @@ impl HeapAllocator {
                         allocation_strategy: SUGGESTED_ALLOCATION_STRATEGY }
     }
 
+    /// Sets the size of the initial segment in words, where 1 word = 8 bytes.
     pub fn first_segment_words(mut self, value: u32) -> HeapAllocator {
         self.next_size = value;
         self
     }
 
+    /// Sets the allocation strategy for segments after the first one.
     pub fn allocation_strategy(mut self, value : AllocationStrategy) -> HeapAllocator {
         self.allocation_strategy = value;
         self
@@ -439,7 +448,7 @@ unsafe impl Allocator for HeapAllocator {
         };
         match self.allocation_strategy {
             AllocationStrategy::GrowHeuristically => { self.next_size += size; }
-            _ => { }
+            AllocationStrategy::FixedSize => { }
         }
         (ptr, size as u32)
     }
@@ -490,11 +499,14 @@ impl <'a> ScratchSpaceHeapAllocator<'a> {
                                     allocator: HeapAllocator::new()}
     }
 
+    /// Sets the size of the second segment in words, where 1 word = 8 bytes.
+    /// (The first segment is the scratch space passed to `ScratchSpaceHeapAllocator::new()`.
     pub fn second_segment_words(self, value: u32) -> ScratchSpaceHeapAllocator<'a> {
         ScratchSpaceHeapAllocator { allocator: self.allocator.first_segment_words(value), ..self }
 
     }
 
+    /// Sets the allocation strategy for segments after the second one.
     pub fn allocation_strategy(self, value: AllocationStrategy) -> ScratchSpaceHeapAllocator<'a> {
         ScratchSpaceHeapAllocator { allocator: self.allocator.allocation_strategy(value), ..self }
     }
