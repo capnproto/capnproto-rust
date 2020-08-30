@@ -1,3 +1,6 @@
+## v0.13.1
+- Remove unneeded dependency on 'executor' feature of the future crate.
+
 ## v0.13.0
 - Remove some requirements for 'static lifetimes.
 
