@@ -17,7 +17,7 @@ capnp = { version = "0.13.0", path = "../capnp" }
 [dependencies.futures]
 version = "0.3.0"
 default-features = false
-features = ["std", "executor"]
+features = ["std"]
 
 [dev-dependencies.futures]
 version = "0.3.0"
