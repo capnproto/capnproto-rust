@@ -18,8 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate futures;
-
 pub use read_stream::ReadStream;
 pub use write_queue::{write_queue, Sender};
 

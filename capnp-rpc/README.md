@@ -34,7 +34,6 @@ Now you can invoke the schema compiler in a
 [`build.rs`](http://doc.crates.io/build-script.html) file, like this:
 
 ```rust
-extern crate capnpc;
 fn main() {
     ::capnpc::CompilerCommand::new().file("foo.capnp").run().unwrap();
 }

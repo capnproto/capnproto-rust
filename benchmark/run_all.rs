@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate capnp;
-
 use std::{env, process, time};
 
 fn run_one(executable: &str, case: &str, mode: &str, scratch: &str, compression: &str, iteration_count: u64) {

@@ -59,10 +59,6 @@
 //! For a more complete example, see https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator
 
 
-extern crate capnp;
-extern crate capnp_futures;
-extern crate futures;
-
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use futures::{Future, FutureExt, TryFutureExt};

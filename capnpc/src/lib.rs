@@ -40,8 +40,6 @@
 //! In your build.rs:
 //!
 //! ```ignore
-//! extern crate capnpc;
-//!
 //! fn main() {
 //!     capnpc::CompilerCommand::new()
 //!         .src_prefix("schema")
@@ -57,8 +55,6 @@
 //!   capnp compile -orust:$OUT_DIR --src-prefix=schema schema/foo.capnp schema/bar.capnp
 //! ```
 //!
-
-extern crate capnp;
 
 /// Code generated from
 /// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).

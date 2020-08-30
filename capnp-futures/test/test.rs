@@ -19,10 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate capnp;
-extern crate capnp_futures;
-extern crate futures;
-
 pub mod addressbook_capnp {
   include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }
