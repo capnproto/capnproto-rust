@@ -19,7 +19,8 @@
 // THE SOFTWARE.
 
 use alloc::vec::Vec;
-use core::cell::{Cell, RefCell};
+use core::cell::RefCell;
+use core::sync::atomic::{AtomicU64, Ordering};
 use core::slice;
 use core::u64;
 
@@ -31,21 +32,25 @@ use crate::{Error, OutputSegments, Result};
 pub type SegmentId = u32;
 
 pub struct ReadLimiter {
-    pub limit: Cell<u64>,
+    pub limit: u64,
+    pub read: AtomicU64,
 }
 
 impl ReadLimiter {
     pub fn new(limit: u64) -> ReadLimiter {
-        ReadLimiter { limit: Cell::new(limit) }
+        ReadLimiter { 
+            limit,
+            read: AtomicU64::new(0),
+        }
     }
 
     #[inline]
     pub fn can_read(&self, amount: u64) -> Result<()> {
-        let current = self.limit.get();
-        if amount > current {
+        let read = self.read.fetch_add(amount, Ordering::Relaxed) + amount;
+
+        if read > self.limit {
             Err(Error::failed(format!("read limit exceeded")))
         } else {
-            self.limit.set(current - amount);
             Ok(())
         }
     }
