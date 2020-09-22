@@ -20,41 +20,16 @@
 
 use alloc::vec::Vec;
 use core::cell::RefCell;
-use core::sync::atomic::{AtomicU64, Ordering};
 use core::slice;
 use core::u64;
 
 use crate::private::units::*;
+use crate::private::read_limiter::ReadLimiter;
 use crate::message;
 use crate::message::{Allocator, ReaderSegments};
 use crate::{Error, OutputSegments, Result};
 
 pub type SegmentId = u32;
-
-pub struct ReadLimiter {
-    pub limit: u64,
-    pub read: AtomicU64,
-}
-
-impl ReadLimiter {
-    pub fn new(limit: u64) -> ReadLimiter {
-        ReadLimiter { 
-            limit,
-            read: AtomicU64::new(0),
-        }
-    }
-
-    #[inline]
-    pub fn can_read(&self, amount: u64) -> Result<()> {
-        let read = self.read.fetch_add(amount, Ordering::Relaxed) + amount;
-
-        if read > self.limit {
-            Err(Error::failed(format!("read limit exceeded")))
-        } else {
-            Ok(())
-        }
-    }
-}
 
 pub trait ReaderArena {
     // return pointer to start of segment, and number of words in that segment
@@ -134,12 +109,12 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         if !(start >= this_start && start - this_start + size <= this_size) {
             Err(Error::failed(format!("message contained out-of-bounds pointer")))
         } else {
-            self.read_limiter.can_read(size_in_words as u64)
+            self.read_limiter.can_read(size_in_words)
         }
     }
 
     fn amplified_read(&self, virtual_amount: u64) -> Result<()> {
-        self.read_limiter.can_read(virtual_amount)
+        self.read_limiter.can_read(virtual_amount as usize)
     }
 }
 
