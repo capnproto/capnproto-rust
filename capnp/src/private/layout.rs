@@ -1574,7 +1574,7 @@ mod wire_helpers {
         //# Initialize the pointer.
         (*reff).set_list_size_and_count(Byte, size);
 
-        SegmentAnd { segment_id: segment_id, value: data::new_builder(ptr, size) }
+        SegmentAnd { segment_id: segment_id, value: data::builder_from_raw_parts(ptr, size) }
     }
 
     #[inline]
@@ -1623,7 +1623,7 @@ mod wire_helpers {
                 "Called get_writable_data_pointer() but existing list pointer is not byte-sized.".to_string()));
         }
 
-        Ok(data::new_builder(ptr, (*reff).list_element_count()))
+        Ok(data::builder_from_raw_parts(ptr, (*reff).list_element_count()))
     }
 
     pub unsafe fn set_struct_pointer(
@@ -2317,7 +2317,7 @@ mod wire_helpers {
                      round_bytes_up_to_words(size) as usize,
                      WirePointerKind::List)?;
 
-        Ok(data::new_reader(ptr as *const _, size))
+        Ok(data::reader_from_raw_parts(ptr as *const _, size))
     }
 }
 

@@ -34,8 +34,13 @@ impl<'a> crate::traits::Owned<'a> for Owned {
 
 pub type Reader<'a> = &'a [u8];
 
+#[deprecated(since = "0.13.4", note = "This function is unsafe and was never intended for external use")]
 pub fn new_reader<'a>(p : *const u8, len : u32) -> Reader<'a> {
     unsafe { ::core::slice::from_raw_parts(p, len as usize) }
+}
+
+pub(crate) unsafe fn reader_from_raw_parts<'a>(p: *const u8, len: u32) -> Reader<'a> {
+    ::core::slice::from_raw_parts(p, len as usize)
 }
 
 impl <'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
@@ -46,8 +51,13 @@ impl <'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
 
 pub type Builder<'a> = &'a mut [u8];
 
+#[deprecated(since = "0.13.4", note = "This function is unsafe and was never intended for external use")]
 pub fn new_builder<'a>(p : *mut u8, len : u32) -> Builder<'a> {
     unsafe { ::core::slice::from_raw_parts_mut(p, len as usize) }
+}
+
+pub(crate) unsafe fn builder_from_raw_parts<'a>(p: *mut u8, len: u32) -> Builder<'a> {
+    ::core::slice::from_raw_parts_mut(p, len as usize)
 }
 
 impl <'a> crate::traits::FromPointerBuilder<'a> for Builder<'a> {
