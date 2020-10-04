@@ -1,3 +1,6 @@
+## v0.13.4
+- Deprecate unsafe functions `data::new_reader()` and `data::new_builder()`.
+
 ## v0.13.3
 - Add `impl <S> ReaderSegments for &S where S: ReaderSegments`.
 
