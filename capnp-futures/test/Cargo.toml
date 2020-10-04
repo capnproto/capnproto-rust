@@ -18,5 +18,5 @@ capnpc = { path = "../../capnpc" }
 capnp-futures = {path = "./../"}
 capnp = { path = "../../capnp" }
 futures = "0.3.0"
-async-std = { version = "1.6", features = ["unstable"] }
-
+tokio = { version = "0.2.6", features = ["net", "rt-util", "time", "uds"]}
+tokio-util = { version = "0.3.0", features = ["compat"] }

@@ -46,11 +46,11 @@ impl hello_world::Server for HelloWorldImpl {
     }
 }
 
-pub fn main() {
+pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} server ADDRESS[:PORT]", args[0]);
-        return;
+        return Ok(());
     }
 
     let addr = args[2]
@@ -59,14 +59,14 @@ pub fn main() {
         .next()
         .expect("could not parse address");
 
-    async_std::task::block_on(async move {
-        let listener = async_std::net::TcpListener::bind(&addr).await.unwrap();
+    tokio::task::LocalSet::new().run_until(async move {
+        let mut listener = tokio::net::TcpListener::bind(&addr).await?;
         let hello_world_client: hello_world::Client = capnp_rpc::new_client(HelloWorldImpl);
 
         loop {
-            let (stream, _) = listener.accept().await.unwrap();
-            stream.set_nodelay(true).unwrap();
-            let (reader, writer) = stream.split();
+            let (stream, _) = listener.accept().await?;
+            stream.set_nodelay(true)?;
+            let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
             let network = twoparty::VatNetwork::new(
                 reader,
                 writer,
@@ -77,7 +77,7 @@ pub fn main() {
             let rpc_system =
                 RpcSystem::new(Box::new(network), Some(hello_world_client.clone().client));
 
-            async_std::task::spawn_local(rpc_system.map(|_| ()));
+            tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
         }
-    });
+    }).await
 }

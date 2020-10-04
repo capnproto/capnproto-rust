@@ -101,36 +101,33 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
     }
 }
 
-pub fn main() {
+pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} server HOST:PORT", args[0]);
-        return;
+        return Ok(());
     }
 
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
 
-    let result: Result<(), Box<dyn std::error::Error>> = async_std::task::block_on(async move {
-        let listener = async_std::net::TcpListener::bind(&addr).await?;
+    tokio::task::LocalSet::new().run_until(async move {
+        let mut listener = tokio::net::TcpListener::bind(&addr).await?;
         let (publisher_impl, subscribers) = PublisherImpl::new();
         let publisher: publisher::Client<_> = capnp_rpc::new_client(publisher_impl);
-        let mut incoming = listener.incoming();
 
         let handle_incoming = async move {
-            while let Some(stream_result) = incoming.next().await {
-                let stream = stream_result?;
+            loop {
+                let (stream, _) = listener.accept().await?;
                 stream.set_nodelay(true)?;
-                let (reader, writer) = stream.split();
+                let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
                 let network =
                     twoparty::VatNetwork::new(reader, writer,
                                               rpc_twoparty_capnp::Side::Server, Default::default());
-
                 let rpc_system = RpcSystem::new(Box::new(network), Some(publisher.clone().client));
 
-                async_std::task::spawn_local(rpc_system.map(|_| ()));
+                tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
             }
-            Ok::<(), Box<dyn std::error::Error>>(())
         };
 
         // Trigger sending approximately once per second.
@@ -152,7 +149,7 @@ pub fn main() {
                         request.get().set_message(
                             &format!("system time is: {:?}", ::std::time::SystemTime::now())[..])?;
                         let subscribers2 = subscribers1.clone();
-                        async_std::task::spawn_local(
+                        tokio::task::spawn_local(Box::pin(
                             request.send().promise.map(move |r| {
                                 match r {
                                     Ok(_) => {
@@ -165,15 +162,14 @@ pub fn main() {
                                         subscribers2.borrow_mut().subscribers.remove(&idx);
                                     }
                                 }
-                            }));
+                            })));
                     }
                 }
             }
             Ok::<(), Box<dyn std::error::Error>>(())
         };
 
-        futures::future::try_join(handle_incoming, send_to_subscribers).await?;
+        let _ : ((), ()) = futures::future::try_join(handle_incoming, send_to_subscribers).await?;
         Ok(())
-    });
-    result.expect("main");
+    }).await
 }

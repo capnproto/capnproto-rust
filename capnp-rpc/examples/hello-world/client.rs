@@ -27,11 +27,11 @@ use futures::AsyncReadExt;
 
 use futures::FutureExt;
 
-pub fn main() {
+pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 4 {
         println!("usage: {} client HOST:PORT MESSAGE", args[0]);
-        return;
+        return Ok(());
     }
 
     let addr = args[2]
@@ -42,10 +42,10 @@ pub fn main() {
 
     let msg = args[3].to_string();
 
-    async_std::task::block_on(async move {
-        let stream = async_std::net::TcpStream::connect(&addr).await.unwrap();
-        stream.set_nodelay(true).unwrap();
-        let (reader, writer) = stream.split();
+    tokio::task::LocalSet::new().run_until(async move {
+        let stream = tokio::net::TcpStream::connect(&addr).await?;
+        stream.set_nodelay(true)?;
+        let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
         let rpc_network = Box::new(twoparty::VatNetwork::new(
             reader,
             writer,
@@ -56,7 +56,7 @@ pub fn main() {
         let hello_world: hello_world::Client =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        async_std::task::spawn_local(rpc_system.map(|_| ()));
+        tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
 
         let mut request = hello_world.say_hello_request();
         request.get().init_request().set_name(&msg);
@@ -73,5 +73,6 @@ pub fn main() {
                 .get_message()
                 .unwrap()
         );
-    });
+        Ok(())
+    }).await
 }

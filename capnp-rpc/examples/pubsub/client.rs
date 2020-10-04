@@ -38,20 +38,20 @@ impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
     }
 }
 
-pub fn main() {
+pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} client HOST:PORT", args[0]);
-        return;
+        return Ok(());
     }
 
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
 
-    let result: Result<(), Box<dyn std::error::Error>> = async_std::task::block_on(async move {
-        let stream = async_std::net::TcpStream::connect(&addr).await?;
+    tokio::task::LocalSet::new().run_until(async move {
+        let stream = tokio::net::TcpStream::connect(&addr).await?;
         stream.set_nodelay(true)?;
-        let (reader, writer) = stream.split();
+        let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
         let rpc_network =
             Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Client,
@@ -67,6 +67,5 @@ pub fn main() {
         // Need to make sure not to drop the returned subscription object.
         futures::future::try_join(rpc_system, request.send().promise).await?;
         Ok(())
-    });
-    result.expect("main");
+    }).await
 }

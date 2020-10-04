@@ -25,6 +25,8 @@ pub mod addressbook_capnp {
 
 #[cfg(test)]
 mod tests {
+    use tokio_util::compat::{Tokio02AsyncReadCompatExt, Tokio02AsyncWriteCompatExt};
+
     use crate::addressbook_capnp::{address_book, person};
 
     fn populate_address_book(address_book: address_book::Builder) {
@@ -81,37 +83,40 @@ mod tests {
         use std::cell::Cell;
         use std::rc::Rc;
 
-        let (s1, s2) = async_std::os::unix::net::UnixStream::pair().expect("socket pair");
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        tokio::task::LocalSet::new().block_on(&mut rt, async move {
 
-        let (mut sender, write_queue) = capnp_futures::write_queue(s1);
+            let (s1, s2) = tokio::net::UnixStream::pair().expect("socket pair");
 
-        let read_stream = capnp_futures::ReadStream::new(s2, Default::default());
+            let (mut sender, write_queue) = capnp_futures::write_queue(s1.compat_write());
 
-        let messages_read = Rc::new(Cell::new(0u32));
-        let messages_read1 = messages_read.clone();
+            let read_stream = capnp_futures::ReadStream::new(s2.compat(), Default::default());
 
-        let done_reading = read_stream.for_each(|m| {
-            match m {
-                Err(e) => panic!("read error: {:?}", e),
-                Ok(msg) => {
-                    let address_book = msg.get_root::<address_book::Reader>().unwrap();
-                    read_address_book(address_book);
-                    messages_read.set(messages_read.get() + 1);
-                    futures::future::ready(())
+            let messages_read = Rc::new(Cell::new(0u32));
+            let messages_read1 = messages_read.clone();
+
+            let done_reading = read_stream.for_each(|m| {
+                match m {
+                    Err(e) => panic!("read error: {:?}", e),
+                    Ok(msg) => {
+                        let address_book = msg.get_root::<address_book::Reader>().unwrap();
+                        read_address_book(address_book);
+                        messages_read.set(messages_read.get() + 1);
+                        futures::future::ready(())
+                    }
                 }
-            }
-        });
+            });
 
-        let io = futures::future::join(done_reading, write_queue.map(|_| ()));
+            let io = futures::future::join(done_reading, write_queue.map(|_| ()));
 
-        let mut m = capnp::message::Builder::new_default();
-        populate_address_book(m.init_root());
-        async_std::task::block_on(async {
-            async_std::task::spawn_local(sender.send(m).map(|_|()));
+            let mut m = capnp::message::Builder::new_default();
+            populate_address_book(m.init_root());
+
+            tokio::task::spawn_local(Box::pin(sender.send(m).map(|_|())));
             drop(sender);
             io.await;
             assert_eq!(messages_read1.get(), 1);
-        });
+        })
     }
 
     fn fill_and_send_message(mut message: capnp::message::Builder<capnp::message::HeapAllocator>) {
@@ -124,25 +129,27 @@ mod tests {
             read_address_book(address_book.reborrow_as_reader());
         }
 
-        let (stream0, stream1) = async_std::os::unix::net::UnixStream::pair().expect("socket pair");
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        tokio::task::LocalSet::new().block_on(&mut rt, async move {
+            let (stream0, stream1) = tokio::net::UnixStream::pair().expect("socket pair");
 
-        let f0 = serialize::write_message(stream0, message).map_err(|e| panic!("write error {:?}", e)).map(|_|());
-        let f1 =
-            serialize::read_message(stream1, capnp::message::ReaderOptions::new()).and_then(|maybe_message_reader| {
-                match maybe_message_reader {
-                    None => panic!("did not get message"),
-                    Some(m) => {
-                        let address_book = m.get_root::<address_book::Reader>().unwrap();
-                        read_address_book(address_book);
-                        futures::future::ready(Ok::<(),capnp::Error>(()))
+            let f0 = serialize::write_message(stream0.compat_write(), message)
+                .map_err(|e| panic!("write error {:?}", e)).map(|_|());
+            let f1 =
+                serialize::read_message(stream1.compat(), capnp::message::ReaderOptions::new()).and_then(|maybe_message_reader| {
+                    match maybe_message_reader {
+                        None => panic!("did not get message"),
+                        Some(m) => {
+                            let address_book = m.get_root::<address_book::Reader>().unwrap();
+                            read_address_book(address_book);
+                            futures::future::ready(Ok::<(),capnp::Error>(()))
+                        }
                     }
-                }
-            });
+                });
 
-        async_std::task::block_on(async {
-            async_std::task::spawn_local(f0);
+            tokio::task::spawn_local(Box::pin(f0));
             f1.await
-        }).expect("read task");
+        }).expect("fill_and_send_message");
     }
 
     #[test]
@@ -162,12 +169,13 @@ mod tests {
         use capnp::message;
         use capnp_futures::serialize;
 
-        let (mut write, mut read) =
-            async_std::os::unix::net::UnixStream::pair().expect("socket pair");
-        let _ = serialize::read_message(&mut read, message::ReaderOptions::default());
-        let _ = serialize::write_message(&mut write, message::Builder::new_default());
-        drop(write);
-        drop(read);
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        tokio::task::LocalSet::new().block_on(&mut rt, async move {
+            let (write, read) = tokio::net::UnixStream::pair().expect("socket pair");
+
+            let _ = serialize::read_message(&mut read.compat(), message::ReaderOptions::default());
+            let _ = serialize::write_message(&mut write.compat_write(), message::Builder::new_default());
+        });
     }
 
     #[test]
@@ -175,11 +183,12 @@ mod tests {
         use capnp::message;
         use capnp_futures;
 
-        let (mut write, mut read) =
-            async_std::os::unix::net::UnixStream::pair().expect("socket pair");
-        let _ = capnp_futures::ReadStream::new(&mut read, message::ReaderOptions::default());
-        let _ = capnp_futures::write_queue::<_, message::Builder<message::HeapAllocator>>(&mut write);
-        drop(write);
-        drop(read);
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        tokio::task::LocalSet::new().block_on(&mut rt, async move {
+            let (write, read) = tokio::net::UnixStream::pair().expect("socket pair");
+            let _ = capnp_futures::ReadStream::new(&mut read.compat(), message::ReaderOptions::default());
+            let _ = capnp_futures::write_queue::<_, message::Builder<message::HeapAllocator>>(&mut write.compat_write());
+        });
     }
+
 }
