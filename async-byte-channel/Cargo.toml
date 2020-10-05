@@ -1,0 +1,14 @@
+[package]
+name = "async-byte-channel"
+version = "0.0.1"
+license = "MIT"
+description = "Helper library for writing async tests"
+
+repository = "https://github.com/dwrensha/capnproto-rust"
+edition = "2018"
+
+[dependencies.futures]
+version = "0.3.0"
+default-features = false
+features = ["std", "executor"]
+
