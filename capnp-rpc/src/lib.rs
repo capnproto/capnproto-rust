@@ -180,7 +180,7 @@ impl <VatId> RpcSystem <VatId> {
     {
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
-            None => broken::new_cap(Error::failed("no bootstrap capabiity".to_string())),
+            None => broken::new_cap(Error::failed("no bootstrap capability".to_string())),
         };
         let (mut handle, tasks) = TaskSet::new(Box::new(SystemTaskReaper));
 
