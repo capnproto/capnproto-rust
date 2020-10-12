@@ -12,6 +12,7 @@ struct Inner {
     write_cursor: usize,
     read_cursor: usize,
     write_end_closed: bool,
+    read_end_closed: bool,
     read_waker: Option<Waker>,
     write_waker: Option<Waker>,
 }
@@ -23,6 +24,7 @@ impl Inner {
             write_cursor: 0,
             read_cursor: 0,
             write_end_closed: false,
+            read_end_closed: false,
             read_waker: None,
             write_waker: None,
         }
@@ -45,6 +47,16 @@ impl Drop for Sender {
 
 pub struct Receiver {
     inner: Arc<Mutex<Inner>>,
+}
+
+impl Drop for Receiver {
+    fn drop(&mut self) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.read_end_closed = true;
+        if let Some(write_waker) = inner.write_waker.take() {
+            write_waker.wake();
+        }
+    }
 }
 
 pub fn channel() -> (Sender, Receiver) {
@@ -88,6 +100,9 @@ impl AsyncWrite for Sender {
         buf: &[u8]) -> futures::task::Poll<Result<usize, futures::io::Error>>
     {
         let mut inner = self.inner.lock().unwrap();
+        if inner.read_end_closed {
+            return Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "read end closed")))
+        }
         if inner.write_cursor == inner.buffer.len() {
             if inner.read_cursor == inner.buffer.len() {
                 inner.write_cursor = 0;
@@ -153,6 +168,16 @@ pub mod test {
         pool.run_until(receiver.read_to_end(&mut buf3)).unwrap();
 
         assert_eq!(buf.len(), buf3.len());
+    }
+
+    #[test]
+    fn drop_reader() {
+        let (mut sender, receiver) = crate::channel();
+        drop(receiver);
+
+        let mut pool = futures::executor::LocalPool::new();
+        let result = pool.run_until(sender.write_all(&mut [0,1,2]));
+        assert!(result.is_err());
     }
 }
 
