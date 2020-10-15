@@ -393,7 +393,7 @@ fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) ->
     let mut size = (len / 2) + 1;
     for i in 0..len {
         let segment = segments.get_segment(i as u32).unwrap();
-        size += segment.len();
+        size += segment.len() / BYTES_PER_WORD;
     }
     size
 }
@@ -684,5 +684,19 @@ pub mod test {
             bytes.pop();
             assert!(read_message_from_flat_slice(&mut &bytes[..], message::ReaderOptions::new()).is_err());
         }
+    }
+
+    #[test]
+    fn compute_serialized_size() {
+        const LIST_LENGTH_IN_WORDS: u32 = 5;
+        let mut m = message::Builder::new_default();
+        {
+            let root: crate::any_pointer::Builder = m.init_root();
+            let _list_builder: crate::primitive_list::Builder<u64> = root.initn_as(LIST_LENGTH_IN_WORDS);
+        }
+
+        // The message body has a list pointer (one word) and the list (LIST_LENGTH_IN_WORDS words).
+        // The message has one segment, so the header is one word.
+        assert_eq!(super::compute_serialized_size_in_words(&m) as u32, 1 + 1 + LIST_LENGTH_IN_WORDS)
     }
 }
