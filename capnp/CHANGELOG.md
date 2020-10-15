@@ -1,3 +1,6 @@
+## v0.13.5
+- Fix incorrect calculation in `capnp::serialize::compute_serialized_size_in_words()`.
+
 ## v0.13.4
 - Deprecate unsafe functions `data::new_reader()` and `data::new_builder()`.
 
