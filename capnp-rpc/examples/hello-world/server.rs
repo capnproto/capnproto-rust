@@ -60,7 +60,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("could not parse address");
 
     tokio::task::LocalSet::new().run_until(async move {
-        let mut listener = tokio::net::TcpListener::bind(&addr).await?;
+        let listener = tokio::net::TcpListener::bind(&addr).await?;
         let hello_world_client: hello_world::Client = capnp_rpc::new_client(HelloWorldImpl);
 
         loop {
