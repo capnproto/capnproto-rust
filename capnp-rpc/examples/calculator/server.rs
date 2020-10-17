@@ -203,7 +203,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
 
     tokio::task::LocalSet::new().run_until(async move {
-        let mut listener = tokio::net::TcpListener::bind(&addr).await?;
+        let listener = tokio::net::TcpListener::bind(&addr).await?;
         let calc: calculator::Client = capnp_rpc::new_client(CalculatorImpl);
 
         loop {
