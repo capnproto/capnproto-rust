@@ -112,7 +112,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
 
     tokio::task::LocalSet::new().run_until(async move {
-        let mut listener = tokio::net::TcpListener::bind(&addr).await?;
+        let listener = tokio::net::TcpListener::bind(&addr).await?;
         let (publisher_impl, subscribers) = PublisherImpl::new();
         let publisher: publisher::Client<_> = capnp_rpc::new_client(publisher_impl);
 
