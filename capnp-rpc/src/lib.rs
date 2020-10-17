@@ -249,6 +249,10 @@ impl <VatId> RpcSystem <VatId> {
         }))
     }
 
+    // If `connection_state_ref` is not already populated, populates it with a new
+    // `ConnectionState` built from a local bootstrap capability and `connection`,
+    // spawning any background tasks onto `handle`. Returns the resulting value
+    // held in `connection_state_ref`.
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
                             bootstrap_cap: Box<dyn ClientHook>,
                             connection: Box<dyn crate::Connection<VatId>>,
