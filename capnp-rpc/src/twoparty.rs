@@ -169,9 +169,10 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
 
 /// A vat network with two parties, the client and the server.
 pub struct VatNetwork<T> where T: AsyncRead + 'static + Unpin {
+    // connection handle that we will return on accept()
     connection: Option<Connection<T>>,
 
-    // HACK
+    // connection handle that we will return on connect()
     weak_connection_inner: Weak<RefCell<ConnectionInner<T>>>,
 
     execution_driver: futures::future::Shared<Promise<(), ::capnp::Error>>,
@@ -229,19 +230,12 @@ impl <T> crate::VatNetwork<VatId> for VatNetwork<T>
         if host_id == self.side {
             None
         } else {
-            let connection = ::std::mem::replace(&mut self.connection, None);
-            match connection {
-                Some(c) => {
-                    Some(Box::new(c))
-                } None => {
-                    match self.weak_connection_inner.upgrade() {
-                        Some(connection_inner) => {
-                            Some(Box::new(Connection { inner: connection_inner }))
-                        }
-                        None => {
-                            panic!("tried to reconnect a disconnected twoparty vat network.")
-                        }
-                    }
+            match self.weak_connection_inner.upgrade() {
+                Some(connection_inner) => {
+                    Some(Box::new(Connection { inner: connection_inner }))
+                }
+                None => {
+                    panic!("tried to reconnect a disconnected twoparty vat network.")
                 }
             }
         }
