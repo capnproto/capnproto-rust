@@ -1,3 +1,6 @@
+## v0.13.6
+- Add blanket impl Allocator for &mut A where A: Allocator, allowing easier reuse of ScratchSpaceHeapAllocator.
+
 ## v0.13.5
 - Fix incorrect calculation in `capnp::serialize::compute_serialized_size_in_words()`.
 
