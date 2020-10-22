@@ -287,6 +287,7 @@ pub unsafe trait Allocator {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32);
 
     /// Indicates that a segment, previously allocated via allocate_segment(), is no longer in use.
+    /// `word_size` is the length of the segment in words, as returned from `allocate_segment()`.
     fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32);
 }
 
@@ -469,6 +470,15 @@ impl Builder<HeapAllocator> {
 }
 
 /// An Allocator whose first segment is a backed by a user-provided buffer.
+///
+/// Recall that an `Allocator` implementation must ensure that allocated segments are
+/// initially *zeroed*. `ScratchSpaceHeapAllocator` ensures that is the case by zeroing
+/// the entire buffer upon initial construction, and then zeroing any *potentially used*
+/// part of the buffer upon `deallocate_segment()`.
+///
+/// You can reuse a `ScratchSpaceHeapAllocator` by calling `message::Builder::into_allocator()`,
+/// or by initally passing it to `message::Builder::new()` as a `&mut ScratchSpaceHeapAllocator`.
+/// Such reuse can save significant amounts of zeroing.
 pub struct ScratchSpaceHeapAllocator<'a> {
     scratch_space: &'a mut [u8],
     scratch_space_allocated: bool,
@@ -478,9 +488,9 @@ pub struct ScratchSpaceHeapAllocator<'a> {
 impl <'a> ScratchSpaceHeapAllocator<'a> {
     /// Writes zeroes into the entire buffer and constructs a new allocator from it.
     ///
-    /// If you want to reuse the same buffer and to minimize the cost of zeroing for each message,
-    /// you can call `message::Builder::into_allocator()` to recover the allocator from
-    /// the previous message and then pass it into the new message.
+    /// If the buffer is large, this operation could be relatively expensive. If you want to reuse
+    /// the same scratch space in a later message, you should reuse the entire
+    /// `ScratchSpaceHeapAllocator`, to avoid paying this full cost again.
     pub fn new(scratch_space: &'a mut [u8]) -> ScratchSpaceHeapAllocator<'a> {
         #[cfg(not(feature = "unaligned"))]
         {
@@ -535,3 +545,14 @@ unsafe impl <'a> Allocator for ScratchSpaceHeapAllocator<'a> {
         }
     }
 }
+
+unsafe impl <'a, A> Allocator for &'a mut A where A: Allocator {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
+        (*self).allocate_segment(minimum_size)
+    }
+
+    fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32) {
+        (*self).deallocate_segment(ptr, word_size, words_used)
+    }
+}
+

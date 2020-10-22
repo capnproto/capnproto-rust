@@ -148,8 +148,8 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Resul
     let mut rng = common::FastRand::new();
     let (mut allocator_req, mut allocator_res) = reuse.get_allocators();
     for _ in 0..iters {
-        let mut message_req = message::Builder::new(allocator_req);
-        let mut message_res = message::Builder::new(allocator_res);
+        let mut message_req = message::Builder::new(&mut allocator_req);
+        let mut message_res = message::Builder::new(&mut allocator_res);
 
         let expected = testcase.setup_request(
             &mut rng,
@@ -162,9 +162,6 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Resul
         testcase.check_response(
             message_res.get_root_as_reader()?,
             expected)?;
-
-        allocator_req = message_req.into_allocator();
-        allocator_res = message_res.into_allocator();
     }
     Ok(())
 }
@@ -177,8 +174,8 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
     let mut rng = common::FastRand::new();
     let (mut allocator_req, mut allocator_res) = reuse.get_allocators();
     for _ in 0..iters {
-        let mut message_req = message::Builder::new(allocator_req);
-        let mut message_res = message::Builder::new(allocator_res);
+        let mut message_req = message::Builder::new(&mut allocator_req);
+        let mut message_res = message::Builder::new(&mut allocator_res);
 
         let expected = {
             let request = message_req.init_root();
@@ -214,8 +211,6 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
 
         let response_reader = message_reader.get_root()?;
         testcase.check_response(response_reader, expected)?;
-        allocator_req = message_req.into_allocator();
-        allocator_res = message_res.into_allocator();
     }
     Ok(())
 }
@@ -229,7 +224,7 @@ fn server<C, S, T, R, W>(testcase: T, mut reuse: S, compression: C, iters: u64, 
     let (mut allocator_res, _) = reuse.get_allocators();
     for _ in 0..iters {
         use std::io::Write;
-        let mut message_res = message::Builder::new(allocator_res);
+        let mut message_res = message::Builder::new(&mut allocator_res);
 
         {
             let response = message_res.init_root();
@@ -242,7 +237,6 @@ fn server<C, S, T, R, W>(testcase: T, mut reuse: S, compression: C, iters: u64, 
 
         compression.write_message(&mut out_buffered, &mut message_res)?;
         out_buffered.flush()?;
-        allocator_res = message_res.into_allocator();
     }
     Ok(())
 }
@@ -259,7 +253,7 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
     let (mut allocator_req, _) = reuse.get_allocators();
     for _ in 0..iters {
         use std::io::Write;
-        let mut message_req = message::Builder::new(allocator_req);
+        let mut message_req = message::Builder::new(&mut allocator_req);
 
         let expected = {
             let request = message_req.init_root();
@@ -273,7 +267,6 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
             Default::default())?;
         let response_reader = message_reader.get_root()?;
         testcase.check_response(response_reader, expected)?;
-        allocator_req = message_req.into_allocator();
     }
     Ok(())
 }
