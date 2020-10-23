@@ -288,6 +288,8 @@ pub unsafe trait Allocator {
 
     /// Indicates that a segment, previously allocated via allocate_segment(), is no longer in use.
     /// `word_size` is the length of the segment in words, as returned from `allocate_segment()`.
+    /// `words_used` is always less than or equal to `word_size`, and indicates how many
+    /// words (contiguous from the start of the segment) were possibly written with non-zero values.
     fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32);
 }
 
