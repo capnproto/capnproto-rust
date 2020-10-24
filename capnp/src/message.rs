@@ -153,21 +153,19 @@ impl <'b> ReaderSegments for [&'b [u8]] {
 /// A container used to read a message.
 pub struct Reader<S> where S: ReaderSegments {
     arena: ReaderArenaImpl<S, crate::private::arena::ReadLimiterImpl>,
-    nesting_limit: i32,
 }
 
 impl <S> Reader<S> where S: ReaderSegments {
     pub fn new(segments: S, options: ReaderOptions) -> Self {
         Reader {
             arena: ReaderArenaImpl::new(segments, options),
-            nesting_limit: options.nesting_limit,
         }
     }
 
     fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a>> {
         let (segment_start, _seg_len) = self.arena.get_segment(0)?;
         let pointer_reader = layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.nesting_limit)?;
+            &self.arena, 0, segment_start, self.arena.nesting_limit())?;
         Ok(any_pointer::Reader::new(pointer_reader))
     }
 
@@ -193,7 +191,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         }
 
         let pointer_reader = layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.nesting_limit)?;
+            &self.arena, 0, segment_start, self.arena.nesting_limit())?;
         let read_head = ::core::cell::Cell::new(unsafe {segment_start.offset(BYTES_PER_WORD as isize)});
         let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
         let all_words_consumed =

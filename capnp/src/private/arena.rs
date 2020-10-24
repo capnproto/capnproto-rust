@@ -64,6 +64,8 @@ pub trait ReaderArena {
     fn contains_interval(&self, segment_id: u32, start: *const u8, size: usize) -> Result<()>;
     fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
 
+    fn nesting_limit(&self) -> i32;
+
     // TODO(version 0.9): Consider putting extract_cap(), inject_cap(), drop_cap() here
     //   and on message::Reader. Then we could get rid of Imbue and ImbueMut, and
     //   layout::StructReader, layout::ListReader, etc. could drop their `cap_table` fields.
@@ -72,6 +74,7 @@ pub trait ReaderArena {
 pub struct ReaderArenaImpl<S, L> {
     segments: S,
     read_limiter: L,
+    nesting_limit: i32,
 }
 
 impl <S> ReaderArenaImpl <S, ReadLimiterImpl> where S: ReaderSegments {
@@ -83,6 +86,7 @@ impl <S> ReaderArenaImpl <S, ReadLimiterImpl> where S: ReaderSegments {
         ReaderArenaImpl {
             segments: segments,
             read_limiter: limiter,
+            nesting_limit: options.nesting_limit,
         }
     }
 
@@ -140,6 +144,10 @@ impl <S, L> ReaderArena for ReaderArenaImpl<S, L> where S: ReaderSegments, L: Re
 
     fn amplified_read(&self, virtual_amount: u64) -> Result<()> {
         self.read_limiter.can_read(virtual_amount)
+    }
+
+    fn nesting_limit(&self) -> i32 {
+        self.nesting_limit
     }
 }
 
@@ -238,6 +246,10 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
     fn amplified_read(&self, _virtual_amount: u64) -> Result<()> {
         Ok(())
     }
+
+    fn nesting_limit(&self) -> i32 {
+        0x7fffffff
+    }
 }
 
 impl <A> BuilderArenaImplInner<A> where A: Allocator {
@@ -333,6 +345,10 @@ impl ReaderArena for NullArena {
 
     fn amplified_read(&self, _virtual_amount: u64) -> Result<()> {
         Ok(())
+    }
+
+    fn nesting_limit(&self) -> i32 {
+        0x7fffffff
     }
 }
 
