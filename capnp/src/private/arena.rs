@@ -30,17 +30,22 @@ use crate::{Error, OutputSegments, Result};
 
 pub type SegmentId = u32;
 
-pub struct ReadLimiter {
+pub trait ReadLimiter {
+    fn can_read(&self, amount: u64) -> Result<()>;
+}
+
+pub struct ReadLimiterImpl {
     pub limit: Cell<u64>,
 }
 
-impl ReadLimiter {
-    pub fn new(limit: u64) -> ReadLimiter {
-        ReadLimiter { limit: Cell::new(limit) }
+impl ReadLimiterImpl {
+    pub fn new(limit: u64) -> Self {
+        ReadLimiterImpl { limit: Cell::new(limit) }
     }
+}
 
-    #[inline]
-    pub fn can_read(&self, amount: u64) -> Result<()> {
+impl ReadLimiter for ReadLimiterImpl {
+   fn can_read(&self, amount: u64) -> Result<()> {
         let current = self.limit.get();
         if amount > current {
             Err(Error::failed(format!("read limit exceeded")))
@@ -64,17 +69,17 @@ pub trait ReaderArena {
     //   layout::StructReader, layout::ListReader, etc. could drop their `cap_table` fields.
 }
 
-pub struct ReaderArenaImpl<S> {
+pub struct ReaderArenaImpl<S, L> {
     segments: S,
-    read_limiter: ReadLimiter,
+    read_limiter: L,
 }
 
-impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
+impl <S> ReaderArenaImpl <S, ReadLimiterImpl> where S: ReaderSegments {
     pub fn new(segments: S,
                options: message::ReaderOptions)
-               -> Self
+               -> ReaderArenaImpl<S, ReadLimiterImpl>
     {
-        let limiter = ReadLimiter::new(options.traversal_limit_in_words);
+        let limiter = ReadLimiterImpl::new(options.traversal_limit_in_words);
         ReaderArenaImpl {
             segments: segments,
             read_limiter: limiter,
@@ -86,7 +91,7 @@ impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
     }
 }
 
-impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
+impl <S, L> ReaderArena for ReaderArenaImpl<S, L> where S: ReaderSegments, L: ReadLimiter {
     fn get_segment<'a>(&'a self, id: u32) -> Result<(*const u8, u32)> {
         match self.segments.get_segment(id) {
             Some(seg) => {

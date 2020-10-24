@@ -152,7 +152,7 @@ impl <'b> ReaderSegments for [&'b [u8]] {
 
 /// A container used to read a message.
 pub struct Reader<S> where S: ReaderSegments {
-    arena: ReaderArenaImpl<S>,
+    arena: ReaderArenaImpl<S, crate::private::arena::ReadLimiterImpl>,
     nesting_limit: i32,
 }
 
