@@ -119,7 +119,7 @@ pub struct Builder<'a> {
 
 impl <'a> Builder<'a> {
     #[inline]
-    pub fn new<'b>(builder: PointerBuilder<'a>) -> Builder<'a> {
+    pub fn new(builder: PointerBuilder<'a>) -> Builder<'a> {
         Builder { builder: builder }
     }
 
