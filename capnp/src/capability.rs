@@ -33,6 +33,7 @@ use core::ops::Try;
 
 use crate::{any_pointer, Error, MessageSize};
 use crate::traits::{Pipelined, Owned};
+use crate::private::arena::ReaderArena;
 use crate::private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
 
 /// A computation that might eventually resolve to a value of type `T` or to an error
@@ -101,20 +102,21 @@ impl<T> Try for Promise<T, crate::Error> {
         Promise::ok(v)
     }
 }
-
+/*
 /// A promise for a result from a method call.
 #[must_use]
-pub struct RemotePromise<Results> where Results: Pipelined + for<'a> Owned<'a> + 'static {
+pub struct RemotePromise<Results> where Results: Pipelined + for<'a> Owned<'a, dyn ReaderArena> + 'static {
     pub promise: Promise<Response<Results>, crate::Error>,
     pub pipeline: Results::Pipeline,
 }
-
+*/
 /// A response from a method call, as seen by the client.
 pub struct Response<Results> {
     pub marker: PhantomData<Results>,
     pub hook: Box<dyn ResponseHook>,
 }
 
+/*
 impl <Results> Response<Results>
     where Results: Pipelined + for<'a> Owned<'a>
 {
@@ -125,6 +127,7 @@ impl <Results> Response<Results>
         self.hook.get()?.get_as()
     }
 }
+*/
 
 /// A method call that has not been sent yet.
 pub struct Request<Params, Results> {
@@ -132,6 +135,7 @@ pub struct Request<Params, Results> {
     pub hook: Box<dyn RequestHook>
 }
 
+/*
 impl <Params, Results> Request<Params, Results>
     where Params: for<'a> Owned<'a>
 {
@@ -164,6 +168,7 @@ where Results: Pipelined + for<'a> Owned<'a> + 'static + Unpin,
                       }
     }
 }
+*/
 
 /// The values of the parameters passed to a method call, as seen by the server.
 pub struct Params<T> {
@@ -175,11 +180,11 @@ impl <T> Params <T> {
     pub fn new(hook: Box<dyn ParamsHook>) -> Params<T> {
         Params { marker: PhantomData, hook: hook }
     }
-    pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
+/*    pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
         where T: Owned<'a>
     {
         Ok(self.hook.get()?.get_as()?)
-    }
+    }*/
 }
 
 /// The return values of a method, written in-place by the method body.
@@ -189,12 +194,12 @@ pub struct Results<T> {
 }
 
 impl <T> Results<T>
-    where T: for<'a> Owned<'a>
+//    where T: for<'a> Owned<'a>
 {
     pub fn new(hook: Box<dyn ResultsHook>) -> Results<T> {
         Results { marker: PhantomData, hook: hook }
     }
-
+/*
     pub fn get<'a>(&'a mut self) -> <T as Owned<'a>>::Builder {
         self.hook.get().unwrap().get_as().unwrap()
     }
@@ -202,7 +207,7 @@ impl <T> Results<T>
     pub fn set(&mut self, other: <T as Owned>::Reader) -> crate::Result<()>
     {
         self.hook.get().unwrap().set_as(other)
-    }
+    }*/
 }
 
 pub trait FromTypelessPipeline {

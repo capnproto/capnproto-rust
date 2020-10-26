@@ -966,12 +966,13 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_struct_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_struct_pointer<'a, A>(
+        arena: &'a mut A,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
-        size: StructSize) -> StructBuilder<'a>
+        size: StructSize) -> StructBuilder<&'a mut A>
+        where A: BuilderArena
     {
         let (ptr, reff, segment_id) = allocate(
             arena,
@@ -993,13 +994,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn get_writable_struct_pointer<'a, A>(
+        arena: &'a mut A,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         cap_table: CapTableBuilder,
         size: StructSize,
-        default: Option<&'a [crate::Word]>) -> Result<StructBuilder<'a>>
+        default: Option<&'a [crate::Word]>) -> Result<StructBuilder<&'a mut A>>
+        where A: BuilderArena
     {
         let mut ref_target = (*reff).mut_target();
 
@@ -1081,13 +1083,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_list_pointer<'a, A>(
+        arena: &'a mut A,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
         element_count: ElementCount32,
-        element_size: ElementSize) -> ListBuilder<'a>
+        element_size: ElementSize) -> ListBuilder<&'a mut A>
+        where A: BuilderArena
     {
         assert!(element_size != InlineComposite,
                 "Should have called initStructListPointer() instead");
@@ -1114,13 +1117,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_struct_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_struct_list_pointer<'a, A>(
+        arena: &'a mut A,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
         element_count: ElementCount32,
-        element_size: StructSize) -> ListBuilder<'a>
+        element_size: StructSize) -> ListBuilder<&'a mut A>
+        where A: BuilderArena
     {
         let words_per_element = element_size.total();
 
@@ -1154,13 +1158,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn get_writable_list_pointer<'a, A>(
+        arena: &'a mut A,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
         cap_table: CapTableBuilder,
         element_size: ElementSize,
-        default_value: *const u8) -> Result<ListBuilder<'a>>
+        default_value: *const u8) -> Result<ListBuilder<&'a mut A>>
+        where A: BuilderArena
     {
         assert!(element_size != InlineComposite,
                 "Use get_writable_struct_list_pointer() for struct lists");
@@ -1169,7 +1174,17 @@ mod wire_helpers {
 
         if (*orig_ref).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListBuilder::new_default());
+                return Ok(ListBuilder {
+                    arena,
+                    segment_id: orig_segment_id,
+                    cap_table,
+                    ptr: ptr::null_mut(),
+                    element_count: 0,
+                    element_size: ElementSize::Void,
+                    step: 0,
+                    struct_data_size: 0,
+                    struct_pointer_count: 0,
+                })
             }
             let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                 arena, orig_segment_id, cap_table, orig_ref, default_value as *const WirePointer);
@@ -1277,19 +1292,30 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn get_writable_struct_list_pointer<'a, A>(
+        arena: &'a mut A,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
         cap_table: CapTableBuilder,
         element_size: StructSize,
-        default_value: *const u8) -> Result<ListBuilder<'a>>
+        default_value: *const u8) -> Result<ListBuilder<&'a mut A>>
+        where A: BuilderArena
     {
         let mut orig_ref_target = (*orig_ref).mut_target();
 
         if (*orig_ref).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListBuilder::new_default());
+                return Ok(ListBuilder {
+                    arena,
+                    segment_id: orig_segment_id,
+                    cap_table,
+                    ptr: ptr::null_mut(),
+                    element_count: 0,
+                    element_size: ElementSize::Void,
+                    step: 0,
+                    struct_data_size: 0,
+                    struct_pointer_count: 0,
+                })
             }
             let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                 arena, orig_segment_id, cap_table, orig_ref, default_value as *const WirePointer);
@@ -1626,13 +1652,15 @@ mod wire_helpers {
         Ok(data::builder_from_raw_parts(ptr, (*reff).list_element_count()))
     }
 
-    pub unsafe fn set_struct_pointer(
-        arena: &dyn BuilderArena,
+    pub unsafe fn set_struct_pointer<'a,'b,A,B>(
+        arena: &'a mut A,
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
-        value: StructReader,
+        value: StructReader<&'b B>,
         canonicalize: bool) -> Result<SegmentAnd<*mut u8>>
+    where A: BuilderArena,
+          B: ReaderArena
     {
         let mut data_size: ByteCount32 = round_bits_up_to_bytes(value.data_size as u64);
         let mut ptr_count = value.pointer_count;
@@ -1708,13 +1736,15 @@ mod wire_helpers {
         unsafe { (*reff).set_cap(cap_table.inject_cap(cap) as u32); }
     }
 
-    pub unsafe fn set_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn set_list_pointer<'a,'b,A,B>(
+        arena: &'a mut A,
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
-        value: ListReader,
+        value: ListReader<&'b B>,
         canonicalize: bool) -> Result<SegmentAnd<*mut u8>>
+    where A: BuilderArena,
+          B: ReaderArena
     {
         let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
 
@@ -1993,13 +2023,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_struct_pointer<'a>(
-        mut arena: &'a dyn ReaderArena,
+    pub unsafe fn read_struct_pointer<'a, A>(
+        mut arena: &'a A,
         mut segment_id: u32,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>,
-        nesting_limit: i32) -> Result<StructReader<'a>>
+        nesting_limit: i32) -> Result<StructReader<&'a A>>
+        where A: ReaderArena
     {
         if (*reff).is_null() {
             match default {
@@ -2070,14 +2101,15 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_list_pointer<'a>(
-        mut arena: &'a dyn ReaderArena,
+    pub unsafe fn read_list_pointer<'a, A>(
+        mut arena: &'a A,
         mut segment_id: u32,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default_value: *const u8,
         expected_element_size: Option<ElementSize>,
-        nesting_limit: i32) -> Result<ListReader<'a>>
+        nesting_limit: i32) -> Result<ListReader<&'a A>>
+        where A: ReaderArena
     {
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
@@ -2417,25 +2449,25 @@ impl CapTableBuilder {
 
 
 #[derive(Clone, Copy)]
-pub struct PointerReader<'a>  {
-    arena: &'a dyn ReaderArena,
+pub struct PointerReader<A> {
+    arena: A,
     cap_table: CapTableReader,
     pointer: *const WirePointer,
     segment_id: u32,
     nesting_limit: i32,
 }
 
-impl <'a> PointerReader<'a> {
-    pub fn new_default<'b>() -> PointerReader<'b> {
+impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
+    pub fn new_default(arena: &'a A) -> PointerReader<&'a A> {
         PointerReader {
-            arena: &NULL_ARENA,
+            arena: arena,
             segment_id: 0,
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: ptr::null(),
             nesting_limit: 0x7fffffff }
     }
 
-    pub fn get_root(arena: &'a dyn ReaderArena,
+    pub fn get_root(arena: &'a A,
                     segment_id: u32,
                     location: *const u8,
                     nesting_limit: i32) -> Result<Self>
@@ -2453,11 +2485,11 @@ impl <'a> PointerReader<'a> {
         })
     }
 
-    pub fn borrow<'b>(&'b self) -> PointerReader<'b> {
+    pub fn borrow<'b>(&'b self) -> PointerReader<&'b A> {
         PointerReader { arena: self.arena, .. *self }
     }
 
-    pub fn get_root_unchecked<'b>(location: *const u8) -> PointerReader<'b> {
+    pub fn get_root_unchecked(location: *const u8) -> PointerReader<&'static NullArena> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
@@ -2482,7 +2514,7 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_struct(self, default: Option<&'a [crate::Word]>) -> Result<StructReader<'a>> {
+    pub fn get_struct(self, default: Option<&'a [crate::Word]>) -> Result<StructReader<&'a A>> {
         let reff: *const WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_struct_pointer(self.arena,
@@ -2492,7 +2524,7 @@ impl <'a> PointerReader<'a> {
     }
 
     pub fn get_list(self, expected_element_size: ElementSize,
-                    default: Option<&'a [crate::Word]>) -> Result<ListReader<'a>> {
+                    default: Option<&'a [crate::Word]>) -> Result<ListReader<&'a A>> {
         let default_value: *const u8 = match default { None => core::ptr::null(), Some(d) => d.as_ptr() as *const u8};
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
@@ -2506,7 +2538,7 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    fn get_list_any_size(self, default_value: *const u8) -> Result<ListReader<'a>> {
+    fn get_list_any_size(self, default_value: *const u8) -> Result<ListReader<&'a A>> {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_list_pointer(
@@ -2592,17 +2624,17 @@ impl <'a> PointerReader<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub struct PointerBuilder<'a> {
-    arena: &'a dyn BuilderArena,
+pub struct PointerBuilder<A> {
+    arena: A,
     segment_id: u32,
     cap_table: CapTableBuilder,
     pointer: *mut WirePointer
 }
 
-impl <'a> PointerBuilder<'a> {
+impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
     #[inline]
     pub fn get_root(
-        arena: &'a dyn BuilderArena,
+        arena: &'a mut A,
         segment_id: u32,
         location: *mut u8)
         -> Self
@@ -2615,7 +2647,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn borrow<'b>(&'b mut self) -> PointerBuilder<'b> {
+    pub fn borrow<'b>(&'b mut self) -> PointerBuilder<&'b mut A> {
         PointerBuilder { arena: self.arena, .. *self }
     }
 
@@ -2627,7 +2659,7 @@ impl <'a> PointerBuilder<'a> {
         unsafe { (*self.pointer).is_null() }
     }
 
-    pub fn get_struct(self, size: StructSize, default: Option<&'a [crate::Word]>) -> Result<StructBuilder<'a>> {
+    pub fn get_struct(self, size: StructSize, default: Option<&'a [crate::Word]>) -> Result<StructBuilder<&'a mut A>> {
         unsafe {
             wire_helpers::get_writable_struct_pointer(
                 self.arena,
@@ -2640,7 +2672,7 @@ impl <'a> PointerBuilder<'a> {
     }
 
     pub fn get_list(self, element_size: ElementSize, default: Option<&'a [crate::Word]>)
-                    -> Result<ListBuilder<'a>>
+                    -> Result<ListBuilder<&'a mut A>>
     {
         let default_value: *const u8 = match default { None => core::ptr::null(), Some(d) => d.as_ptr() as *const u8};
         unsafe {
@@ -2650,7 +2682,7 @@ impl <'a> PointerBuilder<'a> {
     }
 
     pub fn get_struct_list(self, element_size: StructSize,
-                           default: Option<&'a [crate::Word]>) -> Result<ListBuilder<'a>>
+                           default: Option<&'a [crate::Word]>) -> Result<ListBuilder<&'a mut A>>
     {
         let default_value: *const u8 = match default { None => core::ptr::null(), Some(d) => d.as_ptr() as *const u8};
         unsafe {
@@ -2685,13 +2717,13 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn init_struct(self, size: StructSize) -> StructBuilder<'a> {
+    pub fn init_struct(self, size: StructSize) -> StructBuilder<&'a mut A> {
         unsafe {
             wire_helpers::init_struct_pointer(self.arena, self.pointer, self.segment_id, self.cap_table, size)
         }
     }
 
-    pub fn init_list(self, element_size: ElementSize, element_count: ElementCount32) -> ListBuilder<'a> {
+    pub fn init_list(self, element_size: ElementSize, element_count: ElementCount32) -> ListBuilder<&'a mut A> {
         unsafe {
             wire_helpers::init_list_pointer(
                 self.arena, self.pointer, self.segment_id, self.cap_table, element_count, element_size)
@@ -2699,7 +2731,7 @@ impl <'a> PointerBuilder<'a> {
     }
 
     pub fn init_struct_list(self, element_count: ElementCount32, element_size: StructSize)
-                            -> ListBuilder<'a> {
+                            -> ListBuilder<&'a mut A> {
         unsafe {
             wire_helpers::init_struct_list_pointer(
                 self.arena,
@@ -2720,7 +2752,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_struct(&self, value: &StructReader, canonicalize: bool) -> Result<()> {
+    pub fn set_struct<B>(&self, value: &StructReader<&B>, canonicalize: bool) -> Result<()> {
         unsafe {
             wire_helpers::set_struct_pointer(
                 self.arena,
@@ -2729,7 +2761,9 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_list(&self, value: &ListReader, canonicalize: bool) -> Result<()> {
+    pub fn set_list<B>(&self, value: &ListReader<&B>, canonicalize: bool) -> Result<()>
+        where B: ReaderArena
+    {
         unsafe {
             wire_helpers::set_list_pointer(self.arena, self.segment_id,
                                            self.cap_table, self.pointer, *value, canonicalize)?;
@@ -2754,7 +2788,9 @@ impl <'a> PointerBuilder<'a> {
             self.arena, self.segment_id, self.cap_table, self.pointer, cap);
     }
 
-    pub fn copy_from(&mut self, other: PointerReader, canonicalize: bool) -> Result<()> {
+    pub fn copy_from<B>(&mut self, other: PointerReader<&B>, canonicalize: bool) -> Result<()>
+        where B: ReaderArena
+    {
         if other.pointer.is_null()  {
             if !self.pointer.is_null() {
                 unsafe {
@@ -2780,9 +2816,9 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn into_reader(self) -> PointerReader<'a> {
+    pub fn into_reader(self) -> PointerReader<&'a A> {
         PointerReader {
-            arena: self.arena.as_reader(),
+            arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table.into_reader(),
             pointer: self.pointer,
@@ -2792,8 +2828,8 @@ impl <'a> PointerBuilder<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub struct StructReader<'a> {
-    arena: &'a dyn ReaderArena,
+pub struct StructReader<A> {
+    arena: A,
     cap_table: CapTableReader,
     data: *const u8,
     pointers: *const WirePointer,
@@ -2803,10 +2839,10 @@ pub struct StructReader<'a> {
     nesting_limit: i32,
 }
 
-impl <'a> StructReader<'a> {
-    pub fn new_default<'b>() -> StructReader<'b> {
+impl <'a,A> StructReader<&'a A> where A: ReaderArena {
+    pub fn new_default(arena: &'a A) -> StructReader<&'a A> {
         StructReader {
-            arena: &NULL_ARENA,
+            arena: a,
             segment_id: 0,
             cap_table: CapTableReader::Plain(ptr::null()),
             data: ptr::null(),
@@ -2824,7 +2860,7 @@ impl <'a> StructReader<'a> {
 
     pub fn get_pointer_section_size(&self) -> WirePointerCount16 { self.pointer_count }
 
-    pub fn get_pointer_section_as_list(&self) -> ListReader<'a> {
+    pub fn get_pointer_section_as_list(&self) -> ListReader<&'a A> {
         ListReader {
             arena: self.arena,
             segment_id: self.segment_id,
@@ -2894,7 +2930,7 @@ impl <'a> StructReader<'a> {
     }
 
     #[inline]
-    pub fn get_pointer_field(&self, ptr_index: WirePointerCount) -> PointerReader<'a> {
+    pub fn get_pointer_field(&self, ptr_index: WirePointerCount) -> PointerReader<&'a A> {
         if ptr_index < self.pointer_count as WirePointerCount {
             PointerReader {
                 arena: self.arena,
@@ -2904,7 +2940,7 @@ impl <'a> StructReader<'a> {
                 nesting_limit: self.nesting_limit
             }
         } else {
-            PointerReader::new_default()
+            PointerReader::new_default(self.arena)
         }
     }
 
@@ -2978,8 +3014,8 @@ impl <'a> StructReader<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub struct StructBuilder<'a> {
-    arena: &'a dyn BuilderArena,
+pub struct StructBuilder<A> {
+    arena: A,
     cap_table: CapTableBuilder,
     data: *mut u8,
     pointers: *mut WirePointer,
@@ -2988,10 +3024,10 @@ pub struct StructBuilder<'a> {
     pointer_count: WirePointerCount16,
 }
 
-impl <'a> StructBuilder<'a> {
-    pub fn into_reader(self) -> StructReader<'a> {
+impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
+    pub fn into_reader(self) -> StructReader<&'a A> {
         StructReader {
-            arena: self.arena.as_reader(),
+            arena: &*self.arena,
             cap_table: self.cap_table.into_reader(),
             data: self.data,
             pointers: self.pointers,
@@ -3072,7 +3108,7 @@ impl <'a> StructBuilder<'a> {
 
 
     #[inline]
-    pub fn get_pointer_field(self, ptr_index: WirePointerCount) -> PointerBuilder<'a> {
+    pub fn get_pointer_field(self, ptr_index: WirePointerCount) -> PointerBuilder<&'a mut A> {
         PointerBuilder {
             arena: self.arena,
             segment_id: self.segment_id,
@@ -3081,7 +3117,7 @@ impl <'a> StructBuilder<'a> {
         }
     }
 
-    pub fn copy_content_from(&mut self, other: &StructReader) -> Result<()> {
+    pub fn copy_content_from<B>(&mut self, other: &StructReader<&B>) -> Result<()> where B: ReaderArena {
         use core::cmp::min;
         // Determine the amount of data the builders have in common.
         let shared_data_size = min(self.data_size, other.data_size);
@@ -3144,8 +3180,8 @@ impl <'a> StructBuilder<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub struct ListReader<'a> {
-    arena: &'a dyn ReaderArena,
+pub struct ListReader<A> {
+    arena: A,
     cap_table: CapTableReader,
     ptr: *const u8,
     segment_id: u32,
@@ -3157,8 +3193,8 @@ pub struct ListReader<'a> {
     element_size: ElementSize,
 }
 
-impl <'a> ListReader<'a> {
-    pub fn new_default<'b>() -> ListReader<'b> {
+impl <'a, A> ListReader<&'a A> where A: ReaderArena {
+    pub fn new_default() -> ListReader<&'static NullArena> {
         ListReader {
             arena: &NULL_ARENA,
             segment_id: 0,
@@ -3203,7 +3239,7 @@ impl <'a> ListReader<'a> {
     }
 
     #[inline]
-    pub fn get_struct_element(&self, index: ElementCount32) -> StructReader<'a> {
+    pub fn get_struct_element(&self, index: ElementCount32) -> StructReader<&'a A> {
         let index_byte: ByteCount32 =
             ((index as ElementCount64 * (self.step as BitCount64)) / BITS_PER_BYTE as u64) as u32;
 
@@ -3226,7 +3262,7 @@ impl <'a> ListReader<'a> {
     }
 
     #[inline]
-    pub fn get_pointer_element(self, index: ElementCount32) -> PointerReader<'a> {
+    pub fn get_pointer_element(self, index: ElementCount32) -> PointerReader<&'a A> {
         let offset = (index as u64 * self.step as u64 / BITS_PER_BYTE as u64) as u32;
         PointerReader {
             arena: self.arena,
@@ -3336,8 +3372,8 @@ impl <'a> ListReader<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub struct ListBuilder<'a> {
-    arena: &'a dyn BuilderArena,
+pub struct ListBuilder<A> {
+    arena: A,
     cap_table: CapTableBuilder,
     ptr: *mut u8,
     segment_id: u32,
@@ -3348,26 +3384,10 @@ pub struct ListBuilder<'a> {
     element_size: ElementSize,
 }
 
-impl <'a> ListBuilder<'a> {
-
-    #[inline]
-    pub fn new_default<'b>() -> ListBuilder<'b> {
-        ListBuilder {
-            arena: &NULL_ARENA,
-            segment_id: 0,
-            cap_table: CapTableBuilder::Plain(ptr::null_mut()),
-            ptr: ptr::null_mut(),
-            element_count: 0,
-            element_size: ElementSize::Void,
-            step: 0,
-            struct_data_size: 0,
-            struct_pointer_count: 0,
-        }
-    }
-
-    pub fn into_reader(self) -> ListReader<'a> {
+impl <'a, A> ListBuilder<&'a mut A> {
+    pub fn into_reader(self) -> ListReader<&'a A> {
         ListReader {
-            arena: self.arena.as_reader(),
+            arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table.into_reader(),
             ptr: self.ptr as *const _,
@@ -3380,7 +3400,7 @@ impl <'a> ListBuilder<'a> {
         }
     }
 
-    pub fn borrow<'b>(&'b mut self) -> ListBuilder<'b> {
+    pub fn borrow<'b>(&'b mut self) -> ListBuilder<&'b mut A> {
         ListBuilder { arena: self.arena, ..*self }
     }
 
@@ -3392,7 +3412,7 @@ impl <'a> ListBuilder<'a> {
     pub fn len(&self) -> ElementCount32 { self.element_count }
 
     #[inline]
-    pub fn get_struct_element(self, index: ElementCount32) -> StructBuilder<'a> {
+    pub fn get_struct_element(self, index: ElementCount32) -> StructBuilder<&'a mut A> {
         let index_byte = ((index as u64 * self.step as u64) / BITS_PER_BYTE as u64) as u32;
         let struct_data = unsafe{ self.ptr.offset(index_byte as isize)};
         let struct_pointers = unsafe {
@@ -3410,7 +3430,7 @@ impl <'a> ListBuilder<'a> {
     }
 
     #[inline]
-    pub fn get_pointer_element(self, index: ElementCount32) -> PointerBuilder<'a> {
+    pub fn get_pointer_element(self, index: ElementCount32) -> PointerBuilder<&'a mut A> {
         let offset = (index as u64 * self.step as u64 / BITS_PER_BYTE as u64) as u32;
         PointerBuilder {
             arena: self.arena,
@@ -3423,15 +3443,15 @@ impl <'a> ListBuilder<'a> {
 
 
 pub trait PrimitiveElement {
-    fn get(list_reader: &ListReader, index: ElementCount32) -> Self;
-    fn get_from_builder(list_builder: &ListBuilder, index: ElementCount32) -> Self;
-    fn set(list_builder: &ListBuilder, index: ElementCount32, value: Self);
+    fn get<A>(list_reader: &ListReader<A>, index: ElementCount32) -> Self;
+    fn get_from_builder<A>(list_builder: &ListBuilder<A>, index: ElementCount32) -> Self;
+    fn set<A>(list_builder: &ListBuilder<A>, index: ElementCount32, value: Self);
     fn element_size() -> ElementSize;
 }
 
 impl <T : Primitive> PrimitiveElement for T {
     #[inline]
-    fn get(list_reader: &ListReader, index: ElementCount32) -> Self {
+    fn get<A>(list_reader: &ListReader<A>, index: ElementCount32) -> Self {
         let offset = (index as u64 * list_reader.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
             let ptr: *const u8 = list_reader.ptr.offset(offset as isize);
@@ -3440,7 +3460,7 @@ impl <T : Primitive> PrimitiveElement for T {
     }
 
     #[inline]
-    fn get_from_builder(list_builder: &ListBuilder, index: ElementCount32) -> Self {
+    fn get_from_builder<A>(list_builder: &ListBuilder<A>, index: ElementCount32) -> Self {
         let offset = (index as u64 * list_builder.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
             let ptr: *mut <Self as Primitive>::Raw = list_builder.ptr.offset(offset as isize) as *mut _;
@@ -3449,7 +3469,7 @@ impl <T : Primitive> PrimitiveElement for T {
     }
 
     #[inline]
-    fn set(list_builder: &ListBuilder, index: ElementCount32, value: Self) {
+    fn set<A>(list_builder: &ListBuilder<A>, index: ElementCount32, value: Self) {
         let offset = (index as u64 * list_builder.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
             let ptr: *mut <Self as Primitive>::Raw = list_builder.ptr.offset(offset as isize) as *mut _;
@@ -3471,7 +3491,7 @@ impl <T : Primitive> PrimitiveElement for T {
 
 impl PrimitiveElement for bool {
     #[inline]
-    fn get(list: &ListReader, index: ElementCount32) -> bool {
+    fn get<A>(list: &ListReader<A>, index: ElementCount32) -> bool {
         let bindex = index as u64 * list.step as u64;
         unsafe {
             let b: *const u8 = list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize);
@@ -3479,13 +3499,13 @@ impl PrimitiveElement for bool {
         }
     }
     #[inline]
-    fn get_from_builder(list: &ListBuilder, index: ElementCount32) -> bool {
+    fn get_from_builder<A>(list: &ListBuilder<A>, index: ElementCount32) -> bool {
         let bindex = index as u64 * list.step as u64;
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
         unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE as u64 ))) != 0 }
     }
     #[inline]
-    fn set(list: &ListBuilder, index: ElementCount32, value: bool) {
+    fn set<A>(list: &ListBuilder<A>, index: ElementCount32, value: bool) {
         let bindex = index as u64 * list.step as u64;
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
 
@@ -3497,13 +3517,13 @@ impl PrimitiveElement for bool {
 
 impl PrimitiveElement for () {
     #[inline]
-    fn get(_list: &ListReader, _index: ElementCount32) -> () { () }
+    fn get<A>(_list: &ListReader<A>, _index: ElementCount32) -> () { () }
 
     #[inline]
-    fn get_from_builder(_list: &ListBuilder, _index: ElementCount32) -> () { () }
+    fn get_from_builder<A>(_list: &ListBuilder<A>, _index: ElementCount32) -> () { () }
 
     #[inline]
-    fn set(_list: &ListBuilder, _index: ElementCount32, _value: ()) { }
+    fn set<A>(_list: &ListBuilder<A>, _index: ElementCount32, _value: ()) { }
 
     fn element_size() -> ElementSize { Void }
 }

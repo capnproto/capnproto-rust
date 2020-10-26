@@ -27,7 +27,7 @@ use crate::Result;
 #[derive(Copy, Clone)]
 pub struct Owned(());
 
-impl<'a> crate::traits::Owned<'a> for Owned {
+impl<'a, A> crate::traits::Owned<'a, A> for Owned {
     type Reader = Reader<'a>;
     type Builder = Builder<'a>;
 }
@@ -43,8 +43,8 @@ pub(crate) unsafe fn reader_from_raw_parts<'a>(p: *const u8, len: u32) -> Reader
     ::core::slice::from_raw_parts(p, len as usize)
 }
 
-impl <'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
+impl <'a, A> crate::traits::FromPointerReader<'a, A> for Reader<'a> {
+    fn get_from_pointer(reader: PointerReader<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
         reader.get_data(default)
     }
 }
@@ -60,19 +60,19 @@ pub(crate) unsafe fn builder_from_raw_parts<'a>(p: *mut u8, len: u32) -> Builder
     ::core::slice::from_raw_parts_mut(p, len as usize)
 }
 
-impl <'a> crate::traits::FromPointerBuilder<'a> for Builder<'a> {
-    fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a> {
+impl <'a, A> crate::traits::FromPointerBuilder<'a, A> for Builder<'a> {
+    fn init_pointer(builder: PointerBuilder<&'a mut A>, size : u32) -> Builder<'a> {
         builder.init_data(size)
     }
-    fn get_from_pointer(builder :PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<&'a mut A>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
         builder.get_data(default)
     }
 }
 
 impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,
-                               value: Reader<'a>,
-                               _canonicalize: bool) -> Result<()> {
+    fn set_pointer_builder<'b, B>(pointer: PointerBuilder<&'b mut B>,
+                                  value: Reader<'a>,
+                                  _canonicalize: bool) -> Result<()> {
         pointer.set_data(value);
         Ok(())
     }

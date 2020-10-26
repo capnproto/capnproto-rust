@@ -25,7 +25,7 @@ use alloc::vec::Vec;
 use core::convert::From;
 
 use crate::any_pointer;
-use crate::private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
+use crate::private::arena::{BuilderArenaImpl, ReaderArenaImpl, ReadLimiterImpl, BuilderArena, ReaderArena};
 use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
 use crate::traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder, Owned};
@@ -152,7 +152,7 @@ impl <'b> ReaderSegments for [&'b [u8]] {
 
 /// A container used to read a message.
 pub struct Reader<S> where S: ReaderSegments {
-    arena: ReaderArenaImpl<S, crate::private::arena::ReadLimiterImpl>,
+    arena: ReaderArenaImpl<S, ReadLimiterImpl>,
 }
 
 impl <S> Reader<S> where S: ReaderSegments {
@@ -162,7 +162,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         }
     }
 
-    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a>> {
+    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a, ReaderArenaImpl<S, ReadLimiterImpl>>> {
         let (segment_start, _seg_len) = self.arena.get_segment(0)?;
         let pointer_reader = layout::PointerReader::get_root(
             &self.arena, 0, segment_start, self.arena.nesting_limit())?;
@@ -170,7 +170,7 @@ impl <S> Reader<S> where S: ReaderSegments {
     }
 
     /// Gets the root of the message, interpreting it as the given type.
-    pub fn get_root<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
+    pub fn get_root<'a, T: FromPointerReader<'a, ReaderArenaImpl<S, ReadLimiterImpl>>>(&'a self) -> Result<T> {
         self.get_root_internal()?.get_as()
     }
 
@@ -216,7 +216,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         Ok(result)
     }
 
-    pub fn into_typed<T: for<'a> Owned<'a>>(self) -> TypedReader<S, T> {
+    pub fn into_typed<T: for<'a> Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>>>(self) -> TypedReader<S, T> {
         TypedReader::new(self)
     }
 }
@@ -224,14 +224,14 @@ impl <S> Reader<S> where S: ReaderSegments {
 /// A message reader whose value is known to be of type `T`.
 pub struct TypedReader<S, T>
     where S: ReaderSegments,
-          T: for<'a> Owned<'a> {
+          T: for<'a> Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>> {
     marker: ::core::marker::PhantomData<T>,
     message: Reader<S>,
 }
 
 impl <S, T> TypedReader<S, T>
     where S: ReaderSegments,
-          T : for<'a> Owned<'a> {
+          T : for<'a> Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>> {
 
     pub fn new(message: Reader<S>) -> Self {
         TypedReader {
@@ -240,7 +240,7 @@ impl <S, T> TypedReader<S, T>
         }
     }
 
-    pub fn get<'a> (&'a self) -> Result<<T as Owned<'a>>::Reader> {
+    pub fn get<'a> (&'a self) -> Result<<T as Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>>>::Reader> {
         self.message.get_root()
     }
 
@@ -251,7 +251,7 @@ impl <S, T> TypedReader<S, T>
 
 impl <S, T> From<Reader<S>> for TypedReader<S, T>
     where S: ReaderSegments,
-          T: for<'a> Owned<'a> {
+          T: for<'a> Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>> {
 
     fn from(message: Reader<S>) -> TypedReader<S, T> {
         TypedReader::new(message)
@@ -260,7 +260,7 @@ impl <S, T> From<Reader<S>> for TypedReader<S, T>
 
 impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
     where A: Allocator,
-          T: for<'a> Owned<'a> {
+          T: for<'a> Owned<'a, ReaderArenaImpl<message::Builder<A>, ReadLimiterImpl>> {
 
     fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
         let reader = message.into_reader();
@@ -315,7 +315,7 @@ impl <A> Builder<A> where A: Allocator {
         }
     }
 
-    fn get_root_internal<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+    fn get_root_internal<'a>(&'a mut self) -> any_pointer::Builder<'a, BuilderArenaImpl<A>> {
         if self.arena.len() == 0 {
             self.arena.allocate_segment(1).expect("allocate root pointer");
             self.arena.allocate(0, 1).expect("allocate root pointer");
@@ -329,18 +329,18 @@ impl <A> Builder<A> where A: Allocator {
     }
 
     /// Initializes the root as a value of the given type.
-    pub fn init_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> T {
+    pub fn init_root<'a, T: FromPointerBuilder<'a, BuilderArenaImpl<A>>>(&'a mut self) -> T {
         let root = self.get_root_internal();
         root.init_as()
     }
 
     /// Gets the root, interpreting it as the given type.
-    pub fn get_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
+    pub fn get_root<'a, T: FromPointerBuilder<'a, BuilderArenaImpl<A>>>(&'a mut self) -> Result<T> {
         let root = self.get_root_internal();
         root.get_as()
     }
 
-    pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
+    pub fn get_root_as_reader<'a, T: FromPointerReader<'a, BuilderArenaImpl<A>>>(&'a self) -> Result<T> {
         if self.arena.len() == 0 {
             any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {

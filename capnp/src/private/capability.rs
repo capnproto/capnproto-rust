@@ -27,19 +27,20 @@ use crate::MessageSize;
 use crate::capability::{Params, Promise, Request, RemotePromise, Results};
 
 pub trait ResponseHook {
-    fn get<'a>(&'a self) -> crate::Result<any_pointer::Reader<'a>>;
+//    fn get<'a>(&'a self) -> crate::Result<any_pointer::Reader<'a>>;
 }
 
 pub trait RequestHook {
-    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
+//    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
     fn get_brand(&self) -> usize;
-    fn send(self: Box<Self>) -> RemotePromise<any_pointer::Owned>;
+//    fn send(self: Box<Self>) -> RemotePromise<any_pointer::Owned>;
     fn tail_send(self: Box<Self>)
                  -> Option<(u32, crate::capability::Promise<(), crate::Error>, Box<dyn PipelineHook>)>;
 }
 
 pub trait ClientHook {
     fn add_ref(&self) -> Box<dyn ClientHook>;
+    /*
     fn new_call(&self,
                 interface_id: u64,
                 method_id: u16,
@@ -68,6 +69,7 @@ pub trait ClientHook {
 
     /// Repeatedly calls whenMoreResolved() until it returns nullptr.
     fn when_resolved(&self) -> Promise<(), crate::Error>;
+*/
 }
 
 impl Clone for Box<dyn ClientHook> {
@@ -77,7 +79,7 @@ impl Clone for Box<dyn ClientHook> {
 }
 
 pub trait ResultsHook {
-    fn get<'a>(&'a mut self) -> crate::Result<any_pointer::Builder<'a>>;
+//    fn get<'a>(&'a mut self) -> crate::Result<any_pointer::Builder<'a>>;
     fn allow_cancellation(&self);
     fn tail_call(self: Box<Self>, request: Box<dyn RequestHook>) -> Promise<(), crate::Error>;
     fn direct_tail_call(self: Box<Self>, request: Box<dyn RequestHook>) ->
@@ -85,7 +87,7 @@ pub trait ResultsHook {
 }
 
 pub trait ParamsHook {
-    fn get<'a>(&'a self) -> crate::Result<crate::any_pointer::Reader<'a>>;
+//    fn get<'a>(&'a self) -> crate::Result<crate::any_pointer::Reader<'a>>;
 }
 
 // Where should this live?
