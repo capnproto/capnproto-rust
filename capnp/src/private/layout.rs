@@ -165,7 +165,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn target_from_segment(&self, arena: &dyn ReaderArena, segment_id: u32) -> Result<*const u8> {
+    pub fn target_from_segment(&self, arena: &dyn ReaderArena, segment_id: Option<u32>) -> Result<*const u8> {
         let this_addr: *const u8 = self as *const _ as *const _;
         let offset = 1 + ((self.offset_and_kind.get() as i32) >> 2);
         arena.check_offset(segment_id, this_addr, offset)
@@ -365,10 +365,13 @@ mod wire_helpers {
 
     #[inline]
     pub fn bounds_check(arena: &dyn ReaderArena,
-                        segment_id: u32,
+                        segment_id: Option<u32>,
                         start: *const u8, size_in_words: usize,
                         _kind: WirePointerKind) -> Result<()> {
-        arena.contains_interval(segment_id, start, size_in_words)
+        match segment_id {
+            Some(id) => arena.contains_interval(id, start, size_in_words),
+            None => Ok(()),
+        }
     }
 
     #[inline]
@@ -474,8 +477,8 @@ mod wire_helpers {
     pub unsafe fn follow_fars(
         arena: &dyn ReaderArena,
         reff: *const WirePointer,
-        segment_id: u32)
-        -> Result<(*const u8, *const WirePointer, u32)>
+        segment_id: Option<u32>)
+        -> Result<(*const u8, *const WirePointer, Option<u32>)>
     {
         if (*reff).kind() == WirePointerKind::Far {
             let far_segment_id = (*reff).far_segment_id();
@@ -484,12 +487,12 @@ mod wire_helpers {
             let ptr = seg_start.offset((*reff).far_position_in_segment() as isize * BYTES_PER_WORD as isize);
 
             let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
-            bounds_check(arena, far_segment_id, ptr, pad_words, WirePointerKind::Far)?;
+            bounds_check(arena, Some(far_segment_id), ptr, pad_words, WirePointerKind::Far)?;
 
             let pad: *const WirePointer = ptr as *const _;
 
             if !(*reff).is_double_far() {
-                Ok(((*pad).target_from_segment(arena, far_segment_id)?, pad, far_segment_id))
+                Ok(((*pad).target_from_segment(arena, Some(far_segment_id))?, pad, Some(far_segment_id)))
             } else {
                 // Landing pad is another far pointer. It is followed by a tag describing the
                 // pointed-to object.
@@ -498,7 +501,7 @@ mod wire_helpers {
                 let double_far_segment_id = (*pad).far_segment_id();
                 let (segment_start, _segment_len) = arena.get_segment(double_far_segment_id)?;
                 let ptr = segment_start.offset((*pad).far_position_in_segment() as isize * BYTES_PER_WORD as isize);
-                Ok((ptr, tag, double_far_segment_id))
+                Ok((ptr, tag, Some(double_far_segment_id)))
             }
         } else {
             Ok(((*reff).target_from_segment(arena, segment_id)?, reff, segment_id))
@@ -632,7 +635,7 @@ mod wire_helpers {
 
     pub unsafe fn total_size(
         arena: &dyn ReaderArena,
-        segment_id: u32,
+        segment_id: Option<u32>,
         reff: *const WirePointer,
         mut nesting_limit: i32) -> Result<MessageSize>
     {
@@ -1869,15 +1872,18 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn copy_pointer(
-        dst_arena: &dyn BuilderArena,
+    pub unsafe fn copy_pointer<'a, 'b, A, B>(
+        dst_arena: &'a mut A,
         dst_segment_id: u32, dst_cap_table: CapTableBuilder,
         dst: *mut WirePointer,
-        src_arena: &dyn ReaderArena,
-        src_segment_id: u32, src_cap_table: CapTableReader,
+        src_arena: &'b B,
+        src_segment_id: Option<u32>,
+        src_cap_table: CapTableReader,
         src: *const WirePointer,
         nesting_limit: i32,
         canonicalize: bool) -> Result<SegmentAnd<*mut u8>>
+    where A: BuilderArena,
+          B: ReaderArena
     {
         if (*src).is_null() {
             ptr::write_bytes(dst, 0, 1);
@@ -2024,8 +2030,8 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_struct_pointer<'a, A>(
-        mut arena: &'a A,
-        mut segment_id: u32,
+        arena: &'a A,
+        mut segment_id: Option<u32>,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>,
@@ -2034,13 +2040,12 @@ mod wire_helpers {
     {
         if (*reff).is_null() {
             match default {
-                None => return Ok(StructReader::new_default()),
+                None => return Ok(StructReader::new_default(arena)),
                 Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() =>
-                    return Ok(StructReader::new_default()),
+                    return Ok(StructReader::new_default(arena)),
                 Some(d) => {
                     reff = d.as_ptr() as *const _;
-                    arena = &super::NULL_ARENA;
-                    segment_id = 0;
+                    segment_id = None;
                 }
             }
         }
@@ -2077,7 +2082,6 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn read_capability_pointer(
         _arena: &dyn ReaderArena,
-        _segment_id: u32,
         cap_table: CapTableReader,
         reff: *const WirePointer,
         _nesting_limit: i32) -> Result<Box<dyn ClientHook>>
@@ -2102,8 +2106,8 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_list_pointer<'a, A>(
-        mut arena: &'a A,
-        mut segment_id: u32,
+        arena: &'a A,
+        mut segment_id: Option<u32>,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default_value: *const u8,
@@ -2113,11 +2117,10 @@ mod wire_helpers {
     {
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListReader::new_default());
+                return Ok(ListReader::new_default(arena));
             }
             reff = default_value as *const _;
-            arena = &super::NULL_ARENA;
-            segment_id = 0;
+            segment_id = None;
         }
 
         if nesting_limit <= 0 {
@@ -2267,7 +2270,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn read_text_pointer<'a>(
         mut arena: &'a dyn ReaderArena,
-        mut segment_id: u32,
+        mut segment_id: Option<u32>,
         mut reff: *const WirePointer,
         default: Option<&[crate::Word]>) -> Result<text::Reader<'a>>
     {
@@ -2276,8 +2279,7 @@ mod wire_helpers {
                 None => return Ok(&""),
                 Some(d) => {
                     reff = d.as_ptr() as *const WirePointer;
-                    arena = &super::NULL_ARENA;
-                    segment_id = 0;
+                    segment_id = None;
                 }
             }
         }
@@ -2316,7 +2318,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn read_data_pointer<'a>(
         mut arena: &'a dyn ReaderArena,
-        mut segment_id: u32,
+        mut segment_id: Option<u32>,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>) -> Result<data::Reader<'a>>
     {
@@ -2325,8 +2327,7 @@ mod wire_helpers {
                 None => return Ok(&[]),
                 Some(d) => {
                     reff = d.as_ptr() as *const WirePointer;
-                    arena = &super::NULL_ARENA;
-                    segment_id = 0;
+                    segment_id = None;
                 }
             }
         }
@@ -2453,7 +2454,7 @@ pub struct PointerReader<A> {
     arena: A,
     cap_table: CapTableReader,
     pointer: *const WirePointer,
-    segment_id: u32,
+    segment_id: Option<u32>,
     nesting_limit: i32,
 }
 
@@ -2461,7 +2462,7 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
     pub fn new_default(arena: &'a A) -> PointerReader<&'a A> {
         PointerReader {
             arena: arena,
-            segment_id: 0,
+            segment_id: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: ptr::null(),
             nesting_limit: 0x7fffffff }
@@ -2472,13 +2473,13 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
                     location: *const u8,
                     nesting_limit: i32) -> Result<Self>
     {
-        wire_helpers::bounds_check(arena, segment_id, location as *const _,
+        wire_helpers::bounds_check(arena, Some(segment_id), location as *const _,
                                    POINTER_SIZE_IN_WORDS,
                                    WirePointerKind::Struct)?;
 
         Ok(PointerReader {
             arena: arena,
-            segment_id: segment_id,
+            segment_id: Some(segment_id),
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *const _,
             nesting_limit: nesting_limit,
@@ -2492,7 +2493,7 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
     pub fn get_root_unchecked(location: *const u8) -> PointerReader<&'static NullArena> {
         PointerReader {
             arena: &NULL_ARENA,
-            segment_id: 0,
+            segment_id: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *const _,
             nesting_limit: 0x7fffffff }
@@ -2569,7 +2570,7 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
         let reff: *const WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_capability_pointer(
-                self.arena, self.segment_id, self.cap_table, reff, self.nesting_limit)
+                self.arena, self.cap_table, reff, self.nesting_limit)
         }
     }
 
@@ -2713,7 +2714,7 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
         unsafe {
             wire_helpers::read_capability_pointer(
                 self.arena.as_reader(),
-                self.segment_id, self.cap_table.into_reader(), self.pointer, ::core::i32::MAX)
+                self.cap_table.into_reader(), self.pointer, ::core::i32::MAX)
         }
     }
 
@@ -2752,7 +2753,9 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
         }
     }
 
-    pub fn set_struct<B>(&self, value: &StructReader<&B>, canonicalize: bool) -> Result<()> {
+    pub fn set_struct<B>(&self, value: &StructReader<&B>, canonicalize: bool) -> Result<()>
+        where B: ReaderArena
+    {
         unsafe {
             wire_helpers::set_struct_pointer(
                 self.arena,
@@ -2819,7 +2822,7 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
     pub fn into_reader(self) -> PointerReader<&'a A> {
         PointerReader {
             arena: self.arena,
-            segment_id: self.segment_id,
+            segment_id: Some(self.segment_id),
             cap_table: self.cap_table.into_reader(),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff
@@ -2833,7 +2836,7 @@ pub struct StructReader<A> {
     cap_table: CapTableReader,
     data: *const u8,
     pointers: *const WirePointer,
-    segment_id: u32,
+    segment_id: Option<u32>,
     data_size: BitCount32,
     pointer_count: WirePointerCount16,
     nesting_limit: i32,
@@ -2843,7 +2846,7 @@ impl <'a,A> StructReader<&'a A> where A: ReaderArena {
     pub fn new_default(arena: &'a A) -> StructReader<&'a A> {
         StructReader {
             arena: a,
-            segment_id: 0,
+            segment_id: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             data: ptr::null(),
             pointers: ptr::null(),
@@ -3032,7 +3035,7 @@ impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
-            segment_id: self.segment_id,
+            segment_id: Some(self.segment_id),
             data_size: self.data_size,
             nesting_limit: 0x7fffffff,
         }
@@ -3184,7 +3187,7 @@ pub struct ListReader<A> {
     arena: A,
     cap_table: CapTableReader,
     ptr: *const u8,
-    segment_id: u32,
+    segment_id: Option<u32>,
     element_count: ElementCount32,
     step: BitCount32,
     struct_data_size: BitCount32,
@@ -3194,10 +3197,10 @@ pub struct ListReader<A> {
 }
 
 impl <'a, A> ListReader<&'a A> where A: ReaderArena {
-    pub fn new_default() -> ListReader<&'static NullArena> {
+    pub fn new_default(arena: &'a A) -> ListReader<&'a A> {
         ListReader {
-            arena: &NULL_ARENA,
-            segment_id: 0,
+            arena: arena,
+            segment_id: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             ptr: ptr::null(),
             element_count: 0,
@@ -3388,7 +3391,7 @@ impl <'a, A> ListBuilder<&'a mut A> {
     pub fn into_reader(self) -> ListReader<&'a A> {
         ListReader {
             arena: self.arena,
-            segment_id: self.segment_id,
+            segment_id: Some(self.segment_id),
             cap_table: self.cap_table.into_reader(),
             ptr: self.ptr as *const _,
             element_count: self.element_count,
