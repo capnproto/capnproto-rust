@@ -24,7 +24,7 @@ use alloc::vec::Vec;
 
 use crate::any_pointer;
 use crate::MessageSize;
-use crate::capability::{Params, Promise, Request, RemotePromise, Results};
+use crate::capability::{Params, Promise, Request, Results};
 
 pub trait ResponseHook {
 //    fn get<'a>(&'a self) -> crate::Result<any_pointer::Reader<'a>>;

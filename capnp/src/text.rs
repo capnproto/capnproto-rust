@@ -29,7 +29,7 @@ use crate::private::arena::{BuilderArena, ReaderArena};
 #[derive(Copy, Clone)]
 pub struct Owned(());
 
-impl<'a, A> crate::traits::Owned<'a, A> for Owned {
+impl<'a, A: 'a> crate::traits::Owned<'a, A> for Owned where A: BuilderArena {
     type Reader = Reader<'a>;
     type Builder = Builder<'a>;
 }
@@ -45,7 +45,7 @@ pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
 }
 
 impl <'a, A> crate::traits::FromPointerReader<'a, A> for Reader<'a> where A: ReaderArena {
-    fn get_from_pointer(reader: &crate::private::layout::PointerReader<&'a A>,
+    fn get_from_pointer(reader: crate::private::layout::PointerReader<&'a A>,
                         default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
         reader.get_text(default)
     }

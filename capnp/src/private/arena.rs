@@ -116,11 +116,11 @@ impl <S, L> ReaderArena for ReaderArenaImpl<S, L> where S: ReaderSegments, L: Re
     }
 
     fn check_offset(&self, segment_id: Option<u32>, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+        let offset: i64 = offset_in_words as i64 * BYTES_PER_WORD as i64;
         if let Some(id) = segment_id {
             let (segment_start, segment_len) = self.get_segment(id)?;
             let this_start: usize = segment_start as usize;
             let this_size: usize = segment_len as usize * BYTES_PER_WORD;
-            let offset: i64 = offset_in_words as i64 * BYTES_PER_WORD as i64;
             let start_idx = start as usize;
             if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size {
                 return Err(Error::failed(format!("message contained out-of-bounds pointer")));

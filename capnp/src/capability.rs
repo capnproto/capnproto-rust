@@ -227,7 +227,7 @@ impl Client {
     pub fn new(hook: Box<dyn ClientHook>) -> Client {
         Client { hook : hook }
     }
-
+/*
     pub fn new_call<Params, Results>(&self,
                                      interface_id : u64,
                                      method_id : u16,
@@ -245,6 +245,7 @@ impl Client {
     pub fn when_resolved(&self) -> Promise<(), Error> {
         self.hook.when_resolved()
     }
+*/
 }
 
 /// An untyped server.

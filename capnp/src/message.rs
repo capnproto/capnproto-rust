@@ -260,7 +260,7 @@ impl <S, T> From<Reader<S>> for TypedReader<S, T>
 
 impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
     where A: Allocator,
-          T: for<'a> Owned<'a, ReaderArenaImpl<message::Builder<A>, ReadLimiterImpl>> {
+          T: for<'a> Owned<'a, ReaderArenaImpl<Builder<A>, ReadLimiterImpl>> {
 
     fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
         let reader = message.into_reader();
@@ -342,11 +342,11 @@ impl <A> Builder<A> where A: Allocator {
 
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a, BuilderArenaImpl<A>>>(&'a self) -> Result<T> {
         if self.arena.len() == 0 {
-            any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
+            any_pointer::Reader::new(layout::PointerReader::new_default(&self.arena)).get_as()
         } else {
             let (segment_start, _segment_len) = self.arena.get_segment(0)?;
             let pointer_reader = layout::PointerReader::get_root(
-                self.arena.as_reader(), 0, segment_start, 0x7fffffff)?;
+                &self.arena, 0, segment_start, 0x7fffffff)?;
             let root = any_pointer::Reader::new(pointer_reader);
             root.get_as()
         }
@@ -367,7 +367,7 @@ impl <A> Builder<A> where A: Allocator {
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
-        let pointer = layout::PointerBuilder::get_root(&self.arena, 0, seg_start);
+        let pointer = layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start);
         SetPointerBuilder::set_pointer_builder(pointer, value, true)?;
         assert_eq!(self.get_segments_for_output().len(), 1);
         Ok(())

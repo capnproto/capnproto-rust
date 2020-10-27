@@ -2845,7 +2845,7 @@ pub struct StructReader<A> {
 impl <'a,A> StructReader<&'a A> where A: ReaderArena {
     pub fn new_default(arena: &'a A) -> StructReader<&'a A> {
         StructReader {
-            arena: a,
+            arena: arena,
             segment_id: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             data: ptr::null(),

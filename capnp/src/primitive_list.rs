@@ -24,7 +24,7 @@
 use core::{marker};
 
 use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
-use crate::private::arena::BuilderArena;
+use crate::private::arena::{BuilderArena, ReaderArena};
 use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                              PrimitiveElement};
 use crate::Result;
@@ -45,7 +45,7 @@ pub struct Reader<T, A> where T: PrimitiveElement {
     reader: ListReader<A>
 }
 
-impl <T: PrimitiveElement, A> Reader<T, A> {
+impl <'a, T: PrimitiveElement, A> Reader<T, &'a A> where A: ReaderArena {
     pub fn new(reader: ListReader<A>) -> Reader<T, A> {
         Reader { reader: reader, marker: marker::PhantomData }
     }
@@ -58,20 +58,20 @@ impl <T: PrimitiveElement, A> Reader<T, A> {
     }
 }
 
-impl <'a, T: PrimitiveElement, A> FromPointerReader<'a, A> for Reader<T, &'a A> {
-    fn get_from_pointer(reader: &PointerReader<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Reader<T, &'a A>> {
+impl <'a, T: PrimitiveElement, A> FromPointerReader<'a, A> for Reader<T, &'a A> where A: ReaderArena {
+    fn get_from_pointer(reader: PointerReader<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Reader<T, &'a A>> {
         Ok(Reader { reader: reader.get_list(T::element_size(), default)?,
                     marker: marker::PhantomData })
     }
 }
 
-impl <'a, T: PrimitiveElement, A>  IndexMove<u32, T> for Reader<T, &'a A> {
+impl <'a, T: PrimitiveElement, A>  IndexMove<u32, T> for Reader<T, &'a A> where A: ReaderArena {
     fn index_move(&self, index: u32) -> T {
         self.get(index)
     }
 }
 
-impl <T: PrimitiveElement, A> Reader<T, A> {
+impl <'a, T: PrimitiveElement, A> Reader<T, &'a A> where A: ReaderArena {
     pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get(&self.reader, index)
@@ -108,7 +108,7 @@ impl <'a, T, A> Builder<T, &'a mut A> where T: PrimitiveElement, A: BuilderArena
     }
 }
 
-impl <'a, T: PrimitiveElement, A> FromPointerBuilder<'a, A> for Builder<T, &'a mut A> {
+impl <'a, T: PrimitiveElement, A> FromPointerBuilder<'a, A> for Builder<T, &'a mut A> where A: BuilderArena {
     fn init_pointer(builder: PointerBuilder<&'a mut A>, size: u32) -> Builder<T, &'a mut A> {
         Builder { builder: builder.init_list(T::element_size(), size),
                   marker: marker::PhantomData }
@@ -119,7 +119,7 @@ impl <'a, T: PrimitiveElement, A> FromPointerBuilder<'a, A> for Builder<T, &'a m
     }
 }
 
-impl <'a, T: PrimitiveElement, A> Builder<T, &'a mut A> {
+impl <'a, T: PrimitiveElement, A> Builder<T, &'a mut A> where A: BuilderArena {
     pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get_from_builder(&self.builder, index)
@@ -130,18 +130,22 @@ impl <'a, T: PrimitiveElement, A> Builder<T, &'a mut A> {
     }
 }
 
-impl <T, A> crate::traits::SetPointerBuilder<Builder<T, A>> for Reader<T, A>
-    where T: PrimitiveElement
+impl <'a, T, A> crate::traits::SetPointerBuilder<Builder<T, A>> for Reader<T, A>
+where T: PrimitiveElement,
+      A: ReaderArena
 {
     fn set_pointer_builder<'b, B>(pointer: PointerBuilder<&'b mut B>,
-                                  value: Reader<T, A>,
-                                  canonicalize: bool) -> Result<()> {
+                                  value: Reader<T, &'a A>,
+                                  canonicalize: bool) -> Result<()>
+        where B: BuilderArena
+    {
         pointer.set_list(&value.reader, canonicalize)
     }
 }
 
-impl <T, A> ::core::iter::IntoIterator for Reader<T, A>
-    where T: PrimitiveElement
+impl <'a, T, A> ::core::iter::IntoIterator for Reader<T, &'a A>
+where T: PrimitiveElement,
+      A: ReaderArena
 {
     type Item = T;
     type IntoIter = ListIter<Reader<T, A>, Self::Item>;

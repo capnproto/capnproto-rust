@@ -77,7 +77,7 @@ pub trait Pipelined {
 
 pub trait FromPointerBuilder<'a, A> : Sized {
     fn init_pointer(builder: PointerBuilder<&'a mut A>, length: u32) -> Self;
-    fn get_from_pointer(builder: PointerBuilder<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Self>;
+    fn get_from_pointer(builder: PointerBuilder<&'a mut A>, default: Option<&'a [crate::Word]>) -> Result<Self>;
 }
 
 pub trait SetPointerBuilder<To> {

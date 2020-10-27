@@ -34,7 +34,7 @@ use crate::Result;
 #[derive(Copy, Clone)]
 pub struct Owned(());
 
-impl <'a, A: 'a> crate::traits::Owned<'a, A> for Owned {
+impl <'a, A: 'a> crate::traits::Owned<'a, A> for Owned where A: BuilderArena {
     type Reader = Reader<'a, A>;
     type Builder = Builder<'a, A>;
 }
@@ -66,7 +66,7 @@ impl <'a, A> Reader<'a, A> where A: ReaderArena {
 
     #[inline]
     pub fn get_as<T: FromPointerReader<'a, A>>(&self) -> Result<T> {
-        FromPointerReader::get_from_pointer(&self.reader, None)
+        FromPointerReader::get_from_pointer(self.reader, None)
     }
 
     pub fn get_as_capability<T: FromClientHook>(&self) -> Result<T> {
@@ -92,23 +92,25 @@ impl <'a, A> Reader<'a, A> where A: ReaderArena {
 }
 
 impl <'a, A> FromPointerReader<'a, A> for Reader<'a, A> where A: ReaderArena {
-    fn get_from_pointer(reader: &PointerReader<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, A>> {
+    fn get_from_pointer(reader: PointerReader<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, A>> {
         if default.is_some() {
             panic!("Unsupported: any_pointer with a default value.");
         }
-        Ok(Reader { reader: *reader })
+        Ok(Reader { reader: reader })
     }
 }
 
-impl <'a, A> crate::traits::SetPointerBuilder<Builder<'a, A>> for Reader<'a, A> {
+impl <'a, A> crate::traits::SetPointerBuilder<Builder<'a, A>> for Reader<'a, A> where A: ReaderArena {
     fn set_pointer_builder<'b, B>(mut pointer: crate::private::layout::PointerBuilder<&'b mut B>,
                                   value: Reader<'a, A>,
-                                  canonicalize: bool) -> Result<()> {
+                                  canonicalize: bool) -> Result<()>
+        where B: BuilderArena
+    {
         pointer.copy_from(value.reader, canonicalize)
     }
 }
 
-impl <'a> crate::traits::Imbue<'a> for Reader<'a> {
+impl <'a, A> crate::traits::Imbue<'a> for Reader<'a, A> where A: ReaderArena {
     fn imbue(&mut self, cap_table: &'a crate::private::layout::CapTable) {
         self.reader.imbue(crate::private::layout::CapTableReader::Plain(cap_table));
     }
@@ -168,7 +170,7 @@ impl <'a, A> Builder<'a, A> where A: BuilderArena {
     }
 }
 
-impl <'a, A> FromPointerBuilder<'a, A> for Builder<'a, A> {
+impl <'a, A> FromPointerBuilder<'a, A> for Builder<'a, A> where A: BuilderArena {
     fn init_pointer(mut builder: PointerBuilder<&mut 'a A>, _len: u32) -> Builder<'a, A> {
         if !builder.is_null() {
             builder.clear();
@@ -183,7 +185,7 @@ impl <'a, A> FromPointerBuilder<'a, A> for Builder<'a, A> {
     }
 }
 
-impl <'a, A> crate::traits::ImbueMut<'a> for Builder<'a, A> {
+impl <'a, A> crate::traits::ImbueMut<'a> for Builder<'a, A> where A: BuilderArena {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table));
     }
