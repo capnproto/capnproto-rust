@@ -26,6 +26,7 @@
 use core::marker::PhantomData;
 
 use crate::any_pointer;
+use crate::private::arena::NullArena;
 use crate::private::layout::PointerReader;
 use crate::traits::Owned;
 use crate::{Result};
@@ -40,9 +41,9 @@ pub struct Reader<T> {
     pub words: &'static [crate::Word],
 }
 
-impl <T> Reader<T> where T: for<'a> Owned<'a> {
+impl <T> Reader<T> where T: Owned {
     /// Retrieve the value.
-    pub fn get(&self) -> Result<<T as Owned<'static>>::Reader> {
+    pub fn get(&self) -> Result<<T as Owned>::Reader<'static, NullArena>> {
         any_pointer::Reader::new(PointerReader::get_root_unchecked(self.words.as_ptr() as *const u8)).get_as()
     }
 }

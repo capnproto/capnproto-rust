@@ -29,9 +29,9 @@ use crate::private::arena::{BuilderArena, ReaderArena};
 #[derive(Copy, Clone)]
 pub struct Owned(());
 
-impl<'a, A: 'a> crate::traits::Owned<'a, A> for Owned where A: BuilderArena {
-    type Reader = Reader<'a>;
-    type Builder = Builder<'a>;
+impl crate::traits::Owned for Owned {
+    type Reader<'a, A: ReaderArena + 'a> = Reader<'a>;
+    type Builder<'a, A: BuilderArena + 'a> = Builder<'a>;
 }
 
 pub type Reader<'a> = &'a str;
@@ -120,7 +120,7 @@ impl <'a, A> crate::traits::FromPointerBuilder<'a, A> for Builder<'a> where A: B
     }
 }
 
-impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+impl <'a> crate::traits::SetPointerBuilder for Reader<'a> {
     fn set_pointer_builder<'b, A>(pointer: crate::private::layout::PointerBuilder<&'b mut A>,
                                   value: Reader<'a>,
                                   _canonicalize: bool)

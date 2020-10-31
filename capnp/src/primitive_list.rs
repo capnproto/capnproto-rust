@@ -34,9 +34,9 @@ pub struct Owned<T> {
     marker: marker::PhantomData<T>,
 }
 
-impl <'a, T, A: 'a> crate::traits::Owned<'a, A> for Owned<T> where T: PrimitiveElement {
-    type Reader = Reader<T, &'a A>;
-    type Builder = Builder<T, &'a mut A>;
+impl <T> crate::traits::Owned for Owned<T> where T: PrimitiveElement {
+    type Reader<'a, A: ReaderArena + 'a> = Reader<T, &'a A>;
+    type Builder<'a, A: BuilderArena + 'a> = Builder<T, &'a mut A>;
 }
 
 #[derive(Clone, Copy)]
@@ -52,7 +52,7 @@ impl <'a, T: PrimitiveElement, A> Reader<T, &'a A> where A: ReaderArena {
 
     pub fn len(&self) -> u32 { self.reader.len() }
 
-    pub fn iter(self) -> ListIter<Reader<T, A>, T>{
+    pub fn iter(self) -> ListIter<Reader<T, &'a A>, T>{
         let l = self.len();
         ListIter::new(self, l)
     }
@@ -125,12 +125,13 @@ impl <'a, T: PrimitiveElement, A> Builder<T, &'a mut A> where A: BuilderArena {
         PrimitiveElement::get_from_builder(&self.builder, index)
     }
 
-    pub fn reborrow<'b>(&'b self) -> Builder<T, &'b mut A> {
-        Builder { .. *self }
+    pub fn reborrow<'b>(&'b mut self) -> Builder<T, &'b mut A> {
+        Builder { builder: self.builder.reborrow(),
+                  .. *self }
     }
 }
 
-impl <'a, T, A> crate::traits::SetPointerBuilder<Builder<T, A>> for Reader<T, A>
+impl <'a, T, A> crate::traits::SetPointerBuilder for Reader<T, &'a A>
 where T: PrimitiveElement,
       A: ReaderArena
 {
@@ -148,7 +149,7 @@ where T: PrimitiveElement,
       A: ReaderArena
 {
     type Item = T;
-    type IntoIter = ListIter<Reader<T, A>, Self::Item>;
+    type IntoIter = ListIter<Reader<T, &'a A>, Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()

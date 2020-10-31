@@ -34,9 +34,9 @@ use crate::Result;
 #[derive(Copy, Clone)]
 pub struct Owned(());
 
-impl <'a, A: 'a> crate::traits::Owned<'a, A> for Owned where A: BuilderArena {
-    type Reader = Reader<'a, A>;
-    type Builder = Builder<'a, A>;
+impl crate::traits::Owned for Owned {
+    type Reader<'a, A: ReaderArena + 'a> = Reader<'a, A>;
+    type Builder<'a, A: BuilderArena + 'a> = Builder<'a, A>;
 }
 
 impl crate::traits::Pipelined for Owned {
@@ -100,7 +100,7 @@ impl <'a, A> FromPointerReader<'a, A> for Reader<'a, A> where A: ReaderArena {
     }
 }
 
-impl <'a, A> crate::traits::SetPointerBuilder<Builder<'a, A>> for Reader<'a, A> where A: ReaderArena {
+impl <'a, A> crate::traits::SetPointerBuilder for Reader<'a, A> where A: ReaderArena {
     fn set_pointer_builder<'b, B>(mut pointer: crate::private::layout::PointerBuilder<&'b mut B>,
                                   value: Reader<'a, A>,
                                   canonicalize: bool) -> Result<()>
@@ -117,7 +117,7 @@ impl <'a, A> crate::traits::Imbue<'a> for Reader<'a, A> where A: ReaderArena {
 }
 
 pub struct Builder<'a, A> {
-    builder: PointerBuilder<&mut 'a A>
+    builder: PointerBuilder<&'a mut A>
 }
 
 impl <'a, A> Builder<'a, A> where A: BuilderArena {
@@ -136,7 +136,7 @@ impl <'a, A> Builder<'a, A> where A: BuilderArena {
 
     /// Gets the total size of the target and all of its children. Does not count far pointer overhead.
     pub fn target_size(&self) -> Result<crate::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.reborrow_as_reader().total_size()
     }
 
     pub fn get_as<T: FromPointerBuilder<'a, A>>(self) -> Result<T> {
@@ -151,8 +151,8 @@ impl <'a, A> Builder<'a, A> where A: BuilderArena {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as<To, From : SetPointerBuilder<To>>(self, value: From) -> Result<()> {
-        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value, false)
+    pub fn set_as<From :SetPointerBuilder>(self, value: From) -> Result<()> {
+        SetPointerBuilder::set_pointer_builder(self.builder, value, false)
     }
 
     // XXX value should be a user client.
@@ -171,13 +171,13 @@ impl <'a, A> Builder<'a, A> where A: BuilderArena {
 }
 
 impl <'a, A> FromPointerBuilder<'a, A> for Builder<'a, A> where A: BuilderArena {
-    fn init_pointer(mut builder: PointerBuilder<&mut 'a A>, _len: u32) -> Builder<'a, A> {
+    fn init_pointer(mut builder: PointerBuilder<&'a mut A>, _len: u32) -> Builder<'a, A> {
         if !builder.is_null() {
             builder.clear();
         }
         Builder { builder: builder }
     }
-    fn get_from_pointer(builder: PointerBuilder<&mut 'a A>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, A>> {
+    fn get_from_pointer(builder: PointerBuilder<&'a mut A>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, A>> {
         if default.is_some() {
             panic!("AnyPointer defaults are unsupported")
         }
@@ -231,15 +231,15 @@ impl crate::capability::FromTypelessPipeline for Pipeline {
 fn init_clears_value() {
     let mut message = crate::message::Builder::new_default();
     {
-        let root: crate::any_pointer::Builder = message.init_root();
-        let mut list: crate::primitive_list::Builder<u16> = root.initn_as(10);
+        let root: crate::any_pointer::Builder<_> = message.init_root();
+        let mut list: crate::primitive_list::Builder<u16, _> = root.initn_as(10);
         for idx in 0..10 {
             list.set(idx, idx as u16);
         }
     }
 
     {
-        let root: crate::any_pointer::Builder = message.init_root();
+        let root: crate::any_pointer::Builder<_> = message.init_root();
         assert!(root.is_null());
     }
 

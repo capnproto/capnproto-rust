@@ -56,31 +56,31 @@ pub trait FromPointerReader<'a, A> : Sized {
 /// If `Foo` is a Cap'n Proto struct and `Bar` is a Rust-native struct, then
 /// `foo::Reader<'a>` is to `foo::Owned` as `&'a Bar` is to `Bar`, and
 /// `foo::Builder<'a>` is to `foo::Owned` as `&'a mut Bar` is to `Bar`.
-/// The relationship is formalized by an `impl <'a> capnp::traits::Owned<'a> for foo::Owned`.
+/// The relationship is formalized by an `impl capnp::traits::Owned for foo::Owned`.
 /// Because Cap'n Proto struct layout differs from Rust struct layout, a `foo::Owned` value
 /// cannot be used for anything interesting on its own; the `foo::Owned` type is useful
 /// nonetheless as a type parameter, e.g. for a generic container that owns a Cap'n Proto
-/// message of type `T: for<'a> capnp::traits::Owned<'a>`.
-pub trait Owned<'a, A> {
-    type Reader: FromPointerReader<'a, A> + SetPointerBuilder<Self::Builder>;
-    type Builder: FromPointerBuilder<'a, A>;
+/// message of type `T: capnp::traits::Owned`.
+pub trait Owned {
+    type Reader<'a, A: ReaderArena + 'a> : FromPointerReader<'a, A> + SetPointerBuilder;
+    type Builder<'a, A: BuilderArena + 'a> : FromPointerBuilder<'a, A>;
 }
 
-pub trait OwnedStruct<'a, A> {
-    type Reader: FromStructReader<'a, A> + SetPointerBuilder<Self::Builder> + IntoInternalStructReader<'a, A>;
-    type Builder: FromStructBuilder<'a, A> + HasStructSize;
+pub trait OwnedStruct {
+    type Reader<'a, A: ReaderArena + 'a>: FromStructReader<'a, A> + SetPointerBuilder + IntoInternalStructReader<'a, A>;
+    type Builder<'a, A: BuilderArena + 'a>: FromStructBuilder<'a, A> + HasStructSize;
 }
 
 pub trait Pipelined {
     type Pipeline;
 }
 
-pub trait FromPointerBuilder<'a, A> : Sized {
+pub trait FromPointerBuilder<'a, A> : Sized where A: BuilderArena {
     fn init_pointer(builder: PointerBuilder<&'a mut A>, length: u32) -> Self;
     fn get_from_pointer(builder: PointerBuilder<&'a mut A>, default: Option<&'a [crate::Word]>) -> Result<Self>;
 }
 
-pub trait SetPointerBuilder<To> {
+pub trait SetPointerBuilder {
     fn set_pointer_builder<'a, A>(builder: PointerBuilder<&'a mut A>, from: Self, canonicalize: bool) -> Result<()>
         where A: BuilderArena;
 }

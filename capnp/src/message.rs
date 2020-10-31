@@ -216,7 +216,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         Ok(result)
     }
 
-    pub fn into_typed<T: for<'a> Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>>>(self) -> TypedReader<S, T> {
+    pub fn into_typed<T: Owned>(self) -> TypedReader<S, T> {
         TypedReader::new(self)
     }
 }
@@ -224,14 +224,14 @@ impl <S> Reader<S> where S: ReaderSegments {
 /// A message reader whose value is known to be of type `T`.
 pub struct TypedReader<S, T>
     where S: ReaderSegments,
-          T: for<'a> Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>> {
+          T: Owned {
     marker: ::core::marker::PhantomData<T>,
     message: Reader<S>,
 }
 
 impl <S, T> TypedReader<S, T>
     where S: ReaderSegments,
-          T : for<'a> Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>> {
+          T : Owned {
 
     pub fn new(message: Reader<S>) -> Self {
         TypedReader {
@@ -240,7 +240,7 @@ impl <S, T> TypedReader<S, T>
         }
     }
 
-    pub fn get<'a> (&'a self) -> Result<<T as Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>>>::Reader> {
+    pub fn get<'a> (&'a self) -> Result<<T as Owned>::Reader<'a, ReaderArenaImpl<S, ReadLimiterImpl>>> {
         self.message.get_root()
     }
 
@@ -251,7 +251,7 @@ impl <S, T> TypedReader<S, T>
 
 impl <S, T> From<Reader<S>> for TypedReader<S, T>
     where S: ReaderSegments,
-          T: for<'a> Owned<'a, ReaderArenaImpl<S, ReadLimiterImpl>> {
+          T: Owned {
 
     fn from(message: Reader<S>) -> TypedReader<S, T> {
         TypedReader::new(message)
@@ -260,7 +260,7 @@ impl <S, T> From<Reader<S>> for TypedReader<S, T>
 
 impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
     where A: Allocator,
-          T: for<'a> Owned<'a, ReaderArenaImpl<Builder<A>, ReadLimiterImpl>> {
+          T: Owned {
 
     fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
         let reader = message.into_reader();
@@ -353,7 +353,7 @@ impl <A> Builder<A> where A: Allocator {
     }
 
     /// Sets the root to a deep copy of the given value.
-    pub fn set_root<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
+    pub fn set_root<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
         let root = self.get_root_internal();
         root.set_as(value)
     }
@@ -361,7 +361,7 @@ impl <A> Builder<A> where A: Allocator {
     /// Sets the root to a canonicalized version of `value`. If this was the first action taken
     /// on this `Builder`, then a subsequent call to `get_segments_for_output()` should return
     /// a single segment, containing the full canonicalized message.
-    pub fn set_root_canonical<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
+    pub fn set_root_canonical<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
         if self.arena.len() == 0 {
             self.arena.allocate_segment(1).expect("allocate root pointer");
             self.arena.allocate(0, 1).expect("allocate root pointer");

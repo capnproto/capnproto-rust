@@ -691,8 +691,8 @@ pub mod test {
         const LIST_LENGTH_IN_WORDS: u32 = 5;
         let mut m = message::Builder::new_default();
         {
-            let root: crate::any_pointer::Builder = m.init_root();
-            let _list_builder: crate::primitive_list::Builder<u64> = root.initn_as(LIST_LENGTH_IN_WORDS);
+            let root: crate::any_pointer::Builder<_> = m.init_root();
+            let _list_builder: crate::primitive_list::Builder<u64,_> = root.initn_as(LIST_LENGTH_IN_WORDS);
         }
 
         // The message body has a list pointer (one word) and the list (LIST_LENGTH_IN_WORDS words).

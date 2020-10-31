@@ -40,13 +40,13 @@ pub trait RequestHook {
 
 pub trait ClientHook {
     fn add_ref(&self) -> Box<dyn ClientHook>;
-    /*
+
     fn new_call(&self,
                 interface_id: u64,
                 method_id: u16,
                 size_hint: Option<MessageSize>)
                 -> Request<any_pointer::Owned, any_pointer::Owned>;
-
+    /*
     fn call(&self, interface_id: u64, method_id: u16,
             params: Box<dyn ParamsHook>, results: Box<dyn ResultsHook>)
             -> crate::capability::Promise<(), crate::Error>;

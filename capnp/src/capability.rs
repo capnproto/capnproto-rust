@@ -33,7 +33,6 @@ use core::ops::Try;
 
 use crate::{any_pointer, Error, MessageSize};
 use crate::traits::{Pipelined, Owned};
-use crate::private::arena::ReaderArena;
 use crate::private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
 
 /// A computation that might eventually resolve to a value of type `T` or to an error
@@ -102,14 +101,14 @@ impl<T> Try for Promise<T, crate::Error> {
         Promise::ok(v)
     }
 }
-/*
+
 /// A promise for a result from a method call.
 #[must_use]
-pub struct RemotePromise<Results> where Results: Pipelined + for<'a> Owned<'a, dyn ReaderArena> + 'static {
+pub struct RemotePromise<Results> where Results: Pipelined + Owned + 'static {
     pub promise: Promise<Response<Results>, crate::Error>,
     pub pipeline: Results::Pipeline,
 }
-*/
+
 /// A response from a method call, as seen by the client.
 pub struct Response<Results> {
     pub marker: PhantomData<Results>,
@@ -227,7 +226,7 @@ impl Client {
     pub fn new(hook: Box<dyn ClientHook>) -> Client {
         Client { hook : hook }
     }
-/*
+
     pub fn new_call<Params, Results>(&self,
                                      interface_id : u64,
                                      method_id : u16,
@@ -236,7 +235,7 @@ impl Client {
         let typeless = self.hook.new_call(interface_id, method_id, size_hint);
         Request { hook: typeless.hook, marker: PhantomData }
     }
-
+/*
     /// If the capability is actually only a promise, the returned promise resolves once the
     /// capability itself has resolved to its final destination (or propagates the exception if
     /// the capability promise is rejected).  This is mainly useful for error-checking in the case

@@ -165,7 +165,9 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn target_from_segment(&self, arena: &dyn ReaderArena, segment_id: Option<u32>) -> Result<*const u8> {
+    pub fn target_from_segment<A>(&self, arena: &A, segment_id: Option<u32>) -> Result<*const u8>
+        where A: ReaderArena
+    {
         let this_addr: *const u8 = self as *const _ as *const _;
         let offset = 1 + ((self.offset_and_kind.get() as i32) >> 2);
         arena.check_offset(segment_id, this_addr, offset)
@@ -364,10 +366,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub fn bounds_check(arena: &dyn ReaderArena,
-                        segment_id: Option<u32>,
-                        start: *const u8, size_in_words: usize,
-                        _kind: WirePointerKind) -> Result<()> {
+    pub fn bounds_check<A>(arena: &A,
+                           segment_id: Option<u32>,
+                           start: *const u8, size_in_words: usize,
+                           _kind: WirePointerKind) -> Result<()>
+        where A: ReaderArena
+    {
         match segment_id {
             Some(id) => arena.contains_interval(id, start, size_in_words),
             None => Ok(()),
@@ -375,17 +379,20 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub fn amplified_read(arena: &dyn ReaderArena,
-                          virtual_amount: u64) -> Result<()> {
+    pub fn amplified_read<A>(arena: &A,
+                             virtual_amount: u64) -> Result<()>
+        where A: ReaderArena
+    {
         arena.amplified_read(virtual_amount)
     }
 
     #[inline]
-    pub unsafe fn allocate(
-        arena: &dyn BuilderArena,
+    pub unsafe fn allocate<A>(
+        arena: &mut A,
         reff: *mut WirePointer,
         segment_id: u32,
         amount: WordCount32, kind: WirePointerKind) -> (*mut u8, *mut WirePointer, u32)
+        where A: BuilderArena
     {
         let is_null = (*reff).is_null();
         if !is_null {
@@ -432,11 +439,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn follow_builder_fars(
-        arena: &dyn BuilderArena,
+    pub unsafe fn follow_builder_fars<A>(
+        arena: &mut A,
         reff: *mut WirePointer,
         ref_target: *mut u8,
         segment_id: u32) -> Result<(*mut u8, *mut WirePointer, u32)>
+        where A: BuilderArena
     {
         // If `ref` is a far pointer, follow it. On return, `ref` will have been updated to point at
         // a WirePointer that contains the type information about the target object, and a pointer
@@ -474,11 +482,12 @@ mod wire_helpers {
     ///   - the resolved WirePointer, whose kind is something other than WirePointerKind::Far
     ///   - the segment on which the pointed-to object lives
     #[inline]
-    pub unsafe fn follow_fars(
-        arena: &dyn ReaderArena,
+    pub unsafe fn follow_fars<A>(
+        arena: &A,
         reff: *const WirePointer,
         segment_id: Option<u32>)
         -> Result<(*const u8, *const WirePointer, Option<u32>)>
+        where A: ReaderArena
     {
         if (*reff).kind() == WirePointerKind::Far {
             let far_segment_id = (*reff).far_segment_id();
@@ -508,10 +517,11 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn zero_object(
-        arena: &dyn BuilderArena,
+    pub unsafe fn zero_object<A>(
+        arena: &mut A,
         segment_id: u32,
         reff: *mut WirePointer)
+        where A: BuilderArena
     {
         //# Zero out the pointed-to object. Use when the pointer is
         //# about to be overwritten making the target object no longer
@@ -547,11 +557,12 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn zero_object_helper(
-        arena: &dyn BuilderArena,
+    pub unsafe fn zero_object_helper<A>(
+        arena: &mut A,
         segment_id: u32,
         tag: *mut WirePointer,
         ptr: *mut u8)
+        where A: BuilderArena
     {
         match (*tag).kind() {
             WirePointerKind::Other => { panic!("Don't know how to handle OTHER") }
@@ -614,10 +625,11 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn zero_pointer_and_fars(
-        arena: &dyn BuilderArena,
+    pub unsafe fn zero_pointer_and_fars<A>(
+        arena: &mut A,
         _segment_id: u32,
         reff: *mut WirePointer) -> Result<()>
+        where A: BuilderArena
     {
         // Zero out the pointer itself and, if it is a far pointer, zero the landing pad as well,
         // but do not zero the object body. Used when upgrading.
@@ -633,11 +645,12 @@ mod wire_helpers {
         Ok(())
     }
 
-    pub unsafe fn total_size(
-        arena: &dyn ReaderArena,
+    pub unsafe fn total_size<A>(
+        arena: &A,
         segment_id: Option<u32>,
         reff: *const WirePointer,
         mut nesting_limit: i32) -> Result<MessageSize>
+        where A: ReaderArena
     {
         let mut result = MessageSize { word_count: 0, cap_count: 0};
 
@@ -750,14 +763,16 @@ mod wire_helpers {
     }
 
     // Helper for copy_message().
-    unsafe fn copy_struct(
-        arena: &dyn BuilderArena,
+    unsafe fn copy_struct<A>(
+        arena: &mut A,
         segment_id: u32,
         cap_table: CapTableBuilder,
         dst: *mut u8,
         src: *const u8,
         data_size: isize,
-        pointer_count: isize) {
+        pointer_count: isize)
+        where A: BuilderArena
+    {
         ptr::copy_nonoverlapping(src, dst, data_size as usize * BYTES_PER_WORD);
 
         let src_refs: *const WirePointer = (src as *const WirePointer).offset(data_size);
@@ -770,12 +785,13 @@ mod wire_helpers {
 
     // Copies from a trusted message.
     // Returns (new_dst_ptr, new_dst, new_segment_id).
-    pub unsafe fn copy_message(
-        arena: &dyn BuilderArena,
+    pub unsafe fn copy_message<A>(
+        arena: &mut A,
         segment_id: u32,
         cap_table: CapTableBuilder,
         dst: *mut WirePointer,
         src: *const WirePointer) -> (*mut u8, *mut WirePointer, u32)
+        where A: BuilderArena
     {
         match (*src).kind() {
             WirePointerKind::Struct => {
@@ -877,10 +893,11 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn transfer_pointer(
-        arena: &dyn BuilderArena,
+    pub unsafe fn transfer_pointer<A>(
+        arena: &mut A,
         dst_segment_id: u32, dst: *mut WirePointer,
         src_segment_id: u32, src: *mut WirePointer)
+        where A: BuilderArena
     {
         //# Make *dst point to the same object as *src. Both must
         //# reside in the same message, but can be in different
@@ -904,11 +921,12 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn transfer_pointer_split(
-        arena: &dyn BuilderArena,
+    pub unsafe fn transfer_pointer_split<A>(
+        arena: &mut A,
         dst_segment_id: u32, dst: *mut WirePointer,
         src_segment_id: u32, src_tag: *mut WirePointer,
         src_ptr: *mut u8)
+        where A: BuilderArena
     {
         // Like the other transfer_pointer, but splits src into a tag and a
         // target. Particularly useful for OrphanBuilder.
@@ -1509,11 +1527,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_text_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_text_pointer<'a, A>(
+        arena: &'a mut A,
         reff: *mut WirePointer,
         segment_id: u32,
         size: ByteCount32) -> SegmentAnd<text::Builder<'a>>
+        where A: BuilderArena
     {
         //# The byte list must include a NUL terminator.
         let byte_size = size + 1;
@@ -1533,11 +1552,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn set_text_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn set_text_pointer<'a, A>(
+        arena: &'a mut A,
         reff: *mut WirePointer,
         segment_id: u32,
         value: &str) -> SegmentAnd<text::Builder<'a>>
+        where A: BuilderArena
     {
         let value_bytes = value.as_bytes();
         // TODO make sure the string is not longer than 2 ** 29.
@@ -1547,11 +1567,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_text_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn get_writable_text_pointer<'a, A>(
+        arena: &'a mut A,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         default: Option<&'a [crate::Word]>) -> Result<text::Builder<'a>>
+        where A: BuilderArena
     {
         let ref_target = if (*reff).is_null() {
             match default {
@@ -1590,11 +1611,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_data_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_data_pointer<'a, A>(
+        arena: &'a mut A,
         reff: *mut WirePointer,
         segment_id: u32,
         size: ByteCount32) -> SegmentAnd<data::Builder<'a>>
+        where A: BuilderArena
     {
         //# Allocate the space.
         let (ptr, reff, segment_id) =
@@ -1607,11 +1629,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn set_data_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn set_data_pointer<'a, A>(
+        arena: &'a mut A,
         reff: *mut WirePointer,
         segment_id: u32,
         value: &[u8]) -> SegmentAnd<data::Builder<'a>>
+        where A: BuilderArena
     {
         let allocation = init_data_pointer(arena, reff, segment_id, value.len() as u32);
         ptr::copy_nonoverlapping(value.as_ptr(), allocation.value.as_mut_ptr(),
@@ -1620,11 +1643,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_data_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn get_writable_data_pointer<'a, A>(
+        arena: &'a mut A,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         default: Option<&'a [crate::Word]>) -> Result<data::Builder<'a>>
+        where A: BuilderArena
     {
         let ref_target = if (*reff).is_null() {
             match default {
@@ -1728,12 +1752,13 @@ mod wire_helpers {
         Ok(SegmentAnd { segment_id: segment_id, value: ptr })
     }
 
-    pub fn set_capability_pointer(
-        _arena: &dyn BuilderArena,
+    pub fn set_capability_pointer<A>(
+        _arena: &mut A,
         _segment_id: u32,
         mut cap_table: CapTableBuilder,
         reff: *mut WirePointer,
         cap: Box<dyn ClientHook>)
+        where A: BuilderArena
     {
         // TODO if ref is not null, zero object.
         unsafe { (*reff).set_cap(cap_table.inject_cap(cap) as u32); }
@@ -2268,11 +2293,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_text_pointer<'a>(
-        mut arena: &'a dyn ReaderArena,
+    pub unsafe fn read_text_pointer<'a, A>(
+        arena: &'a A,
         mut segment_id: Option<u32>,
         mut reff: *const WirePointer,
         default: Option<&[crate::Word]>) -> Result<text::Reader<'a>>
+        where A: ReaderArena
     {
         if (*reff).is_null() {
             match default {
@@ -2316,11 +2342,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_data_pointer<'a>(
-        mut arena: &'a dyn ReaderArena,
+    pub unsafe fn read_data_pointer<'a, A>(
+        arena: &'a A,
         mut segment_id: Option<u32>,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>) -> Result<data::Reader<'a>>
+        where A: ReaderArena
     {
         if (*reff).is_null() {
             match default {
@@ -2458,6 +2485,17 @@ pub struct PointerReader<A> {
     nesting_limit: i32,
 }
 
+impl PointerReader<&'static NullArena> {
+    pub fn get_root_unchecked(location: *const u8) -> PointerReader<&'static NullArena> {
+        PointerReader {
+            arena: &NULL_ARENA,
+            segment_id: None,
+            cap_table: CapTableReader::Plain(ptr::null()),
+            pointer: location as *const _,
+            nesting_limit: 0x7fffffff }
+    }
+}
+
 impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
     pub fn new_default(arena: &'a A) -> PointerReader<&'a A> {
         PointerReader {
@@ -2488,15 +2526,6 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
 
     pub fn borrow<'b>(&'b self) -> PointerReader<&'b A> {
         PointerReader { arena: self.arena, .. *self }
-    }
-
-    pub fn get_root_unchecked(location: *const u8) -> PointerReader<&'static NullArena> {
-        PointerReader {
-            arena: &NULL_ARENA,
-            segment_id: None,
-            cap_table: CapTableReader::Plain(ptr::null()),
-            pointer: location as *const _,
-            nesting_limit: 0x7fffffff }
     }
 
     pub fn imbue(&mut self, cap_table: CapTableReader) {
@@ -2652,6 +2681,16 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
         PointerBuilder { arena: self.arena, .. *self }
     }
 
+    pub fn reborrow_as_reader<'b>(&'b self) -> PointerReader<&'b A> {
+        PointerReader {
+            arena: self.arena,
+            segment_id: Some(self.segment_id),
+            cap_table: self.cap_table.into_reader(),
+            pointer: self.pointer,
+            nesting_limit: 0x7fffffff
+        }
+    }
+
     pub fn imbue(&mut self, cap_table: CapTableBuilder) {
         self.cap_table = cap_table;
     }
@@ -2713,7 +2752,7 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
     pub fn get_capability(&self) -> Result<Box<dyn ClientHook>> {
         unsafe {
             wire_helpers::read_capability_pointer(
-                self.arena.as_reader(),
+                &*self.arena,
                 self.cap_table.into_reader(), self.pointer, ::core::i32::MAX)
         }
     }
@@ -2753,7 +2792,7 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
         }
     }
 
-    pub fn set_struct<B>(&self, value: &StructReader<&B>, canonicalize: bool) -> Result<()>
+    pub fn set_struct<B>(self, value: &StructReader<&B>, canonicalize: bool) -> Result<()>
         where B: ReaderArena
     {
         unsafe {
@@ -2764,7 +2803,7 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
         }
     }
 
-    pub fn set_list<B>(&self, value: &ListReader<&B>, canonicalize: bool) -> Result<()>
+    pub fn set_list<B>(self, value: &ListReader<&B>, canonicalize: bool) -> Result<()>
         where B: ReaderArena
     {
         unsafe {
@@ -2774,19 +2813,19 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
         }
     }
 
-    pub fn set_text(&self, value: &str) {
+    pub fn set_text(self, value: &str) {
         unsafe {
             wire_helpers::set_text_pointer(self.arena, self.pointer, self.segment_id, value);
         }
     }
 
-    pub fn set_data(&self, value: &[u8]) {
+    pub fn set_data(self, value: &[u8]) {
         unsafe {
             wire_helpers::set_data_pointer(self.arena, self.pointer, self.segment_id, value);
         }
     }
 
-    pub fn set_capability(&self, cap: Box<dyn ClientHook>) {
+    pub fn set_capability(&mut self, cap: Box<dyn ClientHook>) {
         wire_helpers::set_capability_pointer(
             self.arena, self.segment_id, self.cap_table, self.pointer, cap);
     }
@@ -3403,7 +3442,7 @@ impl <'a, A> ListBuilder<&'a mut A> {
         }
     }
 
-    pub fn borrow<'b>(&'b mut self) -> ListBuilder<&'b mut A> {
+    pub fn reborrow<'b>(&'b mut self) -> ListBuilder<&'b mut A> {
         ListBuilder { arena: self.arena, ..*self }
     }
 

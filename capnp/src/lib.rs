@@ -29,14 +29,17 @@
 #![cfg_attr(feature = "rpc_try", feature(try_trait))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#![allow(incomplete_features)]
+#![feature(generic_associated_types)]
+
 #[macro_use]
 extern crate alloc;
 
 pub mod any_pointer;
-//pub mod any_pointer_list;
+pub mod any_pointer_list;
 pub mod capability;
 //pub mod capability_list;
-//pub mod constant;
+pub mod constant;
 pub mod data;
 //pub mod data_list;
 //pub mod enum_list;
@@ -45,10 +48,10 @@ pub mod io;
 pub mod message;
 pub mod primitive_list;
 pub mod private;
-//pub mod raw;
+pub mod raw;
 pub mod serialize;
 pub mod serialize_packed;
-//pub mod struct_list;
+pub mod struct_list;
 pub mod text;
 //pub mod text_list;
 pub mod traits;

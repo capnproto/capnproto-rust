@@ -19,9 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use crate::private::arena::{ReaderArena, NullArena};
 use crate::private::layout::PointerReader;
 
-fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {
+fn test_at_alignments<F: Fn(PointerReader<&NullArena>)>(words: &[crate::Word], verify: &F) {
     verify(PointerReader::get_root_unchecked(words.as_ptr() as *const u8));
 
     #[cfg(feature="unaligned")]
@@ -47,7 +48,7 @@ fn simple_raw_data_struct() {
         crate::word(0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)];
 
     test_at_alignments(data, &verify);
-    fn verify(reader: PointerReader) {
+    fn verify<A: ReaderArena>(reader: PointerReader<&A>) {
         let reader = reader.get_struct(None).unwrap();
 
         assert_eq!(0xefcdab8967452301u64, reader.get_data_field::<u64>(0));
@@ -99,7 +100,7 @@ fn bool_list() {
         crate::word(0x75, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)];
 
     test_at_alignments(data, &verify);
-    fn verify(pointer_reader: PointerReader) {
+    fn verify<A: ReaderArena>(pointer_reader: PointerReader<&A>) {
         use crate::private::layout::PrimitiveElement;
         use crate::traits::FromPointerReader;
 
@@ -117,7 +118,7 @@ fn bool_list() {
         assert_eq!(bool::get(&reader, 8), false);
         assert_eq!(bool::get(&reader, 9), true);
 
-        let reader = crate::primitive_list::Reader::<bool>::get_from_pointer(&pointer_reader, None).unwrap();
+        let reader = crate::primitive_list::Reader::<bool,_>::get_from_pointer(pointer_reader, None).unwrap();
 
         assert_eq!(reader.len(), 10);
         assert_eq!(reader.get(0), true);
@@ -143,7 +144,7 @@ fn struct_size() {
     ];
 
     test_at_alignments(data, &verify);
-    fn verify(pointer_reader: PointerReader) {
+    fn verify<A: ReaderArena>(pointer_reader: PointerReader<&A>) {
         assert_eq!(pointer_reader.total_size().unwrap().word_count, 3);
     }
 }
@@ -165,7 +166,7 @@ fn struct_list_size() {
     // the struct tag, because that's what is relevant when the data is copied.
 
     test_at_alignments(data, &verify);
-    fn verify(pointer_reader: PointerReader) {
+    fn verify<A: ReaderArena>(pointer_reader: PointerReader<&A>) {
         assert_eq!(pointer_reader.total_size().unwrap().word_count, 2);
     }
 }
@@ -184,7 +185,7 @@ fn empty_struct_list_size() {
     ];
 
     test_at_alignments(data, &verify);
-    fn verify(pointer_reader: PointerReader) {
+    fn verify<A: ReaderArena>(pointer_reader: PointerReader<&A>) {
         assert_eq!(2, pointer_reader.total_size().unwrap().word_count);
     }
 }
