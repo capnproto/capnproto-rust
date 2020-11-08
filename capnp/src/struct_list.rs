@@ -120,19 +120,17 @@ where T: crate::traits::OwnedStruct,
         }
     }
 
-    /*
     /// Sets the list element, with the following limitation based on the fact that structs in a
     /// struct list are allocated inline: if the source struct is larger than the target struct
     /// (as can happen if it was created with a newer version of the schema), then it will be
     /// truncated, losing fields.
-    pub fn set_with_caveats<B>(&self, index: u32, value: <T as crate::traits::OwnedStruct>::Reader<B>)
+    pub fn set_with_caveats<'b, B>(&mut self, index: u32, value: <T as crate::traits::OwnedStruct>::Reader<'b, B>)
                -> Result<()>
-        where <T as crate::traits::OwnedStruct>::Reader<B>: crate::traits::IntoInternalStructReader<'b>
+    where B: BuilderArena
     {
         use crate::traits::IntoInternalStructReader;
-        self.builder.get_struct_element(index).copy_content_from(&value.into_internal_struct_reader())
+        self.builder.reborrow().get_struct_element(index).copy_content_from(&value.into_internal_struct_reader())
     }
-*/
 
     pub fn reborrow<'b>(&'b mut self) -> Builder<&'b mut A, T> {
         Builder { builder: self.builder.reborrow(), marker: PhantomData }
