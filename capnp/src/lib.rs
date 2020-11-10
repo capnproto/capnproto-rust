@@ -41,7 +41,7 @@ pub mod capability;
 //pub mod capability_list;
 pub mod constant;
 pub mod data;
-//pub mod data_list;
+pub mod data_list;
 pub mod enum_list;
 pub mod io;
 //pub mod list_list;
@@ -53,7 +53,7 @@ pub mod serialize;
 pub mod serialize_packed;
 pub mod struct_list;
 pub mod text;
-//pub mod text_list;
+pub mod text_list;
 pub mod traits;
 
 use alloc::string::String;
