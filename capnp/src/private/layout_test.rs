@@ -118,7 +118,7 @@ fn bool_list() {
         assert_eq!(bool::get(&reader, 8), false);
         assert_eq!(bool::get(&reader, 9), true);
 
-        let reader = crate::primitive_list::Reader::<bool,_>::get_from_pointer(pointer_reader, None).unwrap();
+        let reader = crate::primitive_list::Reader::<_, bool>::get_from_pointer(pointer_reader, None).unwrap();
 
         assert_eq!(reader.len(), 10);
         assert_eq!(reader.get(0), true);

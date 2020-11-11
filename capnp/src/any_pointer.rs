@@ -232,7 +232,7 @@ fn init_clears_value() {
     let mut message = crate::message::Builder::new_default();
     {
         let root: crate::any_pointer::Builder<_> = message.init_root();
-        let mut list: crate::primitive_list::Builder<u16, _> = root.initn_as(10);
+        let mut list: crate::primitive_list::Builder<_, u16> = root.initn_as(10);
         for idx in 0..10 {
             list.set(idx, idx as u16);
         }
