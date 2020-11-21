@@ -24,6 +24,7 @@ use std::collections::HashSet;
 
 use capnp;
 use capnp::Error;
+use capnp::private::arena::ReaderArena;
 
 use crate::{convert_io_err};
 use crate::pointer_constants::generate_pointer_constant;
@@ -31,20 +32,20 @@ use crate::schema_capnp;
 use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
-pub struct GeneratorContext<'a> {
-    pub request: schema_capnp::code_generator_request::Reader<'a>,
-    pub node_map: collections::hash_map::HashMap<u64, schema_capnp::node::Reader<'a>>,
+pub struct GeneratorContext<'a, A> where A: ReaderArena {
+    pub request: schema_capnp::code_generator_request::Reader<'a, A>,
+    pub node_map: collections::hash_map::HashMap<u64, schema_capnp::node::Reader<'a, A>>,
     pub scope_map: collections::hash_map::HashMap<u64, Vec<String>>,
 }
 
-impl <'a> GeneratorContext<'a> {
+impl <'a, A> GeneratorContext<'a, A> where A: ReaderArena {
     pub fn new(
         message:&'a capnp::message::Reader<capnp::serialize::OwnedSegments>)
-        -> ::capnp::Result<GeneratorContext<'a>>
+        -> ::capnp::Result<Self>
     {
         let mut gen = GeneratorContext {
             request : message.get_root()?,
-            node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a>>::new(),
+            node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a, A>>::new(),
             scope_map: collections::hash_map::HashMap::<u64, Vec<String>>::new(),
         };
 
@@ -233,7 +234,7 @@ fn module_name(camel_case: &str) -> String {
 const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
 const PARENT_MODULE_ANNOTATION_ID: u64 = 0xabee386cd1450364;
 
-fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp::Result<&str> {
+fn name_annotation_value(annotation: schema_capnp::annotation::Reader<impl ReaderArena>) -> capnp::Result<&str> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
         let name = t?;
         for c in name.chars() {
@@ -248,7 +249,7 @@ fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp:
     }
 }
 
-fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
+fn get_field_name(field: schema_capnp::field::Reader<impl ReaderArena>) -> capnp::Result<&str> {
     for annotation in field.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             return name_annotation_value(annotation);
@@ -257,7 +258,7 @@ fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
     field.get_name()
 }
 
-fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Result<&str> {
+fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader<impl ReaderArena>) -> capnp::Result<&str> {
     for annotation in enumerant.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             if annotation.get_id() == NAME_ANNOTATION_ID {
@@ -268,7 +269,7 @@ fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Resu
     enumerant.get_name()
 }
 
-fn get_parent_module(annotation: schema_capnp::annotation::Reader) -> capnp::Result<Vec<String>> {
+fn get_parent_module(annotation: schema_capnp::annotation::Reader<impl ReaderArena>) -> capnp::Result<Vec<String>> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
         let module = t?;
         Ok(module.split("::").map(|x| x.to_string()).collect())
@@ -292,7 +293,7 @@ fn capnp_name_to_rust_name(capnp_name: &str, name_kind: NameKind) -> String {
     }
 }
 
-fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader<impl ReaderArena>>,
                       scope_map: &mut collections::hash_map::HashMap<u64, Vec<String>>,
                       mut ancestor_scope_names: Vec<String>,
                       mut current_node_name: String,
@@ -366,7 +367,7 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
     Ok(())
 }
 
-fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<String>> {
+fn prim_default(value: &schema_capnp::value::Reader<impl ReaderArena>) -> ::capnp::Result<Option<String>> {
     use crate::schema_capnp::value;
     match value.which()? {
         value::Bool(false) |
@@ -400,8 +401,8 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
 //
 // Returns (type, getter body, default_decl)
 //
-pub fn getter_text(gen: &GeneratorContext,
-                   field: &schema_capnp::field::Reader,
+pub fn getter_text(gen: &GeneratorContext<impl ReaderArena>,
+                   field: &schema_capnp::field::Reader<impl ReaderArena>,
                    is_reader: bool,
                    is_fn: bool)
                    -> ::capnp::Result<(String, FormattedText, Option<FormattedText>)> {
@@ -555,7 +556,7 @@ pub fn getter_text(gen: &GeneratorContext,
     }
 }
 
-fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result<FormattedText> {
+fn zero_fields_of_group(gen: &GeneratorContext<impl ReaderArena>, node_id: u64) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::{node, field, type_};
     match gen.node_map[&node_id].which()? {
         node::Struct(st) => {
@@ -617,9 +618,9 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
     }
 }
 
-fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
+fn generate_setter(gen: &GeneratorContext<impl ReaderArena>, discriminant_offset: u32,
                    styled_name: &str,
-                   field: &schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
+                   field: &schema_capnp::field::Reader<impl ReaderArena>) -> ::capnp::Result<FormattedText> {
 
     use crate::schema_capnp::*;
 
@@ -827,9 +828,9 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 
 
 // return (the 'Which' enum, the 'which()' accessor, typedef, default_decls)
-fn generate_union(gen: &GeneratorContext,
+fn generate_union(gen: &GeneratorContext<impl ReaderArena>,
                   discriminant_offset: u32,
-                  fields: &[schema_capnp::field::Reader],
+                  fields: &[schema_capnp::field::Reader<impl ReaderArena>],
                   is_reader: bool,
                   params: &TypeParameterTexts)
                   -> ::capnp::Result<(FormattedText, FormattedText, FormattedText, Vec<FormattedText>)>
@@ -941,7 +942,7 @@ fn generate_union(gen: &GeneratorContext,
 
 fn generate_haser(discriminant_offset: u32,
                   styled_name: &str,
-                  field: &schema_capnp::field::Reader,
+                  field: &schema_capnp::field::Reader<impl ReaderArena>,
                   is_reader: bool) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::*;
 
@@ -981,8 +982,8 @@ fn generate_haser(discriminant_offset: u32,
     Ok(Branch(result))
 }
 
-fn generate_pipeline_getter(gen: &GeneratorContext,
-                            field: schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
+fn generate_pipeline_getter(gen: &GeneratorContext<impl ReaderArena>,
+                            field: schema_capnp::field::Reader<impl ReaderArena>) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::{field, type_};
 
     let name = get_field_name(field)?;
@@ -1031,8 +1032,8 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
 
 // We need this to work around the fact that Rust does not allow typedefs
 // with unused type parameters.
-fn get_ty_params_of_brand(gen: &GeneratorContext,
-                          brand: crate::schema_capnp::brand::Reader<>) -> ::capnp::Result<String>
+fn get_ty_params_of_brand(gen: &GeneratorContext<impl ReaderArena>,
+                          brand: crate::schema_capnp::brand::Reader<impl ReaderArena>) -> ::capnp::Result<String>
 {
     let mut acc = HashSet::new();
     get_ty_params_of_brand_helper(gen, &mut acc, brand)?;
@@ -1047,9 +1048,9 @@ fn get_ty_params_of_brand(gen: &GeneratorContext,
     Ok(result)
 }
 
-fn get_ty_params_of_type_helper(gen: &GeneratorContext,
+fn get_ty_params_of_type_helper(gen: &GeneratorContext<impl ReaderArena>,
                                 accumulator: &mut HashSet<(u64, u16)>,
-                                typ: crate::schema_capnp::type_::Reader<>)
+                                typ: crate::schema_capnp::type_::Reader<impl ReaderArena>)
     -> ::capnp::Result<()>
 {
     use crate::schema_capnp::type_;
@@ -1093,9 +1094,9 @@ fn get_ty_params_of_type_helper(gen: &GeneratorContext,
     Ok(())
 }
 
-fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
+fn get_ty_params_of_brand_helper(gen: &GeneratorContext<impl ReaderArena>,
                          accumulator: &mut HashSet<(u64, u16)>,
-                         brand: crate::schema_capnp::brand::Reader<>)
+                         brand: crate::schema_capnp::brand::Reader<impl ReaderArena>)
                          -> ::capnp::Result<()>
 {
     for scope in brand.get_scopes()?.iter() {
@@ -1122,7 +1123,7 @@ fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
     Ok(())
 }
 
-fn generate_node(gen: &GeneratorContext,
+fn generate_node(gen: &GeneratorContext<impl ReaderArena>,
                  node_id: u64,
                  node_name: &str,
                  // Ugh. We need this to deal with the anonymous Params and Results

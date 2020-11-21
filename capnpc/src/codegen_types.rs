@@ -21,6 +21,7 @@
 
 use crate::schema_capnp::{brand, node, type_};
 use capnp::Error;
+use capnp::private::arena::ReaderArena;
 use crate::codegen;
 use crate::codegen::{GeneratorContext};
 use std::collections::hash_map::HashMap;
@@ -84,7 +85,7 @@ pub struct TypeParameterTexts {
 
 // this is a collection of helpers acting on a "Node" (most of them are Type definitions)
 pub trait RustNodeInfo {
-    fn parameters_texts(&self, gen: &crate::codegen::GeneratorContext,
+    fn parameters_texts(&self, gen: &crate::codegen::GeneratorContext<impl ReaderArena>,
                         parent_node_id: Option<u64>) -> TypeParameterTexts;
 }
 
@@ -94,11 +95,11 @@ pub trait RustTypeInfo {
     fn is_prim(&self) -> Result<bool, Error>;
     fn is_parameter(&self) -> Result<bool, Error>;
     fn is_branded(&self) -> Result<bool, Error>;
-    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> Result<String, Error>;
+    fn type_string(&self, gen:&codegen::GeneratorContext<impl ReaderArena>, module:Leaf) -> Result<String, Error>;
 }
 
 impl <'a> RustNodeInfo for node::Reader<'a> {
-    fn parameters_texts(&self, gen:&crate::codegen::GeneratorContext,
+    fn parameters_texts(&self, gen:&crate::codegen::GeneratorContext<impl ReaderArena>,
                         parent_node_id: Option<u64>) -> TypeParameterTexts {
         if self.get_is_generic() {
             let params = get_type_parameters(&gen, self.get_id(), parent_node_id);
@@ -147,7 +148,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
 
 impl <'a> RustTypeInfo for type_::Reader<'a> {
 
-    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> Result<String, ::capnp::Error> {
+    fn type_string(&self, gen:&codegen::GeneratorContext<impl ReaderArena>, module:Leaf) -> Result<String, ::capnp::Error> {
 
         let local_lifetime = match module {
             Leaf::Reader(lt) => lt,
@@ -297,9 +298,9 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
 
 ///
 ///
-pub fn do_branding(gen: &GeneratorContext,
+pub fn do_branding(gen: &GeneratorContext<impl ReaderArena>,
                    node_id: u64,
-                   brand: brand::Reader,
+                   brand: brand::Reader<impl ReaderArena>,
                    leaf: Leaf,
                    the_mod: String,
                    mut parent_scope_id: Option<u64>) -> Result<String, Error> {
@@ -384,7 +385,7 @@ pub fn do_branding(gen: &GeneratorContext,
 
 
 
-pub fn get_type_parameters(gen: &GeneratorContext,
+pub fn get_type_parameters(gen: &GeneratorContext<impl ReaderArena>,
                            node_id: u64,
                            mut parent_scope_id: Option<u64>) -> Vec<String> {
     let mut current_node_id = node_id;
