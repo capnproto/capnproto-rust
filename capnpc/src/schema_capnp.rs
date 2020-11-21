@@ -71,21 +71,21 @@ pub mod node {
       self.reader.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn get_nested_nodes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::nested_node::Owned>> {
+    pub fn get_nested_nodes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::nested_node::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>> {
+    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(2), ::core::option::Option::None)
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn get_parameters(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::parameter::Owned>> {
+    pub fn get_parameters(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::parameter::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(5), ::core::option::Option::None)
     }
     pub fn has_parameters(&self) -> bool {
@@ -221,30 +221,30 @@ pub mod node {
       self.builder.set_data_field::<u64>(2, value);
     }
     #[inline]
-    pub fn get_nested_nodes(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::nested_node::Owned>> {
+    pub fn get_nested_nodes(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::nested_node::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_nested_nodes(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::nested_node::Owned>) -> ::capnp::Result<()> {
+    pub fn set_nested_nodes(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::nested_node::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
     }
     #[inline]
-    pub fn init_nested_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::nested_node::Owned> {
+    pub fn init_nested_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::nested_node::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned>> {
+    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
+    pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
     }
     #[inline]
-    pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
+    pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), size)
     }
     pub fn has_annotations(&self) -> bool {
@@ -305,15 +305,15 @@ pub mod node {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn get_parameters(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned>> {
+    pub fn get_parameters(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::parameter::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(5), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_parameters(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::parameter::Owned>) -> ::capnp::Result<()> {
+    pub fn set_parameters(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::parameter::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value, false)
     }
     #[inline]
-    pub fn init_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned> {
+    pub fn init_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::parameter::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(5), size)
     }
     pub fn has_parameters(&self) -> bool {
@@ -729,7 +729,7 @@ pub mod node {
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_members(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::source_info::member::Owned>> {
+      pub fn get_members(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::source_info::member::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(1), ::core::option::Option::None)
       }
       pub fn has_members(&self) -> bool {
@@ -809,15 +809,15 @@ pub mod node {
         !self.builder.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_members(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::member::Owned>> {
+      pub fn get_members(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::source_info::member::Owned>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1), ::core::option::Option::None)
       }
       #[inline]
-      pub fn set_members(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::source_info::member::Owned>) -> ::capnp::Result<()> {
+      pub fn set_members(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::source_info::member::Owned>) -> ::capnp::Result<()> {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
       }
       #[inline]
-      pub fn init_members(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::member::Owned> {
+      pub fn init_members(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::source_info::member::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
       }
       pub fn has_members(&self) -> bool {
@@ -1046,7 +1046,7 @@ pub mod node {
         self.reader.get_data_field::<u32>(8)
       }
       #[inline]
-      pub fn get_fields(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::field::Owned>> {
+      pub fn get_fields(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::field::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
       pub fn has_fields(&self) -> bool {
@@ -1151,15 +1151,15 @@ pub mod node {
         self.builder.set_data_field::<u32>(8, value);
       }
       #[inline]
-      pub fn get_fields(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::field::Owned>> {
+      pub fn get_fields(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::field::Owned>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3), ::core::option::Option::None)
       }
       #[inline]
-      pub fn set_fields(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::field::Owned>) -> ::capnp::Result<()> {
+      pub fn set_fields(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::field::Owned>) -> ::capnp::Result<()> {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
       }
       #[inline]
-      pub fn init_fields(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::field::Owned> {
+      pub fn init_fields(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::field::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_fields(&self) -> bool {
@@ -1229,7 +1229,7 @@ pub mod node {
         self.reader.total_size()
       }
       #[inline]
-      pub fn get_enumerants(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::enumerant::Owned>> {
+      pub fn get_enumerants(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::enumerant::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
       pub fn has_enumerants(&self) -> bool {
@@ -1286,15 +1286,15 @@ pub mod node {
         self.builder.into_reader().total_size()
       }
       #[inline]
-      pub fn get_enumerants(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::enumerant::Owned>> {
+      pub fn get_enumerants(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::enumerant::Owned>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3), ::core::option::Option::None)
       }
       #[inline]
-      pub fn set_enumerants(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::enumerant::Owned>) -> ::capnp::Result<()> {
+      pub fn set_enumerants(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::enumerant::Owned>) -> ::capnp::Result<()> {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
       }
       #[inline]
-      pub fn init_enumerants(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::enumerant::Owned> {
+      pub fn init_enumerants(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::enumerant::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_enumerants(&self) -> bool {
@@ -1364,14 +1364,14 @@ pub mod node {
         self.reader.total_size()
       }
       #[inline]
-      pub fn get_methods(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::method::Owned>> {
+      pub fn get_methods(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::method::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
       pub fn has_methods(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_superclasses(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::superclass::Owned>> {
+      pub fn get_superclasses(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::superclass::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(4), ::core::option::Option::None)
       }
       pub fn has_superclasses(&self) -> bool {
@@ -1428,30 +1428,30 @@ pub mod node {
         self.builder.into_reader().total_size()
       }
       #[inline]
-      pub fn get_methods(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::method::Owned>> {
+      pub fn get_methods(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::method::Owned>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3), ::core::option::Option::None)
       }
       #[inline]
-      pub fn set_methods(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::method::Owned>) -> ::capnp::Result<()> {
+      pub fn set_methods(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::method::Owned>) -> ::capnp::Result<()> {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
       }
       #[inline]
-      pub fn init_methods(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::method::Owned> {
+      pub fn init_methods(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::method::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_methods(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_superclasses(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::superclass::Owned>> {
+      pub fn get_superclasses(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::superclass::Owned>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4), ::core::option::Option::None)
       }
       #[inline]
-      pub fn set_superclasses(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::superclass::Owned>) -> ::capnp::Result<()> {
+      pub fn set_superclasses(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::superclass::Owned>) -> ::capnp::Result<()> {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
       }
       #[inline]
-      pub fn init_superclasses(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::superclass::Owned> {
+      pub fn init_superclasses(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::superclass::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
       }
       pub fn has_superclasses(&self) -> bool {
@@ -1980,7 +1980,7 @@ pub mod field {
       self.reader.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>> {
+    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
     pub fn has_annotations(&self) -> bool {
@@ -2084,15 +2084,15 @@ pub mod field {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
-    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned>> {
+    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
+    pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
     }
     #[inline]
-    pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
+    pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
@@ -2706,7 +2706,7 @@ pub mod enumerant {
       self.reader.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>> {
+    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
     pub fn has_annotations(&self) -> bool {
@@ -2786,15 +2786,15 @@ pub mod enumerant {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
-    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned>> {
+    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
+    pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
     }
     #[inline]
-    pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
+    pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
@@ -3033,7 +3033,7 @@ pub mod method {
       self.reader.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>> {
+    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
     pub fn has_annotations(&self) -> bool {
@@ -3054,7 +3054,7 @@ pub mod method {
       !self.reader.get_pointer_field(3).is_null()
     }
     #[inline]
-    pub fn get_implicit_parameters(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::parameter::Owned>> {
+    pub fn get_implicit_parameters(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::parameter::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(4), ::core::option::Option::None)
     }
     pub fn has_implicit_parameters(&self) -> bool {
@@ -3150,15 +3150,15 @@ pub mod method {
       self.builder.set_data_field::<u64>(2, value);
     }
     #[inline]
-    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned>> {
+    pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
+    pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
     }
     #[inline]
-    pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
+    pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
@@ -3195,15 +3195,15 @@ pub mod method {
       !self.builder.get_pointer_field(3).is_null()
     }
     #[inline]
-    pub fn get_implicit_parameters(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned>> {
+    pub fn get_implicit_parameters(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::parameter::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_implicit_parameters(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::parameter::Owned>) -> ::capnp::Result<()> {
+    pub fn set_implicit_parameters(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::parameter::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
     }
     #[inline]
-    pub fn init_implicit_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned> {
+    pub fn init_implicit_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::parameter::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
     }
     pub fn has_implicit_parameters(&self) -> bool {
@@ -4936,7 +4936,7 @@ pub mod brand {
       self.reader.total_size()
     }
     #[inline]
-    pub fn get_scopes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::brand::scope::Owned>> {
+    pub fn get_scopes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::brand::scope::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
     pub fn has_scopes(&self) -> bool {
@@ -4993,15 +4993,15 @@ pub mod brand {
       self.builder.into_reader().total_size()
     }
     #[inline]
-    pub fn get_scopes(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::brand::scope::Owned>> {
+    pub fn get_scopes(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::brand::scope::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_scopes(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::brand::scope::Owned>) -> ::capnp::Result<()> {
+    pub fn set_scopes(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::brand::scope::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
     }
     #[inline]
-    pub fn init_scopes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::brand::scope::Owned> {
+    pub fn init_scopes(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::brand::scope::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
     pub fn has_scopes(&self) -> bool {
@@ -5154,12 +5154,12 @@ pub mod brand {
         self.builder.set_data_field::<u64>(0, value);
       }
       #[inline]
-      pub fn set_bind(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::brand::binding::Owned>) -> ::capnp::Result<()> {
+      pub fn set_bind(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::brand::binding::Owned>) -> ::capnp::Result<()> {
         self.builder.set_data_field::<u16>(4, 0);
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
       }
       #[inline]
-      pub fn init_bind(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::brand::binding::Owned> {
+      pub fn init_bind(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::brand::binding::Owned> {
         self.builder.set_data_field::<u16>(4, 0);
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
       }
@@ -5206,8 +5206,8 @@ pub mod brand {
       Bind(A0),
       Inherit(()),
     }
-    pub type WhichReader<'a,A,> = Which<::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::brand::binding::Owned>>>;
-    pub type WhichBuilder<'a,A,> = Which<::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::brand::binding::Owned>>>;
+    pub type WhichReader<'a,A,> = Which<::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::brand::binding::Owned>>>;
+    pub type WhichBuilder<'a,A,> = Which<::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::brand::binding::Owned>>>;
   }
 
   pub mod binding {
@@ -6283,14 +6283,14 @@ pub mod code_generator_request {
       self.reader.total_size()
     }
     #[inline]
-    pub fn get_nodes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::Owned>> {
+    pub fn get_nodes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
     pub fn has_nodes(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_requested_files(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::code_generator_request::requested_file::Owned>> {
+    pub fn get_requested_files(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::code_generator_request::requested_file::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
     pub fn has_requested_files(&self) -> bool {
@@ -6304,7 +6304,7 @@ pub mod code_generator_request {
       !self.reader.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn get_source_info(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::source_info::Owned>> {
+    pub fn get_source_info(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::source_info::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(3), ::core::option::Option::None)
     }
     pub fn has_source_info(&self) -> bool {
@@ -6361,30 +6361,30 @@ pub mod code_generator_request {
       self.builder.into_reader().total_size()
     }
     #[inline]
-    pub fn get_nodes(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::Owned>> {
+    pub fn get_nodes(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_nodes(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::Owned>) -> ::capnp::Result<()> {
+    pub fn set_nodes(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
     }
     #[inline]
-    pub fn init_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::Owned> {
+    pub fn init_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
     pub fn has_nodes(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_requested_files(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::Owned>> {
+    pub fn get_requested_files(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::code_generator_request::requested_file::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_requested_files(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::code_generator_request::requested_file::Owned>) -> ::capnp::Result<()> {
+    pub fn set_requested_files(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::code_generator_request::requested_file::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
     }
     #[inline]
-    pub fn init_requested_files(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::Owned> {
+    pub fn init_requested_files(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::code_generator_request::requested_file::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_requested_files(&self) -> bool {
@@ -6406,15 +6406,15 @@ pub mod code_generator_request {
       !self.builder.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn get_source_info(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::Owned>> {
+    pub fn get_source_info(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::source_info::Owned>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3), ::core::option::Option::None)
     }
     #[inline]
-    pub fn set_source_info(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::source_info::Owned>) -> ::capnp::Result<()> {
+    pub fn set_source_info(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::source_info::Owned>) -> ::capnp::Result<()> {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
     }
     #[inline]
-    pub fn init_source_info(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::Owned> {
+    pub fn init_source_info(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::source_info::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
     }
     pub fn has_source_info(&self) -> bool {
@@ -6497,7 +6497,7 @@ pub mod code_generator_request {
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_imports(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned>> {
+      pub fn get_imports(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,A,crate::schema_capnp::code_generator_request::requested_file::import::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(self.reader.get_pointer_field(1), ::core::option::Option::None)
       }
       pub fn has_imports(&self) -> bool {
@@ -6577,15 +6577,15 @@ pub mod code_generator_request {
         !self.builder.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_imports(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned>> {
+      pub fn get_imports(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::code_generator_request::requested_file::import::Owned>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1), ::core::option::Option::None)
       }
       #[inline]
-      pub fn set_imports(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned>) -> ::capnp::Result<()> {
+      pub fn set_imports(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::code_generator_request::requested_file::import::Owned>) -> ::capnp::Result<()> {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
       }
       #[inline]
-      pub fn init_imports(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned> {
+      pub fn init_imports(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::code_generator_request::requested_file::import::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
       }
       pub fn has_imports(&self) -> bool {
