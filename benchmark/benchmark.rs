@@ -19,9 +19,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#![allow(incomplete_features)]
+#![feature(generic_associated_types)]
+
 use std::{io};
 
 use capnp::{message, serialize, serialize_packed};
+use capnp::private::arena::{BuilderArena, ReaderArena};
 use capnp::traits::Owned;
 
 pub mod common;
@@ -34,23 +38,29 @@ pub mod carsales;
 pub mod catrank_capnp {
   include!(concat!(env!("OUT_DIR"), "/catrank_capnp.rs"));
 }
-pub mod catrank;
+//pub mod catrank;
 
-pub mod eval_capnp {
-  include!(concat!(env!("OUT_DIR"), "/eval_capnp.rs"));
-}
+//pub mod eval_capnp {
+//  include!(concat!(env!("OUT_DIR"), "/eval_capnp.rs"));
+//}
 
-pub mod eval;
+//pub mod eval;
 
 trait TestCase {
-    type Request: for<'a> Owned<'a>;
-    type Response: for<'a> Owned<'a>;
+    type Request: Owned;
+    type Response: Owned;
     type Expectation;
 
-    fn setup_request(&self, rnd: &mut crate::common::FastRand, b: <Self::Request as Owned>::Builder) -> Self::Expectation;
-    fn handle_request(&self, r: <Self::Request as Owned>::Reader, b: <Self::Response as Owned>::Builder)
-                      -> ::capnp::Result<()>;
-    fn check_response(&self, r: <Self::Response as Owned>::Reader, e: Self::Expectation) -> ::capnp::Result<()>;
+    fn setup_request<'a, A>(&self, rnd: &mut crate::common::FastRand, b: <Self::Request as Owned>::Builder<'a, A>)
+                            -> Self::Expectation where A: BuilderArena;
+
+    fn handle_request<'a, 'b, A, B>(&self,
+                                    r: <Self::Request as Owned>::Reader<'a, A>,
+                                    b: <Self::Response as Owned>::Builder<'b, B>)
+                                    -> ::capnp::Result<()> where A: ReaderArena, B: BuilderArena;
+
+    fn check_response<'a, A>(&self, r: <Self::Response as Owned>::Reader<'a, A>, e: Self::Expectation)
+                             -> ::capnp::Result<()> where A: ReaderArena;
 }
 
 trait Serialize {
@@ -341,8 +351,8 @@ fn do_testcase1<C, S>(case: &str, mode: Mode, scratch: S, compression: C, iters:
 {
     match case {
         "carsales" => do_testcase(carsales::CarSales, mode, scratch, compression, iters),
-        "catrank" => do_testcase(catrank::CatRank, mode, scratch, compression, iters),
-        "eval" => do_testcase(eval::Eval, mode, scratch, compression, iters),
+//        "catrank" => do_testcase(catrank::CatRank, mode, scratch, compression, iters),
+//        "eval" => do_testcase(eval::Eval, mode, scratch, compression, iters),
         s => Err(::capnp::Error::failed(format!("unrecognized test case: {}", s))),
     }
 }

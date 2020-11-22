@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use capnp::private::arena::{BuilderArena, ReaderArena};
+
 use crate::common::*;
 use crate::eval_capnp::{expression, evaluation_result, Operation};
 
