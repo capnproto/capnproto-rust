@@ -65,7 +65,7 @@ where T: crate::traits::OwnedStruct + Copy,
         Reader { reader: self.reader, marker: PhantomData }
     }
 
-    pub fn get(self, index: u32) -> <T as crate::traits::OwnedStruct>::Reader<'a, A> {
+    pub fn get(&self, index: u32) -> <T as crate::traits::OwnedStruct>::Reader<'a, A> {
         assert!(index < self.len());
         FromStructReader::new(self.reader.get_struct_element(index))
     }
@@ -81,7 +81,7 @@ where T: crate::traits::OwnedStruct,
     }
 }
 
-impl <'a, A: Copy, T: Copy> IndexMove<u32, <T as crate::traits::OwnedStruct>::Reader<'a, A>> for Reader<'a, A, T>
+impl <'a, A, T: Copy> IndexMove<u32, <T as crate::traits::OwnedStruct>::Reader<'a, A>> for Reader<'a, A, T>
 where T: crate::traits::OwnedStruct,
       A: ReaderArena
 {
@@ -184,7 +184,7 @@ impl <'a, A, T> crate::traits::SetPointerBuilder for Reader<'a, A, T>
 
 impl <'a, A, T> ::core::iter::IntoIterator for Reader<'a, A, T>
 where T: crate::traits::OwnedStruct + Copy,
-      A: ReaderArena + Copy
+      A: ReaderArena
 {
     type Item = <T as crate::traits::OwnedStruct>::Reader<'a, A>;
     type IntoIter = ListIter<Reader<'a, A, T>, Self::Item>;

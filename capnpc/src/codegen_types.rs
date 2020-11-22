@@ -98,7 +98,7 @@ pub trait RustTypeInfo {
     fn type_string(&self, gen:&codegen::GeneratorContext<impl ReaderArena>, module:Leaf) -> Result<String, Error>;
 }
 
-impl <'a> RustNodeInfo for node::Reader<'a> {
+impl <'a, A> RustNodeInfo for node::Reader<'a, A> where A: ReaderArena {
     fn parameters_texts(&self, gen:&crate::codegen::GeneratorContext<impl ReaderArena>,
                         parent_node_id: Option<u64>) -> TypeParameterTexts {
         if self.get_is_generic() {
@@ -146,7 +146,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
     }
 }
 
-impl <'a> RustTypeInfo for type_::Reader<'a> {
+impl <'a, A> RustTypeInfo for type_::Reader<'a, A> where A: ReaderArena {
 
     fn type_string(&self, gen:&codegen::GeneratorContext<impl ReaderArena>, module:Leaf) -> Result<String, ::capnp::Error> {
 

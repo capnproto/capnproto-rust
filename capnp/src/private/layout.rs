@@ -3084,6 +3084,23 @@ impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
         self.cap_table = cap_table
     }
 
+    pub fn reborrow<'b>(&'b mut self) -> StructBuilder<&'b mut A> {
+        StructBuilder { arena: self.arena, ..*self }
+    }
+
+    pub fn reborrow_as_reader<'b>(&'b self) -> StructReader<&'b A> {
+        StructReader {
+            arena: self.arena,
+            segment_id: Some(self.segment_id),
+            cap_table: self.cap_table.into_reader(),
+            data: self.data,
+            pointers: self.pointers,
+            data_size: self.data_size,
+            pointer_count: self.pointer_count,
+            nesting_limit: 0x7fffffff,
+        }
+    }
+
     #[inline]
     pub fn set_data_field<T:Primitive>(&self, offset: ElementCount, value: T) {
         let ptr: *mut <T as Primitive>::Raw = self.data as *mut _;

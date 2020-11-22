@@ -24,7 +24,7 @@ use std::collections::HashSet;
 
 use capnp;
 use capnp::Error;
-use capnp::private::arena::ReaderArena;
+use capnp::private::arena::{ReaderArena, ReaderArenaImpl, ReadLimiterImpl};
 
 use crate::{convert_io_err};
 use crate::pointer_constants::generate_pointer_constant;
@@ -38,14 +38,14 @@ pub struct GeneratorContext<'a, A> where A: ReaderArena {
     pub scope_map: collections::hash_map::HashMap<u64, Vec<String>>,
 }
 
-impl <'a, A> GeneratorContext<'a, A> where A: ReaderArena {
+impl <'a> GeneratorContext<'a, ReaderArenaImpl<capnp::serialize::OwnedSegments, ReadLimiterImpl>> {
     pub fn new(
         message:&'a capnp::message::Reader<capnp::serialize::OwnedSegments>)
         -> ::capnp::Result<Self>
     {
         let mut gen = GeneratorContext {
             request : message.get_root()?,
-            node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a, A>>::new(),
+            node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a, ReaderArenaImpl<capnp::serialize::OwnedSegments, ReadLimiterImpl>>>::new(),
             scope_map: collections::hash_map::HashMap::<u64, Vec<String>>::new(),
         };
 
@@ -81,7 +81,9 @@ impl <'a, A> GeneratorContext<'a, A> where A: ReaderArena {
         }
         Ok(gen)
     }
+}
 
+impl <'a, A> GeneratorContext<'a, A> where A: ReaderArena {
     fn get_last_name<'b>(&'b self, id: u64) -> ::capnp::Result<&'b str> {
         match self.scope_map.get(&id) {
             None => Err(Error::failed(format!("node not found: {}", id))),
