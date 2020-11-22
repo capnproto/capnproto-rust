@@ -385,7 +385,7 @@ pub fn do_branding(gen: &GeneratorContext<impl ReaderArena>,
 
 
 
-pub fn get_type_parameters(gen: &GeneratorContext<impl ReaderArena>,
+pub fn get_type_parameters<A: ReaderArena>(gen: &GeneratorContext<A>,
                            node_id: u64,
                            mut parent_scope_id: Option<u64>) -> Vec<String> {
     let mut current_node_id = node_id;

@@ -12,8 +12,10 @@ pub mod node {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -175,7 +177,7 @@ pub mod node {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -195,14 +197,14 @@ pub mod node {
     }
     #[inline]
     pub fn set_display_name(&mut self, value: ::capnp::text::Reader)  {
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.reborrow().get_pointer_field(0).set_text(value);
     }
     #[inline]
     pub fn init_display_name(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_display_name(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_display_name_prefix_length(self) -> u32 {
@@ -226,14 +228,14 @@ pub mod node {
     }
     #[inline]
     pub fn set_nested_nodes(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::nested_node::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(1), value, false)
     }
     #[inline]
     pub fn init_nested_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::nested_node::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_nested_nodes(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(1).is_null()
     }
     #[inline]
     pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned>> {
@@ -241,67 +243,67 @@ pub mod node {
     }
     #[inline]
     pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(2), value, false)
     }
     #[inline]
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), size)
     }
     pub fn has_annotations(&self) -> bool {
-      !self.builder.get_pointer_field(2).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(2).is_null()
     }
     #[inline]
     pub fn set_file(&mut self, _value: ())  {
       self.builder.set_data_field::<u16>(6, 0);
     }
     #[inline]
-    pub fn init_struct(self, ) -> crate::schema_capnp::node::struct_::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(6, 1);
-      self.builder.set_data_field::<u16>(7, 0u16);
-      self.builder.set_data_field::<u16>(12, 0u16);
-      self.builder.set_data_field::<u16>(13, 0u16);
-      self.builder.set_bool_field(224, false);
-      self.builder.set_data_field::<u16>(15, 0u16);
-      self.builder.set_data_field::<u32>(8, 0u32);
-      self.builder.get_pointer_field(3).clear();
+    pub fn init_struct(mut self, ) -> crate::schema_capnp::node::struct_::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(6, 1);
+      self.builder.reborrow().set_data_field::<u16>(7, 0u16);
+      self.builder.reborrow().set_data_field::<u16>(12, 0u16);
+      self.builder.reborrow().set_data_field::<u16>(13, 0u16);
+      self.builder.reborrow().set_bool_field(224, false);
+      self.builder.reborrow().set_data_field::<u16>(15, 0u16);
+      self.builder.reborrow().set_data_field::<u32>(8, 0u32);
+      self.builder.reborrow().get_pointer_field(3).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_enum(self, ) -> crate::schema_capnp::node::enum_::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(6, 2);
-      self.builder.get_pointer_field(3).clear();
+    pub fn init_enum(mut self, ) -> crate::schema_capnp::node::enum_::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(6, 2);
+      self.builder.reborrow().get_pointer_field(3).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_interface(self, ) -> crate::schema_capnp::node::interface::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(6, 3);
-      self.builder.get_pointer_field(3).clear();
-      self.builder.get_pointer_field(4).clear();
+    pub fn init_interface(mut self, ) -> crate::schema_capnp::node::interface::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(6, 3);
+      self.builder.reborrow().get_pointer_field(3).clear();
+      self.builder.reborrow().get_pointer_field(4).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_const(self, ) -> crate::schema_capnp::node::const_::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(6, 4);
-      self.builder.get_pointer_field(3).clear();
-      self.builder.get_pointer_field(4).clear();
+    pub fn init_const(mut self, ) -> crate::schema_capnp::node::const_::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(6, 4);
+      self.builder.reborrow().get_pointer_field(3).clear();
+      self.builder.reborrow().get_pointer_field(4).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_annotation(self, ) -> crate::schema_capnp::node::annotation::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(6, 5);
-      self.builder.get_pointer_field(3).clear();
-      self.builder.set_bool_field(112, false);
-      self.builder.set_bool_field(113, false);
-      self.builder.set_bool_field(114, false);
-      self.builder.set_bool_field(115, false);
-      self.builder.set_bool_field(116, false);
-      self.builder.set_bool_field(117, false);
-      self.builder.set_bool_field(118, false);
-      self.builder.set_bool_field(119, false);
-      self.builder.set_bool_field(120, false);
-      self.builder.set_bool_field(121, false);
-      self.builder.set_bool_field(122, false);
-      self.builder.set_bool_field(123, false);
+    pub fn init_annotation(mut self, ) -> crate::schema_capnp::node::annotation::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(6, 5);
+      self.builder.reborrow().get_pointer_field(3).clear();
+      self.builder.reborrow().set_bool_field(112, false);
+      self.builder.reborrow().set_bool_field(113, false);
+      self.builder.reborrow().set_bool_field(114, false);
+      self.builder.reborrow().set_bool_field(115, false);
+      self.builder.reborrow().set_bool_field(116, false);
+      self.builder.reborrow().set_bool_field(117, false);
+      self.builder.reborrow().set_bool_field(118, false);
+      self.builder.reborrow().set_bool_field(119, false);
+      self.builder.reborrow().set_bool_field(120, false);
+      self.builder.reborrow().set_bool_field(121, false);
+      self.builder.reborrow().set_bool_field(122, false);
+      self.builder.reborrow().set_bool_field(123, false);
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
@@ -310,14 +312,14 @@ pub mod node {
     }
     #[inline]
     pub fn set_parameters(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::parameter::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(5), value, false)
     }
     #[inline]
     pub fn init_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::parameter::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(5), size)
     }
     pub fn has_parameters(&self) -> bool {
-      !self.builder.get_pointer_field(5).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(5).is_null()
     }
     #[inline]
     pub fn get_is_generic(self) -> bool {
@@ -396,8 +398,10 @@ pub mod node {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -486,7 +490,7 @@ pub mod node {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -498,14 +502,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_name(&mut self, value: ::capnp::text::Reader)  {
-        self.builder.get_pointer_field(0).set_text(value);
+        self.builder.reborrow().get_pointer_field(0).set_text(value);
       }
       #[inline]
       pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_name(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
     }
 
@@ -531,8 +535,10 @@ pub mod node {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -625,7 +631,7 @@ pub mod node {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -637,14 +643,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_name(&mut self, value: ::capnp::text::Reader)  {
-        self.builder.get_pointer_field(0).set_text(value);
+        self.builder.reborrow().get_pointer_field(0).set_text(value);
       }
       #[inline]
       pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_name(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
       #[inline]
       pub fn get_id(self) -> u64 {
@@ -678,8 +684,10 @@ pub mod node {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -779,7 +787,7 @@ pub mod node {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -799,14 +807,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_doc_comment(&mut self, value: ::capnp::text::Reader)  {
-        self.builder.get_pointer_field(0).set_text(value);
+        self.builder.reborrow().get_pointer_field(0).set_text(value);
       }
       #[inline]
       pub fn init_doc_comment(self, size: u32) -> ::capnp::text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_doc_comment(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
       #[inline]
       pub fn get_members(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::source_info::member::Owned>> {
@@ -814,14 +822,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_members(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::source_info::member::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(1), value, false)
       }
       #[inline]
       pub fn init_members(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::source_info::member::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
       }
       pub fn has_members(&self) -> bool {
-        !self.builder.get_pointer_field(1).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(1).is_null()
       }
     }
 
@@ -846,8 +854,10 @@ pub mod node {
       impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
       impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-      #[derive(Clone, Copy)]
       pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+      impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+      impl <'a, A> Copy for Reader<'a,A> {}
 
       impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
         #[inline]
@@ -936,7 +946,7 @@ pub mod node {
           Builder { builder: self.builder.reborrow() }
         }
         pub fn reborrow_as_reader(&self) -> Reader<A, > {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -948,14 +958,14 @@ pub mod node {
         }
         #[inline]
         pub fn set_doc_comment(&mut self, value: ::capnp::text::Reader)  {
-          self.builder.get_pointer_field(0).set_text(value);
+          self.builder.reborrow().get_pointer_field(0).set_text(value);
         }
         #[inline]
         pub fn init_doc_comment(self, size: u32) -> ::capnp::text::Builder<'a> {
           self.builder.get_pointer_field(0).init_text(size)
         }
         pub fn has_doc_comment(&self) -> bool {
-          !self.builder.get_pointer_field(0).is_null()
+          !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
         }
       }
 
@@ -982,8 +992,10 @@ pub mod node {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -1096,7 +1108,7 @@ pub mod node {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -1156,14 +1168,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_fields(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::field::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(3), value, false)
       }
       #[inline]
       pub fn init_fields(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::field::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_fields(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(3).is_null()
       }
     }
 
@@ -1189,8 +1201,10 @@ pub mod node {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -1279,7 +1293,7 @@ pub mod node {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -1291,14 +1305,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_enumerants(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::enumerant::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(3), value, false)
       }
       #[inline]
       pub fn init_enumerants(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::enumerant::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_enumerants(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(3).is_null()
       }
     }
 
@@ -1324,8 +1338,10 @@ pub mod node {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -1421,7 +1437,7 @@ pub mod node {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -1433,14 +1449,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_methods(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::method::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(3), value, false)
       }
       #[inline]
       pub fn init_methods(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::method::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_methods(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_superclasses(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::superclass::Owned>> {
@@ -1448,14 +1464,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_superclasses(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::superclass::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(4), value, false)
       }
       #[inline]
       pub fn init_superclasses(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::superclass::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
       }
       pub fn has_superclasses(&self) -> bool {
-        !self.builder.get_pointer_field(4).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(4).is_null()
       }
     }
 
@@ -1481,8 +1497,10 @@ pub mod node {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -1578,7 +1596,7 @@ pub mod node {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -1590,14 +1608,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_type<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::type_::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(3), value, false)
       }
       #[inline]
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_type(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_value(self) -> ::capnp::Result<crate::schema_capnp::value::Builder<'a,A>> {
@@ -1605,14 +1623,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_value<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::value::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(4), value, false)
       }
       #[inline]
       pub fn init_value(self, ) -> crate::schema_capnp::value::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), 0)
       }
       pub fn has_value(&self) -> bool {
-        !self.builder.get_pointer_field(4).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(4).is_null()
       }
     }
 
@@ -1644,8 +1662,10 @@ pub mod node {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -1782,7 +1802,7 @@ pub mod node {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -1794,14 +1814,14 @@ pub mod node {
       }
       #[inline]
       pub fn set_type<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::type_::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(3), value, false)
       }
       #[inline]
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_type(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_targets_file(self) -> bool {
@@ -1929,8 +1949,10 @@ pub mod field {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -2054,7 +2076,7 @@ pub mod field {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -2066,14 +2088,14 @@ pub mod field {
     }
     #[inline]
     pub fn set_name(&mut self, value: ::capnp::text::Reader)  {
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.reborrow().get_pointer_field(0).set_text(value);
     }
     #[inline]
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_code_order(self) -> u16 {
@@ -2089,14 +2111,14 @@ pub mod field {
     }
     #[inline]
     pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(1), value, false)
     }
     #[inline]
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(1).is_null()
     }
     #[inline]
     pub fn get_discriminant_value(self) -> u16 {
@@ -2107,12 +2129,12 @@ pub mod field {
       self.builder.set_data_field_mask::<u16>(1, value, 65535);
     }
     #[inline]
-    pub fn init_slot(self, ) -> crate::schema_capnp::field::slot::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(4, 0);
-      self.builder.set_data_field::<u32>(1, 0u32);
-      self.builder.get_pointer_field(2).clear();
-      self.builder.get_pointer_field(3).clear();
-      self.builder.set_bool_field(128, false);
+    pub fn init_slot(mut self, ) -> crate::schema_capnp::field::slot::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(4, 0);
+      self.builder.reborrow().set_data_field::<u32>(1, 0u32);
+      self.builder.reborrow().get_pointer_field(2).clear();
+      self.builder.reborrow().get_pointer_field(3).clear();
+      self.builder.reborrow().set_bool_field(128, false);
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
@@ -2126,9 +2148,9 @@ pub mod field {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_ordinal(self, ) -> crate::schema_capnp::field::ordinal::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(5, 0);
-      self.builder.set_data_field::<u16>(6, 0u16);
+    pub fn init_ordinal(mut self, ) -> crate::schema_capnp::field::ordinal::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(5, 0);
+      self.builder.reborrow().set_data_field::<u16>(6, 0u16);
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
@@ -2180,8 +2202,10 @@ pub mod field {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -2285,7 +2309,7 @@ pub mod field {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -2305,14 +2329,14 @@ pub mod field {
       }
       #[inline]
       pub fn set_type<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::type_::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(2), value, false)
       }
       #[inline]
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
       }
       pub fn has_type(&self) -> bool {
-        !self.builder.get_pointer_field(2).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(2).is_null()
       }
       #[inline]
       pub fn get_default_value(self) -> ::capnp::Result<crate::schema_capnp::value::Builder<'a,A>> {
@@ -2320,14 +2344,14 @@ pub mod field {
       }
       #[inline]
       pub fn set_default_value<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::value::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(3), value, false)
       }
       #[inline]
       pub fn init_default_value(self, ) -> crate::schema_capnp::value::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_default_value(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_had_explicit_default(self) -> bool {
@@ -2367,8 +2391,10 @@ pub mod field {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -2454,7 +2480,7 @@ pub mod field {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -2494,8 +2520,10 @@ pub mod field {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -2593,7 +2621,7 @@ pub mod field {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -2655,8 +2683,10 @@ pub mod enumerant {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -2756,7 +2786,7 @@ pub mod enumerant {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -2768,14 +2798,14 @@ pub mod enumerant {
     }
     #[inline]
     pub fn set_name(&mut self, value: ::capnp::text::Reader)  {
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.reborrow().get_pointer_field(0).set_text(value);
     }
     #[inline]
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_code_order(self) -> u16 {
@@ -2791,14 +2821,14 @@ pub mod enumerant {
     }
     #[inline]
     pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(1), value, false)
     }
     #[inline]
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(1).is_null()
     }
   }
 
@@ -2824,8 +2854,10 @@ pub mod superclass {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -2918,7 +2950,7 @@ pub mod superclass {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -2938,14 +2970,14 @@ pub mod superclass {
     }
     #[inline]
     pub fn set_brand<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::brand::Reader<'b,B>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
     }
     #[inline]
     pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a,A> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
     pub fn has_brand(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
   }
 
@@ -2974,8 +3006,10 @@ pub mod method {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -3104,7 +3138,7 @@ pub mod method {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -3116,14 +3150,14 @@ pub mod method {
     }
     #[inline]
     pub fn set_name(&mut self, value: ::capnp::text::Reader)  {
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.reborrow().get_pointer_field(0).set_text(value);
     }
     #[inline]
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_code_order(self) -> u16 {
@@ -3155,14 +3189,14 @@ pub mod method {
     }
     #[inline]
     pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(1), value, false)
     }
     #[inline]
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(1).is_null()
     }
     #[inline]
     pub fn get_param_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Builder<'a,A>> {
@@ -3170,14 +3204,14 @@ pub mod method {
     }
     #[inline]
     pub fn set_param_brand<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::brand::Reader<'b,B>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(2), value, false)
     }
     #[inline]
     pub fn init_param_brand(self, ) -> crate::schema_capnp::brand::Builder<'a,A> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
     }
     pub fn has_param_brand(&self) -> bool {
-      !self.builder.get_pointer_field(2).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(2).is_null()
     }
     #[inline]
     pub fn get_result_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Builder<'a,A>> {
@@ -3185,14 +3219,14 @@ pub mod method {
     }
     #[inline]
     pub fn set_result_brand<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::brand::Reader<'b,B>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(3), value, false)
     }
     #[inline]
     pub fn init_result_brand(self, ) -> crate::schema_capnp::brand::Builder<'a,A> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
     }
     pub fn has_result_brand(&self) -> bool {
-      !self.builder.get_pointer_field(3).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(3).is_null()
     }
     #[inline]
     pub fn get_implicit_parameters(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::parameter::Owned>> {
@@ -3200,14 +3234,14 @@ pub mod method {
     }
     #[inline]
     pub fn set_implicit_parameters(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::parameter::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(4), value, false)
     }
     #[inline]
     pub fn init_implicit_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::parameter::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
     }
     pub fn has_implicit_parameters(&self) -> bool {
-      !self.builder.get_pointer_field(4).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(4).is_null()
     }
   }
 
@@ -3241,8 +3275,10 @@ pub mod type_ {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -3425,7 +3461,7 @@ pub mod type_ {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -3488,37 +3524,37 @@ pub mod type_ {
       self.builder.set_data_field::<u16>(0, 13);
     }
     #[inline]
-    pub fn init_list(self, ) -> crate::schema_capnp::type_::list::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(0, 14);
-      self.builder.get_pointer_field(0).clear();
+    pub fn init_list(mut self, ) -> crate::schema_capnp::type_::list::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(0, 14);
+      self.builder.reborrow().get_pointer_field(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_enum(self, ) -> crate::schema_capnp::type_::enum_::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(0, 15);
-      self.builder.set_data_field::<u64>(1, 0u64);
-      self.builder.get_pointer_field(0).clear();
+    pub fn init_enum(mut self, ) -> crate::schema_capnp::type_::enum_::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(0, 15);
+      self.builder.reborrow().set_data_field::<u64>(1, 0u64);
+      self.builder.reborrow().get_pointer_field(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_struct(self, ) -> crate::schema_capnp::type_::struct_::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(0, 16);
-      self.builder.set_data_field::<u64>(1, 0u64);
-      self.builder.get_pointer_field(0).clear();
+    pub fn init_struct(mut self, ) -> crate::schema_capnp::type_::struct_::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(0, 16);
+      self.builder.reborrow().set_data_field::<u64>(1, 0u64);
+      self.builder.reborrow().get_pointer_field(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_interface(self, ) -> crate::schema_capnp::type_::interface::Builder<'a, A> {
-      self.builder.set_data_field::<u16>(0, 17);
-      self.builder.set_data_field::<u64>(1, 0u64);
-      self.builder.get_pointer_field(0).clear();
+    pub fn init_interface(mut self, ) -> crate::schema_capnp::type_::interface::Builder<'a, A> {
+      self.builder.reborrow().set_data_field::<u16>(0, 17);
+      self.builder.reborrow().set_data_field::<u64>(1, 0u64);
+      self.builder.reborrow().get_pointer_field(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_any_pointer(self, ) -> crate::schema_capnp::type_::any_pointer::Builder<'a, A> {
+    pub fn init_any_pointer(mut self, ) -> crate::schema_capnp::type_::any_pointer::Builder<'a, A> {
       self.builder.set_data_field::<u16>(0, 18);
-      self.builder.set_data_field::<u16>(4, 0);
-      self.builder.set_data_field::<u16>(5, 0);
+      self.builder.reborrow().set_data_field::<u16>(4, 0);
+      self.builder.reborrow().set_data_field::<u16>(5, 0);
       self.builder.set_data_field::<u64>(2, 0u64);
       self.builder.set_data_field::<u16>(5, 0u16);
       self.builder.set_data_field::<u16>(5, 0u16);
@@ -3671,8 +3707,10 @@ pub mod type_ {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -3761,7 +3799,7 @@ pub mod type_ {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -3773,14 +3811,14 @@ pub mod type_ {
       }
       #[inline]
       pub fn set_element_type<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::type_::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
       }
       #[inline]
       pub fn init_element_type(self, ) -> crate::schema_capnp::type_::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_element_type(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
     }
 
@@ -3809,8 +3847,10 @@ pub mod type_ {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -3903,7 +3943,7 @@ pub mod type_ {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -3923,14 +3963,14 @@ pub mod type_ {
       }
       #[inline]
       pub fn set_brand<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::brand::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
       }
       #[inline]
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
     }
 
@@ -3959,8 +3999,10 @@ pub mod type_ {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -4053,7 +4095,7 @@ pub mod type_ {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -4073,14 +4115,14 @@ pub mod type_ {
       }
       #[inline]
       pub fn set_brand<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::brand::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
       }
       #[inline]
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
     }
 
@@ -4109,8 +4151,10 @@ pub mod type_ {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -4203,7 +4247,7 @@ pub mod type_ {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -4223,14 +4267,14 @@ pub mod type_ {
       }
       #[inline]
       pub fn set_brand<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::brand::Reader<'b,B>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
       }
       #[inline]
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a,A> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
     }
 
@@ -4261,8 +4305,10 @@ pub mod type_ {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -4365,23 +4411,23 @@ pub mod type_ {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
         self.builder.reborrow_as_reader().total_size()
       }
       #[inline]
-      pub fn init_unconstrained(self, ) -> crate::schema_capnp::type_::any_pointer::unconstrained::Builder<'a, A> {
-        self.builder.set_data_field::<u16>(4, 0);
-        self.builder.set_data_field::<u16>(5, 0);
+      pub fn init_unconstrained(mut self, ) -> crate::schema_capnp::type_::any_pointer::unconstrained::Builder<'a, A> {
+        self.builder.reborrow().set_data_field::<u16>(4, 0);
+        self.builder.reborrow().set_data_field::<u16>(5, 0);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
-      pub fn init_parameter(self, ) -> crate::schema_capnp::type_::any_pointer::parameter::Builder<'a, A> {
-        self.builder.set_data_field::<u16>(4, 1);
-        self.builder.set_data_field::<u64>(2, 0u64);
-        self.builder.set_data_field::<u16>(5, 0u16);
+      pub fn init_parameter(mut self, ) -> crate::schema_capnp::type_::any_pointer::parameter::Builder<'a, A> {
+        self.builder.reborrow().set_data_field::<u16>(4, 1);
+        self.builder.reborrow().set_data_field::<u64>(2, 0u64);
+        self.builder.reborrow().set_data_field::<u16>(5, 0u16);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
@@ -4443,8 +4489,10 @@ pub mod type_ {
       impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
       impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-      #[derive(Clone, Copy)]
       pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+      impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+      impl <'a, A> Copy for Reader<'a,A> {}
 
       impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
         #[inline]
@@ -4552,7 +4600,7 @@ pub mod type_ {
           Builder { builder: self.builder.reborrow() }
         }
         pub fn reborrow_as_reader(&self) -> Reader<A, > {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -4632,8 +4680,10 @@ pub mod type_ {
       impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
       impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-      #[derive(Clone, Copy)]
       pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+      impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+      impl <'a, A> Copy for Reader<'a,A> {}
 
       impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
         #[inline]
@@ -4723,7 +4773,7 @@ pub mod type_ {
           Builder { builder: self.builder.reborrow() }
         }
         pub fn reborrow_as_reader(&self) -> Reader<A, > {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -4769,8 +4819,10 @@ pub mod type_ {
       impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
       impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-      #[derive(Clone, Copy)]
       pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+      impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+      impl <'a, A> Copy for Reader<'a,A> {}
 
       impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
         #[inline]
@@ -4856,7 +4908,7 @@ pub mod type_ {
           Builder { builder: self.builder.reborrow() }
         }
         pub fn reborrow_as_reader(&self) -> Reader<A, > {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -4896,8 +4948,10 @@ pub mod brand {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -4986,7 +5040,7 @@ pub mod brand {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -4998,14 +5052,14 @@ pub mod brand {
     }
     #[inline]
     pub fn set_scopes(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::brand::scope::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
     }
     #[inline]
     pub fn init_scopes(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::brand::scope::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
     pub fn has_scopes(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
   }
 
@@ -5032,8 +5086,10 @@ pub mod brand {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -5139,7 +5195,7 @@ pub mod brand {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -5156,7 +5212,7 @@ pub mod brand {
       #[inline]
       pub fn set_bind(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::brand::binding::Owned>) -> ::capnp::Result<()> {
         self.builder.set_data_field::<u16>(4, 0);
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
       }
       #[inline]
       pub fn init_bind(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::brand::binding::Owned> {
@@ -5165,7 +5221,7 @@ pub mod brand {
       }
       pub fn has_bind(&self) -> bool {
         if self.builder.get_data_field::<u16>(4) != 0 { return false; }
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
       #[inline]
       pub fn set_inherit(&mut self, _value: ())  {
@@ -5219,8 +5275,10 @@ pub mod brand {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -5322,7 +5380,7 @@ pub mod brand {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -5335,7 +5393,7 @@ pub mod brand {
       #[inline]
       pub fn set_type<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::type_::Reader<'b,B>) -> ::capnp::Result<()> {
         self.builder.set_data_field::<u16>(0, 1);
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
       }
       #[inline]
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a,A> {
@@ -5344,7 +5402,7 @@ pub mod brand {
       }
       pub fn has_type(&self) -> bool {
         if self.builder.get_data_field::<u16>(0) != 1 { return false; }
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
       #[inline]
       pub fn which(self) -> ::core::result::Result<WhichBuilder<'a,A,>, ::capnp::NotInSchema> {
@@ -5395,8 +5453,10 @@ pub mod value {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -5599,7 +5659,7 @@ pub mod value {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -5667,7 +5727,7 @@ pub mod value {
     #[inline]
     pub fn set_text(&mut self, value: ::capnp::text::Reader)  {
       self.builder.set_data_field::<u16>(0, 12);
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.reborrow().get_pointer_field(0).set_text(value);
     }
     #[inline]
     pub fn init_text(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -5676,12 +5736,12 @@ pub mod value {
     }
     pub fn has_text(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 12 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn set_data(&mut self, value: ::capnp::data::Reader)  {
       self.builder.set_data_field::<u16>(0, 13);
-      self.builder.get_pointer_field(0).set_data(value);
+      self.builder.reborrow().get_pointer_field(0).set_data(value);
     }
     #[inline]
     pub fn init_data(self, size: u32) -> ::capnp::data::Builder<'a> {
@@ -5690,7 +5750,7 @@ pub mod value {
     }
     pub fn has_data(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 13 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn init_list(self, ) -> ::capnp::any_pointer::Builder<'a, A> {
@@ -5701,7 +5761,7 @@ pub mod value {
     }
     pub fn has_list(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 14 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn set_enum(&mut self, value: u16)  {
@@ -5717,7 +5777,7 @@ pub mod value {
     }
     pub fn has_struct(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 16 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn set_interface(&mut self, _value: ())  {
@@ -5732,7 +5792,7 @@ pub mod value {
     }
     pub fn has_any_pointer(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 18 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn which(self) -> ::core::result::Result<WhichBuilder<'a,A,>, ::capnp::NotInSchema> {
@@ -5882,8 +5942,10 @@ pub mod annotation {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -5983,7 +6045,7 @@ pub mod annotation {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -6003,14 +6065,14 @@ pub mod annotation {
     }
     #[inline]
     pub fn set_value<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::value::Reader<'b,B>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
     }
     #[inline]
     pub fn init_value(self, ) -> crate::schema_capnp::value::Builder<'a,A> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
     pub fn has_value(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Builder<'a,A>> {
@@ -6018,14 +6080,14 @@ pub mod annotation {
     }
     #[inline]
     pub fn set_brand<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::brand::Reader<'b,B>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(1), value, false)
     }
     #[inline]
     pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a,A> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), 0)
     }
     pub fn has_brand(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(1).is_null()
     }
   }
 
@@ -6094,8 +6156,10 @@ pub mod capnp_version {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -6189,7 +6253,7 @@ pub mod capnp_version {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -6243,8 +6307,10 @@ pub mod code_generator_request {
   impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
   impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-  #[derive(Clone, Copy)]
   pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+  impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+  impl <'a, A> Copy for Reader<'a,A> {}
 
   impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
     #[inline]
@@ -6354,7 +6420,7 @@ pub mod code_generator_request {
       Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<A, > {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -6366,14 +6432,14 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_nodes(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(0), value, false)
     }
     #[inline]
     pub fn init_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
     pub fn has_nodes(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_requested_files(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::code_generator_request::requested_file::Owned>> {
@@ -6381,14 +6447,14 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_requested_files(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::code_generator_request::requested_file::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(1), value, false)
     }
     #[inline]
     pub fn init_requested_files(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::code_generator_request::requested_file::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_requested_files(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(1).is_null()
     }
     #[inline]
     pub fn get_capnp_version(self) -> ::capnp::Result<crate::schema_capnp::capnp_version::Builder<'a,A>> {
@@ -6396,14 +6462,14 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_capnp_version<'b, B: ::capnp::private::arena::ReaderArena >(&mut self, value: crate::schema_capnp::capnp_version::Reader<'b,B>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(2), value, false)
     }
     #[inline]
     pub fn init_capnp_version(self, ) -> crate::schema_capnp::capnp_version::Builder<'a,A> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
     }
     pub fn has_capnp_version(&self) -> bool {
-      !self.builder.get_pointer_field(2).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(2).is_null()
     }
     #[inline]
     pub fn get_source_info(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::source_info::Owned>> {
@@ -6411,14 +6477,14 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_source_info(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::node::source_info::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(3), value, false)
     }
     #[inline]
     pub fn init_source_info(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::node::source_info::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
     }
     pub fn has_source_info(&self) -> bool {
-      !self.builder.get_pointer_field(3).is_null()
+      !self.builder.reborrow_as_reader().get_pointer_field(3).is_null()
     }
   }
 
@@ -6446,8 +6512,10 @@ pub mod code_generator_request {
     impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
     impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-    #[derive(Clone, Copy)]
     pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+    impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+    impl <'a, A> Copy for Reader<'a,A> {}
 
     impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
       #[inline]
@@ -6547,7 +6615,7 @@ pub mod code_generator_request {
         Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<A, > {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -6567,14 +6635,14 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn set_filename(&mut self, value: ::capnp::text::Reader)  {
-        self.builder.get_pointer_field(0).set_text(value);
+        self.builder.reborrow().get_pointer_field(0).set_text(value);
       }
       #[inline]
       pub fn init_filename(self, size: u32) -> ::capnp::text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_filename(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
       }
       #[inline]
       pub fn get_imports(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,A,crate::schema_capnp::code_generator_request::requested_file::import::Owned>> {
@@ -6582,14 +6650,14 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn set_imports(&mut self, value: ::capnp::struct_list::Reader<'a,A,crate::schema_capnp::code_generator_request::requested_file::import::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field(1), value, false)
       }
       #[inline]
       pub fn init_imports(self, size: u32) -> ::capnp::struct_list::Builder<'a,A,crate::schema_capnp::code_generator_request::requested_file::import::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
       }
       pub fn has_imports(&self) -> bool {
-        !self.builder.get_pointer_field(1).is_null()
+        !self.builder.reborrow_as_reader().get_pointer_field(1).is_null()
       }
     }
 
@@ -6614,8 +6682,10 @@ pub mod code_generator_request {
       impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }
       impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }
 
-      #[derive(Clone, Copy)]
       pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }
+
+      impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }
+      impl <'a, A> Copy for Reader<'a,A> {}
 
       impl <'a, A, > ::capnp::traits::HasTypeId for Reader<'a,A,>  {
         #[inline]
@@ -6708,7 +6778,7 @@ pub mod code_generator_request {
           Builder { builder: self.builder.reborrow() }
         }
         pub fn reborrow_as_reader(&self) -> Reader<A, > {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
@@ -6728,14 +6798,14 @@ pub mod code_generator_request {
         }
         #[inline]
         pub fn set_name(&mut self, value: ::capnp::text::Reader)  {
-          self.builder.get_pointer_field(0).set_text(value);
+          self.builder.reborrow().get_pointer_field(0).set_text(value);
         }
         #[inline]
         pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
           self.builder.get_pointer_field(0).init_text(size)
         }
         pub fn has_name(&self) -> bool {
-          !self.builder.get_pointer_field(0).is_null()
+          !self.builder.reborrow_as_reader().get_pointer_field(0).is_null()
         }
       }
 
