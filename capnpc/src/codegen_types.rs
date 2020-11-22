@@ -28,8 +28,8 @@ use std::collections::hash_map::HashMap;
 
 #[derive(Copy,Clone,PartialEq)]
 pub enum Leaf {
-    Reader(&'static str),
-    Builder(&'static str),
+    Reader(&'static str, &'static str), // lifetime parameter, arena parameter
+    Builder(&'static str, &'static str), // lifetime parameter, arena parameter
     Owned,
     Client,
     Server,
@@ -40,8 +40,8 @@ pub enum Leaf {
 impl ::std::fmt::Display for Leaf {
     fn fmt(&self, fmt:&mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
         let display_string = match self {
-            &Leaf::Reader(lt) => format!("Reader<{}>", lt),
-            &Leaf::Builder(lt) => format!("Builder<{}>", lt),
+            &Leaf::Reader(lt, ap) => format!("Reader<{},{}>", lt, ap),
+            &Leaf::Builder(lt, ap) => format!("Builder<{},{}>", lt, ap),
             &Leaf::Owned => "Owned".to_string(),
             &Leaf::Client => "Client".to_string(),
             &Leaf::Server => "Server".to_string(),
@@ -55,8 +55,8 @@ impl ::std::fmt::Display for Leaf {
 impl Leaf {
     fn bare_name(&self) -> &'static str {
         match self {
-            &Leaf::Reader(_) => "Reader",
-            &Leaf::Builder(_) => "Builder",
+            &Leaf::Reader(..) => "Reader",
+            &Leaf::Builder(..) => "Builder",
             &Leaf::Owned => "Owned",
             &Leaf::Client => "Client",
             &Leaf::Server => "Server",
@@ -67,7 +67,7 @@ impl Leaf {
 
     fn _have_lifetime(&self) -> bool {
         match self {
-            &Leaf::Reader(_) | &Leaf::Builder(_) => true,
+            &Leaf::Reader(..) | &Leaf::Builder(..) => true,
             &Leaf::Owned | &Leaf::Client | &Leaf::Server | &Leaf::ServerDispatch | &Leaf::Pipeline => false,
         }
     }
@@ -107,10 +107,10 @@ impl <'a, A> RustNodeInfo for node::Reader<'a, A> where A: ReaderArena {
                 format!("{}",param)
             }).collect::<Vec<String>>().join(",");
             let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}: for<'c> ::capnp::traits::Owned<'c>", param)
+                format!("{}: ::capnp::traits::Owned", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let where_clause_with_static = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}:'static + for<'c> ::capnp::traits::Owned<'c>", param)
+                format!("{}:'static + ::capnp::traits::Owned", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
                 format!("{}: ::capnp::traits::Pipelined, <{} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline", param, param)
@@ -150,14 +150,14 @@ impl <'a, A> RustTypeInfo for type_::Reader<'a, A> where A: ReaderArena {
 
     fn type_string(&self, gen:&codegen::GeneratorContext<impl ReaderArena>, module:Leaf) -> Result<String, ::capnp::Error> {
 
-        let local_lifetime = match module {
-            Leaf::Reader(lt) => lt,
-            Leaf::Builder(lt) => lt,
-            _ => "",
+        let (local_lifetime, local_arena) = match module {
+            Leaf::Reader(lt,la) => (lt,la),
+            Leaf::Builder(lt,la) => (lt,la),
+            _ => ("",""),
         };
 
         let lifetime_comma = if local_lifetime == "" { "".to_string() } else {
-            format!("{},", local_lifetime)
+            format!("{},{},", local_lifetime, local_arena)
         };
 
         match self.which()? {
@@ -173,8 +173,8 @@ impl <'a, A> RustTypeInfo for type_::Reader<'a, A> where A: ReaderArena {
             type_::Uint64(()) => Ok("u64".to_string()),
             type_::Float32(()) => Ok("f32".to_string()),
             type_::Float64(()) => Ok("f64".to_string()),
-            type_::Text(()) => Ok(format!("::capnp::text::{}", module)),
-            type_::Data(()) => Ok(format!("::capnp::data::{}", module)),
+            type_::Text(()) => Ok(format!("::capnp::text::{}<{}>", module.bare_name(), local_lifetime)),
+            type_::Data(()) => Ok(format!("::capnp::data::{}<{}>", module.bare_name(), local_lifetime)),
             type_::Struct(st) => {
                 do_branding(gen, st.get_type_id(), st.get_brand()?, module,
                             gen.scope_map[&st.get_type_id()].join("::"), None)
@@ -228,15 +228,15 @@ impl <'a, A> RustTypeInfo for type_::Reader<'a, A> where A: ReaderArena {
                         let parameter_name = parameter.get_name()?;
                         match module {
                             Leaf::Owned => Ok(parameter_name.to_string()),
-                            Leaf::Reader(lifetime) => {
+                            Leaf::Reader(lifetime, ap) => {
                                 Ok(format!(
-                                    "<{} as ::capnp::traits::Owned<{}>>::Reader",
-                                    parameter_name, lifetime))
+                                    "<{} as ::capnp::traits::Owned>::Reader<{},{}>",
+                                    parameter_name, lifetime, ap))
                             }
-                            Leaf::Builder(lifetime) => {
+                            Leaf::Builder(lifetime, ap) => {
                                 Ok(format!(
-                                    "<{} as ::capnp::traits::Owned<{}>>::Builder",
-                                    parameter_name, lifetime))
+                                    "<{} as ::capnp::traits::Owned>::Builder<{},{}>",
+                                    parameter_name, lifetime, ap))
                             }
                             Leaf::Pipeline => {
                                 Ok(format!("<{} as ::capnp::traits::Pipelined>::Pipeline", parameter_name))
@@ -246,11 +246,11 @@ impl <'a, A> RustTypeInfo for type_::Reader<'a, A> where A: ReaderArena {
                     },
                     _ => {
                         match module {
-                            Leaf::Reader(lifetime) => {
-                                Ok(format!("::capnp::any_pointer::Reader<{}>", lifetime))
+                            Leaf::Reader(lifetime, ap) => {
+                                Ok(format!("::capnp::any_pointer::Reader<{},{}>", lifetime, ap))
                             }
-                            Leaf::Builder(lifetime) => {
-                                Ok(format!("::capnp::any_pointer::Builder<{}>", lifetime))
+                            Leaf::Builder(lifetime, ap) => {
+                                Ok(format!("::capnp::any_pointer::Builder<{},{}>", lifetime, ap))
                             }
                             _ => {
                                 Ok(format!("::capnp::any_pointer::{}", module))
@@ -360,8 +360,8 @@ pub fn do_branding(gen: &GeneratorContext<impl ReaderArena>,
 
     // Now add a lifetime parameter if the leaf has one.
     match leaf {
-        Leaf::Reader(lt) => accumulator.push(vec!(lt.to_string())),
-        Leaf::Builder(lt) => accumulator.push(vec!(lt.to_string())),
+        Leaf::Reader(lt, ap) => accumulator.push(vec!(lt.to_string(), ap.to_string())),
+        Leaf::Builder(lt, ap) => accumulator.push(vec!(lt.to_string(), ap.to_string())),
         Leaf::ServerDispatch => accumulator.push(vec!["_T".to_string()]), // HACK
         _ => (),
     }
