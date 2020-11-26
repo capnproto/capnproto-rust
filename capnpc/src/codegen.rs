@@ -605,7 +605,7 @@ fn zero_fields_of_group(gen: &GeneratorContext<impl ReaderArena>, node_id: u64) 
                             type_::AnyPointer(_) |
                             type_::Interface(_) // Is this the right thing to do for interfaces?
                                 => {
-                                    let line = Line(format!("self.builder.get_pointer_field({}).clear();",
+                                    let line = Line(format!("self.builder.reborrow().get_pointer_field({}).clear();",
                                                             slot.get_offset()));
                                     // PERF could dedup more efficiently
                                     if !result.contains(&line) { result.push(line) }
@@ -648,6 +648,7 @@ fn generate_setter(gen: &GeneratorContext<impl ReaderArena>, discriminant_offset
     let mut setter_generic_param = String::new();
     let mut return_result = false;
     let mut result = Vec::new();
+    let mut initter_self = "self";
 
     let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match field.which()? {
         field::Group(group) => {
@@ -655,6 +656,7 @@ fn generate_setter(gen: &GeneratorContext<impl ReaderArena>, discriminant_offset
             let the_mod = scope.join("::");
 
             initter_interior.push(zero_fields_of_group(gen, group.get_type_id())?);
+            initter_self = "mut self";
 
             initter_interior.push(Line(format!("::capnp::traits::FromStructBuilder::new(self.builder)")));
 
@@ -816,8 +818,8 @@ fn generate_setter(gen: &GeneratorContext<impl ReaderArena>, discriminant_offset
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.join(", ");
-            result.push(Line(format!("pub fn init_{}(self, {}) -> {} {{",
-                                     styled_name, args, builder_type)));
+            result.push(Line(format!("pub fn init_{}({}, {}) -> {} {{",
+                                     styled_name, initter_self, args, builder_type)));
             result.push(Indent(Box::new(Branch(initter_interior))));
             result.push(Line("}".to_string()));
         }

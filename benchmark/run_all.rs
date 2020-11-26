@@ -73,8 +73,8 @@ fn try_main() -> ::capnp::Result<()> {
     println!("running carsales with {} iterations", carsales_iters);
     run_case(executable, "carsales", &["reuse", "no-reuse"], carsales_iters);
 
-    println!("running catrank with {} iterations", catrank_iters);
-    run_case(executable, "catrank", &["no-reuse"], catrank_iters);
+    //println!("running catrank with {} iterations", catrank_iters);
+    //run_case(executable, "catrank", &["no-reuse"], catrank_iters);
 
     println!("running eval with {} iterations", eval_iters);
     run_case(executable, "eval", &["no-reuse"], eval_iters);

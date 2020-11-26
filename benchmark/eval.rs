@@ -24,7 +24,7 @@ use capnp::private::arena::{BuilderArena, ReaderArena};
 use crate::common::*;
 use crate::eval_capnp::{expression, evaluation_result, Operation};
 
-fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth : u32) -> i32 {
+fn make_expression(rng: &mut FastRand, mut exp: expression::Builder<impl BuilderArena>, depth : u32) -> i32 {
     exp.set_op(::capnp::traits::FromU16::from_u16(rng.next_less_than( Operation::Modulus as u32 + 1) as u16).unwrap());
 
     let left : i32 =
@@ -54,7 +54,7 @@ fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth : u32
     }
 }
 
-fn evaluate_expression(exp: expression::Reader) -> ::capnp::Result<i32> {
+fn evaluate_expression(exp: expression::Reader<impl ReaderArena>) -> ::capnp::Result<i32> {
     let left = match exp.get_left().which()? {
         expression::left::Value(v) => v,
         expression::left::Expression(e) => evaluate_expression(e?)?,
@@ -80,18 +80,21 @@ impl crate::TestCase for Eval {
     type Response = evaluation_result::Owned;
     type Expectation = i32;
 
-    fn setup_request(&self, rng: &mut FastRand, request: expression::Builder) -> i32 {
+    fn setup_request<A>(&self, rng: &mut FastRand, request: expression::Builder<A>) -> i32 where A: BuilderArena {
         make_expression(rng, request, 0)
     }
 
-    fn handle_request(&self, request: expression::Reader, mut response: evaluation_result::Builder)
-        -> ::capnp::Result<()>
+    fn handle_request<A,B>(&self, request: expression::Reader<A>, mut response: evaluation_result::Builder<B>)
+                           -> ::capnp::Result<()>
+        where A: ReaderArena, B: BuilderArena
     {
         response.set_value(evaluate_expression(request)?);
         Ok(())
     }
 
-    fn check_response(&self, response: evaluation_result::Reader, expected : i32) -> ::capnp::Result<()> {
+    fn check_response<A>(&self, response: evaluation_result::Reader<A>, expected : i32) -> ::capnp::Result<()>
+        where A: ReaderArena
+    {
         if response.get_value() == expected {
             Ok(())
         } else {
