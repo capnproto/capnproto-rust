@@ -38,7 +38,7 @@ pub mod carsales;
 pub mod catrank_capnp {
   include!(concat!(env!("OUT_DIR"), "/catrank_capnp.rs"));
 }
-//pub mod catrank;
+pub mod catrank;
 
 pub mod eval_capnp {
   include!(concat!(env!("OUT_DIR"), "/eval_capnp.rs"));
@@ -351,7 +351,7 @@ fn do_testcase1<C, S>(case: &str, mode: Mode, scratch: S, compression: C, iters:
 {
     match case {
         "carsales" => do_testcase(carsales::CarSales, mode, scratch, compression, iters),
-//        "catrank" => do_testcase(catrank::CatRank, mode, scratch, compression, iters),
+        "catrank" => do_testcase(catrank::CatRank, mode, scratch, compression, iters),
         "eval" => do_testcase(eval::Eval, mode, scratch, compression, iters),
         s => Err(::capnp::Error::failed(format!("unrecognized test case: {}", s))),
     }
