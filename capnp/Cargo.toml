@@ -25,7 +25,7 @@ quickcheck = { version = "0.9", optional = true }
 quickcheck = "0.9"
 
 [features]
-default = ["std", "sync_reader"]
+default = ["std"]
 
 rpc_try = []
 
@@ -37,8 +37,7 @@ unaligned = []
 # with the Rust standard library.
 std = []
 
-# If disabled, message reader will not be `Sync`. This can be used
-# to support platforms where `AtomicUsize` is not available.
+# If enabled, message reader will be `Sync`. 
 # To be replaced by #[cfg(target_has_atomic = ...)] once it lands.
 # See: https://github.com/rust-lang/rust/issues/32976
 sync_reader = []
