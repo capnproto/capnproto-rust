@@ -25,11 +25,11 @@ pub use sync::ReadLimiter;
 #[cfg(feature = "sync_reader")]
 mod sync {
     use crate::{Error, Result};
-    use core::sync::atomic::{AtomicUsize, Ordering};
+    use core::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
 
     pub struct ReadLimiter {
-        pub limit: usize,
-        pub read: AtomicUsize,
+        pub limit: AtomicUsize,
+        pub limit_reached: AtomicBool,
     }
 
     impl ReadLimiter {
@@ -39,21 +39,27 @@ mod sync {
             }
 
             ReadLimiter {
-                limit: limit as usize,
-                read: AtomicUsize::new(0),
+                limit: AtomicUsize::new(limit as usize),
+                limit_reached: AtomicBool::new(false),
             }
         }
 
         #[inline]
         pub fn can_read(&self, amount: usize) -> Result<()> {
-            let read = self.read.load(Ordering::Relaxed) + amount;
-
-            if read > self.limit {
-                Err(Error::failed(format!("read limit exceeded")))
-            } else {
-                self.read.fetch_add(amount, Ordering::Relaxed);
-                Ok(())
+            let limit_reached = self.limit_reached.load(Ordering::Relaxed);
+            if limit_reached {
+                return Err(Error::failed(format!("read limit exceeded")));
             }
+
+            let prev_limit = self.limit.fetch_sub(amount, Ordering::Relaxed);
+            if prev_limit == amount {
+                self.limit_reached.store(true, Ordering::Relaxed);
+            } else if prev_limit < amount {
+                self.limit_reached.store(true, Ordering::Relaxed);
+                return Err(Error::failed(format!("read limit exceeded")));
+            }
+
+            Ok(())
         }
     }
 }
@@ -63,8 +69,8 @@ pub use unsync::ReadLimiter;
 
 #[cfg(not(feature = "sync_reader"))]
 mod unsync {
-    use core::cell::Cell;
     use crate::{Error, Result};
+    use core::cell::Cell;
 
     pub struct ReadLimiter {
         pub limit: Cell<u64>,
