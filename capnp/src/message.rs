@@ -342,7 +342,7 @@ impl <A> Builder<A> where A: Allocator {
 
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a, BuilderArenaImpl<A>>>(&'a self) -> Result<T> {
         if self.arena.len() == 0 {
-            any_pointer::Reader::new(layout::PointerReader::new_default(&self.arena)).get_as()
+            any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {
             let (segment_start, _segment_len) = self.arena.get_segment(0)?;
             let pointer_reader = layout::PointerReader::get_root(

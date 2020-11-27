@@ -60,7 +60,7 @@ pub trait ReaderArena {
     // return pointer to start of segment, and number of words in that segment
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
 
-    fn check_offset(&self, segment_id: Option<u32>, start: *const u8, offset_in_words: i32) -> Result<*const u8>;
+    fn check_offset(&self, segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8>;
     fn contains_interval(&self, segment_id: u32, start: *const u8, size: usize) -> Result<()>;
     fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
 
@@ -115,16 +115,14 @@ impl <S, L> ReaderArena for ReaderArenaImpl<S, L> where S: ReaderSegments, L: Re
         }
     }
 
-    fn check_offset(&self, segment_id: Option<u32>, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+    fn check_offset(&self, segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
         let offset: i64 = offset_in_words as i64 * BYTES_PER_WORD as i64;
-        if let Some(id) = segment_id {
-            let (segment_start, segment_len) = self.get_segment(id)?;
-            let this_start: usize = segment_start as usize;
-            let this_size: usize = segment_len as usize * BYTES_PER_WORD;
-            let start_idx = start as usize;
-            if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size {
-                return Err(Error::failed(format!("message contained out-of-bounds pointer")));
-            }
+        let (segment_start, segment_len) = self.get_segment(segment_id)?;
+        let this_start: usize = segment_start as usize;
+        let this_size: usize = segment_len as usize * BYTES_PER_WORD;
+        let start_idx = start as usize;
+        if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size {
+            return Err(Error::failed(format!("message contained out-of-bounds pointer")));
         }
 
         unsafe { Ok(start.offset(offset as isize)) }
@@ -216,7 +214,7 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
         Ok((seg.ptr, seg.allocated))
     }
 
-    fn check_offset(&self, _segment_id: Option<u32>, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+    fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
         unsafe { Ok(start.offset((offset_in_words as i64 * BYTES_PER_WORD as i64) as isize)) }
     }
 
@@ -312,7 +310,7 @@ impl ReaderArena for NullArena {
         Err(Error::failed(format!("tried to read from null arena")))
     }
 
-    fn check_offset(&self, _segment_id: Option<u32>, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+    fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
         unsafe { Ok(start.offset((offset_in_words as usize * BYTES_PER_WORD)as isize)) }
     }
 

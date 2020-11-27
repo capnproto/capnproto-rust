@@ -165,12 +165,15 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn target_from_segment<A>(&self, arena: &A, segment_id: Option<u32>) -> Result<*const u8>
+    pub fn target_from_segment<A>(&self, arena_and_segment: Option<ArenaAndSegment<&A>>) -> Result<*const u8>
         where A: ReaderArena
     {
         let this_addr: *const u8 = self as *const _ as *const _;
         let offset = 1 + ((self.offset_and_kind.get() as i32) >> 2);
-        arena.check_offset(segment_id, this_addr, offset)
+        match arena_and_segment {
+            Some(ref aas) => aas.arena.check_offset(aas.segment_id, this_addr, offset),
+            None => unsafe { Ok(this_addr.offset((offset as usize * BYTES_PER_WORD)as isize)) },
+        }
     }
 
     #[inline]
@@ -320,6 +323,12 @@ impl WirePointer {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct ArenaAndSegment<A> {
+    arena: A,
+    segment_id: u32,
+}
+
 mod wire_helpers {
     use alloc::boxed::Box;
     use alloc::string::ToString;
@@ -328,6 +337,7 @@ mod wire_helpers {
     use crate::private::capability::ClientHook;
     use crate::private::arena::*;
     use crate::private::layout::{
+        ArenaAndSegment,
         CapTableBuilder, CapTableReader, ElementSize, ListBuilder, ListReader,
         StructBuilder, StructReader, StructSize, WirePointer, WirePointerKind};
     use crate::private::layout::{data_bits_per_element, pointers_per_element};
@@ -366,24 +376,26 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub fn bounds_check<A>(arena: &A,
-                           segment_id: Option<u32>,
+    pub fn bounds_check<A>(arena_and_segment: Option<ArenaAndSegment<&A>>,
                            start: *const u8, size_in_words: usize,
                            _kind: WirePointerKind) -> Result<()>
         where A: ReaderArena
     {
-        match segment_id {
-            Some(id) => arena.contains_interval(id, start, size_in_words),
+        match arena_and_segment {
+            Some(aas) => aas.arena.contains_interval(aas.segment_id, start, size_in_words),
             None => Ok(()),
         }
     }
 
     #[inline]
-    pub fn amplified_read<A>(arena: &A,
+    pub fn amplified_read<A>(arena_and_segment: Option<ArenaAndSegment<&A>>,
                              virtual_amount: u64) -> Result<()>
         where A: ReaderArena
     {
-        arena.amplified_read(virtual_amount)
+        match arena_and_segment {
+            Some(aas) => aas.arena.amplified_read(virtual_amount),
+            None => Ok(()),
+        }
     }
 
     #[inline]
@@ -483,37 +495,41 @@ mod wire_helpers {
     ///   - the segment on which the pointed-to object lives
     #[inline]
     pub unsafe fn follow_fars<A>(
-        arena: &A,
-        reff: *const WirePointer,
-        segment_id: Option<u32>)
-        -> Result<(*const u8, *const WirePointer, Option<u32>)>
+        arena_and_segment: Option<ArenaAndSegment<&A>>,
+        reff: *const WirePointer)
+        -> Result<(*const u8, *const WirePointer, Option<ArenaAndSegment<&A>>)>
         where A: ReaderArena
     {
         if (*reff).kind() == WirePointerKind::Far {
             let far_segment_id = (*reff).far_segment_id();
 
-            let (seg_start, _seg_len) = arena.get_segment(far_segment_id)?;
-            let ptr = seg_start.offset((*reff).far_position_in_segment() as isize * BYTES_PER_WORD as isize);
+            if let Some(ArenaAndSegment { arena, segment_id: _ } ) = arena_and_segment {
+                let (seg_start, _seg_len) = arena.get_segment(far_segment_id)?;
+                let ptr = seg_start.offset((*reff).far_position_in_segment() as isize * BYTES_PER_WORD as isize);
 
-            let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
-            bounds_check(arena, Some(far_segment_id), ptr, pad_words, WirePointerKind::Far)?;
+                let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
+                let new_arena_and_segment = Some(ArenaAndSegment { arena, segment_id: far_segment_id});
+                bounds_check(new_arena_and_segment, ptr, pad_words, WirePointerKind::Far)?;
 
-            let pad: *const WirePointer = ptr as *const _;
+                let pad: *const WirePointer = ptr as *const _;
 
-            if !(*reff).is_double_far() {
-                Ok(((*pad).target_from_segment(arena, Some(far_segment_id))?, pad, Some(far_segment_id)))
+                if !(*reff).is_double_far() {
+                    Ok(((*pad).target_from_segment(new_arena_and_segment)?, pad, new_arena_and_segment))
+                } else {
+                    // Landing pad is another far pointer. It is followed by a tag describing the
+                    // pointed-to object.
+
+                    let tag = pad.offset(1);
+                    let double_far_segment_id = (*pad).far_segment_id();
+                    let (segment_start, _segment_len) = arena.get_segment(double_far_segment_id)?;
+                    let ptr = segment_start.offset((*pad).far_position_in_segment() as isize * BYTES_PER_WORD as isize);
+                    Ok((ptr, tag, Some(ArenaAndSegment {arena, segment_id: double_far_segment_id })))
+                }
             } else {
-                // Landing pad is another far pointer. It is followed by a tag describing the
-                // pointed-to object.
-
-                let tag = pad.offset(1);
-                let double_far_segment_id = (*pad).far_segment_id();
-                let (segment_start, _segment_len) = arena.get_segment(double_far_segment_id)?;
-                let ptr = segment_start.offset((*pad).far_position_in_segment() as isize * BYTES_PER_WORD as isize);
-                Ok((ptr, tag, Some(double_far_segment_id)))
+                Err(Error::failed(format!("found far pointer but there is not arena")))
             }
         } else {
-            Ok(((*reff).target_from_segment(arena, segment_id)?, reff, segment_id))
+            Ok(((*reff).target_from_segment(arena_and_segment)?, reff, arena_and_segment))
         }
     }
 
@@ -646,8 +662,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn total_size<A>(
-        arena: &A,
-        segment_id: Option<u32>,
+        arena_and_segment: Option<ArenaAndSegment<&A>>,
         reff: *const WirePointer,
         mut nesting_limit: i32) -> Result<MessageSize>
         where A: ReaderArena
@@ -662,11 +677,11 @@ mod wire_helpers {
 
         nesting_limit -= 1;
 
-        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+        let (ptr, reff, arena_and_segment) = follow_fars(arena_and_segment, reff)?;
 
         match (*reff).kind() {
             WirePointerKind::Struct => {
-                bounds_check(arena, segment_id,
+                bounds_check(arena_and_segment,
                              ptr, (*reff).struct_word_size() as usize,
                              WirePointerKind::Struct)?;
                 result.word_count += (*reff).struct_word_size() as u64;
@@ -675,7 +690,7 @@ mod wire_helpers {
                     ptr.offset((*reff).struct_data_size() as isize * BYTES_PER_WORD as isize) as *const _;
                 let count: isize = (*reff).struct_ptr_count() as isize;
                 for i in 0..count {
-                    result.plus_eq(total_size(arena, segment_id, pointer_section.offset(i), nesting_limit)?);
+                    result.plus_eq(total_size(arena_and_segment, pointer_section.offset(i), nesting_limit)?);
                 }
             }
             WirePointerKind::List => {
@@ -686,27 +701,27 @@ mod wire_helpers {
                             (*reff).list_element_count() as u64 *
                                 data_bits_per_element((*reff).list_element_size()) as u64);
                         bounds_check(
-                            arena, segment_id, ptr, total_words as usize, WirePointerKind::List)?;
+                            arena_and_segment, ptr, total_words as usize, WirePointerKind::List)?;
                         result.word_count += total_words as u64;
                     }
                     Pointer => {
                         let count = (*reff).list_element_count();
                         bounds_check(
-                            arena, segment_id, ptr, count as usize * WORDS_PER_POINTER,
+                            arena_and_segment, ptr, count as usize * WORDS_PER_POINTER,
                             WirePointerKind::List)?;
 
                         result.word_count += count as u64 * WORDS_PER_POINTER as u64;
 
                         for i in 0..count as isize {
                             result.plus_eq(
-                                total_size(arena, segment_id,
+                                total_size(arena_and_segment,
                                            (ptr as *const WirePointer).offset(i),
                                            nesting_limit)?);
                         }
                     }
                     InlineComposite => {
                         let word_count = (*reff).list_inline_composite_word_count();
-                        bounds_check(arena, segment_id, ptr,
+                        bounds_check(arena_and_segment, ptr,
                                      word_count as usize + POINTER_SIZE_IN_WORDS,
                                      WirePointerKind::List)?;
 
@@ -738,7 +753,7 @@ mod wire_helpers {
 
                                 for _ in 0..pointer_count {
                                     result.plus_eq(
-                                        total_size(arena, segment_id,
+                                        total_size(arena_and_segment,
                                                    pos as *const WirePointer, nesting_limit)?);
                                     pos = pos.offset(BYTES_PER_WORD as isize);
                                 }
@@ -1743,8 +1758,8 @@ mod wire_helpers {
         let pointer_section: *mut WirePointer = ptr.offset(data_words as isize * BYTES_PER_WORD as isize) as *mut _;
         for i in 0..ptr_count as isize {
             copy_pointer(arena, segment_id, cap_table, pointer_section.offset(i),
-                         value.arena,
-                         value.segment_id, value.cap_table, value.pointers.offset(i),
+                         value.arena_and_segment,
+                         value.cap_table, value.pointers.offset(i),
                          value.nesting_limit,
                          canonicalize)?;
         }
@@ -1787,8 +1802,8 @@ mod wire_helpers {
                 for i in 0.. value.element_count as isize {
                     copy_pointer(arena, segment_id, cap_table,
                                  (ptr as *mut WirePointer).offset(i),
-                                 value.arena,
-                                 value.segment_id, value.cap_table,
+                                 value.arena_and_segment,
+                                 value.cap_table,
                                  (value.ptr as *const WirePointer).offset(i),
                                  value.nesting_limit,
                                  canonicalize)?;
@@ -1885,7 +1900,7 @@ mod wire_helpers {
 
                 for _ in 0..ptr_count {
                     copy_pointer(arena, segment_id, cap_table, dst as *mut _,
-                                 value.arena, value.segment_id, value.cap_table, src as *const WirePointer,
+                                 value.arena_and_segment, value.cap_table, src as *const WirePointer,
                                  value.nesting_limit, canonicalize)?;
                     dst = dst.offset(BYTES_PER_WORD as isize);
                     src = src.offset(BYTES_PER_WORD as isize);
@@ -1901,8 +1916,7 @@ mod wire_helpers {
         dst_arena: &'a mut A,
         dst_segment_id: u32, dst_cap_table: CapTableBuilder,
         dst: *mut WirePointer,
-        src_arena: &'b B,
-        src_segment_id: Option<u32>,
+        src_arena_and_segment: Option<ArenaAndSegment<&'b B>>,
         src_cap_table: CapTableReader,
         src: *const WirePointer,
         nesting_limit: i32,
@@ -1915,7 +1929,7 @@ mod wire_helpers {
             return Ok(SegmentAnd { segment_id: dst_segment_id, value: ptr::null_mut() });
         }
 
-        let (mut ptr, src, src_segment_id) = follow_fars(src_arena, src, src_segment_id)?;
+        let (mut ptr, src, src_arena_and_segment) = follow_fars(src_arena_and_segment, src)?;
 
         match (*src).kind() {
             WirePointerKind::Struct => {
@@ -1924,7 +1938,7 @@ mod wire_helpers {
                         "Message is too deeply-nested or contains cycles. See ReaderOptions.".to_string()));
                 }
 
-                bounds_check(src_arena, src_segment_id,
+                bounds_check(src_arena_and_segment,
                              ptr, (*src).struct_word_size() as usize,
                              WirePointerKind::Struct)?;
 
@@ -1932,8 +1946,7 @@ mod wire_helpers {
                     dst_arena,
                     dst_segment_id, dst_cap_table, dst,
                     StructReader {
-                        arena: src_arena,
-                        segment_id: src_segment_id,
+                        arena_and_segment: src_arena_and_segment,
                         cap_table: src_cap_table,
                         data: ptr,
                         pointers: ptr.offset((*src).struct_data_size() as isize * BYTES_PER_WORD as isize) as *const _,
@@ -1956,7 +1969,7 @@ mod wire_helpers {
                     ptr = ptr.offset(BYTES_PER_WORD as isize);
 
                     bounds_check(
-                        src_arena, src_segment_id, ptr.offset(-(BYTES_PER_WORD as isize)), word_count as usize + 1,
+                        src_arena_and_segment, ptr.offset(-(BYTES_PER_WORD as isize)), word_count as usize + 1,
                         WirePointerKind::List)?;
 
                     if (*tag).kind() != WirePointerKind::Struct {
@@ -1975,15 +1988,14 @@ mod wire_helpers {
                     if words_per_element == 0 {
                         // Watch out for lists of zero-sized structs, which can claim to be
                         // arbitrarily large without having sent actual data.
-                        amplified_read(src_arena, element_count as u64)?;
+                        amplified_read(src_arena_and_segment, element_count as u64)?;
                     }
 
                     set_list_pointer(
                         dst_arena,
                         dst_segment_id, dst_cap_table, dst,
                         ListReader {
-                            arena: src_arena,
-                            segment_id: src_segment_id,
+                            arena_and_segment: src_arena_and_segment,
                             cap_table: src_cap_table,
                             ptr: ptr as *const _,
                             element_count: element_count,
@@ -2001,22 +2013,21 @@ mod wire_helpers {
                     let element_count = (*src).list_element_count();
                     let word_count = round_bits_up_to_words(element_count as u64 * step as u64);
 
-                    bounds_check(src_arena,
-                                 src_segment_id, ptr,
+                    bounds_check(src_arena_and_segment,
+                                 ptr,
                                  word_count as usize, WirePointerKind::List)?;
 
                     if element_size == Void {
                         // Watch out for lists of void, which can claim to be arbitrarily large
                         // without having sent actual data.
-                        amplified_read(src_arena, element_count as u64)?;
+                        amplified_read(src_arena_and_segment, element_count as u64)?;
                     }
 
                     set_list_pointer(
                         dst_arena,
                         dst_segment_id, dst_cap_table, dst,
                         ListReader {
-                            arena: src_arena,
-                            segment_id: src_segment_id,
+                            arena_and_segment: src_arena_and_segment,
                             cap_table : src_cap_table,
                             ptr: ptr as *const _,
                             element_count: element_count,
@@ -2055,8 +2066,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_struct_pointer<'a, A>(
-        arena: &'a A,
-        mut segment_id: Option<u32>,
+        mut arena_and_segment: Option<ArenaAndSegment<&'a A>>,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>,
@@ -2065,12 +2075,12 @@ mod wire_helpers {
     {
         if (*reff).is_null() {
             match default {
-                None => return Ok(StructReader::new_default(arena)),
+                None => return Ok(StructReader::new_default()),
                 Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() =>
-                    return Ok(StructReader::new_default(arena)),
+                    return Ok(StructReader::new_default()),
                 Some(d) => {
                     reff = d.as_ptr() as *const _;
-                    segment_id = None;
+                    arena_and_segment = None;
                 }
             }
         }
@@ -2079,7 +2089,7 @@ mod wire_helpers {
             return Err(Error::failed("Message is too deeply-nested or contains cycles.".to_string()));
         }
 
-        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+        let (ptr, reff, arena_and_segment) = follow_fars(arena_and_segment, reff)?;
 
         let data_size_words = (*reff).struct_data_size();
 
@@ -2088,13 +2098,12 @@ mod wire_helpers {
                 "Message contains non-struct pointer where struct pointer was expected.".to_string()));
         }
 
-        bounds_check(arena, segment_id, ptr,
+        bounds_check(arena_and_segment, ptr,
                      (*reff).struct_word_size() as usize,
                      WirePointerKind::Struct)?;
 
         Ok(StructReader {
-            arena: arena,
-            segment_id: segment_id,
+            arena_and_segment: arena_and_segment,
             cap_table: cap_table,
             data: ptr,
             pointers: ptr.offset(data_size_words as isize * BYTES_PER_WORD as isize) as *const _,
@@ -2105,8 +2114,8 @@ mod wire_helpers {
      }
 
     #[inline]
-    pub unsafe fn read_capability_pointer(
-        _arena: &dyn ReaderArena,
+    pub unsafe fn read_capability_pointer<A>(
+        _arena_and_segment: Option<ArenaAndSegment<A>>,
         cap_table: CapTableReader,
         reff: *const WirePointer,
         _nesting_limit: i32) -> Result<Box<dyn ClientHook>>
@@ -2131,8 +2140,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_list_pointer<'a, A>(
-        arena: &'a A,
-        mut segment_id: Option<u32>,
+        mut arena_and_segment: Option<ArenaAndSegment<&'a A>>,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default_value: *const u8,
@@ -2142,16 +2150,16 @@ mod wire_helpers {
     {
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListReader::new_default(arena));
+                return Ok(ListReader::new_default());
             }
             reff = default_value as *const _;
-            segment_id = None;
+            arena_and_segment = None;
         }
 
         if nesting_limit <= 0 {
             return Err(Error::failed("nesting limit exceeded".to_string()));
         }
-        let (mut ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+        let (mut ptr, reff, arena_and_segment) = follow_fars(arena_and_segment, reff)?;
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::failed(
@@ -2167,7 +2175,7 @@ mod wire_helpers {
 
                 ptr = ptr.offset(BYTES_PER_WORD as isize);
 
-                bounds_check(arena, segment_id, ptr.offset(-(BYTES_PER_WORD as isize)),
+                bounds_check(arena_and_segment, ptr.offset(-(BYTES_PER_WORD as isize)),
                              word_count as usize + 1,
                              WirePointerKind::List)?;
 
@@ -2189,7 +2197,7 @@ mod wire_helpers {
                 if words_per_element == 0 {
                     // Watch out for lists of zero-sized structs, which can claim to be
                     // arbitrarily large without having sent actual data.
-                    amplified_read(arena, size as u64)?;
+                    amplified_read(arena_and_segment, size as u64)?;
                 }
 
                 // If a struct list was not expected, then presumably a non-struct list was upgraded
@@ -2223,8 +2231,7 @@ mod wire_helpers {
                 }
 
                 Ok(ListReader {
-                    arena: arena,
-                    segment_id: segment_id,
+                    arena_and_segment: arena_and_segment,
                     cap_table: cap_table,
                     ptr: ptr as *const _,
                     element_count: size,
@@ -2246,12 +2253,12 @@ mod wire_helpers {
 
                 let word_count = round_bits_up_to_words(element_count as u64 * step as u64);
                 bounds_check(
-                    arena, segment_id, ptr, word_count as usize, WirePointerKind::List)?;
+                    arena_and_segment, ptr, word_count as usize, WirePointerKind::List)?;
 
                 if element_size == Void {
                     // Watch out for lists of void, which can claim to be arbitrarily large
                     // without having sent actual data.
-                    amplified_read(arena, element_count as u64)?;
+                    amplified_read(arena_and_segment, element_count as u64)?;
                 }
 
                 if let Some(expected_element_size) = expected_element_size {
@@ -2277,8 +2284,7 @@ mod wire_helpers {
                 }
 
                 Ok(ListReader {
-                    arena: arena,
-                    segment_id: segment_id,
+                    arena_and_segment: arena_and_segment,
                     cap_table: cap_table,
                     ptr: ptr as *const _,
                     element_count: element_count,
@@ -2294,8 +2300,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_text_pointer<'a, A>(
-        arena: &'a A,
-        mut segment_id: Option<u32>,
+        mut arena_and_segment: Option<ArenaAndSegment<&'a A>>,
         mut reff: *const WirePointer,
         default: Option<&[crate::Word]>) -> Result<text::Reader<'a>>
         where A: ReaderArena
@@ -2305,12 +2310,12 @@ mod wire_helpers {
                 None => return Ok(&""),
                 Some(d) => {
                     reff = d.as_ptr() as *const WirePointer;
-                    segment_id = None;
+                    arena_and_segment = None;
                 }
             }
         }
 
-        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+        let (ptr, reff, arena_and_segment) = follow_fars(arena_and_segment, reff)?;
         let size = (*reff).list_element_count();
 
         if (*reff).kind() != WirePointerKind::List {
@@ -2323,7 +2328,7 @@ mod wire_helpers {
                 "Message contains list pointer of non-bytes where text was expected.".to_string()));
         }
 
-        bounds_check(arena, segment_id, ptr,
+        bounds_check(arena_and_segment, ptr,
                      round_bytes_up_to_words(size) as usize,
                      WirePointerKind::List)?;
 
@@ -2343,8 +2348,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_data_pointer<'a, A>(
-        arena: &'a A,
-        mut segment_id: Option<u32>,
+        mut arena_and_segment: Option<ArenaAndSegment<&'a A>>,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>) -> Result<data::Reader<'a>>
         where A: ReaderArena
@@ -2354,12 +2358,12 @@ mod wire_helpers {
                 None => return Ok(&[]),
                 Some(d) => {
                     reff = d.as_ptr() as *const WirePointer;
-                    segment_id = None;
+                    arena_and_segment = None;
                 }
             }
         }
 
-        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+        let (ptr, reff, arena_and_segment) = follow_fars(arena_and_segment, reff)?;
 
         let size: u32 = (*reff).list_element_count();
 
@@ -2373,7 +2377,7 @@ mod wire_helpers {
                 "Message contains list pointer of non-bytes where data was expected.".to_string()));
         }
 
-        bounds_check(arena, segment_id, ptr,
+        bounds_check(arena_and_segment, ptr,
                      round_bytes_up_to_words(size) as usize,
                      WirePointerKind::List)?;
 
@@ -2383,8 +2387,6 @@ mod wire_helpers {
 
 static ZERO: u64 = 0;
 fn zero_pointer() -> *const WirePointer { &ZERO as *const _ as *const _ }
-
-static NULL_ARENA: NullArena = NullArena;
 
 pub type CapTable = Vec<Option<Box<dyn ClientHook>>>;
 
@@ -2478,18 +2480,16 @@ impl CapTableBuilder {
 
 #[derive(Clone, Copy)]
 pub struct PointerReader<A> {
-    arena: A,
+    arena_and_segment: Option<ArenaAndSegment<A>>,
     cap_table: CapTableReader,
     pointer: *const WirePointer,
-    segment_id: Option<u32>,
     nesting_limit: i32,
 }
 
 impl PointerReader<&'static NullArena> {
     pub fn get_root_unchecked(location: *const u8) -> PointerReader<&'static NullArena> {
         PointerReader {
-            arena: &NULL_ARENA,
-            segment_id: None,
+            arena_and_segment: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *const _,
             nesting_limit: 0x7fffffff }
@@ -2497,10 +2497,9 @@ impl PointerReader<&'static NullArena> {
 }
 
 impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
-    pub fn new_default(arena: &'a A) -> PointerReader<&'a A> {
+    pub fn new_default() -> PointerReader<&'a A> {
         PointerReader {
-            arena: arena,
-            segment_id: None,
+            arena_and_segment: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: ptr::null(),
             nesting_limit: 0x7fffffff }
@@ -2511,13 +2510,13 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
                     location: *const u8,
                     nesting_limit: i32) -> Result<Self>
     {
-        wire_helpers::bounds_check(arena, Some(segment_id), location as *const _,
+        let arena_and_segment = Some(ArenaAndSegment { arena, segment_id });
+        wire_helpers::bounds_check(arena_and_segment, location as *const _,
                                    POINTER_SIZE_IN_WORDS,
                                    WirePointerKind::Struct)?;
 
         Ok(PointerReader {
-            arena: arena,
-            segment_id: Some(segment_id),
+            arena_and_segment,
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *const _,
             nesting_limit: nesting_limit,
@@ -2525,7 +2524,7 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
     }
 
     pub fn borrow<'b>(&'b self) -> PointerReader<&'b A> {
-        PointerReader { arena: self.arena, .. *self }
+        PointerReader { arena_and_segment: self.arena_and_segment, .. *self }
     }
 
     pub fn imbue(&mut self, cap_table: CapTableReader) {
@@ -2540,15 +2539,15 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
         if self.pointer.is_null() {
             Ok( MessageSize { word_count: 0, cap_count: 0 } )
         } else {
-            unsafe { wire_helpers::total_size(self.arena, self.segment_id, self.pointer, self.nesting_limit) }
+            unsafe { wire_helpers::total_size(self.arena_and_segment, self.pointer, self.nesting_limit) }
         }
     }
 
     pub fn get_struct(self, default: Option<&'a [crate::Word]>) -> Result<StructReader<&'a A>> {
         let reff: *const WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
-            wire_helpers::read_struct_pointer(self.arena,
-                                              self.segment_id, self.cap_table, reff,
+            wire_helpers::read_struct_pointer(self.arena_and_segment,
+                                              self.cap_table, reff,
                                               default, self.nesting_limit)
         }
     }
@@ -2559,8 +2558,7 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_list_pointer(
-                self.arena,
-                self.segment_id,
+                self.arena_and_segment,
                 self.cap_table,
                 reff,
                 default_value,
@@ -2572,8 +2570,7 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_list_pointer(
-                self.arena,
-                self.segment_id,
+                self.arena_and_segment,
                 self.cap_table,
                 reff,
                 default_value,
@@ -2584,14 +2581,14 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
     pub fn get_text(self, default: Option<&[crate::Word]>) -> Result<text::Reader<'a>> {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
-            wire_helpers::read_text_pointer(self.arena, self.segment_id, reff, default)
+            wire_helpers::read_text_pointer(self.arena_and_segment, reff, default)
         }
     }
 
     pub fn get_data(&self, default: Option<&'a [crate::Word]>) -> Result<data::Reader<'a>> {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
-            wire_helpers::read_data_pointer(self.arena, self.segment_id, reff, default)
+            wire_helpers::read_data_pointer(self.arena_and_segment, reff, default)
         }
     }
 
@@ -2599,7 +2596,7 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
         let reff: *const WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_capability_pointer(
-                self.arena, self.cap_table, reff, self.nesting_limit)
+                self.arena_and_segment, self.cap_table, reff, self.nesting_limit)
         }
     }
 
@@ -2608,7 +2605,7 @@ impl <'a, A> PointerReader<&'a A> where A: ReaderArena {
             Ok(PointerType::Null)
         } else {
             let (_, reff, _) = unsafe {
-                wire_helpers::follow_fars(self.arena, self.pointer, self.segment_id)?
+                wire_helpers::follow_fars(self.arena_and_segment, self.pointer)?
             };
 
             match unsafe { (*reff).kind() } {
@@ -2683,8 +2680,7 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
 
     pub fn reborrow_as_reader<'b>(&'b self) -> PointerReader<&'b A> {
         PointerReader {
-            arena: self.arena,
-            segment_id: Some(self.segment_id),
+            arena_and_segment: Some(ArenaAndSegment { arena: self.arena, segment_id: self.segment_id }),
             cap_table: self.cap_table.into_reader(),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff
@@ -2752,7 +2748,7 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
     pub fn get_capability(&self) -> Result<Box<dyn ClientHook>> {
         unsafe {
             wire_helpers::read_capability_pointer(
-                &*self.arena,
+                Some(ArenaAndSegment { arena: &*self.arena, segment_id: self.segment_id }),
                 self.cap_table.into_reader(), self.pointer, ::core::i32::MAX)
         }
     }
@@ -2843,8 +2839,8 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
         } else {
             unsafe {
                 wire_helpers::copy_pointer(self.arena, self.segment_id, self.cap_table, self.pointer,
-                                           other.arena,
-                                           other.segment_id, other.cap_table, other.pointer,
+                                           other.arena_and_segment,
+                                           other.cap_table, other.pointer,
                                            other.nesting_limit, canonicalize)?;
             }
         }
@@ -2860,8 +2856,7 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
 
     pub fn into_reader(self) -> PointerReader<&'a A> {
         PointerReader {
-            arena: self.arena,
-            segment_id: Some(self.segment_id),
+            arena_and_segment: Some(ArenaAndSegment { arena: self.arena, segment_id: self.segment_id }),
             cap_table: self.cap_table.into_reader(),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff
@@ -2871,21 +2866,19 @@ impl <'a, A> PointerBuilder<&'a mut A> where A: BuilderArena {
 
 #[derive(Clone, Copy)]
 pub struct StructReader<A> {
-    arena: A,
+    arena_and_segment: Option<ArenaAndSegment<A>>,
     cap_table: CapTableReader,
     data: *const u8,
     pointers: *const WirePointer,
-    segment_id: Option<u32>,
     data_size: BitCount32,
     pointer_count: WirePointerCount16,
     nesting_limit: i32,
 }
 
 impl <'a,A> StructReader<&'a A> where A: ReaderArena {
-    pub fn new_default(arena: &'a A) -> StructReader<&'a A> {
+    pub fn new_default() -> StructReader<&'a A> {
         StructReader {
-            arena: arena,
-            segment_id: None,
+            arena_and_segment: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             data: ptr::null(),
             pointers: ptr::null(),
@@ -2904,8 +2897,7 @@ impl <'a,A> StructReader<&'a A> where A: ReaderArena {
 
     pub fn get_pointer_section_as_list(&self) -> ListReader<&'a A> {
         ListReader {
-            arena: self.arena,
-            segment_id: self.segment_id,
+            arena_and_segment: self.arena_and_segment,
             cap_table: self.cap_table,
             ptr: self.pointers as *const _,
             element_count: self.pointer_count as ElementCount32,
@@ -2975,14 +2967,13 @@ impl <'a,A> StructReader<&'a A> where A: ReaderArena {
     pub fn get_pointer_field(&self, ptr_index: WirePointerCount) -> PointerReader<&'a A> {
         if ptr_index < self.pointer_count as WirePointerCount {
             PointerReader {
-                arena: self.arena,
-                segment_id: self.segment_id,
+                arena_and_segment: self.arena_and_segment,
                 cap_table: self.cap_table,
                 pointer: unsafe { self.pointers.offset(ptr_index as isize) },
                 nesting_limit: self.nesting_limit
             }
         } else {
-            PointerReader::new_default(self.arena)
+            PointerReader::new_default()
         }
     }
 
@@ -2995,7 +2986,7 @@ impl <'a,A> StructReader<&'a A> where A: ReaderArena {
         for i in 0.. self.pointer_count as isize {
             unsafe {
                 result.plus_eq(wire_helpers::total_size(
-                    self.arena, self.segment_id, self.pointers.offset(i),
+                    self.arena_and_segment, self.pointers.offset(i),
                     self.nesting_limit)?);
             }
         }
@@ -3069,12 +3060,11 @@ pub struct StructBuilder<A> {
 impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
     pub fn into_reader(self) -> StructReader<&'a A> {
         StructReader {
-            arena: &*self.arena,
+            arena_and_segment: Some(ArenaAndSegment { arena: &*self.arena, segment_id: self.segment_id }),
             cap_table: self.cap_table.into_reader(),
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
-            segment_id: Some(self.segment_id),
             data_size: self.data_size,
             nesting_limit: 0x7fffffff,
         }
@@ -3090,8 +3080,7 @@ impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
 
     pub fn reborrow_as_reader<'b>(&'b self) -> StructReader<&'b A> {
         StructReader {
-            arena: self.arena,
-            segment_id: Some(self.segment_id),
+            arena_and_segment: Some(ArenaAndSegment { arena: self.arena, segment_id: self.segment_id }),
             cap_table: self.cap_table.into_reader(),
             data: self.data,
             pointers: self.pointers,
@@ -3225,8 +3214,7 @@ impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
                                            self.segment_id,
                                            self.cap_table,
                                            self.pointers.offset(i),
-                                           other.arena,
-                                           other.segment_id,
+                                           other.arena_and_segment,
                                            other.cap_table,
                                            other.pointers.offset(i),
                                            other.nesting_limit,
@@ -3240,10 +3228,9 @@ impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
 
 #[derive(Clone, Copy)]
 pub struct ListReader<A> {
-    arena: A,
+    arena_and_segment: Option<ArenaAndSegment<A>>,
     cap_table: CapTableReader,
     ptr: *const u8,
-    segment_id: Option<u32>,
     element_count: ElementCount32,
     step: BitCount32,
     struct_data_size: BitCount32,
@@ -3253,10 +3240,9 @@ pub struct ListReader<A> {
 }
 
 impl <'a, A> ListReader<&'a A> where A: ReaderArena {
-    pub fn new_default(arena: &'a A) -> ListReader<&'a A> {
+    pub fn new_default() -> ListReader<&'a A> {
         ListReader {
-            arena: arena,
-            segment_id: None,
+            arena_and_segment: None,
             cap_table: CapTableReader::Plain(ptr::null()),
             ptr: ptr::null(),
             element_count: 0,
@@ -3309,8 +3295,7 @@ impl <'a, A> ListReader<&'a A> where A: ReaderArena {
         };
 
         StructReader {
-            arena: self.arena,
-            segment_id: self.segment_id,
+            arena_and_segment: self.arena_and_segment,
             cap_table: self.cap_table,
             data: struct_data,
             pointers: struct_pointers,
@@ -3324,8 +3309,7 @@ impl <'a, A> ListReader<&'a A> where A: ReaderArena {
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerReader<&'a A> {
         let offset = (index as u64 * self.step as u64 / BITS_PER_BYTE as u64) as u32;
         PointerReader {
-            arena: self.arena,
-            segment_id: self.segment_id,
+            arena_and_segment: self.arena_and_segment,
             cap_table: self.cap_table,
             pointer: unsafe { self.ptr.offset(offset as isize) } as *const _,
             nesting_limit: self.nesting_limit
@@ -3446,8 +3430,7 @@ pub struct ListBuilder<A> {
 impl <'a, A> ListBuilder<&'a mut A> {
     pub fn into_reader(self) -> ListReader<&'a A> {
         ListReader {
-            arena: self.arena,
-            segment_id: Some(self.segment_id),
+            arena_and_segment: Some(ArenaAndSegment {arena: self.arena, segment_id: self.segment_id}),
             cap_table: self.cap_table.into_reader(),
             ptr: self.ptr as *const _,
             element_count: self.element_count,
