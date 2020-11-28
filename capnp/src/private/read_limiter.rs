@@ -25,11 +25,10 @@ pub use sync::ReadLimiter;
 #[cfg(feature = "sync_reader")]
 mod sync {
     use crate::{Error, Result};
-    use core::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
+    use core::sync::atomic::{AtomicUsize, Ordering};
 
     pub struct ReadLimiter {
         pub limit: AtomicUsize,
-        pub limit_reached: AtomicBool,
     }
 
     impl ReadLimiter {
@@ -40,22 +39,21 @@ mod sync {
 
             ReadLimiter {
                 limit: AtomicUsize::new(limit as usize),
-                limit_reached: AtomicBool::new(false),
             }
         }
 
         #[inline]
         pub fn can_read(&self, amount: usize) -> Result<()> {
-            let limit_reached = self.limit_reached.load(Ordering::Relaxed);
-            if limit_reached {
+            let cur_limit = self.limit.load(Ordering::Relaxed);
+            if cur_limit < amount {
                 return Err(Error::failed(format!("read limit exceeded")));
             }
 
             let prev_limit = self.limit.fetch_sub(amount, Ordering::Relaxed);
-            if prev_limit == amount {
-                self.limit_reached.store(true, Ordering::Relaxed);
-            } else if prev_limit < amount {
-                self.limit_reached.store(true, Ordering::Relaxed);
+            if prev_limit < amount {
+                // if the previous limit was lower than the amount we read, the limit has underflowed
+                // and wrapped around so we need to reset it to 0 for next reader to fail
+                self.limit.store(0, Ordering::Relaxed);
                 return Err(Error::failed(format!("read limit exceeded")));
             }
 
