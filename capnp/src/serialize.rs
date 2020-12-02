@@ -191,9 +191,9 @@ where R: Read {
     read_segments(&mut read, owned_segments_builder.into_owned_segments(), options)
 }
 
-/// Like read_message(), but returns None instead of an error if there are zero bytes left in `read`.
-/// This is useful for reading a message stream of unknown length -- you call this function
-/// until it returns None.
+/// Like `read_message()`, but returns None instead of an error if there are zero bytes left in
+/// `read`. This is useful for reading a stream containing an unknown number of messages -- you
+/// call this function until it returns None.
 pub fn try_read_message<R>(mut read: R, options: message::ReaderOptions) -> Result<Option<message::Reader<OwnedSegments>>>
 where R: Read {
     let owned_segments_builder = match read_segment_table(&mut read, options)? {
