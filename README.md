@@ -1,6 +1,6 @@
 # Cap'n Proto for Rust
 
-[![Build Status](https://travis-ci.org/capnproto/capnproto-rust.svg?branch=master)](https://travis-ci.org/capnproto/capnproto-rust)
+[![Build Status](https://github.com/capnproto/capnproto/workflows/CI/badge.svg?branch=master&event=push)](https://github.com/capnproto/capnproto/workflows/CI/badge.svg?branch=master)
 
 [documentation](https://docs.capnproto-rust.org/capnp/)
 
