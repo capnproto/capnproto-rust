@@ -5,20 +5,57 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  schedule:
+    # run weekly
+    - cron: '0 0 * * 0'
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
+    strategy:
+      matrix:
+        rust:
+          - nightly
+          - beta
+          - stable
+          - 1.44.0
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install Rust
+      run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
+
+    - name: Install Cap'n Proto
+      run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get install -y capnproto libcapnp-dev
+
+    - name: Test with --no-default-features
+      run: |
+          cd capnp
+          cargo test --no-default-features
+          cd ../
+
     - name: Build
-      run: cargo build -p capnp
+      run: cargo build --all
+
     - name: Run tests
-      run: cargo test -p capnp
+      run: cargo test --all
+
+    - name: Run example
+      run: ./target/debug/addressbook write | ./target/debug/addressbook read
+
+    - name: Build in release mode
+      run: cargo build --all --release
+
+    - name: Test in release mode
+      run: cargo test --all --release
+
+    - name: Run benchmark
+      run: ./target/release/run_all_benchmarks target/release/benchmark
+
 
 
