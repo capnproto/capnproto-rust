@@ -57,6 +57,8 @@ impl ReadLimiter for ReadLimiterImpl {
 }
 
 pub trait ReaderArena {
+    type Alignedness: crate::private::primitive::Alignedness;
+
     // return pointer to start of segment, and number of words in that segment
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
 

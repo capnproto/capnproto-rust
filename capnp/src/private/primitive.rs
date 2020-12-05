@@ -101,19 +101,52 @@ impl Primitive for f64 {
     }
 }
 
+pub trait Alignedness {
+    type Raw<T: Primitive>;
+
+    fn get<T: Primitive>(raw: &Self::Raw<T>) -> T;
+    fn set<T: Primitive>(raw: &mut Self::Raw<T>, value: T);
+}
+
+pub struct Unaligned;
+
+impl Alignedness for Unaligned {
+    type Raw<T: Primitive> = <T as Primitive>::Raw;
+
+    fn get<T: Primitive>(raw: &Self::Raw<T>) -> T {
+        <T as Primitive>::get(raw)
+    }
+    fn set<T: Primitive>(raw: &mut Self::Raw<T>, value: T) {
+        <T as Primitive>::set(raw, value)
+    }
+}
+
+pub struct Aligned;
+
+impl Alignedness for Aligned {
+    type Raw<T: Primitive> = <T as Primitive>::RawAligned;
+
+    fn get<T: Primitive>(raw: &Self::Raw<T>) -> T {
+        <T as Primitive>::get_aligned(raw)
+    }
+    fn set<T: Primitive>(raw: &mut Self::Raw<T>, value: T) {
+        <T as Primitive>::set_aligned(raw, value)
+    }
+}
+
 /// A value casted directly from a little-endian byte buffer. On big-endian
 /// processors, the bytes of the value need to be swapped upon reading and writing.
 #[repr(C)]
-pub struct WireValue<T> where T: Primitive {
-    value: <T as Primitive>::Raw,
+pub struct WireValue<A, T> where A: Alignedness, T: Primitive {
+    value: <A as Alignedness>::Raw<T>,
 }
 
-impl<T> WireValue<T> where T: Primitive {
+impl<A, T> WireValue<A, T> where A: Alignedness, T: Primitive {
     /// Reads the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn get(&self) -> T { <T as Primitive>::get(&self.value) }
+    pub fn get(&self) -> T { <A as Alignedness>::get::<T>(&self.value) }
 
     /// Writes the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn set(&mut self, value: T) { <T as Primitive>::set(&mut self.value, value) }
+    pub fn set(&mut self, value: T) { <A as Alignedness>::set<T>(&mut self.value, value) }
 }
