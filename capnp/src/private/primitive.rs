@@ -12,7 +12,7 @@ pub trait Primitive {
     fn set(raw: &mut Self::Raw, value: Self);
 
     /// Writes the value, swapping bytes on big-endian processors.
-    fn set(raw: &mut Self::RawAligned, value: Self);
+    fn set_aligned(raw: &mut Self::RawAligned, value: Self);
 }
 
 macro_rules! primitive_impl(
@@ -138,6 +138,7 @@ impl Alignedness for Aligned {
 /// processors, the bytes of the value need to be swapped upon reading and writing.
 #[repr(C)]
 pub struct WireValue<A, T> where A: Alignedness, T: Primitive {
+    marker: core::marker::PhantomData<T>,
     value: <A as Alignedness>::Raw<T>,
 }
 
@@ -148,5 +149,5 @@ impl<A, T> WireValue<A, T> where A: Alignedness, T: Primitive {
 
     /// Writes the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn set(&mut self, value: T) { <A as Alignedness>::set<T>(&mut self.value, value) }
+    pub fn set(&mut self, value: T) { <A as Alignedness>::set::<T>(&mut self.value, value) }
 }
