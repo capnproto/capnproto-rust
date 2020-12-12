@@ -57,7 +57,7 @@ impl ReadLimiter for ReadLimiterImpl {
 }
 
 pub trait ReaderArena {
-    type Alignedness: crate::private::primitive::Alignedness;
+    type Alignment: crate::private::primitive::Alignment;
 
     // return pointer to start of segment, and number of words in that segment
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
@@ -98,7 +98,7 @@ impl <S> ReaderArenaImpl <S, ReadLimiterImpl> where S: ReaderSegments {
 }
 
 impl <S, L> ReaderArena for ReaderArenaImpl<S, L> where S: ReaderSegments, L: ReadLimiter {
-    type Alignedness = crate::private::primitive::Unaligned; // TODO
+    type Alignment = crate::private::primitive::Unaligned; // TODO
 
     fn get_segment<'a>(&'a self, id: u32) -> Result<(*const u8, u32)> {
         match self.segments.get_segment(id) {
@@ -213,7 +213,7 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
 }
 
 impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
-    type Alignedness = crate::private::primitive::Unaligned; // TODO
+    type Alignment = crate::private::primitive::Unaligned; // TODO
 
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
         let seg = &self.segments[id as usize];
@@ -312,7 +312,7 @@ impl <A> Drop for BuilderArenaImpl<A> where A: Allocator {
 pub struct NullArena;
 
 impl ReaderArena for NullArena {
-    type Alignedness = crate::private::primitive::Unaligned;
+    type Alignment = crate::private::primitive::Unaligned;
 
     fn get_segment(&self, _id: u32) -> Result<(*const u8, u32)> {
         Err(Error::failed(format!("tried to read from null arena")))

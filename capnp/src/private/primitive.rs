@@ -101,7 +101,7 @@ impl Primitive for f64 {
     }
 }
 
-pub trait Alignedness {
+pub trait Alignment {
     type Raw<T: Primitive>;
 
     fn get<T: Primitive>(raw: &Self::Raw<T>) -> T;
@@ -110,7 +110,7 @@ pub trait Alignedness {
 
 pub struct Unaligned;
 
-impl Alignedness for Unaligned {
+impl Alignment for Unaligned {
     type Raw<T: Primitive> = <T as Primitive>::Raw;
 
     fn get<T: Primitive>(raw: &Self::Raw<T>) -> T {
@@ -123,7 +123,7 @@ impl Alignedness for Unaligned {
 
 pub struct Aligned;
 
-impl Alignedness for Aligned {
+impl Alignment for Aligned {
     type Raw<T: Primitive> = <T as Primitive>::RawAligned;
 
     fn get<T: Primitive>(raw: &Self::Raw<T>) -> T {
@@ -137,17 +137,17 @@ impl Alignedness for Aligned {
 /// A value casted directly from a little-endian byte buffer. On big-endian
 /// processors, the bytes of the value need to be swapped upon reading and writing.
 #[repr(C)]
-pub struct WireValue<A, T> where A: Alignedness, T: Primitive {
+pub struct WireValue<A, T> where A: Alignment, T: Primitive {
     marker: core::marker::PhantomData<T>,
-    value: <A as Alignedness>::Raw<T>,
+    value: <A as Alignment>::Raw<T>,
 }
 
-impl<A, T> WireValue<A, T> where A: Alignedness, T: Primitive {
+impl<A, T> WireValue<A, T> where A: Alignment, T: Primitive {
     /// Reads the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn get(&self) -> T { <A as Alignedness>::get::<T>(&self.value) }
+    pub fn get(&self) -> T { <A as Alignment>::get::<T>(&self.value) }
 
     /// Writes the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn set(&mut self, value: T) { <A as Alignedness>::set::<T>(&mut self.value, value) }
+    pub fn set(&mut self, value: T) { <A as Alignment>::set::<T>(&mut self.value, value) }
 }
