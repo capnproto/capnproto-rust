@@ -152,7 +152,7 @@ impl <'b> ReaderSegments for [&'b [u8]] {
 
 /// A container used to read a message.
 pub struct Reader<S> where S: ReaderSegments {
-    arena: ReaderArenaImpl<S, ReadLimiterImpl>,
+    arena: ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>,
 }
 
 impl <S> Reader<S> where S: ReaderSegments {
@@ -162,7 +162,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         }
     }
 
-    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a, ReaderArenaImpl<S, ReadLimiterImpl>>> {
+    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a, ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>>> {
         let (segment_start, _seg_len) = self.arena.get_segment(0)?;
         let pointer_reader = layout::PointerReader::get_root(
             &self.arena, 0, segment_start, self.arena.nesting_limit())?;
@@ -170,7 +170,7 @@ impl <S> Reader<S> where S: ReaderSegments {
     }
 
     /// Gets the root of the message, interpreting it as the given type.
-    pub fn get_root<'a, T: FromPointerReader<'a, ReaderArenaImpl<S, ReadLimiterImpl>>>(&'a self) -> Result<T> {
+    pub fn get_root<'a, T: FromPointerReader<'a, ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>>>(&'a self) -> Result<T> {
         self.get_root_internal()?.get_as()
     }
 
@@ -240,7 +240,7 @@ impl <S, T> TypedReader<S, T>
         }
     }
 
-    pub fn get<'a> (&'a self) -> Result<<T as Owned>::Reader<'a, ReaderArenaImpl<S, ReadLimiterImpl>>> {
+    pub fn get<'a> (&'a self) -> Result<<T as Owned>::Reader<'a, ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>>> {
         self.message.get_root()
     }
 

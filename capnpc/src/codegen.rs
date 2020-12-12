@@ -38,14 +38,14 @@ pub struct GeneratorContext<'a, A> where A: ReaderArena {
     pub scope_map: collections::hash_map::HashMap<u64, Vec<String>>,
 }
 
-impl <'a> GeneratorContext<'a, ReaderArenaImpl<capnp::serialize::OwnedSegments, ReadLimiterImpl>> {
+impl <'a> GeneratorContext<'a, ReaderArenaImpl<capnp::serialize::OwnedSegments, ReadLimiterImpl, capnp::private::primitive::Unaligned>> {
     pub fn new(
         message:&'a capnp::message::Reader<capnp::serialize::OwnedSegments>)
         -> ::capnp::Result<Self>
     {
         let mut gen = GeneratorContext {
             request : message.get_root()?,
-            node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a, ReaderArenaImpl<capnp::serialize::OwnedSegments, ReadLimiterImpl>>>::new(),
+            node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a, ReaderArenaImpl<capnp::serialize::OwnedSegments, ReadLimiterImpl, capnp::private::primitive::Unaligned>>>::new(),
             scope_map: collections::hash_map::HashMap::<u64, Vec<String>>::new(),
         };
 

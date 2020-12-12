@@ -2929,9 +2929,9 @@ impl <'a,A> StructReader<&'a A> where A: ReaderArena {
         // been created with an old version of the protocol that did
         // not contain the field.
         if (offset + 1) * bits_per_element::<T>() <= self.data_size as usize {
-            let dwv: *const <T as Primitive>::Raw = self.data as *const _;
+            let dwv: *const WireValue<A::Alignment, T> = self.data as *const _;
             unsafe {
-                <T as Primitive>::get(&*dwv.offset(offset as isize))
+                (*dwv.offset(offset as isize)).get()
             }
         } else {
             T::zero()
@@ -3094,9 +3094,9 @@ impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
 
     #[inline]
     pub fn set_data_field<T:Primitive>(&self, offset: ElementCount, value: T) {
-        let ptr: *mut <T as Primitive>::Raw = self.data as *mut _;
+        let ptr: *mut WireValue<A::Alignment, T> = self.data as *mut _;
         unsafe {
-            <T as Primitive>::set(&mut*ptr.offset(offset as isize), value)
+            (*ptr.offset(offset as isize)).set(value)
         }
     }
 
@@ -3110,9 +3110,9 @@ impl <'a, A> StructBuilder<&'a mut A> where A: BuilderArena {
 
     #[inline]
     pub fn get_data_field<T: Primitive>(&self, offset: ElementCount) -> T {
-        let ptr: *const <T as Primitive>::Raw = self.data as *const _;
+        let ptr: *const WireValue<A::Alignment, T> = self.data as *const _;
         unsafe {
-            <T as Primitive>::get(&*ptr.offset(offset as isize))
+            (*ptr.offset(offset as isize)).get()
         }
     }
 
@@ -3487,37 +3487,37 @@ impl <'a, A> ListBuilder<&'a mut A> {
 
 
 pub trait PrimitiveElement {
-    fn get<A>(list_reader: &ListReader<A>, index: ElementCount32) -> Self;
-    fn get_from_builder<A>(list_builder: &ListBuilder<A>, index: ElementCount32) -> Self;
-    fn set<A>(list_builder: &ListBuilder<A>, index: ElementCount32, value: Self);
+    fn get<A>(list_reader: &ListReader<&A>, index: ElementCount32) -> Self where A: ReaderArena;
+    fn get_from_builder<A>(list_builder: &ListBuilder<&mut A>, index: ElementCount32) -> Self where A: BuilderArena;
+    fn set<A>(list_builder: &ListBuilder<&mut A>, index: ElementCount32, value: Self) where A: BuilderArena;
     fn element_size() -> ElementSize;
 }
 
-impl <T : Primitive> PrimitiveElement for T {
+impl <T :Primitive> PrimitiveElement for T {
     #[inline]
-    fn get<A>(list_reader: &ListReader<A>, index: ElementCount32) -> Self {
+    fn get<A>(list_reader: &ListReader<&A>, index: ElementCount32) -> Self where A: ReaderArena {
         let offset = (index as u64 * list_reader.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
             let ptr: *const u8 = list_reader.ptr.offset(offset as isize);
-            <Self as Primitive>::get(&*(ptr as *const <Self as Primitive>::Raw))
+            (*(ptr as *const WireValue<A::Alignment, Self>)).get()
         }
     }
 
     #[inline]
-    fn get_from_builder<A>(list_builder: &ListBuilder<A>, index: ElementCount32) -> Self {
+    fn get_from_builder<A>(list_builder: &ListBuilder<&mut A>, index: ElementCount32) -> Self where A: BuilderArena {
         let offset = (index as u64 * list_builder.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
-            let ptr: *mut <Self as Primitive>::Raw = list_builder.ptr.offset(offset as isize) as *mut _;
-            <Self as Primitive>::get(&*ptr)
+            let ptr: *mut WireValue<A::Alignment, Self> = list_builder.ptr.offset(offset as isize) as *mut _;
+            (*ptr).get()
         }
     }
 
     #[inline]
-    fn set<A>(list_builder: &ListBuilder<A>, index: ElementCount32, value: Self) {
+    fn set<A>(list_builder: &ListBuilder<&mut A>, index: ElementCount32, value: Self) where A: BuilderArena {
         let offset = (index as u64 * list_builder.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
-            let ptr: *mut <Self as Primitive>::Raw = list_builder.ptr.offset(offset as isize) as *mut _;
-            <Self as Primitive>::set(&mut *ptr, value);
+            let ptr: *mut WireValue<A::Alignment, Self> = list_builder.ptr.offset(offset as isize) as *mut _;
+            (*ptr).set(value);
         }
     }
 
@@ -3535,7 +3535,7 @@ impl <T : Primitive> PrimitiveElement for T {
 
 impl PrimitiveElement for bool {
     #[inline]
-    fn get<A>(list: &ListReader<A>, index: ElementCount32) -> bool {
+    fn get<A>(list: &ListReader<&A>, index: ElementCount32) -> bool where A: ReaderArena {
         let bindex = index as u64 * list.step as u64;
         unsafe {
             let b: *const u8 = list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize);
@@ -3543,13 +3543,13 @@ impl PrimitiveElement for bool {
         }
     }
     #[inline]
-    fn get_from_builder<A>(list: &ListBuilder<A>, index: ElementCount32) -> bool {
+    fn get_from_builder<A>(list: &ListBuilder<&mut A>, index: ElementCount32) -> bool where A: BuilderArena {
         let bindex = index as u64 * list.step as u64;
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
         unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE as u64 ))) != 0 }
     }
     #[inline]
-    fn set<A>(list: &ListBuilder<A>, index: ElementCount32, value: bool) {
+    fn set<A>(list: &ListBuilder<&mut A>, index: ElementCount32, value: bool) where A: BuilderArena {
         let bindex = index as u64 * list.step as u64;
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
 
@@ -3561,13 +3561,13 @@ impl PrimitiveElement for bool {
 
 impl PrimitiveElement for () {
     #[inline]
-    fn get<A>(_list: &ListReader<A>, _index: ElementCount32) -> () { () }
+    fn get<A>(_list: &ListReader<&A>, _index: ElementCount32) -> () where A: ReaderArena { () }
 
     #[inline]
-    fn get_from_builder<A>(_list: &ListBuilder<A>, _index: ElementCount32) -> () { () }
+    fn get_from_builder<A>(_list: &ListBuilder<&mut A>, _index: ElementCount32) -> () where A: BuilderArena { () }
 
     #[inline]
-    fn set<A>(_list: &ListBuilder<A>, _index: ElementCount32, _value: ()) { }
+    fn set<A>(_list: &ListBuilder<&mut A>, _index: ElementCount32, _value: ()) where A: BuilderArena { }
 
     fn element_size() -> ElementSize { Void }
 }

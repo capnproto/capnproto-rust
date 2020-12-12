@@ -73,19 +73,21 @@ pub trait ReaderArena {
     //   layout::StructReader, layout::ListReader, etc. could drop their `cap_table` fields.
 }
 
-pub struct ReaderArenaImpl<S, L> {
+pub struct ReaderArenaImpl<S, L, A> {
+    alignment: A,
     segments: S,
     read_limiter: L,
     nesting_limit: i32,
 }
 
-impl <S> ReaderArenaImpl <S, ReadLimiterImpl> where S: ReaderSegments {
+impl <S> ReaderArenaImpl <S, ReadLimiterImpl, crate::private::primitive::Unaligned> where S: ReaderSegments {
     pub fn new(segments: S,
                options: message::ReaderOptions)
-               -> ReaderArenaImpl<S, ReadLimiterImpl>
+               -> ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>
     {
         let limiter = ReadLimiterImpl::new(options.traversal_limit_in_words);
         ReaderArenaImpl {
+            alignment: crate::private::primitive::Unaligned,
             segments: segments,
             read_limiter: limiter,
             nesting_limit: options.nesting_limit,
@@ -97,8 +99,8 @@ impl <S> ReaderArenaImpl <S, ReadLimiterImpl> where S: ReaderSegments {
     }
 }
 
-impl <S, L> ReaderArena for ReaderArenaImpl<S, L> where S: ReaderSegments, L: ReadLimiter {
-    type Alignment = crate::private::primitive::Unaligned; // TODO
+impl <S, L, A> ReaderArena for ReaderArenaImpl<S, L, A> where S: ReaderSegments, L: ReadLimiter, A: crate::private::primitive::Alignment {
+    type Alignment = A;
 
     fn get_segment<'a>(&'a self, id: u32) -> Result<(*const u8, u32)> {
         match self.segments.get_segment(id) {

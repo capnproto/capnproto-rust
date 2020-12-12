@@ -1,15 +1,15 @@
 pub trait Primitive {
-    type Raw;
+    type RawUnaligned;
     type RawAligned;
 
     /// Reads the value, swapping bytes on big-endian processors.
-    fn get(raw: &Self::Raw) -> Self;
+    fn get(raw: &Self::RawUnaligned) -> Self;
 
     /// Reads the value, swapping bytes on big-endian processors.
     fn get_aligned(raw: &Self::RawAligned) -> Self;
 
     /// Writes the value, swapping bytes on big-endian processors.
-    fn set(raw: &mut Self::Raw, value: Self);
+    fn set(raw: &mut Self::RawUnaligned, value: Self);
 
     /// Writes the value, swapping bytes on big-endian processors.
     fn set_aligned(raw: &mut Self::RawAligned, value: Self);
@@ -18,11 +18,11 @@ pub trait Primitive {
 macro_rules! primitive_impl(
     ($typ:ty, $n:expr) => (
         impl Primitive for $typ {
-            type Raw = [u8; $n];
+            type RawUnaligned = [u8; $n];
             type RawAligned = $typ;
 
             #[inline]
-            fn get(raw: &Self::Raw) -> Self {
+            fn get(raw: &Self::RawUnaligned) -> Self {
                 <$typ>::from_le_bytes(*raw)
             }
 
@@ -32,7 +32,7 @@ macro_rules! primitive_impl(
             }
 
             #[inline]
-            fn set(raw: &mut Self::Raw, value: Self) {
+            fn set(raw: &mut Self::RawUnaligned, value: Self) {
                 *raw = value.to_le_bytes();
             }
 
@@ -60,10 +60,10 @@ primitive_impl!(f32, 4);
 primitive_impl!(f64, 8);
 
 impl Primitive for f32 {
-    type Raw = [u8; 4];
+    type RawUnaligned = [u8; 4];
     type RawAligned = f32;
 
-    fn get(raw: &Self::Raw) -> Self {
+    fn get(raw: &Self::RawUnaligned) -> Self {
         f32::from_le_bytes(*raw)
     }
 
@@ -71,7 +71,7 @@ impl Primitive for f32 {
         f32::from_bits(raw.to_bits().to_le())
     }
 
-    fn set(raw: &mut Self::Raw, value: Self) {
+    fn set(raw: &mut Self::RawUnaligned, value: Self) {
         *raw = value.to_le_bytes();
     }
 
@@ -81,10 +81,10 @@ impl Primitive for f32 {
 }
 
 impl Primitive for f64 {
-    type Raw = [u8; 8];
+    type RawUnaligned = [u8; 8];
     type RawAligned = f64;
 
-    fn get(raw: &Self::Raw) -> Self {
+    fn get(raw: &Self::RawUnaligned) -> Self {
         f64::from_le_bytes(*raw)
     }
 
@@ -92,7 +92,7 @@ impl Primitive for f64 {
         f64::from_bits(raw.to_bits().to_le())
     }
 
-    fn set(raw: &mut Self::Raw, value: Self) {
+    fn set(raw: &mut Self::RawUnaligned, value: Self) {
         *raw = value.to_le_bytes();
     }
 
@@ -111,7 +111,7 @@ pub trait Alignment {
 pub struct Unaligned;
 
 impl Alignment for Unaligned {
-    type Raw<T: Primitive> = <T as Primitive>::Raw;
+    type Raw<T: Primitive> = <T as Primitive>::RawUnaligned;
 
     fn get<T: Primitive>(raw: &Self::Raw<T>) -> T {
         <T as Primitive>::get(raw)
