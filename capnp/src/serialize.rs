@@ -29,6 +29,7 @@ use core::convert::TryInto;
 use crate::io::{Read, Write};
 
 use crate::message;
+use crate::private::arena::{ReaderArenaImpl, ReadLimiterImpl};
 use crate::private::units::BYTES_PER_WORD;
 use crate::{Error, Result};
 
@@ -62,9 +63,12 @@ impl <'a> message::ReaderSegments for SliceSegments<'a> {
 ///
 /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `slice`.
 /// Otherwise, `slice` must be 8-byte aligned (attempts to read the message will trigger errors).
-pub fn read_message_from_flat_slice<'a>(slice: &mut &'a [u8],
-                                        options: message::ReaderOptions)
-                                        -> Result<message::Reader<SliceSegments<'a>>> {
+pub fn read_message_from_flat_slice<'a, Align>(
+    slice: &mut &'a [u8],
+    options: message::ReaderOptions)
+    -> Result<message::Reader<ReaderArenaImpl<SliceSegments<'a>, ReadLimiterImpl, Align>>>
+    where Align: crate::private::primitive::Alignment
+{
     let all_bytes = *slice;
     let mut bytes = *slice;
     let orig_bytes_len = bytes.len();
@@ -82,7 +86,7 @@ pub fn read_message_from_flat_slice<'a>(slice: &mut &'a [u8],
                     num_words, body_bytes.len() / BYTES_PER_WORD)))
     } else {
         *slice = &body_bytes[(num_words * BYTES_PER_WORD)..];
-        Ok(message::Reader::new(segment_lengths_builder.into_slice_segments(body_bytes), options))
+        Ok(message::Reader::new::<Align>(segment_lengths_builder.into_slice_segments(body_bytes), options))
     }
 }
 
@@ -182,8 +186,11 @@ impl SegmentLengthsBuilder {
 /// Reads a serialized message from a stream with the provided options.
 ///
 /// For optimal performance, `read` should be a buffered reader type.
-pub fn read_message<R>(mut read: R, options: message::ReaderOptions) -> Result<message::Reader<OwnedSegments>>
-where R: Read {
+pub fn read_message<R, Align>(mut read: R, options: message::ReaderOptions)
+                              -> Result<message::Reader<ReaderArenaImpl<OwnedSegments, ReadLimiterImpl, Align>>>
+where R: Read,
+    A: crate::private::primitive::Alignment,
+{
     let owned_segments_builder = match read_segment_table(&mut read, options)? {
         Some(b) => b,
         None => return Err(Error::failed("Premature end of file".to_string())),
@@ -194,8 +201,11 @@ where R: Read {
 /// Like `read_message()`, but returns None instead of an error if there are zero bytes left in
 /// `read`. This is useful for reading a stream containing an unknown number of messages -- you
 /// call this function until it returns None.
-pub fn try_read_message<R>(mut read: R, options: message::ReaderOptions) -> Result<Option<message::Reader<OwnedSegments>>>
-where R: Read {
+pub fn try_read_message<R, Align>(mut read: R, options: message::ReaderOptions)
+                                  -> Result<Option<message::Reader<ReaderArenaImpl<OwnedSegments, ReadLimiterImpl, Align>>>>
+where R: Read,
+    A: crate::private::primitive::Alignment,
+{
     let owned_segments_builder = match read_segment_table(&mut read, options)? {
         Some(b) => b,
         None => return Ok(None),

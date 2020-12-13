@@ -74,20 +74,21 @@ pub trait ReaderArena {
 }
 
 pub struct ReaderArenaImpl<S, L, A> {
-    alignment: A,
+    alignment: core::marker::PhantomData<A>,
     segments: S,
     read_limiter: L,
     nesting_limit: i32,
 }
 
 impl <S> ReaderArenaImpl <S, ReadLimiterImpl, crate::private::primitive::Unaligned> where S: ReaderSegments {
-    pub fn new(segments: S,
-               options: message::ReaderOptions)
-               -> ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>
+    pub fn new<A>(segments: S,
+                  options: message::ReaderOptions)
+                  -> ReaderArenaImpl<S, ReadLimiterImpl, A>
+        where A: crate::private::primitive::Alignment
     {
         let limiter = ReadLimiterImpl::new(options.traversal_limit_in_words);
         ReaderArenaImpl {
-            alignment: crate::private::primitive::Unaligned,
+            alignment: core::marker::PhantomData,
             segments: segments,
             read_limiter: limiter,
             nesting_limit: options.nesting_limit,

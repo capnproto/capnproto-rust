@@ -151,18 +151,20 @@ impl <'b> ReaderSegments for [&'b [u8]] {
 }
 
 /// A container used to read a message.
-pub struct Reader<S> where S: ReaderSegments {
-    arena: ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>,
+pub struct Reader<A> where A: ReaderArena {
+    arena: A,
 }
 
-impl <S> Reader<S> where S: ReaderSegments {
-    pub fn new(segments: S, options: ReaderOptions) -> Self {
+impl <A> Reader<A> where A: ReaderArena {
+    pub fn new<Align>(segments: S, options: ReaderOptions) -> Reader<ReaderArenaImpl<S, ReadLimiterImpl, Align>>
+        where Align: crate::private::primitive::Alignment
+    {
         Reader {
-            arena: ReaderArenaImpl::new(segments, options),
+            arena: ReaderArenaImpl::new::<Align>(segments, options),
         }
     }
 
-    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a, ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>>> {
+    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a, A>> {
         let (segment_start, _seg_len) = self.arena.get_segment(0)?;
         let pointer_reader = layout::PointerReader::get_root(
             &self.arena, 0, segment_start, self.arena.nesting_limit())?;
@@ -170,7 +172,7 @@ impl <S> Reader<S> where S: ReaderSegments {
     }
 
     /// Gets the root of the message, interpreting it as the given type.
-    pub fn get_root<'a, T: FromPointerReader<'a, ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>>>(&'a self) -> Result<T> {
+    pub fn get_root<'a, T: FromPointerReader<'a, A>>(&'a self) -> Result<T> {
         self.get_root_internal()?.get_as()
     }
 
@@ -216,11 +218,11 @@ impl <S> Reader<S> where S: ReaderSegments {
         Ok(result)
     }
 
-    pub fn into_typed<T: Owned>(self) -> TypedReader<S, T> {
-        TypedReader::new(self)
-    }
+//    pub fn into_typed<T: Owned>(self) -> TypedReader<S, T> {
+//        TypedReader::new(self)
+//    }
 }
-
+/*
 /// A message reader whose value is known to be of type `T`.
 pub struct TypedReader<S, T>
     where S: ReaderSegments,
@@ -267,7 +269,7 @@ impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
         reader.into_typed()
     }
 }
-
+*/
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
 pub unsafe trait Allocator {
     /// Allocates zeroed memory for a new segment, returning a pointer to the start of the segment
@@ -376,14 +378,14 @@ impl <A> Builder<A> where A: Allocator {
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
         self.arena.get_segments_for_output()
     }
-
+/*
     pub fn into_reader(self) -> Reader<Builder<A>> {
         Reader::new(self, ReaderOptions {
             traversal_limit_in_words: u64::max_value(),
             nesting_limit: i32::max_value()
         })
     }
-
+*/
     pub fn into_allocator(self) -> A {
         self.arena.into_allocator()
     }
