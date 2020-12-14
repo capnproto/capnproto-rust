@@ -1,3 +1,6 @@
+## v0.13.2
+- Rename `read_message()` to `try_read_message()`, for consistency with `capnp::serialize::try_read_message()`.
+
 ## v0.13.1
 - Remove unneeded dependency on 'executor' feature of the future crate.
 
