@@ -36,8 +36,8 @@ pub async fn read_message<R>(reader: R, options: message::ReaderOptions) -> Resu
 }
 
 
-/// Begins an asynchronous read of a message from `reader`. Returns `None` if
-/// `reader` has zero bytes left (i.e. is at end-of-file). To read a stream
+/// Asynchronously reads a message from `reader`. Returns `None` if `reader`
+/// has zero bytes left (i.e. is at end-of-file). To read a stream
 /// containing an unknown number of messages, you could call this function
 /// repeatedly until it returns `None`.
 pub async fn try_read_message<R>(mut reader: R, options: message::ReaderOptions) -> Result<Option<message::Reader<OwnedSegments>>>
