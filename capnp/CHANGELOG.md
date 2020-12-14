@@ -1,3 +1,6 @@
+## v0.12.4
+- Backport fix of https://github.com/capnproto/capnproto-rust/issues/203.
+
 ## v0.12.3
 - Fix bug where ScratchSpaceHeapAllocator returned an incorrect buffer length.
 
