@@ -29,6 +29,9 @@
 #![cfg_attr(feature = "rpc_try", feature(try_trait))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#![allow(incomplete_features)]
+#![feature(generic_associated_types)]
+
 #[macro_use]
 extern crate alloc;
 

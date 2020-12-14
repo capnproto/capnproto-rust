@@ -19,9 +19,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#![allow(incomplete_features)]
+#![feature(generic_associated_types)]
+
 use std::{io};
 
 use capnp::{message, serialize, serialize_packed};
+use capnp::private::arena::{BuilderArena, ReaderArena};
 use capnp::traits::Owned;
 
 pub mod common;
@@ -43,14 +47,20 @@ pub mod eval_capnp {
 pub mod eval;
 
 trait TestCase {
-    type Request: for<'a> Owned<'a>;
-    type Response: for<'a> Owned<'a>;
+    type Request: Owned;
+    type Response: Owned;
     type Expectation;
 
-    fn setup_request(&self, rnd: &mut crate::common::FastRand, b: <Self::Request as Owned>::Builder) -> Self::Expectation;
-    fn handle_request(&self, r: <Self::Request as Owned>::Reader, b: <Self::Response as Owned>::Builder)
-                      -> ::capnp::Result<()>;
-    fn check_response(&self, r: <Self::Response as Owned>::Reader, e: Self::Expectation) -> ::capnp::Result<()>;
+    fn setup_request<'a, A>(&self, rnd: &mut crate::common::FastRand, b: <Self::Request as Owned>::Builder<'a, A>)
+                            -> Self::Expectation where A: BuilderArena;
+
+    fn handle_request<'a, 'b, A, B>(&self,
+                                    r: <Self::Request as Owned>::Reader<'a, A>,
+                                    b: <Self::Response as Owned>::Builder<'b, B>)
+                                    -> ::capnp::Result<()> where A: ReaderArena, B: BuilderArena;
+
+    fn check_response<'a, A>(&self, r: <Self::Response as Owned>::Reader<'a, A>, e: Self::Expectation)
+                             -> ::capnp::Result<()> where A: ReaderArena;
 }
 
 trait Serialize {

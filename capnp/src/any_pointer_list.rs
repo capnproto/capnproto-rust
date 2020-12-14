@@ -24,109 +24,113 @@
 //! as pointer lists.
 
 use crate::traits::{FromPointerReader, FromPointerBuilder, ListIter, IndexMove};
+use crate::private::arena::{ReaderArena, BuilderArena};
 use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 use crate::Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned;
 
-impl <'a> crate::traits::Owned<'a> for Owned {
-    type Reader = Reader<'a>;
-    type Builder = Builder<'a>;
+impl crate::traits::Owned for Owned {
+    type Reader<'a, A: ReaderArena + 'a> = Reader<'a, A>;
+    type Builder<'a, A: BuilderArena + 'a> = Builder<'a, A>;
 }
 
 #[derive(Clone, Copy)]
-pub struct Reader<'a> {
-    pub reader: ListReader<'a>
+pub struct Reader<'a, A> {
+    pub reader: ListReader<&'a A>
 }
 
-impl <'a> Reader<'a> {
-    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b> {
+impl <'a, A> Reader<'a, A> where A: ReaderArena {
+    pub(crate) fn new<'b>(reader: ListReader<&'b A>) -> Reader<'b, A> {
         Reader { reader: reader }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
 
-    pub fn iter(self) -> ListIter<Reader<'a>, Result<crate::any_pointer::Reader<'a>>>{
+    pub fn iter(self) -> ListIter<Reader<'a, A>, Result<crate::any_pointer::Reader<'a, A>>>{
         let l = self.len();
         ListIter::new(self, l)
     }
 
-    pub fn get(self, index : u32) -> crate::any_pointer::Reader<'a> {
+    pub fn get(self, index : u32) -> crate::any_pointer::Reader<'a, A> {
         assert!(index <  self.len());
         crate::any_pointer::Reader::new(self.reader.get_pointer_element(index))
     }
 }
 
-impl <'a> IndexMove<u32, Result<crate::any_pointer::Reader<'a>>> for Reader<'a>{
-    fn index_move(&self, index: u32) -> Result<crate::any_pointer::Reader<'a>> {
+impl <'a, A> IndexMove<u32, Result<crate::any_pointer::Reader<'a, A>>> for Reader<'a, A>
+where A: ReaderArena,
+      Self: Copy // TODO why is this Copy needed?
+{
+    fn index_move(&self, index: u32) -> Result<crate::any_pointer::Reader<'a, A>> {
         Ok(self.get(index))
     }
 }
 
-impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
+impl <'a, A> FromPointerReader<'a, A> for Reader<'a, A> where A: ReaderArena {
+    fn get_from_pointer(reader: PointerReader<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, A>> {
         Ok(Reader { reader: reader.get_list(Pointer, default)? })
     }
 }
 
-impl <'a> crate::traits::IntoInternalListReader<'a> for Reader<'a> {
-    fn into_internal_list_reader(self) -> ListReader<'a> {
+impl <'a, A> crate::traits::IntoInternalListReader<'a, A> for Reader<'a, A> where A: ReaderArena {
+    fn into_internal_list_reader(self) -> ListReader<&'a A> {
         self.reader
     }
 }
 
-pub struct Builder<'a> {
-    builder: ListBuilder<'a>
+pub struct Builder<'a, A> {
+    builder: ListBuilder<&'a mut A>
 }
 
-impl <'a> Builder<'a> {
-    pub fn new(builder: ListBuilder<'a>) -> Builder<'a> {
-        Builder { builder: builder }
-    }
-
+impl <'a, A> Builder<'a, A> where A: BuilderArena {
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    pub fn into_reader(self) -> Reader<'a> {
+    pub fn into_reader(self) -> Reader<'a, A> {
         Reader { reader: self.builder.into_reader() }
     }
 
-    pub fn get(self, index : u32) -> crate::any_pointer::Builder<'a> {
+    pub fn get(self, index: u32) -> crate::any_pointer::Builder<'a, A> {
         assert!(index <  self.len());
         crate::any_pointer::Builder::new(self.builder.get_pointer_element(index))
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder {builder: self.builder.borrow()}
+    pub fn reborrow<'b>(&'b mut self) -> Builder<'b, A> {
+        Builder {builder: self.builder.reborrow()}
     }
 }
 
-impl <'a> FromPointerBuilder<'a> for Builder<'a> {
-    fn init_pointer(builder: PointerBuilder<'a>, size : u32) -> Builder<'a> {
+impl <'a, A> FromPointerBuilder<'a, A> for Builder<'a, A> where A: BuilderArena {
+    fn init_pointer(builder: PointerBuilder<&'a mut A>, size : u32) -> Builder<'a, A> {
         Builder {
             builder: builder.init_list(Pointer, size)
         }
     }
 
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<&'a mut A>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, A>> {
         Ok(Builder {
             builder: builder.get_list(Pointer, default)?
         })
     }
 }
 
-impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,
-                               value: Reader<'a>,
-                               canonicalize: bool) -> Result<()> {
+impl <'a, A> crate::traits::SetPointerBuilder for Reader<'a, A> where A: ReaderArena {
+    fn set_pointer_builder<'b, B>(pointer: PointerBuilder<&'b mut B>,
+                                  value: Reader<'a, A>,
+                                  canonicalize: bool) -> Result<()>
+        where B: BuilderArena
+    {
         pointer.set_list(&value.reader, canonicalize)?;
         Ok(())
     }
 }
 
-impl <'a> core::iter::IntoIterator for Reader<'a> {
-    type Item = Result<crate::any_pointer::Reader<'a>>;
-    type IntoIter = ListIter<Reader<'a>, Self::Item>;
+impl <'a, A> core::iter::IntoIterator for Reader<'a, A>
+where A: ReaderArena + Copy //TODO why is this Copy needed?
+{
+    type Item = Result<crate::any_pointer::Reader<'a, A>>;
+    type IntoIter = ListIter<Reader<'a, A>, Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()

@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 use capnp::{any_pointer, message};
+use capnp::private::arena::ReaderArena;
 
 use crate::codegen::{FormattedText, GeneratorContext};
 use crate::codegen::FormattedText::{Indent, Line, Branch};
@@ -31,7 +32,7 @@ pub struct WordArrayDeclarationOptions {
 }
 
 pub fn word_array_declaration(name: &str,
-                              value: any_pointer::Reader,
+                              value: any_pointer::Reader<impl ReaderArena>,
                               options: WordArrayDeclarationOptions) -> ::capnp::Result<FormattedText> {
     let allocator = message::HeapAllocator::new()
         .first_segment_words(value.target_size()?.word_count as u32 + 1);
@@ -57,10 +58,10 @@ pub fn word_array_declaration(name: &str,
 }
 
 pub fn generate_pointer_constant(
-    gen: &GeneratorContext,
+    gen: &GeneratorContext<impl ReaderArena>,
     styled_name: &str,
-    typ: type_::Reader,
-    value: any_pointer::Reader)
+    typ: type_::Reader<impl ReaderArena>,
+    value: any_pointer::Reader<impl ReaderArena>)
     -> ::capnp::Result<FormattedText>
 {
     Ok(Branch(vec![

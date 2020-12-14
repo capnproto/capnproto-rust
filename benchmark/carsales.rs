@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use capnp::private::arena::{BuilderArena, ReaderArena};
+
 use crate::common::*;
 use crate::carsales_capnp::{parking_lot, total_value, Color, car};
 
@@ -27,8 +29,8 @@ trait CarValue {
 }
 
 macro_rules! car_value_impl(
-    ($typ:ident) => (
-            impl <'a> CarValue for car::$typ<'a> {
+    ($typ:ident, $arena_bound:ident) => (
+            impl <'a, A> CarValue for car::$typ<'a, A> where A: $arena_bound {
                 fn car_value (mut self) -> ::capnp::Result<u64> {
                     #![allow(unused_mut)]
                     let mut result : u64 = 0;
@@ -75,13 +77,13 @@ macro_rules! car_value_impl(
         )
    );
 
-car_value_impl!(Reader);
-car_value_impl!(Builder);
+car_value_impl!(Reader, ReaderArena);
+car_value_impl!(Builder, BuilderArena);
 
 const MAKES : [&'static str; 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 const MODELS : [&'static str; 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
-pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
+pub fn random_car<A>(rng: &mut FastRand, mut car: car::Builder<A>) where A: BuilderArena {
     car.set_make(MAKES[rng.next_less_than(MAKES.len() as u32) as usize]);
     car.set_model(MODELS[rng.next_less_than(MODELS.len() as u32) as usize]);
 
@@ -133,7 +135,9 @@ impl crate::TestCase for CarSales {
     type Response = total_value::Owned;
     type Expectation = u64;
 
-    fn setup_request(&self, rng: &mut FastRand, request: parking_lot::Builder) -> u64 {
+    fn setup_request<A>(&self, rng: &mut FastRand, request: parking_lot::Builder<A>) -> u64
+        where A: BuilderArena
+    {
         let mut result = 0;
         let mut cars = request.init_cars(rng.next_less_than(200));
         for ii in 0.. cars.len() {
@@ -145,8 +149,9 @@ impl crate::TestCase for CarSales {
         result
     }
 
-    fn handle_request(&self, request: parking_lot::Reader, mut response: total_value::Builder)
-                      -> ::capnp::Result<()>
+    fn handle_request<A,B>(&self, request: parking_lot::Reader<A>, mut response: total_value::Builder<B>)
+                           -> ::capnp::Result<()>
+        where A: ReaderArena, B: BuilderArena
     {
         let mut result = 0;
         for car in request.get_cars()?.iter() {
@@ -156,7 +161,9 @@ impl crate::TestCase for CarSales {
         Ok(())
     }
 
-    fn check_response(&self, response: total_value::Reader, expected: u64) -> ::capnp::Result<()> {
+    fn check_response<A>(&self, response: total_value::Reader<A>, expected: u64) -> ::capnp::Result<()>
+        where A: ReaderArena
+    {
         if response.get_amount() == expected {
             Ok(())
         } else {

@@ -25,7 +25,7 @@
 
 pub mod arena;
 pub mod capability;
-mod primitive;
+pub mod primitive;
 pub mod layout;
 mod mask;
 pub mod units;

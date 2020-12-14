@@ -25,7 +25,7 @@ use alloc::vec::Vec;
 use core::convert::From;
 
 use crate::any_pointer;
-use crate::private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
+use crate::private::arena::{BuilderArenaImpl, ReaderArenaImpl, ReadLimiterImpl, BuilderArena, ReaderArena};
 use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
 use crate::traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder, Owned};
@@ -151,28 +151,28 @@ impl <'b> ReaderSegments for [&'b [u8]] {
 }
 
 /// A container used to read a message.
-pub struct Reader<S> where S: ReaderSegments {
-    arena: ReaderArenaImpl<S>,
-    nesting_limit: i32,
+pub struct Reader<A> where A: ReaderArena {
+    arena: A,
 }
 
-impl <S> Reader<S> where S: ReaderSegments {
-    pub fn new(segments: S, options: ReaderOptions) -> Self {
+impl <A> Reader<A> where A: ReaderArena {
+    pub fn new<Align>(segments: S, options: ReaderOptions) -> Reader<ReaderArenaImpl<S, ReadLimiterImpl, Align>>
+        where Align: crate::private::primitive::Alignment
+    {
         Reader {
-            arena: ReaderArenaImpl::new(segments, options),
-            nesting_limit: options.nesting_limit,
+            arena: ReaderArenaImpl::new::<Align>(segments, options),
         }
     }
 
-    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a>> {
+    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a, A>> {
         let (segment_start, _seg_len) = self.arena.get_segment(0)?;
         let pointer_reader = layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.nesting_limit)?;
+            &self.arena, 0, segment_start, self.arena.nesting_limit())?;
         Ok(any_pointer::Reader::new(pointer_reader))
     }
 
     /// Gets the root of the message, interpreting it as the given type.
-    pub fn get_root<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
+    pub fn get_root<'a, T: FromPointerReader<'a, A>>(&'a self) -> Result<T> {
         self.get_root_internal()?.get_as()
     }
 
@@ -193,7 +193,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         }
 
         let pointer_reader = layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.nesting_limit)?;
+            &self.arena, 0, segment_start, self.arena.nesting_limit())?;
         let read_head = ::core::cell::Cell::new(unsafe {segment_start.offset(BYTES_PER_WORD as isize)});
         let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
         let all_words_consumed =
@@ -218,22 +218,22 @@ impl <S> Reader<S> where S: ReaderSegments {
         Ok(result)
     }
 
-    pub fn into_typed<T: for<'a> Owned<'a>>(self) -> TypedReader<S, T> {
-        TypedReader::new(self)
-    }
+//    pub fn into_typed<T: Owned>(self) -> TypedReader<S, T> {
+//        TypedReader::new(self)
+//    }
 }
-
+/*
 /// A message reader whose value is known to be of type `T`.
 pub struct TypedReader<S, T>
     where S: ReaderSegments,
-          T: for<'a> Owned<'a> {
+          T: Owned {
     marker: ::core::marker::PhantomData<T>,
     message: Reader<S>,
 }
 
 impl <S, T> TypedReader<S, T>
     where S: ReaderSegments,
-          T : for<'a> Owned<'a> {
+          T : Owned {
 
     pub fn new(message: Reader<S>) -> Self {
         TypedReader {
@@ -242,7 +242,7 @@ impl <S, T> TypedReader<S, T>
         }
     }
 
-    pub fn get<'a> (&'a self) -> Result<<T as Owned<'a>>::Reader> {
+    pub fn get<'a> (&'a self) -> Result<<T as Owned>::Reader<'a, ReaderArenaImpl<S, ReadLimiterImpl, crate::private::primitive::Unaligned>>> {
         self.message.get_root()
     }
 
@@ -253,7 +253,7 @@ impl <S, T> TypedReader<S, T>
 
 impl <S, T> From<Reader<S>> for TypedReader<S, T>
     where S: ReaderSegments,
-          T: for<'a> Owned<'a> {
+          T: Owned {
 
     fn from(message: Reader<S>) -> TypedReader<S, T> {
         TypedReader::new(message)
@@ -262,14 +262,14 @@ impl <S, T> From<Reader<S>> for TypedReader<S, T>
 
 impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
     where A: Allocator,
-          T: for<'a> Owned<'a> {
+          T: Owned {
 
     fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
         let reader = message.into_reader();
         reader.into_typed()
     }
 }
-
+*/
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
 pub unsafe trait Allocator {
     /// Allocates zeroed memory for a new segment, returning a pointer to the start of the segment
@@ -317,7 +317,7 @@ impl <A> Builder<A> where A: Allocator {
         }
     }
 
-    fn get_root_internal<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+    fn get_root_internal<'a>(&'a mut self) -> any_pointer::Builder<'a, BuilderArenaImpl<A>> {
         if self.arena.len() == 0 {
             self.arena.allocate_segment(1).expect("allocate root pointer");
             self.arena.allocate(0, 1).expect("allocate root pointer");
@@ -331,31 +331,31 @@ impl <A> Builder<A> where A: Allocator {
     }
 
     /// Initializes the root as a value of the given type.
-    pub fn init_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> T {
+    pub fn init_root<'a, T: FromPointerBuilder<'a, BuilderArenaImpl<A>>>(&'a mut self) -> T {
         let root = self.get_root_internal();
         root.init_as()
     }
 
     /// Gets the root, interpreting it as the given type.
-    pub fn get_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
+    pub fn get_root<'a, T: FromPointerBuilder<'a, BuilderArenaImpl<A>>>(&'a mut self) -> Result<T> {
         let root = self.get_root_internal();
         root.get_as()
     }
 
-    pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
+    pub fn get_root_as_reader<'a, T: FromPointerReader<'a, BuilderArenaImpl<A>>>(&'a self) -> Result<T> {
         if self.arena.len() == 0 {
             any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {
             let (segment_start, _segment_len) = self.arena.get_segment(0)?;
             let pointer_reader = layout::PointerReader::get_root(
-                self.arena.as_reader(), 0, segment_start, 0x7fffffff)?;
+                &self.arena, 0, segment_start, 0x7fffffff)?;
             let root = any_pointer::Reader::new(pointer_reader);
             root.get_as()
         }
     }
 
     /// Sets the root to a deep copy of the given value.
-    pub fn set_root<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
+    pub fn set_root<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
         let root = self.get_root_internal();
         root.set_as(value)
     }
@@ -363,13 +363,13 @@ impl <A> Builder<A> where A: Allocator {
     /// Sets the root to a canonicalized version of `value`. If this was the first action taken
     /// on this `Builder`, then a subsequent call to `get_segments_for_output()` should return
     /// a single segment, containing the full canonicalized message.
-    pub fn set_root_canonical<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
+    pub fn set_root_canonical<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
         if self.arena.len() == 0 {
             self.arena.allocate_segment(1).expect("allocate root pointer");
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
-        let pointer = layout::PointerBuilder::get_root(&self.arena, 0, seg_start);
+        let pointer = layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start);
         SetPointerBuilder::set_pointer_builder(pointer, value, true)?;
         assert_eq!(self.get_segments_for_output().len(), 1);
         Ok(())
@@ -378,14 +378,14 @@ impl <A> Builder<A> where A: Allocator {
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
         self.arena.get_segments_for_output()
     }
-
+/*
     pub fn into_reader(self) -> Reader<Builder<A>> {
         Reader::new(self, ReaderOptions {
             traversal_limit_in_words: u64::max_value(),
             nesting_limit: i32::max_value()
         })
     }
-
+*/
     pub fn into_allocator(self) -> A {
         self.arena.into_allocator()
     }

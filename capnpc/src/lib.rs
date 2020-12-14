@@ -56,6 +56,9 @@
 //! ```
 //!
 
+#![allow(incomplete_features)]
+#![feature(generic_associated_types)]
+
 /// Code generated from
 /// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
 pub mod schema_capnp;

@@ -21,58 +21,51 @@
 
 //! Sequence of bytes.
 
+use crate::private::arena::{BuilderArena, ReaderArena};
 use crate::private::layout::{PointerBuilder, PointerReader};
 use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
 
-impl<'a> crate::traits::Owned<'a> for Owned {
-    type Reader = Reader<'a>;
-    type Builder = Builder<'a>;
+impl crate::traits::Owned for Owned {
+    type Reader<'a, A: ReaderArena + 'a> = Reader<'a>;
+    type Builder<'a, A: BuilderArena + 'a> = Builder<'a>;
 }
 
 pub type Reader<'a> = &'a [u8];
-
-#[deprecated(since = "0.13.4", note = "This function is unsafe and was never intended for external use")]
-pub fn new_reader<'a>(p : *const u8, len : u32) -> Reader<'a> {
-    unsafe { ::core::slice::from_raw_parts(p, len as usize) }
-}
 
 pub(crate) unsafe fn reader_from_raw_parts<'a>(p: *const u8, len: u32) -> Reader<'a> {
     ::core::slice::from_raw_parts(p, len as usize)
 }
 
-impl <'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
+impl <'a, A> crate::traits::FromPointerReader<'a, A> for Reader<'a> where A: ReaderArena {
+    fn get_from_pointer(reader: PointerReader<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
         reader.get_data(default)
     }
 }
 
 pub type Builder<'a> = &'a mut [u8];
 
-#[deprecated(since = "0.13.4", note = "This function is unsafe and was never intended for external use")]
-pub fn new_builder<'a>(p : *mut u8, len : u32) -> Builder<'a> {
-    unsafe { ::core::slice::from_raw_parts_mut(p, len as usize) }
-}
-
 pub(crate) unsafe fn builder_from_raw_parts<'a>(p: *mut u8, len: u32) -> Builder<'a> {
     ::core::slice::from_raw_parts_mut(p, len as usize)
 }
 
-impl <'a> crate::traits::FromPointerBuilder<'a> for Builder<'a> {
-    fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a> {
+impl <'a, A> crate::traits::FromPointerBuilder<'a, A> for Builder<'a> where A: BuilderArena {
+    fn init_pointer(builder: PointerBuilder<&'a mut A>, size : u32) -> Builder<'a> {
         builder.init_data(size)
     }
-    fn get_from_pointer(builder :PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<&'a mut A>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
         builder.get_data(default)
     }
 }
 
-impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,
-                               value: Reader<'a>,
-                               _canonicalize: bool) -> Result<()> {
+impl <'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    fn set_pointer_builder<'b, B>(pointer: PointerBuilder<&'b mut B>,
+                                  value: Reader<'a>,
+                                  _canonicalize: bool) -> Result<()>
+        where B: BuilderArena
+    {
         pointer.set_data(value);
         Ok(())
     }

@@ -104,7 +104,7 @@ impl<T> Try for Promise<T, crate::Error> {
 
 /// A promise for a result from a method call.
 #[must_use]
-pub struct RemotePromise<Results> where Results: Pipelined + for<'a> Owned<'a> + 'static {
+pub struct RemotePromise<Results> where Results: Pipelined + Owned + 'static {
     pub promise: Promise<Response<Results>, crate::Error>,
     pub pipeline: Results::Pipeline,
 }
@@ -115,6 +115,7 @@ pub struct Response<Results> {
     pub hook: Box<dyn ResponseHook>,
 }
 
+/*
 impl <Results> Response<Results>
     where Results: Pipelined + for<'a> Owned<'a>
 {
@@ -125,6 +126,7 @@ impl <Results> Response<Results>
         self.hook.get()?.get_as()
     }
 }
+*/
 
 /// A method call that has not been sent yet.
 pub struct Request<Params, Results> {
@@ -132,6 +134,7 @@ pub struct Request<Params, Results> {
     pub hook: Box<dyn RequestHook>
 }
 
+/*
 impl <Params, Results> Request<Params, Results>
     where Params: for<'a> Owned<'a>
 {
@@ -164,6 +167,7 @@ where Results: Pipelined + for<'a> Owned<'a> + 'static + Unpin,
                       }
     }
 }
+*/
 
 /// The values of the parameters passed to a method call, as seen by the server.
 pub struct Params<T> {
@@ -175,11 +179,11 @@ impl <T> Params <T> {
     pub fn new(hook: Box<dyn ParamsHook>) -> Params<T> {
         Params { marker: PhantomData, hook: hook }
     }
-    pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
+/*    pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
         where T: Owned<'a>
     {
         Ok(self.hook.get()?.get_as()?)
-    }
+    }*/
 }
 
 /// The return values of a method, written in-place by the method body.
@@ -189,12 +193,12 @@ pub struct Results<T> {
 }
 
 impl <T> Results<T>
-    where T: for<'a> Owned<'a>
+//    where T: for<'a> Owned<'a>
 {
     pub fn new(hook: Box<dyn ResultsHook>) -> Results<T> {
         Results { marker: PhantomData, hook: hook }
     }
-
+/*
     pub fn get<'a>(&'a mut self) -> <T as Owned<'a>>::Builder {
         self.hook.get().unwrap().get_as().unwrap()
     }
@@ -202,7 +206,7 @@ impl <T> Results<T>
     pub fn set(&mut self, other: <T as Owned>::Reader) -> crate::Result<()>
     {
         self.hook.get().unwrap().set_as(other)
-    }
+    }*/
 }
 
 pub trait FromTypelessPipeline {
@@ -231,7 +235,7 @@ impl Client {
         let typeless = self.hook.new_call(interface_id, method_id, size_hint);
         Request { hook: typeless.hook, marker: PhantomData }
     }
-
+/*
     /// If the capability is actually only a promise, the returned promise resolves once the
     /// capability itself has resolved to its final destination (or propagates the exception if
     /// the capability promise is rejected).  This is mainly useful for error-checking in the case
@@ -240,6 +244,7 @@ impl Client {
     pub fn when_resolved(&self) -> Promise<(), Error> {
         self.hook.when_resolved()
     }
+*/
 }
 
 /// An untyped server.

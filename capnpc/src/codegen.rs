@@ -24,6 +24,7 @@ use std::collections::HashSet;
 
 use capnp;
 use capnp::Error;
+use capnp::private::arena::{ReaderArena, ReaderArenaImpl, ReadLimiterImpl};
 
 use crate::{convert_io_err};
 use crate::pointer_constants::generate_pointer_constant;
@@ -31,20 +32,20 @@ use crate::schema_capnp;
 use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
-pub struct GeneratorContext<'a> {
-    pub request: schema_capnp::code_generator_request::Reader<'a>,
-    pub node_map: collections::hash_map::HashMap<u64, schema_capnp::node::Reader<'a>>,
+pub struct GeneratorContext<'a, A> where A: ReaderArena {
+    pub request: schema_capnp::code_generator_request::Reader<'a, A>,
+    pub node_map: collections::hash_map::HashMap<u64, schema_capnp::node::Reader<'a, A>>,
     pub scope_map: collections::hash_map::HashMap<u64, Vec<String>>,
 }
 
-impl <'a> GeneratorContext<'a> {
+impl <'a> GeneratorContext<'a, ReaderArenaImpl<capnp::serialize::OwnedSegments, ReadLimiterImpl, capnp::private::primitive::Unaligned>> {
     pub fn new(
         message:&'a capnp::message::Reader<capnp::serialize::OwnedSegments>)
-        -> ::capnp::Result<GeneratorContext<'a>>
+        -> ::capnp::Result<Self>
     {
         let mut gen = GeneratorContext {
             request : message.get_root()?,
-            node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a>>::new(),
+            node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a, ReaderArenaImpl<capnp::serialize::OwnedSegments, ReadLimiterImpl, capnp::private::primitive::Unaligned>>>::new(),
             scope_map: collections::hash_map::HashMap::<u64, Vec<String>>::new(),
         };
 
@@ -80,7 +81,9 @@ impl <'a> GeneratorContext<'a> {
         }
         Ok(gen)
     }
+}
 
+impl <'a, A> GeneratorContext<'a, A> where A: ReaderArena {
     fn get_last_name<'b>(&'b self, id: u64) -> ::capnp::Result<&'b str> {
         match self.scope_map.get(&id) {
             None => Err(Error::failed(format!("node not found: {}", id))),
@@ -233,7 +236,7 @@ fn module_name(camel_case: &str) -> String {
 const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
 const PARENT_MODULE_ANNOTATION_ID: u64 = 0xabee386cd1450364;
 
-fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp::Result<&str> {
+fn name_annotation_value(annotation: schema_capnp::annotation::Reader<impl ReaderArena>) -> capnp::Result<&str> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
         let name = t?;
         for c in name.chars() {
@@ -248,7 +251,7 @@ fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp:
     }
 }
 
-fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
+fn get_field_name(field: schema_capnp::field::Reader<impl ReaderArena>) -> capnp::Result<&str> {
     for annotation in field.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             return name_annotation_value(annotation);
@@ -257,7 +260,7 @@ fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
     field.get_name()
 }
 
-fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Result<&str> {
+fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader<impl ReaderArena>) -> capnp::Result<&str> {
     for annotation in enumerant.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             if annotation.get_id() == NAME_ANNOTATION_ID {
@@ -268,7 +271,7 @@ fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Resu
     enumerant.get_name()
 }
 
-fn get_parent_module(annotation: schema_capnp::annotation::Reader) -> capnp::Result<Vec<String>> {
+fn get_parent_module(annotation: schema_capnp::annotation::Reader<impl ReaderArena>) -> capnp::Result<Vec<String>> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
         let module = t?;
         Ok(module.split("::").map(|x| x.to_string()).collect())
@@ -292,7 +295,7 @@ fn capnp_name_to_rust_name(capnp_name: &str, name_kind: NameKind) -> String {
     }
 }
 
-fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader<impl ReaderArena>>,
                       scope_map: &mut collections::hash_map::HashMap<u64, Vec<String>>,
                       mut ancestor_scope_names: Vec<String>,
                       mut current_node_name: String,
@@ -366,7 +369,7 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
     Ok(())
 }
 
-fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<String>> {
+fn prim_default(value: &schema_capnp::value::Reader<impl ReaderArena>) -> ::capnp::Result<Option<String>> {
     use crate::schema_capnp::value;
     match value.which()? {
         value::Bool(false) |
@@ -400,8 +403,8 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
 //
 // Returns (type, getter body, default_decl)
 //
-pub fn getter_text(gen: &GeneratorContext,
-                   field: &schema_capnp::field::Reader,
+pub fn getter_text(gen: &GeneratorContext<impl ReaderArena>,
+                   field: &schema_capnp::field::Reader<impl ReaderArena>,
                    is_reader: bool,
                    is_fn: bool)
                    -> ::capnp::Result<(String, FormattedText, Option<FormattedText>)> {
@@ -412,9 +415,9 @@ pub fn getter_text(gen: &GeneratorContext,
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
 
             let mut result_type = if is_reader {
-                format!("{}::Reader<'a>", the_mod)
+                format!("{}::Reader<'a, A>", the_mod)
             } else {
-                format!("{}::Builder<'a>", the_mod)
+                format!("{}::Builder<'a, A>", the_mod)
             };
 
             if is_fn {
@@ -433,7 +436,7 @@ pub fn getter_text(gen: &GeneratorContext,
             let mut default_decl = None;
             let offset = reg_field.get_offset() as usize;
             let module_string = if is_reader { "Reader" } else { "Builder" };
-            let module = if is_reader { Leaf::Reader("'a") } else { Leaf::Builder("'a") };
+            let module = if is_reader { Leaf::Reader("'a", "A") } else { Leaf::Builder("'a", "A") };
             let member = camel_to_snake_case(&*format!("{}", module_string));
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(typ: &str, member:String,
@@ -524,7 +527,7 @@ pub fn getter_text(gen: &GeneratorContext,
 
                     if is_reader {
                         Line(format!(
-                            "::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}), {})",
+                            "::capnp::traits::FromPointerReader::get_from_pointer(self.{}.get_pointer_field({}), {})",
                             member, offset, default))
                     } else {
                         Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}), {})",
@@ -555,14 +558,14 @@ pub fn getter_text(gen: &GeneratorContext,
     }
 }
 
-fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result<FormattedText> {
+fn zero_fields_of_group(gen: &GeneratorContext<impl ReaderArena>, node_id: u64) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::{node, field, type_};
     match gen.node_map[&node_id].which()? {
         node::Struct(st) => {
             let mut result = Vec::new();
             if st.get_discriminant_count() != 0 {
                 result.push(
-                    Line(format!("self.builder.set_data_field::<u16>({}, 0);",
+                    Line(format!("self.builder.reborrow().set_data_field::<u16>({}, 0);",
                                  st.get_discriminant_offset())));
             }
             let fields = st.get_fields()?;
@@ -587,7 +590,7 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
                             type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
                                 let line = Line(format!(
                                     "self.builder.set_data_field::<{0}>({1}, 0{0});",
-                                    slot.get_type()?.type_string(gen, Leaf::Builder("'a"))?,
+                                    slot.get_type()?.type_string(gen, Leaf::Builder("'a", "A"))?,
                                     slot.get_offset()));
                                 // PERF could dedup more efficiently
                                 if !result.contains(&line) { result.push(line) }
@@ -602,7 +605,7 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
                             type_::AnyPointer(_) |
                             type_::Interface(_) // Is this the right thing to do for interfaces?
                                 => {
-                                    let line = Line(format!("self.builder.get_pointer_field({}).clear();",
+                                    let line = Line(format!("self.builder.reborrow().get_pointer_field({}).clear();",
                                                             slot.get_offset()));
                                     // PERF could dedup more efficiently
                                     if !result.contains(&line) { result.push(line) }
@@ -617,9 +620,9 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
     }
 }
 
-fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
+fn generate_setter(gen: &GeneratorContext<impl ReaderArena>, discriminant_offset: u32,
                    styled_name: &str,
-                   field: &schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
+                   field: &schema_capnp::field::Reader<impl ReaderArena>) -> ::capnp::Result<FormattedText> {
 
     use crate::schema_capnp::*;
 
@@ -645,6 +648,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
     let mut setter_generic_param = String::new();
     let mut return_result = false;
     let mut result = Vec::new();
+    let mut initter_self = "self";
 
     let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match field.which()? {
         field::Group(group) => {
@@ -652,10 +656,11 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
             let the_mod = scope.join("::");
 
             initter_interior.push(zero_fields_of_group(gen, group.get_type_id())?);
+            initter_self = "mut self";
 
             initter_interior.push(Line(format!("::capnp::traits::FromStructBuilder::new(self.builder)")));
 
-            (None, Some(format!("{}::Builder<'a>", the_mod)))
+            (None, Some(format!("{}::Builder<'a, A>", the_mod)))
         }
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
@@ -678,7 +683,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     (Some("bool".to_string()), None)
                 }
                 _ if typ.is_prim()? => {
-                    let tstr = typ.type_string(gen, Leaf::Reader("'a"))?;
+                    let tstr = typ.type_string(gen, Leaf::Reader("'a", "A"))?;
                     match prim_default(&reg_field.get_default_value()?)? {
                         None => {
                             setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
@@ -693,7 +698,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     (Some(tstr), None)
                 }
                 type_::Text(()) => {
-                    setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_text(value);",
+                    setter_interior.push(Line(format!("self.builder.reborrow().get_pointer_field({}).set_text(value);",
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
@@ -701,7 +706,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     (Some("::capnp::text::Reader".to_string()), Some("::capnp::text::Builder<'a>".to_string()))
                 }
                 type_::Data(()) => {
-                    setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
+                    setter_interior.push(Line(format!("self.builder.reborrow().get_pointer_field({}).set_data(value);",
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
@@ -711,7 +716,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                 type_::List(ot1) => {
                     return_result = true;
                     setter_interior.push(
-                        Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value, false)",
+                        Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({}), value, false)",
                                      offset)));
 
                     initter_params.push("size: u32");
@@ -721,12 +726,12 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     match ot1.get_element_type()?.which()? {
                         type_::List(_) => {
                             setter_generic_param = "<'b>".to_string();
-                            (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'b"))?),
-                             Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a"))?))
+                            (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'b", "B"))?),
+                             Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a", "A"))?))
                         }
                         _ =>
-                            (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'a"))?),
-                             Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a"))?))
+                            (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'a", "A"))?),
+                             Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a", "A"))?))
                     }
                 }
                 type_::Enum(e) => {
@@ -739,24 +744,23 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                 }
                 type_::Struct(_) => {
                     return_result = true;
-                    setter_generic_param = "<'b>".to_string();
+                    setter_generic_param = "<'b, B: ::capnp::private::arena::ReaderArena >".to_string();
                     initter_interior.push(
                       Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), 0)",
                                    offset)));
                     if typ.is_branded()? {
                         setter_interior.push(
                             Line(format!(
-                                "<{} as ::capnp::traits::SetPointerBuilder<{}>>::set_pointer_builder(self.builder.get_pointer_field({}), value, false)",
-                                typ.type_string(gen, Leaf::Reader("'b"))?,
-                                typ.type_string(gen, Leaf::Builder("'b"))?,
+                                "<{} as ::capnp::traits::SetPointerBuilder>::set_pointer_builder(self.builder.reborrow().get_pointer_field({}), value, false)",
+                                typ.type_string(gen, Leaf::Reader("'b", "B"))?,
                                 offset)));
-                        (Some(typ.type_string(gen, Leaf::Reader("'b"))?),
-                         Some(typ.type_string(gen, Leaf::Builder("'a"))?))
+                        (Some(typ.type_string(gen, Leaf::Reader("'b", "B"))?),
+                         Some(typ.type_string(gen, Leaf::Builder("'a", "A"))?))
                     } else {
                         setter_interior.push(
-                            Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value, false)", offset)));
-                        (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'b"))?),
-                         Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a"))?))
+                            Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({}), value, false)", offset)));
+                        (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'b", "B"))?),
+                         Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a", "A"))?))
                     }
                 }
                 type_::Interface(_) => {
@@ -769,12 +773,11 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     if typ.is_parameter()? {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).init_as()", offset)));
                         setter_generic_param = format!(
-                            "<SPB: ::capnp::traits::SetPointerBuilder<{}>>",
-                            typ.type_string(gen, Leaf::Builder("'a"))?);
+                            "<SPB: ::capnp::traits::SetPointerBuilder>");
                         setter_interior.push(Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value, false)", offset)));
                         return_result = true;
 
-                        let builder_type = typ.type_string(gen, Leaf::Builder("'a"))?;
+                        let builder_type = typ.type_string(gen, Leaf::Builder("'a", "A"))?;
 
                         result.push(Line("#[inline]".to_string()));
                         result.push(Line(format!("pub fn initn_{}(self, length: u32) -> {} {{",
@@ -791,7 +794,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                                                    offset)));
                         initter_interior.push(Line("result.clear();".to_string()));
                         initter_interior.push(Line("result".to_string()));
-                        (None, Some("::capnp::any_pointer::Builder<'a>".to_string()))
+                        (None, Some("::capnp::any_pointer::Builder<'a, A>".to_string()))
                     }
                 }
                 _ => return Err(Error::failed(format!("unrecognized type"))),
@@ -815,8 +818,8 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.join(", ");
-            result.push(Line(format!("pub fn init_{}(self, {}) -> {} {{",
-                                     styled_name, args, builder_type)));
+            result.push(Line(format!("pub fn init_{}({}, {}) -> {} {{",
+                                     styled_name, initter_self, args, builder_type)));
             result.push(Indent(Box::new(Branch(initter_interior))));
             result.push(Line("}".to_string()));
         }
@@ -827,9 +830,9 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 
 
 // return (the 'Which' enum, the 'which()' accessor, typedef, default_decls)
-fn generate_union(gen: &GeneratorContext,
+fn generate_union(gen: &GeneratorContext<impl ReaderArena>,
                   discriminant_offset: u32,
-                  fields: &[schema_capnp::field::Reader],
+                  fields: &[schema_capnp::field::Reader<impl ReaderArena>],
                   is_reader: bool,
                   params: &TypeParameterTexts)
                   -> ::capnp::Result<(FormattedText, FormattedText, FormattedText, Vec<FormattedText>)>
@@ -916,7 +919,7 @@ fn generate_union(gen: &GeneratorContext,
     let concrete_type =
             format!("Which{}{}",
                     if is_reader {"Reader"} else {"Builder"},
-                    if ty_params.len() > 0 { format!("<'a,{}>", params.params) } else { "".to_string() });
+                    if ty_params.len() > 0 { format!("<'a,A,{}>", params.params) } else { "".to_string() });
 
     let typedef =
         Line(format!("pub type {} = Which{};",
@@ -941,13 +944,14 @@ fn generate_union(gen: &GeneratorContext,
 
 fn generate_haser(discriminant_offset: u32,
                   styled_name: &str,
-                  field: &schema_capnp::field::Reader,
+                  field: &schema_capnp::field::Reader<impl ReaderArena>,
                   is_reader: bool) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::*;
 
     let mut result = Vec::new();
     let mut interior = Vec::new();
     let member = if is_reader { "reader" } else { "builder" };
+    let member2 = if is_reader { member } else { "builder.reborrow_as_reader()" };
 
     let discriminant_value = field.get_discriminant_value();
     if discriminant_value != field::NO_DISCRIMINANT {
@@ -966,7 +970,7 @@ fn generate_haser(discriminant_offset: u32,
                 type_::AnyPointer(_) => {
                     interior.push(
                         Line(format!("!self.{}.get_pointer_field({}).is_null()",
-                                     member, reg_field.get_offset())));
+                                     member2, reg_field.get_offset())));
                     result.push(
                         Line(format!("pub fn has_{}(&self) -> bool {{", styled_name)));
                     result.push(
@@ -981,8 +985,8 @@ fn generate_haser(discriminant_offset: u32,
     Ok(Branch(result))
 }
 
-fn generate_pipeline_getter(gen: &GeneratorContext,
-                            field: schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
+fn generate_pipeline_getter(gen: &GeneratorContext<impl ReaderArena>,
+                            field: schema_capnp::field::Reader<impl ReaderArena>) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::{field, type_};
 
     let name = get_field_name(field)?;
@@ -1031,8 +1035,8 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
 
 // We need this to work around the fact that Rust does not allow typedefs
 // with unused type parameters.
-fn get_ty_params_of_brand(gen: &GeneratorContext,
-                          brand: crate::schema_capnp::brand::Reader<>) -> ::capnp::Result<String>
+fn get_ty_params_of_brand(gen: &GeneratorContext<impl ReaderArena>,
+                          brand: crate::schema_capnp::brand::Reader<impl ReaderArena>) -> ::capnp::Result<String>
 {
     let mut acc = HashSet::new();
     get_ty_params_of_brand_helper(gen, &mut acc, brand)?;
@@ -1047,9 +1051,9 @@ fn get_ty_params_of_brand(gen: &GeneratorContext,
     Ok(result)
 }
 
-fn get_ty_params_of_type_helper(gen: &GeneratorContext,
+fn get_ty_params_of_type_helper(gen: &GeneratorContext<impl ReaderArena>,
                                 accumulator: &mut HashSet<(u64, u16)>,
-                                typ: crate::schema_capnp::type_::Reader<>)
+                                typ: crate::schema_capnp::type_::Reader<impl ReaderArena>)
     -> ::capnp::Result<()>
 {
     use crate::schema_capnp::type_;
@@ -1093,9 +1097,9 @@ fn get_ty_params_of_type_helper(gen: &GeneratorContext,
     Ok(())
 }
 
-fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
+fn get_ty_params_of_brand_helper(gen: &GeneratorContext<impl ReaderArena>,
                          accumulator: &mut HashSet<(u64, u16)>,
-                         brand: crate::schema_capnp::brand::Reader<>)
+                         brand: crate::schema_capnp::brand::Reader<impl ReaderArena>)
                          -> ::capnp::Result<()>
 {
     for scope in brand.get_scopes()?.iter() {
@@ -1122,7 +1126,7 @@ fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
     Ok(())
 }
 
-fn generate_node(gen: &GeneratorContext,
+fn generate_node(gen: &GeneratorContext<impl ReaderArena>,
                  node_id: u64,
                  node_name: &str,
                  // Ugh. We need this to deal with the anonymous Params and Results
@@ -1248,7 +1252,7 @@ fn generate_node(gen: &GeneratorContext,
 
             let builder_struct_size =
                 Branch(vec!(
-                    Line(format!("impl <'a,{0}> ::capnp::traits::HasStructSize for Builder<'a,{0}> {1} {{",
+                    Line(format!("impl <'a,A,{0}> ::capnp::traits::HasStructSize for Builder<'a,A,{0}> {1} {{",
                                  params.params, params.where_clause)),
                     Indent(Box::new(
                         Branch(vec!(Line("#[inline]".to_string()),
@@ -1270,14 +1274,14 @@ fn generate_node(gen: &GeneratorContext,
 
             let from_pointer_builder_impl =
                 Branch(vec![
-                    Line(format!("impl <'a,{0}> ::capnp::traits::FromPointerBuilder<'a> for Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
+                    Line(format!("impl <'a, A, {0}> ::capnp::traits::FromPointerBuilder<'a, A> for Builder<'a, A, {0}> where A: ::capnp::private::arena::BuilderArena {1} {{", params.params, params.where_clause)),
                     Indent(
                         Box::new(
                             Branch(vec!(
-                                Line(format!("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Builder<'a,{}> {{", params.params)),
+                                Line(format!("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<&'a mut A>, _size: u32) -> Builder<'a, A, {}> {{", params.params)),
                                 Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string()))),
                                 Line("}".to_string()),
-                                Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Builder<'a,{}>> {{", params.params)),
+                                Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<&'a mut A>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Builder<'a, A, {}>> {{", params.params)),
                                 Indent(Box::new(Line("::core::result::Result::Ok(::capnp::traits::FromStructBuilder::new(builder.get_struct(_private::STRUCT_SIZE, default)?))".to_string()))),
                                 Line("}".to_string()))))),
                     Line("}".to_string()),
@@ -1289,8 +1293,8 @@ fn generate_node(gen: &GeneratorContext,
                     Branch(vec!(
                         Line("#[derive(Copy, Clone)]".into()),
                         Line("pub struct Owned;".to_string()),
-                        Line("impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; }".to_string()),
-                        Line("impl <'a> ::capnp::traits::OwnedStruct<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; }".to_string()),
+                        Line("impl capnp::traits::Owned for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }".to_string()),
+                        Line("impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a, A: ::capnp::private::arena::ReaderArena + 'a> = Reader<'a, A>; type Builder<'a, A: ::capnp::private::arena::BuilderArena + 'a> = Builder<'a, A>; }".to_string()),
                         Line("impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }".to_string())
                     ))
                 } else {
@@ -1308,9 +1312,8 @@ fn generate_node(gen: &GeneratorContext,
                     ))
                 }),
                 BlankLine,
-                Line("#[derive(Clone, Copy)]".to_string()),
                 (if !is_generic {
-                    Line("pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }".to_string())
+                    Line("pub struct Reader<'a, A> { reader: ::capnp::private::layout::StructReader<&'a A> }".to_string())
                 } else {
                     Branch(vec!(
                         Line(format!("pub struct Reader<'a,{}> {} {{", params.params, params.where_clause)),
@@ -1322,40 +1325,44 @@ fn generate_node(gen: &GeneratorContext,
                     ))
                 }),
                 BlankLine,
+                Line("impl <'a, A> Clone for Reader<'a,A> { fn clone(&self) -> Self { Self { reader: self.reader.clone() } } }".to_string()),
+                Line("impl <'a, A> Copy for Reader<'a,A> {}".to_string()),
+
+                BlankLine,
                 Branch(vec!(
-                        Line(format!("impl <'a,{0}> ::capnp::traits::HasTypeId for Reader<'a,{0}> {1} {{",
+                        Line(format!("impl <'a, A, {0}> ::capnp::traits::HasTypeId for Reader<'a,A,{0}> {1} {{",
                             params.params, params.where_clause)),
                         Indent(Box::new(Branch(vec!(Line("#[inline]".to_string()),
                                                Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))))),
                     Line("}".to_string()))),
-                Line(format!("impl <'a,{0}> ::capnp::traits::FromStructReader<'a> for Reader<'a,{0}> {1} {{",
+                Line(format!("impl <'a,A,{0}> ::capnp::traits::FromStructReader<'a, A> for Reader<'a, A, {0}> where A: ::capnp::private::arena::ReaderArena {1} {{",
                             params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,{}> {{", params.params)),
+                        Line(format!("fn new(reader: ::capnp::private::layout::StructReader<&'a A>) -> Reader<'a,A,{}> {{", params.params)),
                         Indent(Box::new(Line(format!("Reader {{ reader, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
-                Line(format!("impl <'a,{0}> ::capnp::traits::FromPointerReader<'a> for Reader<'a,{0}> {1} {{",
+                Line(format!("impl <'a,A,{0}> ::capnp::traits::FromPointerReader<'a, A> for Reader<'a,A,{0}> where A: ::capnp::private::arena::ReaderArena {1} {{",
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Reader<'a,{}>> {{",params.params)),
+                        Line(format!("fn get_from_pointer(reader: ::capnp::private::layout::PointerReader<&'a A>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Reader<'a, A, {}>> {{",params.params)),
                         Indent(Box::new(Line("::core::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(default)?))".to_string()))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
-                Line(format!("impl <'a,{0}> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,{0}> {1} {{",
+                Line(format!("impl <'a,A,{0}> ::capnp::traits::IntoInternalStructReader<'a,A> for Reader<'a,A,{0}> {1} {{",
                             params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line("fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {".to_string()),
+                        Line("fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<&'a A> {".to_string()),
                         Indent(Box::new(Line("self.reader".to_string()))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
-                Line(format!("impl <'a,{0}> ::capnp::traits::Imbue<'a> for Reader<'a,{0}> {1} {{",
+                Line(format!("impl <'a,A,{0}> ::capnp::traits::Imbue<'a> for Reader<'a,A,{0}> where A: ::capnp::private::arena::ReaderArena {1} {{",
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
@@ -1364,10 +1371,10 @@ fn generate_node(gen: &GeneratorContext,
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
-                Line(format!("impl <'a,{0}> Reader<'a,{0}> {1} {{", params.params, params.where_clause)),
+                Line(format!("impl <'a,A,{0}> Reader<'a,A,{0}> where A: ::capnp::private::arena::ReaderArena {1} {{", params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line(format!("pub fn reborrow(&self) -> Reader<{}> {{",params.params)),
+                        Line(format!("pub fn reborrow(&self) -> Reader<A,{}> {{", params.params)),
                         Indent(Box::new(Line("Reader { .. *self }".to_string()))),
                         Line("}".to_string()),
                         BlankLine,
@@ -1378,7 +1385,7 @@ fn generate_node(gen: &GeneratorContext,
                 Line("}".to_string()),
                 BlankLine,
                 (if !is_generic {
-                    Line("pub struct Builder<'a> { builder: ::capnp::private::layout::StructBuilder<'a> }".to_string())
+                    Line("pub struct Builder<'a, A> { builder: ::capnp::private::layout::StructBuilder<&'a mut A> }".to_string())
                 } else {
                     Branch(vec!(
                         Line(format!("pub struct Builder<'a,{}> {} {{",
@@ -1392,23 +1399,23 @@ fn generate_node(gen: &GeneratorContext,
                 }),
                 builder_struct_size,
                 Branch(vec!(
-                    Line(format!("impl <'a,{0}> ::capnp::traits::HasTypeId for Builder<'a,{0}> {1} {{",
+                    Line(format!("impl <'a,A,{0}> ::capnp::traits::HasTypeId for Builder<'a,A,{0}> {1} {{",
                                  params.params, params.where_clause)),
                     Indent(Box::new(Branch(vec!(
                         Line("#[inline]".to_string()),
                         Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))))),
                     Line("}".to_string()))),
                 Line(format!(
-                    "impl <'a,{0}> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,{0}> {1} {{",
+                    "impl <'a, A, {0}> ::capnp::traits::FromStructBuilder<'a, A> for Builder<'a,A,{0}> where A: ::capnp::private::arena::BuilderArena {1} {{",
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, {}> {{", params.params)),
+                        Line(format!("fn new(builder: ::capnp::private::layout::StructBuilder<&'a mut A>) -> Builder<'a, A, {}> {{", params.params)),
                         Indent(Box::new(Line(format!("Builder {{ builder, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
-                Line(format!("impl <'a,{0}> ::capnp::traits::ImbueMut<'a> for Builder<'a,{0}> {1} {{",
+                Line(format!("impl <'a,A,{0}> ::capnp::traits::ImbueMut<'a> for Builder<'a,A,{0}> where A: ::capnp::private::arena::BuilderArena {1} {{",
                              params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
@@ -1420,27 +1427,27 @@ fn generate_node(gen: &GeneratorContext,
 
                 from_pointer_builder_impl,
                 Line(format!(
-                    "impl <'a,{0}> ::capnp::traits::SetPointerBuilder<Builder<'a,{0}>> for Reader<'a,{0}> {1} {{",
+                    "impl <'a, A, {0}> ::capnp::traits::SetPointerBuilder for Reader<'a, A, {0}> where A: ::capnp::private::arena::ReaderArena {1} {{",
                     params.params, params.where_clause)),
-                Indent(Box::new(Line(format!("fn set_pointer_builder<'b>(pointer: ::capnp::private::layout::PointerBuilder<'b>, value: Reader<'a,{}>, canonicalize: bool) -> ::capnp::Result<()> {{ pointer.set_struct(&value.reader, canonicalize) }}", params.params)))),
+                Indent(Box::new(Line(format!("fn set_pointer_builder<'b, B>(pointer: ::capnp::private::layout::PointerBuilder<&'b mut B>, value: Reader<'a, A, {}>, canonicalize: bool) -> ::capnp::Result<()> where B: ::capnp::private::arena::BuilderArena {{ pointer.set_struct(&value.reader, canonicalize) }}", params.params)))),
                 Line("}".to_string()),
                 BlankLine,
-                Line(format!("impl <'a,{0}> Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
+                Line(format!("impl <'a, A, {0}> Builder<'a, A, {0}> where A: ::capnp::private::arena::BuilderArena {1} {{", params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line(format!("pub fn into_reader(self) -> Reader<'a,{}> {{", params.params)),
+                        Line(format!("pub fn into_reader(self) -> Reader<'a,A, {}> {{", params.params)),
                         Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
                         Line("}".to_string()),
-                        Line(format!("pub fn reborrow(&mut self) -> Builder<{}> {{", params.params)),
-                        Indent(Box::new(Line("Builder { .. *self }".to_string()))),
+                        Line(format!("pub fn reborrow(&mut self) -> Builder<A, {}> {{", params.params)),
+                        Indent(Box::new(Line("Builder { builder: self.builder.reborrow() }".to_string()))),
                         Line("}".to_string()),
-                        Line(format!("pub fn reborrow_as_reader(&self) -> Reader<{}> {{", params.params)),
-                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
+                        Line(format!("pub fn reborrow_as_reader(&self) -> Reader<A, {}> {{", params.params)),
+                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.reborrow_as_reader())".to_string()))),
                         Line("}".to_string()),
 
                         BlankLine,
                         Line("pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {".to_string()),
-                        Indent(Box::new(Line("self.builder.into_reader().total_size()".to_string()))),
+                        Indent(Box::new(Line("self.builder.reborrow_as_reader().total_size()".to_string()))),
                         Line("}".to_string())
                         ]))),
                 Indent(Box::new(Branch(builder_members))),

@@ -24,6 +24,7 @@
 use core::{marker};
 
 use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
+use crate::private::arena::{BuilderArena, ReaderArena};
 use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                              PrimitiveElement};
 use crate::Result;
@@ -33,69 +34,61 @@ pub struct Owned<T> {
     marker: marker::PhantomData<T>,
 }
 
-impl <'a, T> crate::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
-    type Reader = Reader<'a, T>;
-    type Builder = Builder<'a, T>;
+impl <T> crate::traits::Owned for Owned<T> where T: PrimitiveElement {
+    type Reader<'a, A: ReaderArena + 'a> = Reader<'a, A, T>;
+    type Builder<'a, A: BuilderArena + 'a> = Builder<'a, A, T>;
 }
 
 #[derive(Clone, Copy)]
-pub struct Reader<'a, T> where T: PrimitiveElement {
+pub struct Reader<'a, A, T> where T: PrimitiveElement {
     marker: marker::PhantomData<T>,
-    reader: ListReader<'a>
+    reader: ListReader<&'a A>
 }
 
-impl <'a, T: PrimitiveElement> Reader<'a, T> {
-    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader: reader, marker: marker::PhantomData }
-    }
-
+impl <'a, A, T: PrimitiveElement> Reader<'a, A, T> where A: ReaderArena {
     pub fn len(&self) -> u32 { self.reader.len() }
 
-    pub fn iter(self) -> ListIter<Reader<'a, T>, T>{
+    pub fn iter(self) -> ListIter<Self, T>{
         let l = self.len();
         ListIter::new(self, l)
     }
 }
 
-impl <'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, T>> {
+impl <'a, A, T: PrimitiveElement> FromPointerReader<'a, A> for Reader<'a, A, T> where A: ReaderArena {
+    fn get_from_pointer(reader: PointerReader<&'a A>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, A, T>> {
         Ok(Reader { reader: reader.get_list(T::element_size(), default)?,
                     marker: marker::PhantomData })
     }
 }
 
-impl <'a, T: PrimitiveElement>  IndexMove<u32, T> for Reader<'a, T>{
+impl <'a, A, T: PrimitiveElement>  IndexMove<u32, T> for Reader<'a, A, T> where A: ReaderArena {
     fn index_move(&self, index: u32) -> T {
         self.get(index)
     }
 }
 
-impl <'a, T: PrimitiveElement> Reader<'a, T> {
+impl <'a, A, T: PrimitiveElement> Reader<'a, A, T> where A: ReaderArena {
     pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get(&self.reader, index)
     }
 }
 
-impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
-    fn into_internal_list_reader(self) -> ListReader<'a> {
+impl <'a, A, T> crate::traits::IntoInternalListReader<'a, A> for Reader<'a, A, T> where T: PrimitiveElement {
+    fn into_internal_list_reader(self) -> ListReader<&'a A> {
         self.reader
     }
 }
 
-pub struct Builder<'a, T> where T: PrimitiveElement {
+pub struct Builder<'a, A, T> where T: PrimitiveElement {
     marker: marker::PhantomData<T>,
-    builder: ListBuilder<'a>
+    builder: ListBuilder<&'a mut A>
 }
 
-impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
-    pub fn new(builder: ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder: builder, marker: marker::PhantomData }
-    }
-
+impl <'a, A, T> Builder<'a, A, T> where T: PrimitiveElement, A: BuilderArena {
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    pub fn into_reader(self) -> Reader<'a, T> {
+    pub fn into_reader(self) -> Reader<'a, A, T> {
         Reader {
             marker: marker::PhantomData,
             reader: self.builder.into_reader(),
@@ -107,43 +100,48 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
     }
 }
 
-impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
-    fn init_pointer(builder: PointerBuilder<'a>, size: u32) -> Builder<'a, T> {
+impl <'a, A, T: PrimitiveElement> FromPointerBuilder<'a, A> for Builder<'a, A, T> where A: BuilderArena {
+    fn init_pointer(builder: PointerBuilder<&'a mut A>, size: u32) -> Builder<'a, A, T> {
         Builder { builder: builder.init_list(T::element_size(), size),
                   marker: marker::PhantomData }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(builder: PointerBuilder<&'a mut A>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, A, T>> {
         Ok(Builder { builder: builder.get_list(T::element_size(), default)?,
                      marker: marker::PhantomData })
     }
 }
 
-impl <'a, T : PrimitiveElement> Builder<'a, T> {
+impl <'a, A, T: PrimitiveElement> Builder<'a, A, T> where A: BuilderArena {
     pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get_from_builder(&self.builder, index)
     }
 
-    pub fn reborrow<'b>(&'b self) -> Builder<'b, T> {
-        Builder { .. *self }
+    pub fn reborrow<'b>(&'b mut self) -> Builder<'b, A, T> {
+        Builder { builder: self.builder.reborrow(),
+                  .. *self }
     }
 }
 
-impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
-    where T: PrimitiveElement
+impl <'a, A, T> crate::traits::SetPointerBuilder for Reader<'a, A, T>
+where T: PrimitiveElement,
+      A: ReaderArena
 {
-    fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,
-                               value: Reader<'a, T>,
-                               canonicalize: bool) -> Result<()> {
+    fn set_pointer_builder<'b, B>(pointer: PointerBuilder<&'b mut B>,
+                                  value: Reader<'a, A, T>,
+                                  canonicalize: bool) -> Result<()>
+        where B: BuilderArena
+    {
         pointer.set_list(&value.reader, canonicalize)
     }
 }
 
-impl <'a, T> ::core::iter::IntoIterator for Reader<'a, T>
-    where T: PrimitiveElement
+impl <'a, A, T> ::core::iter::IntoIterator for Reader<'a, A, T>
+where T: PrimitiveElement,
+      A: ReaderArena
 {
     type Item = T;
-    type IntoIter = ListIter<Reader<'a, T>, Self::Item>;
+    type IntoIter = ListIter<Reader<'a, A, T>, Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()

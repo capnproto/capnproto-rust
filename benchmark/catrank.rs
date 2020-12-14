@@ -19,14 +19,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use capnp::private::arena::{BuilderArena, ReaderArena};
+
 use crate::common::*;
 use crate::catrank_capnp::*;
 
-#[derive(Clone, Copy)]
-pub struct ScoredResult<'a> {
+pub struct ScoredResult<'a, A> {
     score: f64,
-    result: search_result::Reader<'a>
+    result: search_result::Reader<'a, A>
 }
+
+impl <'a, A> Clone for ScoredResult<'a, A> {
+    fn clone(&self) -> Self {
+        Self {
+            score: self.score,
+            result: self.result,
+        }
+    }
+}
+
+impl <'a, A> Copy for ScoredResult<'a, A> {}
 
 const URL_PREFIX: &'static str = "http://example.com";
 
@@ -37,7 +49,9 @@ impl crate::TestCase for CatRank {
     type Response = search_result_list::Owned;
     type Expectation = i32;
 
-    fn setup_request(&self, rng: &mut FastRand, request: search_result_list::Builder) -> i32 {
+    fn setup_request<A>(&self, rng: &mut FastRand, request: search_result_list::Builder<A>) -> i32
+        where A: BuilderArena
+    {
         let count = rng.next_less_than(1000);
         let mut good_count: i32 = 0;
 
@@ -84,10 +98,11 @@ impl crate::TestCase for CatRank {
         good_count
     }
 
-    fn handle_request(&self, request: search_result_list::Reader,
-                      response: search_result_list::Builder) -> ::capnp::Result<()>
+    fn handle_request<A,B>(&self, request: search_result_list::Reader<A>,
+                           response: search_result_list::Builder<B>) -> ::capnp::Result<()>
+        where A: ReaderArena, B: BuilderArena
     {
-        let mut scored_results: Vec<ScoredResult> = Vec::new();
+        let mut scored_results: Vec<ScoredResult<A>> = Vec::new();
 
         let results = request.get_results()?;
         for i in 0..results.len() {
@@ -119,8 +134,9 @@ impl crate::TestCase for CatRank {
         Ok(())
     }
 
-    fn check_response(&self, response: search_result_list::Reader, expected_good_count: i32)
-                      -> ::capnp::Result<()>
+    fn check_response<A>(&self, response: search_result_list::Reader<A>, expected_good_count: i32)
+                         -> ::capnp::Result<()>
+        where A: ReaderArena
     {
         let mut good_count : i32 = 0;
         let results = response.get_results()?;
