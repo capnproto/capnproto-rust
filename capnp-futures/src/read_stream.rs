@@ -30,7 +30,7 @@ async fn read_next_message<R>(mut reader: R, options: message::ReaderOptions)
                               -> Result<(R, Option<message::Reader<capnp::serialize::OwnedSegments>>), Error>
     where R: AsyncRead + Unpin
 {
-    let m = crate::serialize::read_message(&mut reader, options).await?;
+    let m = crate::serialize::try_read_message(&mut reader, options).await?;
     Ok((reader, m))
 }
 

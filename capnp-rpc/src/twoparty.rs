@@ -149,7 +149,7 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
             Some(mut s) => {
                 let receive_options = inner.receive_options;
                 Promise::from_future(async move {
-                    let maybe_message = ::capnp_futures::serialize::read_message(&mut s, receive_options).await?;
+                    let maybe_message = ::capnp_futures::serialize::try_read_message(&mut s, receive_options).await?;
                     *return_it_here.borrow_mut() = Some(s);
                     Ok(maybe_message.map(|message|
                                          Box::new(IncomingMessage::new(message)) as Box<dyn crate::IncomingMessage>))

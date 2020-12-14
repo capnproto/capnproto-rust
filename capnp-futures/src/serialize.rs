@@ -28,11 +28,19 @@ use capnp::serialize::{OwnedSegments, SegmentLengthsBuilder};
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
+#[deprecated(since = "0.13.2", note = "This function was renamed to try_read_message()")]
+pub async fn read_message<R>(reader: R, options: message::ReaderOptions) -> Result<Option<message::Reader<OwnedSegments>>>
+    where R: AsyncRead + Unpin
+{
+    try_read_message(reader, options).await
+}
+
+
 /// Begins an asynchronous read of a message from `reader`. Returns `None` if
 /// `reader` has zero bytes left (i.e. is at end-of-file). To read a stream
 /// containing an unknown number of messages, you could call this function
 /// repeatedly until it returns `None`.
-pub async fn read_message<R>(mut reader: R, options: message::ReaderOptions) -> Result<Option<message::Reader<OwnedSegments>>>
+pub async fn try_read_message<R>(mut reader: R, options: message::ReaderOptions) -> Result<Option<message::Reader<OwnedSegments>>>
     where R: AsyncRead + Unpin
 {
     let segment_lengths_builder = match read_segment_table(&mut reader, options).await? {
@@ -228,7 +236,7 @@ pub mod test {
 
     use super::{
         AsOutputSegments,
-        read_message,
+        try_read_message,
         read_segment_table,
         write_message,
     };
@@ -494,7 +502,7 @@ pub mod test {
             };
 
             let message =
-                futures::executor::block_on(Box::pin(read_message(&mut read, Default::default()))).expect("reading").unwrap();
+                futures::executor::block_on(Box::pin(try_read_message(&mut read, Default::default()))).expect("reading").unwrap();
             let message_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {

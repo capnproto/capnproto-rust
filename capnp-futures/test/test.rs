@@ -130,7 +130,7 @@ mod tests {
         let f0 = serialize::write_message(stream0, message)
                 .map_err(|e| panic!("write error {:?}", e)).map(|_|());
         let f1 =
-            serialize::read_message(stream1, capnp::message::ReaderOptions::new()).and_then(|maybe_message_reader| {
+            serialize::try_read_message(stream1, capnp::message::ReaderOptions::new()).and_then(|maybe_message_reader| {
                 match maybe_message_reader {
                     None => panic!("did not get message"),
                     Some(m) => {
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn static_lifetime_not_required_funcs() {
         let (mut write, mut read) = async_byte_channel::channel();
-        let _ = serialize::read_message(&mut read, message::ReaderOptions::default());
+        let _ = serialize::try_read_message(&mut read, message::ReaderOptions::default());
         let _ = serialize::write_message(&mut write, message::Builder::new_default());
     }
 
