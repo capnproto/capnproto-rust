@@ -28,13 +28,17 @@ use capnp::serialize::{OwnedSegments, SegmentLengthsBuilder};
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
-#[deprecated(since = "0.13.2", note = "This function was renamed to try_read_message()")]
-pub async fn read_message<R>(reader: R, options: message::ReaderOptions) -> Result<Option<message::Reader<OwnedSegments>>>
-    where R: AsyncRead + Unpin
-{
-    try_read_message(reader, options).await
-}
 
+/// Asynchronously reads a message from `reader`.
+pub async fn read_message<R>(reader: R, options: message::ReaderOptions)
+                             -> Result<message::Reader<OwnedSegments>>
+where R: AsyncRead + Unpin
+{
+    match try_read_message(reader, options).await? {
+        Some(s) => Ok(s),
+        None => Err(Error::failed("Premature end of file".to_string()))
+    }
+}
 
 /// Asynchronously reads a message from `reader`. Returns `None` if `reader`
 /// has zero bytes left (i.e. is at end-of-file). To read a stream
