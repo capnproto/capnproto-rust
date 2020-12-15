@@ -41,10 +41,6 @@ pub struct Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
 }
 
 impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
-    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader: reader, marker: ::core::marker::PhantomData }
-    }
-
     pub fn len(&self) -> u32 { self.reader.len() }
     pub fn iter(self) -> ListIter<Reader<'a, T>, Result<<T as crate::traits::Owned<'a>>::Reader>> {
         ListIter::new(self, self.len())
@@ -86,10 +82,6 @@ pub struct Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
-    pub fn new(builder: ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder: builder, marker: ::core::marker::PhantomData }
-    }
-
     pub fn len(&self) -> u32 { self.builder.len() }
 
     pub fn into_reader(self) -> Reader<'a, T> {

@@ -52,10 +52,6 @@ impl <'a, T> Clone for Reader<'a, T> where T: for<'b> crate::traits::OwnedStruct
 impl <'a, T> Copy for Reader<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {}
 
 impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
-    pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader : reader, marker : PhantomData }
-    }
-
     pub fn len(&self) -> u32 { self.reader.len() }
 
     pub fn iter(self) -> ListIter<Reader<'a, T>, <T as crate::traits::OwnedStruct<'a>>::Reader> {
@@ -102,10 +98,6 @@ pub struct Builder<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
-    pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder: builder, marker: PhantomData }
-    }
-
     pub fn len(&self) -> u32 { self.builder.len() }
 
     pub fn into_reader(self) -> Reader<'a, T> {

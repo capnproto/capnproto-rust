@@ -41,7 +41,7 @@ pub struct Reader<'a> {
 }
 
 impl <'a> Reader<'a> {
-    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b> {
+    pub(crate) fn new<'b>(reader: ListReader<'b>) -> Reader<'b> {
         Reader { reader: reader }
     }
 
@@ -81,10 +81,6 @@ pub struct Builder<'a> {
 }
 
 impl <'a> Builder<'a> {
-    pub fn new(builder: ListBuilder<'a>) -> Builder<'a> {
-        Builder { builder: builder }
-    }
-
     pub fn len(&self) -> u32 { self.builder.len() }
 
     pub fn into_reader(self) -> Reader<'a> {

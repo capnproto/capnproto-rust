@@ -45,10 +45,6 @@ pub struct Reader<'a, T> where T: PrimitiveElement {
 }
 
 impl <'a, T: PrimitiveElement> Reader<'a, T> {
-    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader: reader, marker: marker::PhantomData }
-    }
-
     pub fn len(&self) -> u32 { self.reader.len() }
 
     pub fn iter(self) -> ListIter<Reader<'a, T>, T>{
@@ -89,10 +85,6 @@ pub struct Builder<'a, T> where T: PrimitiveElement {
 }
 
 impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
-    pub fn new(builder: ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder: builder, marker: marker::PhantomData }
-    }
-
     pub fn len(&self) -> u32 { self.builder.len() }
 
     pub fn into_reader(self) -> Reader<'a, T> {

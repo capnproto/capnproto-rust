@@ -48,7 +48,6 @@ pub struct Reader<'a> {
 }
 
 impl <'a> Reader<'a> {
-    #[inline]
     pub fn new<'b>(reader: PointerReader<'b>) -> Reader<'b> {
         Reader { reader: reader }
     }
@@ -118,7 +117,6 @@ pub struct Builder<'a> {
 }
 
 impl <'a> Builder<'a> {
-    #[inline]
     pub fn new(builder: PointerBuilder<'a>) -> Builder<'a> {
         Builder { builder: builder }
     }

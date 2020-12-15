@@ -46,10 +46,6 @@ pub struct Reader<'a, T> {
 }
 
 impl <'a, T: FromU16> Reader<'a, T> {
-    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader: reader, marker: PhantomData }
-    }
-
     pub fn len(&self) -> u32 { self.reader.len() }
 
     pub fn iter(self) -> ListIter<Reader<'a, T>, ::core::result::Result<T, NotInSchema>>{
@@ -91,10 +87,6 @@ pub struct Builder<'a, T> {
 }
 
 impl <'a, T : ToU16 + FromU16> Builder<'a, T> {
-    pub fn new(builder: ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder: builder, marker: PhantomData }
-    }
-
     pub fn len(&self) -> u32 { self.builder.len() }
 
     pub fn into_reader(self) -> Reader<'a, T> {
