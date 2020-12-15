@@ -1284,7 +1284,7 @@ fn generate_node(gen: &GeneratorContext,
                 (if !is_generic {
                     Branch(vec!(
                         Line("#[derive(Copy, Clone)]".into()),
-                        Line("pub struct Owned;".to_string()),
+                        Line("pub struct Owned(());".to_string()),
                         Line("impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; }".to_string()),
                         Line("impl <'a> ::capnp::traits::OwnedStruct<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; }".to_string()),
                         Line("impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }".to_string())
@@ -1656,7 +1656,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(if !is_generic {
                 Branch(vec!(
                     Line("#[derive(Copy, Clone)]".into()),
-                    Line("pub struct Owned;".to_string()),
+                    Line("pub struct Owned(());".to_string()),
                     Line("impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Client; type Builder = Client; }".to_string()),
                     Line("impl ::capnp::traits::Pipelined for Owned { type Pipeline = Client; }".to_string())))
             } else {
