@@ -122,7 +122,7 @@ impl <'a> Builder<'a> {
     }
 
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder { builder: self.builder.borrow() }
+        Builder { builder: self.builder.reborrow() }
     }
 
     pub fn is_null(&self) -> bool {

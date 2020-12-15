@@ -2453,7 +2453,7 @@ impl <'a> PointerReader<'a> {
         })
     }
 
-    pub fn borrow<'b>(&'b self) -> PointerReader<'b> {
+    pub fn reborrow<'b>(&'b self) -> PointerReader<'b> {
         PointerReader { arena: self.arena, .. *self }
     }
 
@@ -2615,7 +2615,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn borrow<'b>(&'b mut self) -> PointerBuilder<'b> {
+    pub fn reborrow<'b>(&'b mut self) -> PointerBuilder<'b> {
         PointerBuilder { arena: self.arena, .. *self }
     }
 
@@ -3380,7 +3380,7 @@ impl <'a> ListBuilder<'a> {
         }
     }
 
-    pub fn borrow<'b>(&'b mut self) -> ListBuilder<'b> {
+    pub fn reborrow<'b>(&'b mut self) -> ListBuilder<'b> {
         ListBuilder { arena: self.arena, ..*self }
     }
 

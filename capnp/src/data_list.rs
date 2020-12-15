@@ -93,11 +93,11 @@ impl <'a> Builder<'a> {
 
     pub fn set(&mut self, index: u32, value: crate::data::Reader) {
         assert!(index < self.len());
-        self.builder.borrow().get_pointer_element(index).set_data(value);
+        self.builder.reborrow().get_pointer_element(index).set_data(value);
     }
 
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder {builder: self.builder.borrow()}
+        Builder {builder: self.builder.reborrow()}
     }
 }
 

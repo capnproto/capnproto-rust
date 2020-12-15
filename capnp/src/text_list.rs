@@ -89,7 +89,7 @@ impl <'a> Builder<'a> {
 
     pub fn set(&mut self, index: u32, value: crate::text::Reader) {
         assert!(index < self.len());
-        self.builder.borrow().get_pointer_element(index).set_text(value);
+        self.builder.reborrow().get_pointer_element(index).set_text(value);
     }
 
     pub fn into_reader(self) -> Reader<'a> {
@@ -97,7 +97,7 @@ impl <'a> Builder<'a> {
     }
 
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder::<'b> { builder: self.builder.borrow() }
+        Builder::<'b> { builder: self.builder.reborrow() }
     }
 }
 
