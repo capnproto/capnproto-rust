@@ -69,7 +69,7 @@ impl <'a> crate::traits::FromPointerBuilder<'a> for Builder<'a> {
     }
 }
 
-impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+impl <'a> crate::traits::SetPointerBuilder for Reader<'a> {
     fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,
                                value: Reader<'a>,
                                _canonicalize: bool) -> Result<()> {

@@ -129,7 +129,7 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
     }
 }
 
-impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
+impl <'a, T> crate::traits::SetPointerBuilder for Reader<'a, T>
     where T: PrimitiveElement
 {
     fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,

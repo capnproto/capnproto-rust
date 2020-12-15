@@ -61,12 +61,12 @@ pub trait FromPointerReader<'a> : Sized {
 /// nonetheless as a type parameter, e.g. for a generic container that owns a Cap'n Proto
 /// message of type `T: for<'a> capnp::traits::Owned<'a>`.
 pub trait Owned<'a> {
-    type Reader: FromPointerReader<'a> + SetPointerBuilder<Self::Builder>;
+    type Reader: FromPointerReader<'a> + SetPointerBuilder;
     type Builder: FromPointerBuilder<'a>;
 }
 
 pub trait OwnedStruct<'a> {
-    type Reader: FromStructReader<'a> + SetPointerBuilder<Self::Builder> + IntoInternalStructReader<'a>;
+    type Reader: FromStructReader<'a> + SetPointerBuilder + IntoInternalStructReader<'a>;
     type Builder: FromStructBuilder<'a> + HasStructSize;
 }
 
@@ -79,7 +79,7 @@ pub trait FromPointerBuilder<'a> : Sized {
     fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Self>;
 }
 
-pub trait SetPointerBuilder<To> {
+pub trait SetPointerBuilder {
     fn set_pointer_builder<'a>(builder: PointerBuilder<'a>, from: Self, canonicalize: bool) -> Result<()>;
 }
 

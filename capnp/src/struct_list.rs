@@ -161,7 +161,7 @@ impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
     }
 }
 
-impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
+impl <'a, T> crate::traits::SetPointerBuilder for Reader<'a, T>
     where T: for<'b> crate::traits::OwnedStruct<'b>
 {
     fn set_pointer_builder<'b>(pointer: crate::private::layout::PointerBuilder<'b>,

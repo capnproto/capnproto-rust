@@ -746,9 +746,8 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     if typ.is_branded()? {
                         setter_interior.push(
                             Line(format!(
-                                "<{} as ::capnp::traits::SetPointerBuilder<{}>>::set_pointer_builder(self.builder.get_pointer_field({}), value, false)",
+                                "<{} as ::capnp::traits::SetPointerBuilder>::set_pointer_builder(self.builder.get_pointer_field({}), value, false)",
                                 typ.type_string(gen, Leaf::Reader("'b"))?,
-                                typ.type_string(gen, Leaf::Builder("'b"))?,
                                 offset)));
                         (Some(typ.type_string(gen, Leaf::Reader("'b"))?),
                          Some(typ.type_string(gen, Leaf::Builder("'a"))?))
@@ -768,9 +767,6 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                 type_::AnyPointer(_) => {
                     if typ.is_parameter()? {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).init_as()", offset)));
-                        setter_generic_param = format!(
-                            "<SPB: ::capnp::traits::SetPointerBuilder<{}>>",
-                            typ.type_string(gen, Leaf::Builder("'a"))?);
                         setter_interior.push(Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value, false)", offset)));
                         return_result = true;
 
@@ -785,7 +781,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                         result.push(Line("}".to_string()));
 
 
-                        (Some("SPB".to_string()), Some(builder_type))
+                        (Some(typ.type_string(gen, Leaf::Reader("'_"))?), Some(builder_type))
                     } else {
                         initter_interior.push(Line(format!("let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({}));",
                                                    offset)));
@@ -1420,7 +1416,7 @@ fn generate_node(gen: &GeneratorContext,
 
                 from_pointer_builder_impl,
                 Line(format!(
-                    "impl <'a,{0}> ::capnp::traits::SetPointerBuilder<Builder<'a,{0}>> for Reader<'a,{0}> {1} {{",
+                    "impl <'a,{0}> ::capnp::traits::SetPointerBuilder for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
                 Indent(Box::new(Line(format!("fn set_pointer_builder<'b>(pointer: ::capnp::private::layout::PointerBuilder<'b>, value: Reader<'a,{}>, canonicalize: bool) -> ::capnp::Result<()> {{ pointer.set_struct(&value.reader, canonicalize) }}", params.params)))),
                 Line("}".to_string()),
@@ -1704,7 +1700,7 @@ fn generate_node(gen: &GeneratorContext,
 
             mod_interior.push(Branch(vec![
                 Line(format!(
-                    "impl <{0}> ::capnp::traits::SetPointerBuilder<Client<{0}>> for Client<{0}> {1} {{",
+                    "impl <{0}> ::capnp::traits::SetPointerBuilder for Client<{0}> {1} {{",
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(

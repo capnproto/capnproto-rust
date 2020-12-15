@@ -354,8 +354,8 @@ impl <A> ImbuedMessageBuilder<A> where A: ::capnp::message::Allocator {
         root.get_as()
     }
 
-    pub fn set_root<To, From>(&mut self, value: From) -> ::capnp::Result<()>
-        where From: ::capnp::traits::SetPointerBuilder<To>
+    pub fn set_root<From>(&mut self, value: From) -> ::capnp::Result<()>
+        where From: ::capnp::traits::SetPointerBuilder
     {
         use capnp::traits::ImbueMut;
         let mut root: ::capnp::any_pointer::Builder = self.builder.get_root()?;

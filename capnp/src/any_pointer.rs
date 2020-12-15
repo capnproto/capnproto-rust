@@ -99,7 +99,7 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
     }
 }
 
-impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+impl <'a> crate::traits::SetPointerBuilder for Reader<'a> {
     fn set_pointer_builder<'b>(mut pointer: crate::private::layout::PointerBuilder<'b>,
                                value: Reader<'a>,
                                canonicalize: bool) -> Result<()> {
@@ -148,8 +148,8 @@ impl <'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as<To, From : SetPointerBuilder<To>>(self, value: From) -> Result<()> {
-        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value, false)
+    pub fn set_as<From: SetPointerBuilder>(self, value: From) -> Result<()> {
+        SetPointerBuilder::set_pointer_builder(self.builder, value, false)
     }
 
     // XXX value should be a user client.
