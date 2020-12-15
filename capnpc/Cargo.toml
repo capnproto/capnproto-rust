@@ -1,7 +1,7 @@
 [package]
 
 name = "capnpc"
-version = "0.13.1"
+version = "0.14.0-alpha"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 license = "MIT"
 description = "Cap'n Proto code generation"
@@ -24,7 +24,7 @@ name = "capnpc-rust"
 path = "src/capnpc-rust.rs"
 
 [dependencies.capnp]
-version = "0.13.0"
+version = "0.14.0-alpha"
 path = "../capnp"
 
 # Don't include "std" feature, so that dependent crates can include a build-time

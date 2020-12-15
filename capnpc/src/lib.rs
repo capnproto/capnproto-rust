@@ -34,7 +34,7 @@
 //! build = "build.rs"
 //!
 //! [build-dependencies]
-//! capnpc = "0.13"
+//! capnpc = "0.14"
 //! ```
 //!
 //! In your build.rs:
