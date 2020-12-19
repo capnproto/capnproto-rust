@@ -1,5 +1,6 @@
 ### v0.14.0
 - Update for `SetPointerBuilder` no longer having a `To` type parameter.
+- Make generated `Owned` structs unconstructable. They are only intented to be used as types, not values.
 
 ### v0.13.1
 - Fix some more clippy warnings in generated code.
