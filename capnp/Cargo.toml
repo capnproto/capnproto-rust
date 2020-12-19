@@ -37,6 +37,7 @@ unaligned = []
 # with the Rust standard library.
 std = []
 
-# If enabled, message readers will be `Sync`. This relies on the existence
-# of AtomicUsize, which is not supported by all targets.
+# If enabled, ReadLimiter will use `AtomicUsize` instead of `Cell<usize>`, allowing
+# message readers to be `Sync`. Note that AtomicUsize is not supported by all
+# rustc targets.
 sync_reader = []
