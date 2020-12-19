@@ -44,7 +44,7 @@ or it could use one of the emerging asynchronous database drivers
 to make queries on a remote database, or it could do,
 well, anything that can be expressed in terms of the `Future` trait.
 As a quick demonstration, I have implemented a
-simple [example](https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples/http-requests)
+simple [example](https://github.com/capnproto/capnproto-rust/tree/capnp-v0.8.17/capnp-rpc/examples/http-requests)
 that uses [tokio-curl](https://github.com/tokio-rs/tokio-curl)
 to make asynchronous HTTP requests.
 
