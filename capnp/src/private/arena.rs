@@ -39,7 +39,7 @@ pub trait ReaderArena {
     fn contains_interval(&self, segment_id: u32, start: *const u8, size: usize) -> Result<()>;
     fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
 
-    // TODO(version 0.9): Consider putting extract_cap(), inject_cap(), drop_cap() here
+    // TODO(apibump): Consider putting extract_cap(), inject_cap(), drop_cap() here
     //   and on message::Reader. Then we could get rid of Imbue and ImbueMut, and
     //   layout::StructReader, layout::ListReader, etc. could drop their `cap_table` fields.
 }
