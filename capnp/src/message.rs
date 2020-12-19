@@ -50,6 +50,8 @@ pub struct ReaderOptions {
     /// Together with sensible coding practices (e.g. trying to avoid calling sub-object getters
     /// multiple times, which is expensive anyway), this should provide adequate protection without
     /// inconvenience.
+    ///
+    /// A traversal limit of `None` means that no limit is enforced.
     pub traversal_limit_in_words: Option<usize>,
 
     /// Limits how deeply nested a message structure can be, e.g. structs containing other structs or
