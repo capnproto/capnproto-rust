@@ -1,3 +1,6 @@
+## v0.14.0
+- Make `read_message()` return an error on EOF, to match the behavior of `capnp::serialize::read_message()`.
+
 ## v0.13.2
 - Rename `read_message()` to `try_read_message()`, for consistency with `capnp::serialize::try_read_message()`.
 

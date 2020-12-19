@@ -1,3 +1,8 @@
+## v0.14.0
+- Add `sync_reader` feature, which allows multithreaded reading of a shared message.
+- Change `ReaderOptions.traversal_limit_in_words` from a `u64` to an `Option<usize>`.
+- Remove unneeded `To` type parameter of `SetPointerBuilder`.
+
 ## v0.13.6
 - Add blanket impl Allocator for &mut A where A: Allocator, allowing easier reuse of ScratchSpaceHeapAllocator.
 

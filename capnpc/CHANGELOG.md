@@ -1,3 +1,6 @@
+### v0.14.0
+- Update for `SetPointerBuilder` no longer having a `To` type parameter.
+
 ### v0.13.1
 - Fix some more clippy warnings in generated code.
 
