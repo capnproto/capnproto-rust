@@ -49,6 +49,14 @@ pub struct ReaderArenaImpl<S> {
     read_limiter: ReadLimiter,
 }
 
+#[cfg(feature = "sync_reader")]
+fn _assert_sync() {
+    fn _assert_sync<T: Sync>() {}
+    fn _assert_reader<S: ReaderSegments + Sync>() {
+        _assert_sync::<ReaderArenaImpl<S>>();
+    }
+}
+
 impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
     pub fn new(segments: S,
                options: message::ReaderOptions)
