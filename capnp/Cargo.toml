@@ -37,7 +37,6 @@ unaligned = []
 # with the Rust standard library.
 std = []
 
-# If enabled, message reader will be `Sync`. 
-# To be replaced by #[cfg(target_has_atomic = ...)] once it lands.
-# See: https://github.com/rust-lang/rust/issues/32976
+# If enabled, message readers will be `Sync`. This relies on the existence
+# of AtomicUsize, which is not supported by all targets.
 sync_reader = []

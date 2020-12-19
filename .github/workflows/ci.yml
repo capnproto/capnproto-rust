@@ -33,10 +33,12 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get install -y capnproto libcapnp-dev
 
-    - name: Test with --no-default-features
+    - name: Test feature flags
       run: |
           cd capnp
           cargo test --no-default-features
+          cargo test --features sync_reader
+          cargo test --features unaligned
           cd ../
 
     - name: Build
