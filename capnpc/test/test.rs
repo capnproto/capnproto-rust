@@ -1250,7 +1250,7 @@ mod tests {
 
         let segments = message.get_segments_for_output();
         let reader = message::Reader::new(message::SegmentArray::new(&segments),
-                                          *ReaderOptions::new().traversal_limit_in_words(2));
+                                          *ReaderOptions::new().traversal_limit_in_words(Some(2)));
         match reader.get_root::<test_all_types::Reader>() {
             Err(e) => assert_eq!(e.description, "read limit exceeded"),
             Ok(_) => panic!("expected error"),

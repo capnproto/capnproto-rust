@@ -28,35 +28,45 @@ mod sync {
     use core::sync::atomic::{AtomicUsize, Ordering};
 
     pub struct ReadLimiter {
-        pub limit: AtomicUsize,
+        limit: AtomicUsize,
+        error_on_limit_exceeded: bool,
     }
 
     impl ReadLimiter {
-        pub fn new(limit: u64) -> ReadLimiter {
-            if limit > core::usize::MAX as u64 {
-                panic!("traversal_limit_in_words cannot be bigger than core::usize::MAX")
-            }
-
-            ReadLimiter {
-                limit: AtomicUsize::new(limit as usize),
+        pub fn new(limit: Option<usize>) -> ReadLimiter {
+            match limit {
+                Some(value) => {
+                    ReadLimiter {
+                        limit: AtomicUsize::new(value),
+                        error_on_limit_exceeded: true,
+                    }
+                }
+                None => {
+                    ReadLimiter {
+                        limit: AtomicUsize::new(usize::MAX),
+                        error_on_limit_exceeded: false,
+                    }
+                }
             }
         }
 
         #[inline]
         pub fn can_read(&self, amount: usize) -> Result<()> {
-            let cur_limit = self.limit.load(Ordering::Relaxed);
-            if cur_limit < amount {
-                return Err(Error::failed(format!("read limit exceeded")));
-            }
+            // We use separate AtomicUsize::load() and AtomicUsize::store() steps, which may
+            // result in undercounting reads if multiple threads are reading at the same.
+            // That's okay -- a denial of service attack will eventually hit the limit anyway.
+            //
+            // We could instead do a single fetch_sub() step, but that seems to be slower.
 
-            let prev_limit = self.limit.fetch_sub(amount, Ordering::Relaxed);
-            if prev_limit < amount {
-                // if the previous limit was lower than the amount we read, the limit has underflowed
-                // and wrapped around so we need to reset it to 0 for next reader to fail
-                self.limit.store(0, Ordering::Relaxed);
+            let current = self.limit.load(Ordering::Relaxed);
+            if amount > current && self.error_on_limit_exceeded {
                 return Err(Error::failed(format!("read limit exceeded")));
+            } else {
+                // The common case is current >= amount. Note that we only branch once in that case.
+                // If we combined the fields into an Option<AtomicUsize>, we would
+                // need to branch twice in the common case.
+                self.limit.store(current.wrapping_sub(amount), Ordering::Relaxed);
             }
-
             Ok(())
         }
     }
@@ -71,24 +81,38 @@ mod unsync {
     use core::cell::Cell;
 
     pub struct ReadLimiter {
-        pub limit: Cell<u64>,
+        limit: Cell<usize>,
+        error_on_limit_exceeded: bool,
     }
 
     impl ReadLimiter {
-        pub fn new(limit: u64) -> ReadLimiter {
-            ReadLimiter {
-                limit: Cell::new(limit),
+        pub fn new(limit: Option<usize>) -> ReadLimiter {
+            match limit {
+                Some(value) => {
+                    ReadLimiter {
+                        limit: Cell::new(value),
+                        error_on_limit_exceeded: true,
+                    }
+                }
+                None => {
+                    ReadLimiter {
+                        limit: Cell::new(usize::MAX),
+                        error_on_limit_exceeded: false,
+                    }
+                }
             }
         }
 
         #[inline]
         pub fn can_read(&self, amount: usize) -> Result<()> {
-            let amount = amount as u64;
             let current = self.limit.get();
-            if amount > current {
+            if amount > current && self.error_on_limit_exceeded {
                 Err(Error::failed(format!("read limit exceeded")))
             } else {
-                self.limit.set(current - amount);
+                // The common case is current >= amount. Note that we only branch once in that case.
+                // If we combined the fields into an Option<Cell<usize>>, we would
+                // need to branch twice in the common case.
+                self.limit.set(current.wrapping_sub(amount));
                 Ok(())
             }
         }

@@ -257,10 +257,12 @@ fn read_segment_table<R>(read: &mut R,
     // Don't accept a message which the receiver couldn't possibly traverse without hitting the
     // traversal limit. Without this check, a malicious client could transmit a very large segment
     // size to make the receiver allocate excessive space and possibly crash.
-    if segment_lengths_builder.total_words() as u64 > options.traversal_limit_in_words  {
-        return Err(Error::failed(
-            format!("Message has {} words, which is too large. To increase the limit on the \
-             receiving end, see capnp::message::ReaderOptions.", segment_lengths_builder.total_words())))
+    if let Some(limit) = options.traversal_limit_in_words {
+        if segment_lengths_builder.total_words() > limit {
+            return Err(Error::failed(
+                format!("Message has {} words, which is too large. To increase the limit on the \
+                         receiving end, see capnp::message::ReaderOptions.", segment_lengths_builder.total_words())))
+        }
     }
 
     Ok(Some(segment_lengths_builder))

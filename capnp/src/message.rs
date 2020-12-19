@@ -50,7 +50,7 @@ pub struct ReaderOptions {
     /// Together with sensible coding practices (e.g. trying to avoid calling sub-object getters
     /// multiple times, which is expensive anyway), this should provide adequate protection without
     /// inconvenience.
-    pub traversal_limit_in_words: u64,
+    pub traversal_limit_in_words: Option<usize>,
 
     /// Limits how deeply nested a message structure can be, e.g. structs containing other structs or
     /// lists of structs.
@@ -64,7 +64,7 @@ pub struct ReaderOptions {
 }
 
 pub const DEFAULT_READER_OPTIONS: ReaderOptions =
-    ReaderOptions { traversal_limit_in_words: 8 * 1024 * 1024, nesting_limit: 64 };
+    ReaderOptions { traversal_limit_in_words: Some(8 * 1024 * 1024), nesting_limit: 64 };
 
 
 impl Default for ReaderOptions {
@@ -81,7 +81,7 @@ impl ReaderOptions {
         self
     }
 
-    pub fn traversal_limit_in_words<'a>(&'a mut self, value: u64) -> &'a mut ReaderOptions {
+    pub fn traversal_limit_in_words<'a>(&'a mut self, value: Option<usize>) -> &'a mut ReaderOptions {
         self.traversal_limit_in_words = value;
         self
     }
@@ -382,7 +382,7 @@ impl <A> Builder<A> where A: Allocator {
 
     pub fn into_reader(self) -> Reader<Builder<A>> {
         Reader::new(self, ReaderOptions {
-            traversal_limit_in_words: u64::max_value(),
+            traversal_limit_in_words: None,
             nesting_limit: i32::max_value()
         })
     }
