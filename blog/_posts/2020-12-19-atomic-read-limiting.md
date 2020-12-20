@@ -28,6 +28,8 @@ I was initially discouraged because
 seemed to be slowing things down significantly.
 Fortunately, I found that splitting `fetch_sub()` into separate `load()` and `store()`
 steps recovered the lost time.
+(Such a split may cause the read limiter to undercount reads,
+but we are okay with that level of imprecision.)
 With the [most recent version](https://github.com/capnproto/capnproto-rust/blob/c9b12bc765d5cc4e711890b97f065b855516ba71/capnp/src/private/read_limiter.rs#L54-L71),
 I am unable to detect any speed difference between the new atomic implementation
 and the old `Cell`-based one.
