@@ -642,7 +642,6 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         initn_interior.push(init_discrim);
     }
 
-    let mut setter_generic_param = String::new();
     let mut return_result = false;
     let mut result = Vec::new();
 
@@ -720,8 +719,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 
                     match ot1.get_element_type()?.which()? {
                         type_::List(_) => {
-                            setter_generic_param = "<'b>".to_string();
-                            (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'b"))?),
+                            (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'_"))?),
                              Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a"))?))
                         }
                         _ =>
@@ -739,7 +737,6 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                 }
                 type_::Struct(_) => {
                     return_result = true;
-                    setter_generic_param = "<'b>".to_string();
                     initter_interior.push(
                       Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), 0)",
                                    offset)));
@@ -747,14 +744,14 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                         setter_interior.push(
                             Line(format!(
                                 "<{} as ::capnp::traits::SetPointerBuilder>::set_pointer_builder(self.builder.get_pointer_field({}), value, false)",
-                                typ.type_string(gen, Leaf::Reader("'b"))?,
+                                typ.type_string(gen, Leaf::Reader("'_"))?,
                                 offset)));
-                        (Some(typ.type_string(gen, Leaf::Reader("'b"))?),
+                        (Some(typ.type_string(gen, Leaf::Reader("'_"))?),
                          Some(typ.type_string(gen, Leaf::Builder("'a"))?))
                     } else {
                         setter_interior.push(
                             Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value, false)", offset)));
-                        (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'b"))?),
+                        (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'_"))?),
                          Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a"))?))
                     }
                 }
@@ -799,8 +796,8 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         Some(ref reader_type) => {
             let return_type = if return_result { "-> ::capnp::Result<()>" } else { "" };
             result.push(Line("#[inline]".to_string()));
-            result.push(Line(format!("pub fn set_{}{}(&mut self, {}: {}) {} {{",
-                                     styled_name, setter_generic_param, setter_param,
+            result.push(Line(format!("pub fn set_{}(&mut self, {}: {}) {} {{",
+                                     styled_name, setter_param,
                                      reader_type, return_type)));
             result.push(Indent(Box::new(Branch(setter_interior))));
             result.push(Line("}".to_string()));
