@@ -1,3 +1,6 @@
+### v0.14.1
+- Get generated code to pass the elided_lifetimes_in_paths lint.
+
 ### v0.14.0
 - Update for `SetPointerBuilder` no longer having a `To` type parameter.
 - Make generated `Owned` structs unconstructable. They are only intented to be used as types, not values.
