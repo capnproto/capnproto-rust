@@ -22,7 +22,7 @@
 
 use test_capnp::{test_all_types, test_defaults, TestEnum};
 
-pub fn init_test_message(mut builder : test_all_types::Builder) {
+pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
     builder.set_void_field(());
     builder.set_bool_field(true);
     builder.set_int8_field(-123);

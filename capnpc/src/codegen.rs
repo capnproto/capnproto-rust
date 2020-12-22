@@ -697,7 +697,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
                     initter_params.push("size: u32");
-                    (Some("::capnp::text::Reader".to_string()), Some("::capnp::text::Builder<'a>".to_string()))
+                    (Some("::capnp::text::Reader<'_>".to_string()), Some("::capnp::text::Builder<'a>".to_string()))
                 }
                 type_::Data(()) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
@@ -705,7 +705,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
                     initter_params.push("size: u32");
-                    (Some("::capnp::data::Reader".to_string()), Some("::capnp::data::Builder<'a>".to_string()))
+                    (Some("::capnp::data::Reader<'_>".to_string()), Some("::capnp::data::Builder<'a>".to_string()))
                 }
                 type_::List(ot1) => {
                     return_result = true;
@@ -1360,7 +1360,7 @@ fn generate_node(gen: &GeneratorContext,
                 Line(format!("impl <'a,{0}> Reader<'a,{0}> {1} {{", params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line(format!("pub fn reborrow(&self) -> Reader<{}> {{",params.params)),
+                        Line(format!("pub fn reborrow(&self) -> Reader<'_,{}> {{",params.params)),
                         Indent(Box::new(Line("Reader { .. *self }".to_string()))),
                         Line("}".to_string()),
                         BlankLine,
@@ -1424,10 +1424,10 @@ fn generate_node(gen: &GeneratorContext,
                         Line(format!("pub fn into_reader(self) -> Reader<'a,{}> {{", params.params)),
                         Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
                         Line("}".to_string()),
-                        Line(format!("pub fn reborrow(&mut self) -> Builder<{}> {{", params.params)),
+                        Line(format!("pub fn reborrow(&mut self) -> Builder<'_,{}> {{", params.params)),
                         Indent(Box::new(Line("Builder { .. *self }".to_string()))),
                         Line("}".to_string()),
-                        Line(format!("pub fn reborrow_as_reader(&self) -> Reader<{}> {{", params.params)),
+                        Line(format!("pub fn reborrow_as_reader(&self) -> Reader<'_,{}> {{", params.params)),
                         Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
                         Line("}".to_string()),
 
@@ -1702,7 +1702,7 @@ fn generate_node(gen: &GeneratorContext,
                 Indent(
                     Box::new(
                         Branch(vec![
-                            Line(format!("fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Client<{}>, _canonicalize: bool) -> ::capnp::Result<()> {{",
+                            Line(format!("fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, from: Client<{}>, _canonicalize: bool) -> ::capnp::Result<()> {{",
                                          params.params)),
                             Indent(Box::new(Line(
                                 "pointer.set_capability(from.client.hook);".to_string()))),
