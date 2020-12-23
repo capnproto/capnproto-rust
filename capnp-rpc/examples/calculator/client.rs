@@ -60,7 +60,7 @@ async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
     let addr = args[2].to_socket_addrs()?.next().expect("could not parse address");
     let stream = tokio::net::TcpStream::connect(&addr).await?;
     stream.set_nodelay(true)?;
-    let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
+    let (reader, writer) = tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
 
     let network =
         Box::new(twoparty::VatNetwork::new(reader, writer,

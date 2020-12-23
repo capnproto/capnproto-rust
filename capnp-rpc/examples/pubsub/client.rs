@@ -51,7 +51,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::task::LocalSet::new().run_until(async move {
         let stream = tokio::net::TcpStream::connect(&addr).await?;
         stream.set_nodelay(true)?;
-        let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
+        let (reader, writer) = tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
         let rpc_network =
             Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Client,

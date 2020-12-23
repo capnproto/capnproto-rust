@@ -209,7 +209,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             let (stream, _) = listener.accept().await?;
             stream.set_nodelay(true)?;
-            let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
+            let (reader, writer) = tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
             let network =
                 twoparty::VatNetwork::new(reader, writer,
                                           rpc_twoparty_capnp::Side::Server, Default::default());
