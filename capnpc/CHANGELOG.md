@@ -1,3 +1,7 @@
+### v0.14.2
+- Add CompilerCommand::default_parent_module() option.
+- Add codegen::CodeGenerationCommand and deprecate codegen::generate_code().
+
 ### v0.14.1
 - Get generated code to pass the elided_lifetimes_in_paths lint.
 
