@@ -28,8 +28,8 @@
 pub fn main() {
     //! Generates Rust code according to a `schema_capnp::code_generator_request` read from stdin.
 
-    ::capnpc::codegen::generate_code(
-        ::std::io::stdin(),
-        ::std::path::Path::new("."))
+    ::capnpc::codegen::CodeGenerationCommand::new()
+        .output_directory(::std::path::Path::new("."))
+        .run(::std::io::stdin())
         .expect("failed to generate code");
 }

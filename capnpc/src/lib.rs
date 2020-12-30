@@ -82,9 +82,9 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
     capnp::Error { description: format!("{}", err), kind: kind }
 }
 
-fn run_command(mut command: ::std::process::Command, path: &PathBuf) -> ::capnp::Result<()> {
+fn run_command(mut command: ::std::process::Command, mut code_generation_command: codegen::CodeGenerationCommand) -> ::capnp::Result<()> {
     let mut p = command.spawn().map_err(convert_io_err)?;
-    crate::codegen::generate_code(p.stdout.take().unwrap(), path.as_path())?;
+    code_generation_command.run(p.stdout.take().unwrap())?;
     let exit_status = p.wait().map_err(convert_io_err)?;
     if !exit_status.success() {
         Err(::capnp::Error::failed(format!(
@@ -104,6 +104,7 @@ pub struct CompilerCommand {
     no_standard_import: bool,
     executable_path: Option<PathBuf>,
     output_path: Option<PathBuf>,
+    default_parent_module: Vec<String>,
 }
 
 impl CompilerCommand {
@@ -116,6 +117,7 @@ impl CompilerCommand {
             no_standard_import: false,
             executable_path: None,
             output_path: None,
+            default_parent_module: Vec::new(),
         }
     }
 
@@ -174,6 +176,30 @@ impl CompilerCommand {
         self
     }
 
+    /// Sets the default parent module. This indicates the scope in your crate where you will
+    /// add a module containing the generated code. For example, if you set this option to
+    /// `vec!["foo".into(), "bar".into()]`, and you are generating code for `baz.capnp`, then your crate
+    /// should have this structure:
+    ///
+    /// ```ignore
+    /// pub mod foo {
+    ///    pub mod bar {
+    ///        pub mod baz_capnp {
+    ///            include!(concat!(env!("OUT_DIR"), "/baz_capnp.rs"));
+    ///        }
+    ///    }
+    /// }
+    /// ```
+    ///
+    /// This option can be overridden by the `parentModule` annotation defined in `rust.capnp`.
+    ///
+    /// If this option is unset, the default is the crate root.
+    pub fn default_parent_module(&mut self, default_parent_module: Vec<String>) -> &mut CompilerCommand
+    {
+        self.default_parent_module = default_parent_module;
+        self
+    }
+
     /// Runs the command.
     /// Returns an error if `OUT_DIR` or a custom output directory was not set, or if `capnp compile` fails.
     pub fn run(&mut self) -> ::capnp::Result<()> {
@@ -218,7 +244,12 @@ impl CompilerCommand {
         command.stdout(::std::process::Stdio::piped());
         command.stderr(::std::process::Stdio::inherit());
 
-        run_command(command, &output_path).map_err(|error| {
+        let mut code_generation_command = crate::codegen::CodeGenerationCommand::new();
+        code_generation_command
+            .output_directory(output_path)
+            .default_parent_module(self.default_parent_module.clone());
+
+        run_command(command, code_generation_command).map_err(|error| {
             ::capnp::Error::failed(format!(
                 "Error while trying to execute `capnp compile`: {}.  \
                  Please verify that version 0.5.2 or higher of the capnp executable \

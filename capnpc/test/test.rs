@@ -44,6 +44,22 @@ pub mod baz {
     }
 }
 
+pub mod test_default_parent_module {
+    pub mod test_default_parent_module_inner {
+        // In build.rs we specify this is the default parent module.
+        pub mod test_default_parent_module_capnp {
+            include!(concat!(env!("OUT_DIR"), "/test_default_parent_module_capnp.rs"));
+        }
+    }
+
+    // Put this in somewhere other than the default parent module, to test whether the `parentModule`
+    // annotation successfully overrides the default.
+    pub mod test_default_parent_module_override_capnp {
+        include!(concat!(env!("OUT_DIR"), "/test_default_parent_module_override_capnp.rs"));
+    }
+
+}
+
 pub mod test_in_dir_capnp {
     include!(concat!(env!("OUT_DIR"), "/schema/test_in_dir_capnp.rs"));
 }

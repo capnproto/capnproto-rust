@@ -8,4 +8,13 @@ fn main() {
         .src_prefix("schema-with-src-prefix")
         .run()
         .expect("compiling schema");
+
+    capnpc::CompilerCommand::new()
+        .file("test-default-parent-module.capnp")
+        .file("test-default-parent-module-override.capnp")
+        .default_parent_module(vec!["test_default_parent_module".into(),
+                                    "test_default_parent_module_inner".into()])
+        .run()
+        .expect("compiling schema");
+
 }
