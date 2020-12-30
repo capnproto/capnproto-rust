@@ -260,9 +260,7 @@ fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
 fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Result<&str> {
     for annotation in enumerant.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
-            if annotation.get_id() == NAME_ANNOTATION_ID {
-                return name_annotation_value(annotation);
-            }
+            return name_annotation_value(annotation);
         }
     }
     enumerant.get_name()
