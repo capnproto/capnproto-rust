@@ -303,9 +303,7 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
 
     for annotation in node_reader.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
-            if annotation.get_id() == NAME_ANNOTATION_ID {
-                current_node_name = name_annotation_value(annotation)?.to_string();
-             }
+            current_node_name = name_annotation_value(annotation)?.to_string();
         } else if annotation.get_id() == PARENT_MODULE_ANNOTATION_ID {
             ancestor_scope_names.append(&mut get_parent_module(annotation)?);
         }
