@@ -47,7 +47,7 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
     let orig_data = data;
     let message_reader = serialize::read_message(
         &mut data,
-        *message::ReaderOptions::new().traversal_limit_in_words(4 * 1024))?;
+        *message::ReaderOptions::new().traversal_limit_in_words(Some(4 * 1024)))?;
     assert!(orig_data.len() > data.len());
 
     let root: test_all_types::Reader = message_reader.get_root()?;
