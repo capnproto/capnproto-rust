@@ -56,7 +56,7 @@
 //! });
 //! ```
 //!
-//! For a more complete example, see https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator
+//! For a more complete example, see <https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator>
 
 
 use std::pin::Pin;
