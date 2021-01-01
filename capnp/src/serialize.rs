@@ -316,7 +316,7 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8
 
 /// Writes the provided message to `write`.
 ///
-/// For optimal performance, `write` should be a buffered writer. `flush` will not be called on
+/// For optimal performance, `write` should be a buffered writer. `flush()` will not be called on
 /// the writer.
 pub fn write_message<W, A>(mut write: W, message: &message::Builder<A>) -> Result<()>
  where W: Write, A: message::Allocator {
@@ -400,7 +400,11 @@ fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) ->
     size
 }
 
-/// Returns the number of words required to serialize the message.
+/// Returns the number of (8-byte) words required to serialize the message (including the
+/// segment table).
+///
+/// Multiply this by 8 (or `std::mem::size_of::<capnp::Word>()`) to get the number of bytes
+/// that [`write_message()`](fn.write_message.html) will write.
 pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>) -> usize
     where A: crate::message::Allocator
 {

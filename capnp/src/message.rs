@@ -35,10 +35,10 @@ use crate::{OutputSegments, Result};
 #[derive(Clone, Copy, Debug)]
 pub struct ReaderOptions {
 
-    /// Limits how many total words of data are allowed to be traversed. Traversal is counted when
-    /// a new struct or list builder is obtained, e.g. from a get() accessor. This means that calling
-    /// the getter for the same sub-struct multiple times will cause it to be double-counted. Once
-    /// the traversal limit is reached, an error will be reported.
+    /// Limits how many total (8-byte) words of data are allowed to be traversed. Traversal is counted
+    /// when a new struct or list builder is obtained, e.g. from a get() accessor. This means that
+    /// calling the getter for the same sub-struct multiple times will cause it to be double-counted.
+    /// Once the traversal limit is reached, an error will be reported.
     ///
     /// This limit exists for security reasons. It is possible for an attacker to construct a message
     /// in which multiple pointers point at the same location. This is technically invalid, but hard

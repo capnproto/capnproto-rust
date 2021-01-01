@@ -57,8 +57,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 ///
-/// An 8-byte aligned value.
+/// 8 bytes, aligned to an 8-byte boundary.
 ///
+/// Internally, capnproto-rust allocates message buffers using this type,
+/// to guarantee alignment.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(C, align(8))]
 pub struct Word {
