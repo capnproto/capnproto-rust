@@ -149,7 +149,11 @@ impl <T> ExportTable<T> {
 
 struct Question<VatId> where VatId: 'static {
     is_awaiting_return: bool,
+
+    #[allow(dead_code)]
     param_exports: Vec<ExportId>,
+
+    #[allow(dead_code)]
     is_tail_call: bool,
 
     /// The local QuestionRef, set to None when it is destroyed.
@@ -1783,7 +1787,9 @@ struct PipelineState<VatId> where VatId: 'static {
     redirect_later: Option<RefCell<futures::future::Shared<Promise<Response<VatId>, ::capnp::Error>>>>,
     connection_state: Rc<ConnectionState<VatId>>,
 
+    #[allow(dead_code)]
     resolve_self_promise: Promise<(), Error>,
+
     promise_clients_to_resolve:
          RefCell<crate::sender_queue::SenderQueue<(Weak<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>), ()>>,
     resolution_waiters: crate::sender_queue::SenderQueue<(), ()>,
