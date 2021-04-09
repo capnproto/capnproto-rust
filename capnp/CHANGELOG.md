@@ -1,3 +1,6 @@
+## v0.14.1
+- Include LICENSE in published crate.
+
 ## v0.14.0
 - Add `sync_reader` feature, which allows multithreaded reading of a shared message.
 - Change `ReaderOptions.traversal_limit_in_words` from a `u64` to an `Option<usize>`.

@@ -1,3 +1,6 @@
+### v0.14.3
+- Include LICENSE in published crate.
+
 ### v0.14.2
 - Add CompilerCommand::default_parent_module() option.
 - Add codegen::CodeGenerationCommand and deprecate codegen::generate_code().

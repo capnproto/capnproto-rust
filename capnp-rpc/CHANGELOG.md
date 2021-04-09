@@ -1,4 +1,7 @@
-### v0.14.0
+## v0.14.1
+- Include LICENSE in published crate.
+
+## v0.14.0
 - Update for `SetPointerBuilder` no longer having a `To` type parameter.
 
 ## v0.13.1

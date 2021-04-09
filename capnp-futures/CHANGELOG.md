@@ -1,3 +1,6 @@
+## v0.14.1
+- Include LICENSE in published crate.
+
 ## v0.14.0
 - Make `read_message()` return an error on EOF, to match the behavior of `capnp::serialize::read_message()`.
 
