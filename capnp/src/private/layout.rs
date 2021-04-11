@@ -86,7 +86,7 @@ pub fn pointers_per_element(size: ElementSize) -> WirePointerCount32 {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct StructSize {
     pub data: WordCount16,
     pub pointers: WirePointerCount16,
