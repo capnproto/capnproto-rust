@@ -144,7 +144,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
 }
 
 pub trait CheckTestMessage {
-    fn check_test_message(Self);
+    fn check_test_message(_: Self);
 }
 
 macro_rules!
