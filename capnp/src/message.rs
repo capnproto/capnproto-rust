@@ -410,6 +410,9 @@ pub struct HeapAllocator {
 
     // How to update next_size after an allocation.
     allocation_strategy: AllocationStrategy,
+
+    // Maximum number of words to allocate.
+    max_segment_words: u32,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -428,18 +431,27 @@ pub const SUGGESTED_ALLOCATION_STRATEGY: AllocationStrategy = AllocationStrategy
 impl HeapAllocator {
     pub fn new() -> HeapAllocator {
         HeapAllocator { next_size: SUGGESTED_FIRST_SEGMENT_WORDS,
-                        allocation_strategy: SUGGESTED_ALLOCATION_STRATEGY }
+                        allocation_strategy: SUGGESTED_ALLOCATION_STRATEGY,
+                        max_segment_words: 1 << 29, }
     }
 
     /// Sets the size of the initial segment in words, where 1 word = 8 bytes.
     pub fn first_segment_words(mut self, value: u32) -> HeapAllocator {
+        assert!(value <= self.max_segment_words);
         self.next_size = value;
         self
     }
 
     /// Sets the allocation strategy for segments after the first one.
-    pub fn allocation_strategy(mut self, value : AllocationStrategy) -> HeapAllocator {
+    pub fn allocation_strategy(mut self, value: AllocationStrategy) -> HeapAllocator {
         self.allocation_strategy = value;
+        self
+    }
+
+    /// Sets the maximum number of words allowed in a single allocation.
+    pub fn max_segment_words(mut self, value: u32) -> HeapAllocator {
+        assert!(self.next_size <= value);
+        self.max_segment_words = value;
         self
     }
 }
@@ -451,7 +463,13 @@ unsafe impl Allocator for HeapAllocator {
             alloc::alloc::alloc_zeroed(alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD, 8).unwrap())
         };
         match self.allocation_strategy {
-            AllocationStrategy::GrowHeuristically => { self.next_size += size; }
+            AllocationStrategy::GrowHeuristically => {
+                if size < self.max_segment_words - self.next_size {
+                    self.next_size += size;
+                } else {
+                    self.next_size = self.max_segment_words;
+                }
+            }
             AllocationStrategy::FixedSize => { }
         }
         (ptr, size as u32)
@@ -464,6 +482,29 @@ unsafe impl Allocator for HeapAllocator {
         }
         self.next_size = SUGGESTED_FIRST_SEGMENT_WORDS;
     }
+}
+
+#[test]
+fn test_allocate_max() {
+
+    let allocation_size = 1 << 24;
+    let mut allocator = HeapAllocator::new()
+        .max_segment_words((1 << 25) - 1)
+        .first_segment_words(allocation_size);
+
+    let (a1,s1) = allocator.allocate_segment(allocation_size);
+    let (a2,s2) = allocator.allocate_segment(allocation_size);
+    let (a3,s3) = allocator.allocate_segment(allocation_size);
+
+    assert_eq!(s1, allocation_size);
+
+    // Allocation size tops out at max_segment_words.
+    assert_eq!(s2, allocator.max_segment_words);
+    assert_eq!(s3, allocator.max_segment_words);
+
+    allocator.deallocate_segment(a1,s1,0);
+    allocator.deallocate_segment(a2,s2,0);
+    allocator.deallocate_segment(a3,s3,0);
 }
 
 impl Builder<HeapAllocator> {
