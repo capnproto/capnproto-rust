@@ -224,7 +224,22 @@ impl CompilerCommand {
         }
 
         for file in &self.files {
-            command.arg(&format!("{}", file.display()));
+            std::fs::metadata(file).map_err(|error| {
+                let current_dir = match std::env::current_dir() {
+                    Ok(current_dir) => format!("`{}`", current_dir.display()),
+                    Err(..) => "<unknown working directory>".to_string(),
+                };
+
+                ::capnp::Error::failed(format!(
+                    "Unable to stat capnp input file `{}` in working directory {}: {}.  \
+                     Please check that the file exists and is accessible for read.",
+                    file.display(),
+                    current_dir,
+                    error
+                ))
+            })?;
+
+            command.arg(file);
         }
 
         let output_path = if let Some(output_path) = &self.output_path {
