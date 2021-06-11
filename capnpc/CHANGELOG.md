@@ -1,3 +1,6 @@
+### v0.14.4
+- Check that schema files exist before attempting to invoke the schema compiler.
+
 ### v0.14.3
 - Include LICENSE in published crate.
 
