@@ -76,6 +76,12 @@ impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     }
 }
 
+impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
+    fn into_internal_list_reader(self) -> ListReader<'a> {
+        self.reader
+    }
+}
+
 pub struct Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     marker: ::core::marker::PhantomData<T>,
     builder: ListBuilder<'a>
@@ -120,6 +126,14 @@ impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     pub fn get(self, index: u32) -> Result<<T as crate::traits::Owned<'a>>::Builder> {
         assert!(index < self.len());
         FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index), None)
+    }
+
+    pub fn set<'b>(&self, index: u32, value: <T as crate::traits::Owned<'b>>::Reader) -> Result<()>
+        where <T as crate::traits::Owned<'b>>::Reader: crate::traits::IntoInternalListReader<'b>
+    {
+        use crate::traits::IntoInternalListReader;
+        assert!(index < self.len());
+        self.builder.get_pointer_element(index).set_list(&value.into_internal_list_reader(), false)
     }
 }
 

@@ -404,6 +404,37 @@ mod tests {
     }
 
     #[test]
+    fn test_list_list_set_elem () {
+        use test_capnp::{test_complex_list};
+
+        let mut message1 = message::Builder::new_default();
+        let mut message2 = message::Builder::new_default();
+
+        let mut test_complex_list1 = message1.init_root::<test_complex_list::Builder<'_>>();
+        let mut test_complex_list2 = message2.init_root::<test_complex_list::Builder<'_>>();
+
+        {
+            let mut prim_list_list1 = test_complex_list1.reborrow().init_prim_list_list(1);
+            let prim_list_list2 = test_complex_list2.reborrow().init_prim_list_list(1);
+            {
+                let mut prim_list1 = prim_list_list1.reborrow().init(0, 3);
+                prim_list1.set(0, 7);
+                prim_list1.set(1, 8);
+                prim_list1.set(2, 9);
+                assert_eq!(prim_list1.len(), 3);
+
+                prim_list_list2.set(0, prim_list1.reborrow().into_reader()).unwrap();
+
+                let prim_list2 = prim_list_list2.get(0).unwrap();
+                assert_eq!(prim_list2.len(), 3);
+                assert_eq!(prim_list2.get(0), 7);
+                assert_eq!(prim_list2.get(1), 8);
+                assert_eq!(prim_list2.get(2), 9);
+            }
+        }
+    }
+
+    #[test]
     fn test_defaults() {
         use test_capnp::test_defaults;
 
