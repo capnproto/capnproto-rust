@@ -1,3 +1,6 @@
+## v0.14.3
+- Add list_list::Builder::set().
+
 ## v0.14.2
 - Add HeapAllocator::max_segment_words().
 - Avoid potential integer overflows that could cause too many segments to be allocated.
