@@ -1,4 +1,4 @@
-[![crates.io](http://meritbadge.herokuapp.com/capnp-futures)](https://crates.io/crates/capnp-futures)
+[![crates.io](https://img.shields.io/crates/v/capnp-futures.svg)](https://crates.io/crates/capnp-futures)
 
 [documentation](https://docs.capnproto-rust.org/capnp_futures/)
 
