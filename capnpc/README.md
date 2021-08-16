@@ -1,6 +1,6 @@
 # Cap'n Proto code generation for Rust
 
-[![crates.io](http://meritbadge.herokuapp.com/capnpc)](https://crates.io/crates/capnpc)
+[![crates.io](https://img.shields.io/crates/v/capnpc.svg)](https://crates.io/crates/capnpc)
 
 [documentation](https://docs.capnproto-rust.org/capnpc/)
 

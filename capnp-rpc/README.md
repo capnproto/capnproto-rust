@@ -1,6 +1,6 @@
 # capnp-rpc-rust
 
-[![crates.io](http://meritbadge.herokuapp.com/capnp-rpc)](https://crates.io/crates/capnp-rpc)
+[![crates.io](https://img.shields.io/crates/v/capnp-rpc.svg)](https://crates.io/crates/capnp-rpc)
 
 [documentation](https://docs.capnproto-rust.org/capnp_rpc/)
 
