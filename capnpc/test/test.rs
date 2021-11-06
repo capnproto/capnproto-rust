@@ -74,7 +74,7 @@ mod test_util;
 
 #[cfg(test)]
 mod tests {
-    use capnp::message;
+    use capnp::message::{self, TypedBuilder, TypedReader};
     use capnp::message::{ReaderOptions};
 
     #[test]
@@ -1566,5 +1566,26 @@ mod tests {
                 _ => panic!("expected Qux"),
             }
         }
+    }
+
+    #[test]
+    fn test_typed_builder_reader() {
+        use test_capnp::test_all_types;
+
+        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::new_default();
+        ::test_util::init_test_message(typed_builder.init_root());
+
+        ::test_util::CheckTestMessage::check_test_message(typed_builder.get_root().unwrap());
+        ::test_util::CheckTestMessage::check_test_message(
+            typed_builder.get_root_as_reader().unwrap(),
+        );
+
+        let mut buffer = vec![];
+        capnp::serialize_packed::write_message(&mut buffer, typed_builder.borrow_inner()).unwrap();
+
+        let reader =
+            capnp::serialize_packed::read_message(buffer.as_slice(), ReaderOptions::new()).unwrap();
+        let message_reader = TypedReader::<_, test_all_types::Owned>::new(reader);
+        ::test_util::CheckTestMessage::check_test_message(message_reader.get().unwrap());
     }
 }

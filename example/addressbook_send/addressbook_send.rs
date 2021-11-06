@@ -32,12 +32,12 @@ use std::thread;
 
 pub mod addressbook {
     use addressbook_capnp::{address_book, person};
-    use capnp::message::{Builder, HeapAllocator, TypedReader};
+    use capnp::message::{Builder, HeapAllocator, TypedReader, TypedBuilder};
 
     pub fn build_address_book() -> TypedReader<Builder<HeapAllocator>, address_book::Owned> {
-        let mut message = Builder::new_default();
+        let mut message = TypedBuilder::<address_book::Owned>::new_default();
         {
-            let address_book = message.init_root::<address_book::Builder>();
+            let address_book = message.init_root();
 
             let mut people = address_book.init_people(2);
 
@@ -70,15 +70,15 @@ pub mod addressbook {
             }
         }
 
-        // There are two ways to get a TypedReader from our `message`:
+        // There are a few ways to get a TypedReader from our `message`:
         //
-        // Option 1: Go through the full process manually
-        //  message.into_reader().into_typed()
+        // Option 1: Go from TypedBuilder into TypedReader directly by calling helper method
+        //  message.into_reader()
         //
-        // Option 2: Use the "Into" trait defined on the builder
+        // Option 2: Use the "Into" trait defined on the TypedBuilder
         //   message.into()
         //
-        // Option 3: Use the "From" trait defined on the builder
+        // Option 3: Use the "From" trait defined on the TypedReader
         TypedReader::from(message)
     }
 }
