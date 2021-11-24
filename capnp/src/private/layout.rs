@@ -3419,6 +3419,20 @@ impl <'a> ListBuilder<'a> {
             pointer: unsafe { self.ptr.offset(offset as isize) } as *mut _,
         }
     }
+
+    pub(crate) fn into_raw_bytes(self) -> &'a mut [u8] {
+        if self.element_count == 0 {
+            // Explictly handle this case to avoid forming a slice to a null pointer,
+            // which would be undefined behavior.
+            &mut []
+        } else {
+            let num_bytes = wire_helpers::round_bits_up_to_bytes(
+                self.step as u64 * self.element_count as u64) as usize;
+            unsafe {
+                ::core::slice::from_raw_parts_mut(self.ptr, num_bytes)
+            }
+        }
+    }
 }
 
 

@@ -25,7 +25,7 @@ use core::{marker};
 
 use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                             PrimitiveElement};
+                             PrimitiveElement, data_bits_per_element};
 use crate::Result;
 
 #[derive(Clone, Copy)]
@@ -71,6 +71,15 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
         assert!(index < self.len());
         PrimitiveElement::get(&self.reader, index)
     }
+
+    #[cfg(all(target_endian = "little"))]
+    pub fn to_slice(&self) -> &[T] {
+        let bytes = self.reader.into_raw_bytes();
+        unsafe {
+            use std::slice;
+            slice::from_raw_parts(bytes.as_ptr() as *mut T, (data_bits_per_element(T::element_size())/8) as usize)
+        }
+    }
 }
 
 impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
@@ -96,6 +105,15 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
 
     pub fn set(&mut self, index: u32, value: T) {
         PrimitiveElement::set(&self.builder, index, value);
+    }
+
+    #[cfg(all(target_endian = "little"))]
+    pub fn to_slice(&self) -> &mut [T] {
+        let bytes = self.builder.into_raw_bytes();
+        unsafe {
+            use std::slice;
+            slice::from_raw_parts_mut(bytes.as_ptr() as *mut T, (data_bits_per_element(T::element_size())/8) as usize)
+        }
     }
 }
 
