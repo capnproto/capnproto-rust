@@ -112,7 +112,7 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
         let bytes = self.builder.into_raw_bytes();
         unsafe {
             use std::slice;
-            slice::from_raw_parts_mut(bytes.as_ptr() as *mut T, (data_bits_per_element(T::element_size())/8) as usize)
+            slice::from_raw_parts_mut(bytes.as_ptr() as *mut T, 8*bytes.len()/(data_bits_per_element(T::element_size())) as usize)
         }
     }
 }
