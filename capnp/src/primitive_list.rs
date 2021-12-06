@@ -73,11 +73,16 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
     }
 
     #[cfg(all(target_endian = "little"))]
-    pub fn to_slice(&self) -> &[T] {
+    /// Returns something if the slice is as expected in memory. 
+    pub fn to_slice(&self) -> Option<&[T]> {
         let bytes = self.reader.into_raw_bytes();
-        unsafe {
-            use std::slice;
-            slice::from_raw_parts(bytes.as_ptr() as *mut T, (data_bits_per_element(T::element_size())/8) as usize)
+        if self.reader.get_element_size() == T::element_size() {
+            Some (unsafe {
+                use std::slice;
+                slice::from_raw_parts(bytes.as_ptr() as *mut T, 8*bytes.len()/(data_bits_per_element(T::element_size())) as usize)
+            })
+        } else {
+            None
         }
     }
 }
