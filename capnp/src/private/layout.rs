@@ -3409,6 +3409,10 @@ impl <'a> ListBuilder<'a> {
         }
     }
 
+    pub(crate) fn get_element_size(&self) -> ElementSize {
+        self.element_size
+    }
+
     #[inline]
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerBuilder<'a> {
         let offset = (index as u64 * self.step as u64 / BITS_PER_BYTE as u64) as u32;

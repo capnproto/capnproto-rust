@@ -75,8 +75,8 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
     #[cfg(all(target_endian = "little"))]
     /// Returns something if the slice is as expected in memory. 
     pub fn to_slice(&self) -> Option<&[T]> {
-        let bytes = self.reader.into_raw_bytes();
         if self.reader.get_element_size() == T::element_size() {
+            let bytes = self.reader.into_raw_bytes();
             Some (unsafe {
                 use std::slice;
                 slice::from_raw_parts(bytes.as_ptr() as *mut T, 8*bytes.len()/(data_bits_per_element(T::element_size())) as usize)
@@ -113,11 +113,15 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
     }
 
     #[cfg(all(target_endian = "little"))]
-    pub fn to_slice(&self) -> &mut [T] {
-        let bytes = self.builder.into_raw_bytes();
-        unsafe {
-            use std::slice;
-            slice::from_raw_parts_mut(bytes.as_ptr() as *mut T, 8*bytes.len()/(data_bits_per_element(T::element_size())) as usize)
+    pub fn to_slice(&self) -> Option<&mut [T]> {
+        if self.builder.get_element_size() == T::element_size() {
+            let bytes = self.builder.into_raw_bytes();
+            Some (unsafe {
+                use std::slice;
+                slice::from_raw_parts_mut(bytes.as_ptr() as *mut T, 8*bytes.len()/(data_bits_per_element(T::element_size())) as usize)
+            })
+        } else {
+            None
         }
     }
 }
