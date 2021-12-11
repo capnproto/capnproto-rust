@@ -74,7 +74,7 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
 
     #[cfg(all(target_endian = "little"))]
     /// Returns something if the slice is as expected in memory.
-    pub fn to_slice(&self) -> Option<&[T]> {
+    pub fn as_slice(&self) -> Option<&[T]> {
         if self.reader.get_element_size() == T::element_size() {
             let bytes = self.reader.into_raw_bytes();
             Some (unsafe {
@@ -113,7 +113,7 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
     }
 
     #[cfg(all(target_endian = "little"))]
-    pub fn to_slice(&self) -> Option<&mut [T]> {
+    pub fn as_slice(&self) -> Option<&mut [T]> {
         if self.builder.get_element_size() == T::element_size() {
             let bytes = self.builder.into_raw_bytes();
             Some (unsafe {
