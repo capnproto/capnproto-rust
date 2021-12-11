@@ -1,3 +1,7 @@
+## v0.14.4
+- Add capnp::message::TypedBuilder.
+- Add as_slice() methods for primitive_list. (These are only enabled for little endian targets.)
+
 ## v0.14.3
 - Add list_list::Builder::set().
 
