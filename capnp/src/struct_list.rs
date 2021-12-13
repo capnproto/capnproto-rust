@@ -80,7 +80,7 @@ where T: for<'b> crate::traits::OwnedStruct<'b> {
 }
 
 impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
-    pub fn get(self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Reader {
+    pub fn get(&self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Reader {
         assert!(index < self.len());
         FromStructReader::new(self.reader.get_struct_element(index))
     }
@@ -147,7 +147,7 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> crate::t
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
-    pub fn get(self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Builder {
+    pub fn get(&self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Builder {
         assert!(index < self.len());
         FromStructBuilder::new(self.builder.get_struct_element(index))
     }

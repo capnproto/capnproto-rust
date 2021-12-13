@@ -908,7 +908,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.join(", ");
-            result.push(Line(format!("pub fn init_{}(self, {}) -> {} {{",
+            result.push(Line(format!("pub fn init_{}(&mut self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
             result.push(Indent(Box::new(Branch(initter_interior))));
             result.push(Line("}".to_string()));
@@ -1280,7 +1280,7 @@ fn generate_node(gen: &GeneratorContext,
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(self) {} {{", styled_name, ty)),
+                            Line(format!("pub fn get_{}(&self) {} {{", styled_name, ty)),
                             Indent(Box::new(get)),
                             Line("}".to_string()))));
 
@@ -1288,7 +1288,7 @@ fn generate_node(gen: &GeneratorContext,
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(self) {} {{", styled_name, ty_b)),
+                            Line(format!("pub fn get_{}(&mut self) {} {{", styled_name, ty_b)),
                             Indent(Box::new(get_b)),
                             Line("}".to_string()))));
 

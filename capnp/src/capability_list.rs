@@ -74,7 +74,7 @@ impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: FromClientHook {
 }
 
 impl <'a, T> Reader<'a, T> where T: FromClientHook {
-    pub fn get(self, index: u32) -> Result<T> {
+    pub fn get(&self, index: u32) -> Result<T> {
         assert!(index < self.len());
         Ok(FromClientHook::new(self.reader.get_pointer_element(index).get_capability()?))
     }
@@ -129,7 +129,7 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: FromClientHook {
 }
 
 impl <'a, T> Builder<'a, T> where T: FromClientHook {
-    pub fn get(self, index: u32) -> Result<T> {
+    pub fn get(&mut self, index: u32) -> Result<T> {
         assert!(index < self.len());
         Ok(FromClientHook::new(self.builder.get_pointer_element(index).get_capability()?))
     }

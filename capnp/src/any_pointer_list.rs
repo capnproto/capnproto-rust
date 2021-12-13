@@ -52,7 +52,7 @@ impl <'a> Reader<'a> {
         ListIter::new(self, l)
     }
 
-    pub fn get(self, index : u32) -> crate::any_pointer::Reader<'a> {
+    pub fn get(&self, index : u32) -> crate::any_pointer::Reader<'a> {
         assert!(index <  self.len());
         crate::any_pointer::Reader::new(self.reader.get_pointer_element(index))
     }
@@ -87,7 +87,7 @@ impl <'a> Builder<'a> {
         Reader { reader: self.builder.into_reader() }
     }
 
-    pub fn get(self, index : u32) -> crate::any_pointer::Builder<'a> {
+    pub fn get(&mut self, index : u32) -> crate::any_pointer::Builder<'a> {
         assert!(index <  self.len());
         crate::any_pointer::Builder::new(self.builder.get_pointer_element(index))
     }

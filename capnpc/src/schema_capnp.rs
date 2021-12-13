@@ -429,7 +429,7 @@ pub mod node {
 
     impl <'a,> Reader<'a,>  {
       pub fn reborrow(&self) -> Reader<'_,> {
-        Reader { .. *self }
+        *self
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {

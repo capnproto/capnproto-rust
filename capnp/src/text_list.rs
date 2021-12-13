@@ -64,7 +64,7 @@ impl <'a>  IndexMove<u32, Result<crate::text::Reader<'a>>> for Reader<'a>{
 }
 
 impl <'a> Reader<'a> {
-    pub fn get(self, index : u32) -> Result<crate::text::Reader<'a>> {
+    pub fn get(&self, index : u32) -> Result<crate::text::Reader<'a>> {
         assert!(index <  self.len());
         self.reader.get_pointer_element(index).get_text(None)
     }
@@ -116,7 +116,7 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
 }
 
 impl <'a> Builder<'a> {
-    pub fn get(self, index: u32) -> Result<crate::text::Builder<'a>> {
+    pub fn get(&mut self, index: u32) -> Result<crate::text::Builder<'a>> {
         self.builder.get_pointer_element(index).get_text(None)
     }
 }

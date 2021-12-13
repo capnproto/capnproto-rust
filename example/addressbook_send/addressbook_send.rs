@@ -37,19 +37,19 @@ pub mod addressbook {
     pub fn build_address_book() -> TypedReader<Builder<HeapAllocator>, address_book::Owned> {
         let mut message = TypedBuilder::<address_book::Owned>::new_default();
         {
-            let address_book = message.init_root();
+            let mut address_book = message.init_root();
 
-            let mut people = address_book.init_people(2);
+            let people = address_book.init_people(2);
 
             {
-                let mut alice = people.reborrow().get(0);
+                let mut alice = people.get(0);
                 alice.set_id(123);
                 alice.set_name("Alice");
                 alice.set_email("alice@example.com");
                 {
-                    let mut alice_phones = alice.reborrow().init_phones(1);
-                    alice_phones.reborrow().get(0).set_number("555-1212");
-                    alice_phones.reborrow().get(0).set_type(person::phone_number::Type::Mobile);
+                    let alice_phones = alice.init_phones(1);
+                    alice_phones.get(0).set_number("555-1212");
+                    alice_phones.get(0).set_type(person::phone_number::Type::Mobile);
                 }
                 alice.get_employment().set_school("MIT");
             }
@@ -60,11 +60,11 @@ pub mod addressbook {
                 bob.set_name("Bob");
                 bob.set_email("bob@example.com");
                 {
-                    let mut bob_phones = bob.reborrow().init_phones(2);
-                    bob_phones.reborrow().get(0).set_number("555-4567");
-                    bob_phones.reborrow().get(0).set_type(person::phone_number::Type::Home);
-                    bob_phones.reborrow().get(1).set_number("555-7654");
-                    bob_phones.reborrow().get(1).set_type(person::phone_number::Type::Work);
+                    let bob_phones = bob.init_phones(2);
+                    bob_phones.get(0).set_number("555-4567");
+                    bob_phones.get(0).set_type(person::phone_number::Type::Home);
+                    bob_phones.get(1).set_number("555-7654");
+                    bob_phones.get(1).set_type(person::phone_number::Type::Work);
                 }
                 bob.get_employment().set_unemployed(());
             }
