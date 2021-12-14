@@ -100,10 +100,10 @@ pub struct BufferSegments<T> {
 }
 
 impl<T: Deref<Target = [u8]>> BufferSegments<T> {
-    /// Reads a serialized message (including a segment table) from a flat slice of bytes, without copying.
-    /// The slice is allowed to extend beyond the end of the message. On success, updates `slice` to point
-    /// to the remaining bytes beyond the end of the message.
-    ///
+    /// Reads a serialized message (including a segment table) from a buffer and takes ownership, without copying.
+    /// The buffer is allowed to be longer than the message. Provide this to `Reader::new` with options that make 
+    /// sense for your use case. Very long lived mmaps may need unlimited traversal limit.
+    /// 
     /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `slice`.
     /// Otherwise, `slice` must be 8-byte aligned (attempts to read the message will trigger errors).
     pub fn new(buffer: T, options: message::ReaderOptions) -> Result<BufferSegments<T>> {
