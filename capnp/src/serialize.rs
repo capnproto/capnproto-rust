@@ -32,6 +32,8 @@ use crate::message;
 use crate::private::units::BYTES_PER_WORD;
 use crate::{Error, Result};
 
+use std::ops::Deref;
+
 /// Segments read from a single flat slice of words.
 pub struct SliceSegments<'a> {
     words: &'a [u8],
@@ -85,6 +87,62 @@ pub fn read_message_from_flat_slice<'a>(slice: &mut &'a [u8],
         Ok(message::Reader::new(segment_lengths_builder.into_slice_segments(body_bytes), options))
     }
 }
+
+/// Segments read from a buffer, useful for long lived mmaps.
+pub struct BufferSegments<T> {
+    buffer: T,
+    
+    // We need to offset this each time
+    segment_table_bytes_len: usize,
+    // Each pair represents a segment inside of `words`.
+    // (starting index (in words), ending index (in words))
+    segment_indices : Vec<(usize, usize)>,
+}
+
+impl<T: Deref<Target = [u8]>> BufferSegments<T> {
+    /// Reads a serialized message (including a segment table) from a flat slice of bytes, without copying.
+    /// The slice is allowed to extend beyond the end of the message. On success, updates `slice` to point
+    /// to the remaining bytes beyond the end of the message.
+    ///
+    /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `slice`.
+    /// Otherwise, `slice` must be 8-byte aligned (attempts to read the message will trigger errors).
+    pub fn new(buffer: T, options: message::ReaderOptions) -> Result<BufferSegments<T>> {
+        let mut segment_bytes = &*buffer;
+
+        let segment_table = match read_segment_table(&mut segment_bytes, options)?
+        {
+            Some(b) => b,
+            None => return Err(Error::failed("empty slice".to_string())),
+        };
+        let segment_table_bytes_len = buffer.len() - segment_bytes.len();
+
+        assert!(segment_table.total_words() * 8 <= buffer.len());
+        let segment_indices = segment_table.to_segment_indices();
+        Ok(BufferSegments {
+            buffer,
+            segment_table_bytes_len,
+            segment_indices,
+        })
+    }
+}
+
+impl <T: Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
+    fn get_segment<'b>(&'b self, id: u32) -> Option<&'b [u8]> {
+        if id < self.segment_indices.len() as u32 {
+            let (a, b) = self.segment_indices[id as usize];
+            Some(&self.buffer[self.segment_table_bytes_len..][(a * BYTES_PER_WORD)..(b * BYTES_PER_WORD)])
+        } else {
+            None
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.segment_indices.len()
+    }
+}
+
+
+
 
 /// Owned memory containing a message's segments sequentialized in a single contiguous buffer.
 /// The segments are guaranteed to be 8-byte aligned.
