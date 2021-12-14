@@ -26,13 +26,13 @@
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::convert::TryInto;
+use core::ops::Deref;
 use crate::io::{Read, Write};
 
 use crate::message;
 use crate::private::units::BYTES_PER_WORD;
 use crate::{Error, Result};
 
-use std::ops::Deref;
 
 /// Segments read from a single flat slice of words.
 pub struct SliceSegments<'a> {
@@ -123,6 +123,10 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
             segment_table_bytes_len,
             segment_indices,
         })
+    }
+
+    pub fn to_buffer(self) -> T {
+        self.buffer
     }
 }
 
