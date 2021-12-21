@@ -88,7 +88,8 @@ pub fn read_message_from_flat_slice<'a>(slice: &mut &'a [u8],
     }
 }
 
-/// Segments read from a buffer, useful for long lived mmaps.
+/// Segments read from a buffer, useful for when you have the message in a buffer and don't want the extra 
+/// copy of `read_message`.
 pub struct BufferSegments<T> {
     buffer: T,
     
@@ -125,7 +126,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
         })
     }
 
-    pub fn to_buffer(self) -> T {
+    pub fn into_buffer(self) -> T {
         self.buffer
     }
 }
@@ -134,7 +135,7 @@ impl <T: Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
     fn get_segment<'b>(&'b self, id: u32) -> Option<&'b [u8]> {
         if id < self.segment_indices.len() as u32 {
             let (a, b) = self.segment_indices[id as usize];
-            Some(&self.buffer[self.segment_table_bytes_len..][(a * BYTES_PER_WORD)..(b * BYTES_PER_WORD)])
+            Some(&self.buffer[(self.segment_table_bytes_len + a * BYTES_PER_WORD)..(self.segment_table_bytes_len + b * BYTES_PER_WORD)])
         } else {
             None
         }
