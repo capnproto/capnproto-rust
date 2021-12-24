@@ -88,13 +88,14 @@ pub fn read_message_from_flat_slice<'a>(slice: &mut &'a [u8],
     }
 }
 
-/// Segments read from a buffer, useful for when you have the message in a buffer and don't want the extra 
+/// Segments read from a buffer, useful for when you have the message in a buffer and don't want the extra
 /// copy of `read_message`.
 pub struct BufferSegments<T> {
     buffer: T,
-    
+
     // We need to offset this each time
     segment_table_bytes_len: usize,
+
     // Each pair represents a segment inside of `words`.
     // (starting index (in words), ending index (in words))
     segment_indices : Vec<(usize, usize)>,
@@ -102,18 +103,18 @@ pub struct BufferSegments<T> {
 
 impl<T: Deref<Target = [u8]>> BufferSegments<T> {
     /// Reads a serialized message (including a segment table) from a buffer and takes ownership, without copying.
-    /// The buffer is allowed to be longer than the message. Provide this to `Reader::new` with options that make 
+    /// The buffer is allowed to be longer than the message. Provide this to `Reader::new` with options that make
     /// sense for your use case. Very long lived mmaps may need unlimited traversal limit.
-    /// 
-    /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `slice`.
-    /// Otherwise, `slice` must be 8-byte aligned (attempts to read the message will trigger errors).
+    ///
+    /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
+    /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
     pub fn new(buffer: T, options: message::ReaderOptions) -> Result<BufferSegments<T>> {
         let mut segment_bytes = &*buffer;
 
         let segment_table = match read_segment_table(&mut segment_bytes, options)?
         {
             Some(b) => b,
-            None => return Err(Error::failed("empty slice".to_string())),
+            None => return Err(Error::failed("empty buffer".to_string())),
         };
         let segment_table_bytes_len = buffer.len() - segment_bytes.len();
 
