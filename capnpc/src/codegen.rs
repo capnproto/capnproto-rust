@@ -36,6 +36,7 @@ use self::FormattedText::{Indent, Line, Branch, BlankLine};
 pub struct CodeGenerationCommand {
     output_directory: PathBuf,
     default_parent_module: Vec<String>,
+    raw_code_generator_request_path: Option<PathBuf>,
 }
 
 impl CodeGenerationCommand {
@@ -44,6 +45,7 @@ impl CodeGenerationCommand {
         CodeGenerationCommand {
             output_directory: PathBuf::new(),
             default_parent_module: Vec::new(),
+            raw_code_generator_request_path: None,
         }
     }
 
@@ -62,6 +64,14 @@ impl CodeGenerationCommand {
     pub fn default_parent_module(&mut self, default_parent_module: Vec<String>) -> &mut Self
     {
         self.default_parent_module = default_parent_module;
+        self
+    }
+
+    /// Sets the raw code generator request output path.
+    pub fn raw_code_generator_request_path<P>(&mut self, path: P) -> &mut Self
+        where P: AsRef<Path>
+    {
+        self.raw_code_generator_request_path = Some(path.as_ref().to_path_buf());
         self
     }
 
@@ -119,6 +129,12 @@ impl CodeGenerationCommand {
                 }
             }
         }
+
+        if let Some(raw_code_generator_request) = &self.raw_code_generator_request_path {
+            let raw_code_generator_request_file = ::std::fs::File::create(&raw_code_generator_request).map_err(convert_io_err)?;
+            serialize::write_message_segments(WriteWrapper{ inner: raw_code_generator_request_file }, &message.into_segments())?;
+        }
+
         Ok(())
     }
 }
@@ -2020,6 +2036,19 @@ impl <R> capnp::io::Read for ReadWrapper<R> where R: std::io::Read {
                 Err(e) => return Err(convert_io_err(e)),
             }
         }
+    }
+}
+
+// The capnp crate defines a blanket impl of capnp::Write for R where R: std::io::Write,
+// but we can't use that here because it lives behind the "std" feature flag.
+struct WriteWrapper<W> where W: std::io::Write {
+    inner: W,
+}
+
+impl <W> capnp::io::Write for WriteWrapper<W> where W: std::io::Write {
+    fn write_all(&mut self, buf: &[u8]) -> ::capnp::Result<()> {
+        std::io::Write::write_all(&mut self.inner, buf).map_err(convert_io_err)?;
+        Ok(())
     }
 }
 

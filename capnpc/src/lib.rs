@@ -105,6 +105,7 @@ pub struct CompilerCommand {
     executable_path: Option<PathBuf>,
     output_path: Option<PathBuf>,
     default_parent_module: Vec<String>,
+    raw_code_generator_request_path: Option<PathBuf>,
 }
 
 impl CompilerCommand {
@@ -118,6 +119,7 @@ impl CompilerCommand {
             executable_path: None,
             output_path: None,
             default_parent_module: Vec::new(),
+            raw_code_generator_request_path: None,
         }
     }
 
@@ -200,6 +202,16 @@ impl CompilerCommand {
         self
     }
 
+    /// If set, the generator will also write a file containing the raw code generator request to the
+    /// specified path.
+    pub fn raw_code_generator_request_path<P>(&mut self, path: P) -> &mut CompilerCommand
+    where
+        P: AsRef<Path>,
+    {
+        self.raw_code_generator_request_path = Some(path.as_ref().to_path_buf());
+        self
+    }
+
     /// Runs the command.
     /// Returns an error if `OUT_DIR` or a custom output directory was not set, or if `capnp compile` fails.
     pub fn run(&mut self) -> ::capnp::Result<()> {
@@ -263,6 +275,9 @@ impl CompilerCommand {
         code_generation_command
             .output_directory(output_path)
             .default_parent_module(self.default_parent_module.clone());
+        if let Some(raw_code_generator_request_path) = &self.raw_code_generator_request_path {
+            code_generation_command.raw_code_generator_request_path(raw_code_generator_request_path.clone());
+        }
 
         run_command(command, code_generation_command).map_err(|error| {
             ::capnp::Error::failed(format!(

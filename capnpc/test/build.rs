@@ -6,6 +6,10 @@ fn main() {
         .file("schema/test-in-dir.capnp")
         .file("schema-with-src-prefix/test-in-src-prefix-dir.capnp")
         .src_prefix("schema-with-src-prefix")
+        .raw_code_generator_request_path(
+            std::env::var("OUT_DIR").expect("OUT_DIR env var is not set")
+                + "/raw_code_gen_request.bin",
+        )
         .run()
         .expect("compiling schema");
 
