@@ -1645,4 +1645,20 @@ mod tests {
         let message_reader = TypedReader::<_, test_all_types::Owned>::new(reader);
         ::test_util::CheckTestMessage::check_test_message(message_reader.get().unwrap());
     }
+
+    #[test] 
+    fn test_raw_code_generator_request_path() {
+        use std::fs;
+        use capnp::serialize;
+
+        let raw_code_gen_request = fs::read(
+            std::env::var("OUT_DIR").expect("OUT_DIR env var is not set")
+                + "/raw_code_gen_request.bin"
+        ).expect("Failed to open raw code gen request file");
+
+        let reader = serialize::read_message(raw_code_gen_request.as_slice(), ReaderOptions::new()).unwrap();
+        let generator_context = capnpc::codegen::GeneratorContext::new(&reader).unwrap();
+        assert!(generator_context.node_map.len() > 0);
+        assert!(generator_context.scope_map.len() > 0);
+    }
 }
