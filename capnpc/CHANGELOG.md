@@ -1,3 +1,7 @@
+### v0.14.5
+- Fix bug in code generation for generic groups.
+- Add CompilerCommand.raw_code_generator_request_path().
+
 ### v0.14.4
 - Check that schema files exist before attempting to invoke the schema compiler.
 
