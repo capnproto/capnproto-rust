@@ -693,6 +693,63 @@ mod tests {
     }
 
     #[test]
+    fn test_generics_groups() {
+        use capnp::primitive_list;
+        use test_capnp::{test_generics_groups, test_all_types};
+        {
+            let mut message = message::Builder::new_default();
+            {
+                let mut root: test_generics_groups::Builder<'_, test_all_types::Owned, primitive_list::Owned<u32>>
+                    = message.init_root();
+                {
+                    root.reborrow().get_foo().unwrap().set_int16_field(17);
+                    let mut bar = root.init_bar();
+                    let mut baz = bar.reborrow().initn_baz(5);
+                    baz.set(2, 11);
+                }
+            }
+            let root: test_generics_groups::Reader<'_, test_all_types::Owned, primitive_list::Owned<u32>>
+                = message.get_root_as_reader().unwrap();
+            assert_eq!(17, root.get_foo().unwrap().get_int16_field());
+            let baz = root.get_bar().get_baz().unwrap();
+            assert_eq!(5, baz.len());
+            assert_eq!(11, baz.get(2));
+        }
+
+        {
+            let mut message = message::Builder::new_default();
+            {
+                let mut root: test_generics_groups::inner::Builder<'_,
+                                                                   test_all_types::Owned,
+                                                                   primitive_list::Owned<u8>,
+                                                                   primitive_list::Owned<i16>,
+                                                                   primitive_list::Owned<u32>>
+                    = message.init_root();
+                {
+                    let mut foo = root.reborrow().initn_foo(3);
+                    foo.set(1, -1025);
+
+                    let mut bar = root.get_bar();
+                    bar.set_baz(());
+                }
+            }
+            let root: test_generics_groups::inner::Reader<'_,
+                                                          test_all_types::Owned,
+                                                          primitive_list::Owned<u8>,
+                                                          primitive_list::Owned<i16>,
+                                                          primitive_list::Owned<u32>>
+                = message.get_root_as_reader().unwrap();
+            let foo = root.get_foo().unwrap();
+            assert_eq!(3, foo.len());
+            assert_eq!(-1025, foo.get(1));
+            match root.get_bar().which().unwrap() {
+                test_generics_groups::inner::bar::Baz(()) => (),
+                test_generics_groups::inner::bar::Qux(_) => panic!("expected baz"),
+            }
+        }
+    }
+
+    #[test]
     fn test_union() {
         use test_capnp::test_union;
 

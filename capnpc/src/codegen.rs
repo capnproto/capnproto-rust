@@ -497,6 +497,26 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
     }
 }
 
+// Gets the full list ordered of generic parameters for a node. Outer scopes come first.
+fn get_params(gen: &GeneratorContext,
+              mut node_id: u64) -> ::capnp::Result<Vec<String>> {
+    let mut result = Vec::new();
+
+    while node_id != 0 {
+        let node = gen.node_map[&node_id];
+        let parameters = node.get_parameters()?;
+
+        for idx in 0 .. parameters.len() {
+            result.push(parameters.get(parameters.len() - 1 - idx).get_name()?.into());
+        }
+
+        node_id = node.get_scope_id();
+    }
+
+    result.reverse();
+    Ok(result)
+}
+
 //
 // Returns (type, getter body, default_decl)
 //
@@ -509,12 +529,19 @@ pub fn getter_text(gen: &GeneratorContext,
 
     match field.which()? {
         field::Group(group) => {
+            let params = get_params(gen, group.get_type_id())?;
+            let params_string = if params.is_empty() {
+                "".to_string()
+            } else {
+                format!(",{}", params.join(","))
+            };
+
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
 
             let mut result_type = if is_reader {
-                format!("{}::Reader<'a>", the_mod)
+                format!("{}::Reader<'a{}>", the_mod, params_string)
             } else {
-                format!("{}::Builder<'a>", the_mod)
+                format!("{}::Builder<'a{}>", the_mod, params_string)
             };
 
             if is_fn {
@@ -747,6 +774,13 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 
     let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match field.which()? {
         field::Group(group) => {
+            let params = get_params(gen, group.get_type_id())?;
+            let params_string = if params.is_empty() {
+                "".to_string()
+            } else {
+                format!(",{}", params.join(","))
+            };
+
             let scope = &gen.scope_map[&group.get_type_id()];
             let the_mod = scope.join("::");
 
@@ -754,7 +788,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 
             initter_interior.push(Line(format!("::capnp::traits::FromStructBuilder::new(self.builder)")));
 
-            (None, Some(format!("{}::Builder<'a>", the_mod)))
+            (None, Some(format!("{}::Builder<'a{}>", the_mod, params_string)))
         }
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
@@ -1082,11 +1116,19 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
 
     match field.which()? {
         field::Group(group) => {
+            let params = get_params(gen, group.get_type_id())?;
+            let params_string = if params.is_empty() {
+                "".to_string()
+            } else {
+                format!("<{}>", params.join(","))
+            };
+
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
             Ok(Branch(vec!(
-                Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
+                Line(format!("pub fn get_{}(&self) -> {}::Pipeline{} {{",
                              camel_to_snake_case(name),
-                             the_mod)),
+                             the_mod,
+                             params_string)),
                 Indent(
                     Box::new(Line("::capnp::capability::FromTypelessPipeline::new(self._typeless.noop())".to_string()))),
                 Line("}".to_string()))))
