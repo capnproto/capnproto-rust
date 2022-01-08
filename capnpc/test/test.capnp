@@ -508,6 +508,21 @@ struct TestGenericsUnion(Foo, Bar) {
   }
 }
 
+struct TestGenericsGroups(T1, T2) {
+  foo @0 :T1;
+  bar :group {
+    baz @1 :T2;
+  }
+
+  struct Inner(T3, T4) {
+    foo @0 :T3;
+    bar :union {
+      baz @1 :Void;
+      qux @2 :Int32;
+    }
+  }
+}
+
 struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
   basic @0 :TestGenerics(TestAllTypes, TestAnyPointer);
   inner @1 :TestGenerics(TestAllTypes, TestAnyPointer).Inner;
