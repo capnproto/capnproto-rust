@@ -1,3 +1,6 @@
+### v0.14.6
+- Fix bug in code generation for unions that don't use all of their enclosing struct's generic params.
+
 ### v0.14.5
 - Fix bug in code generation for generic groups.
 - Add CompilerCommand.raw_code_generator_request_path().
