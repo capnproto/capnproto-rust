@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use std::collections;
-use std::collections::HashSet;
+use std::collections::{HashMap,HashSet};
 use std::path::{Path, PathBuf};
 
 use capnp;
@@ -29,7 +29,7 @@ use capnp::Error;
 use crate::{convert_io_err};
 use crate::pointer_constants::generate_pointer_constant;
 use crate::schema_capnp;
-use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
+use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
 /// An invocation of the capnpc-rust code generation plugin.
@@ -968,13 +968,121 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
     Ok(Branch(result))
 }
 
+fn used_params_of_group(gen: &GeneratorContext,
+                        group_id: u64,
+                        used_params: &mut HashSet<String>) -> capnp::Result<()> {
+    let node = gen.node_map[&group_id];
+    match node.which()? {
+        schema_capnp::node::Struct(st) => {
+            for field in st.get_fields()?.iter() {
+                match field.which()? {
+                    schema_capnp::field::Group(group) => {
+                        used_params_of_group(gen, group.get_type_id(), used_params)?;
+                    }
+                    schema_capnp::field::Slot(slot) => {
+                        used_params_of_type(gen, slot.get_type()?, used_params)?;
+                    }
+                }
+            }
+            Ok(())
+        },
+        _ => Err(Error::failed("not a group".to_string()))
+    }
+}
+
+fn used_params_of_type(gen: &GeneratorContext,
+                       ty: schema_capnp::type_::Reader,
+                       used_params: &mut HashSet<String>) -> capnp::Result<()> {
+    use schema_capnp::type_;
+    match ty.which()? {
+        type_::List(ls) => {
+            let et = ls.get_element_type()?;
+            used_params_of_type(gen, et, used_params)?;
+        },
+        type_::Enum(e) => {
+            let node_id = e.get_type_id();
+            let brand = e.get_brand()?;
+            used_params_of_brand(gen, node_id, brand, used_params)?;
+        },
+        type_::Struct(s) => {
+            let node_id = s.get_type_id();
+            let brand = s.get_brand()?;
+            used_params_of_brand(gen, node_id, brand, used_params)?;
+        },
+        type_::Interface(i) => {
+            let node_id = i.get_type_id();
+            let brand = i.get_brand()?;
+            used_params_of_brand(gen, node_id, brand, used_params)?;
+        },
+        type_::AnyPointer(ap) => {
+            match ap.which()? {
+                type_::any_pointer::Parameter(def) => {
+                    let the_struct = &gen.node_map[&def.get_scope_id()];
+                    let parameters = the_struct.get_parameters()?;
+                    let parameter = parameters.get(def.get_parameter_index() as u32);
+                    let parameter_name = parameter.get_name()?;
+                    used_params.insert(parameter_name.to_string());
+                }
+                _ => (),
+            }
+        }
+        _ => (),
+    }
+    Ok(())
+}
+
+fn used_params_of_brand(gen: &GeneratorContext,
+                        node_id: u64,
+                        brand: schema_capnp::brand::Reader,
+                        used_params: &mut HashSet<String>) -> capnp::Result<()> {
+    use schema_capnp::brand;
+    let scopes = brand.get_scopes()?;
+    let mut brand_scopes = HashMap::new();
+    for scope in scopes.iter() {
+        brand_scopes.insert(scope.get_scope_id(), scope);
+    }
+    let brand_scopes = brand_scopes; // freeze
+    let mut current_node_id = node_id;
+    loop {
+        let current_node = match gen.node_map.get(&current_node_id) {
+            None => break,
+            Some(node) => node,
+        };
+        let params = current_node.get_parameters()?;
+        match brand_scopes.get(&current_node_id) {
+            None => (),
+            Some(scope) => {
+                match scope.which()? {
+                    brand::scope::Inherit(()) => {
+                        for param in params.iter() {
+                            used_params.insert(param.get_name()?.to_string());
+                        }
+                    }
+                    brand::scope::Bind(bindings_list_opt) => {
+                        let bindings_list = bindings_list_opt?;
+                        assert_eq!(bindings_list.len(), params.len());
+                        for binding in bindings_list.iter() {
+                            match binding.which()? {
+                                brand::binding::Unbound(()) => (),
+                                brand::binding::Type(t) => {
+                                    used_params_of_type(gen, t?, used_params)?;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        current_node_id = current_node.get_scope_id();
+    }
+    Ok(())
+}
 
 // return (the 'Which' enum, the 'which()' accessor, typedef, default_decls)
 fn generate_union(gen: &GeneratorContext,
                   discriminant_offset: u32,
                   fields: &[schema_capnp::field::Reader],
-                  is_reader: bool,
-                  params: &TypeParameterTexts)
+                  is_reader: bool)
                   -> ::capnp::Result<(FormattedText, FormattedText, FormattedText, Vec<FormattedText>)>
 {
     use crate::schema_capnp::*;
@@ -992,6 +1100,8 @@ fn generate_union(gen: &GeneratorContext,
 
     let mut ty_params = Vec::new();
     let mut ty_args = Vec::new();
+
+    let mut used_params : HashSet<String> = HashSet::new();
 
     let doffset = discriminant_offset as usize;
 
@@ -1016,12 +1126,15 @@ fn generate_union(gen: &GeneratorContext,
         ]));
 
         let ty1 = match field.which() {
-            Ok(field::Group(_)) => {
+            Ok(field::Group(group)) => {
+                used_params_of_group(gen, group.get_type_id(), &mut used_params)?;
                 ty_args.push(ty);
                 new_ty_param(&mut ty_params)
             }
             Ok(field::Slot(reg_field)) => {
-                match reg_field.get_type()?.which() {
+                let fty = reg_field.get_type()?;
+                used_params_of_type(gen, fty, &mut used_params)?;
+                match fty.which() {
                     Ok(type_::Text(())) | Ok(type_::Data(())) |
                     Ok(type_::List(_)) | Ok(type_::Struct(_)) |
                     Ok(type_::AnyPointer(_)) => {
@@ -1059,7 +1172,12 @@ fn generate_union(gen: &GeneratorContext,
     let concrete_type =
             format!("Which{}{}",
                     if is_reader {"Reader"} else {"Builder"},
-                    if ty_params.len() > 0 { format!("<'a,{}>", params.params) } else { "".to_string() });
+                    if ty_params.len() > 0 {
+                        format!("<'a,{}>",
+                                used_params.iter()
+                                .map(|s| s.clone())
+                                .collect::<Vec<String>>().join(","))
+                    } else { "".to_string() });
 
     let typedef =
         Line(format!("pub type {} = Which{};",
@@ -1373,7 +1491,7 @@ fn generate_node(gen: &GeneratorContext,
 
             if discriminant_count > 0 {
                 let (which_enums1, union_getter, typedef, mut default_decls) =
-                    generate_union(gen, discriminant_offset, &union_fields, true, &params)?;
+                    generate_union(gen, discriminant_offset, &union_fields, true)?;
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
@@ -1381,7 +1499,7 @@ fn generate_node(gen: &GeneratorContext,
                 private_mod_interior.append(&mut default_decls);
 
                 let (_, union_getter, typedef, _) =
-                    generate_union(gen, discriminant_offset, &union_fields, false, &params)?;
+                    generate_union(gen, discriminant_offset, &union_fields, false)?;
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
 

@@ -795,3 +795,12 @@ struct TestNameAnnotation $Rust.name("RenamedStruct") {
     baz @5 :NestedStruct $Rust.name("qux");
   }
 }
+
+struct Issue260(T, Q) {
+  val0 @0 :Int8;
+  gVal @1 :T;
+  union {
+    val1 @2 :Q;
+    val2 @3 :Int8;
+  }
+}
