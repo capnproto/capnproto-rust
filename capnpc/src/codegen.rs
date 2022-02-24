@@ -29,7 +29,7 @@ use capnp::Error;
 use crate::{convert_io_err};
 use crate::pointer_constants::generate_pointer_constant;
 use crate::schema_capnp;
-use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, do_branding };
+use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
 /// An invocation of the capnpc-rust code generation plugin.
@@ -1082,7 +1082,8 @@ fn used_params_of_brand(gen: &GeneratorContext,
 fn generate_union(gen: &GeneratorContext,
                   discriminant_offset: u32,
                   fields: &[schema_capnp::field::Reader],
-                  is_reader: bool)
+                  is_reader: bool,
+                  params: &TypeParameterTexts)
                   -> ::capnp::Result<(FormattedText, FormattedText, FormattedText, Vec<FormattedText>)>
 {
     use crate::schema_capnp::*;
@@ -1174,7 +1175,9 @@ fn generate_union(gen: &GeneratorContext,
                     if is_reader {"Reader"} else {"Builder"},
                     if ty_params.len() > 0 {
                         format!("<'a,{}>",
-                                used_params.iter()
+                                params.expanded_list
+                                .iter()
+                                .filter(|s: &&String| used_params.contains(*s))
                                 .map(|s| s.clone())
                                 .collect::<Vec<String>>().join(","))
                     } else { "".to_string() });
@@ -1491,7 +1494,7 @@ fn generate_node(gen: &GeneratorContext,
 
             if discriminant_count > 0 {
                 let (which_enums1, union_getter, typedef, mut default_decls) =
-                    generate_union(gen, discriminant_offset, &union_fields, true)?;
+                    generate_union(gen, discriminant_offset, &union_fields, true, &params)?;
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
@@ -1499,7 +1502,7 @@ fn generate_node(gen: &GeneratorContext,
                 private_mod_interior.append(&mut default_decls);
 
                 let (_, union_getter, typedef, _) =
-                    generate_union(gen, discriminant_offset, &union_fields, false)?;
+                    generate_union(gen, discriminant_offset, &union_fields, false, &params)?;
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
 
