@@ -1,3 +1,6 @@
+### v0.14.7
+- Canonicalize order of type parameters from the bugfix for issue 260.
+
 ### v0.14.6
 - Fix bug in code generation for unions that don't use all of their enclosing struct's generic params.
 
