@@ -86,19 +86,26 @@ impl <T, E> Future for Promise<T, E>
 }
 
 #[cfg(feature = "rpc_try")]
-impl<T> Try for Promise<T, crate::Error> {
-    type Ok = T;
-    type Error = crate::Error;
+impl<T> std::ops::Try for Promise<T, crate::Error> {
+    type Output = Promise<T, crate::Error>;
+    type Residual = Result<std::convert::Infallible, crate::Error>;
 
-    fn into_result(mut self) -> Result<Self::Ok, Self::Error> {
+    fn from_output(output: Self::Output) -> Self {
+        output
+    }
+
+    fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
         unimplemented!();
     }
+}
 
-    fn from_error(v: Self::Error) -> Self {
-        Promise::err(v)
-    }
-    fn from_ok(v: Self::Ok) -> Self {
-        Promise::ok(v)
+#[cfg(feature = "rpc_try")]
+impl<T> std::ops::FromResidual for Promise<T, crate::Error> {
+    fn from_residual(residual: <Self as Try>::Residual) -> Self {
+        match residual {
+            Ok(_) => unimplemented!(),
+            Err(e) => Promise::err(e),
+        }
     }
 }
 
