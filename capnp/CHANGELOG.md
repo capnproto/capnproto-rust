@@ -1,3 +1,6 @@
+## v0.14.6
+- Update rpc_try feature to work with try_trait_v2
+
 ## v0.14.5
 - Add capnp::serialize::BufferSegments.
 
