@@ -69,7 +69,7 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 | [capnp](/capnp) | Runtime library for dealing with Cap'n Proto messages. | [![crates.io](https://img.shields.io/crates/v/capnp.svg)](https://crates.io/crates/capnp) |
 | [capnpc](/capnpc) | Rust code generator [plugin](https://capnproto.org/otherlang.html#how-to-write-compiler-plugins), including support for hooking into a `build.rs` file in a `cargo` build. | [![crates.io](https://img.shields.io/crates/v/capnpc.svg)](https://crates.io/crates/capnpc) |
 | [capnp-futures](/capnp-futures) | Support for asynchronous reading and writing of Cap'n Proto messages. | [![crates.io](https://img.shields.io/crates/v/capnp-futures.svg)](https://crates.io/crates/capnp-futures) |
-| [capnp-rpc](/capnp-rpc) | Object-capability remote procedure call system. | [![crates.io](https://img.shields.io/crates/v/capnp-rpc.svg)](https://crates.io/crates/capnp-rpc) |
+| [capnp-rpc](/capnp-rpc) | Object-capability remote procedure call system with ["level 1"](https://capnproto.org/rpc.html#protocol-features) features. | [![crates.io](https://img.shields.io/crates/v/capnp-rpc.svg)](https://crates.io/crates/capnp-rpc) |
 
 ## Examples
 
