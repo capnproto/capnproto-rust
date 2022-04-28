@@ -1893,12 +1893,31 @@ fn generate_node(gen: &GeneratorContext,
             }
 
             let mut base_dispatch_arms = Vec::new();
+
             let server_base = {
                 let mut base_traits = Vec::new();
-                let extends = interface.get_superclasses()?;
-                for ii in 0..extends.len() {
-                    let type_id = extends.get(ii).get_id();
-                    let brand = extends.get(ii).get_brand()?;
+
+                fn find_super_interfaces<'a>(
+                  interface: crate::schema_capnp::node::interface::Reader<'a>,
+                  all_extends: &mut Vec<<crate::schema_capnp::superclass::Owned as capnp::traits::OwnedStruct<'a>>::Reader>,
+                  gen: &GeneratorContext<'a>
+                ) -> ::capnp::Result<()>{
+                    let extends = interface.get_superclasses()?;
+                    for ii in 0..extends.len() {
+                        let superclass = extends.get(ii);
+                        if let node::Interface(interface) = gen.node_map[&superclass.get_id()].which()? {
+                          find_super_interfaces(interface, all_extends, gen)?;
+                        }
+                        all_extends.push(superclass);
+                    }
+                    Ok(())
+                }
+
+                let mut extends = Vec::new();
+                find_super_interfaces(interface, &mut extends, gen)?;
+                for interface in extends.iter() {
+                    let type_id = interface.get_id();
+                    let brand = interface.get_brand()?;
                     let the_mod = gen.scope_map[&type_id].join("::");
 
                     base_dispatch_arms.push(Line(format!(
