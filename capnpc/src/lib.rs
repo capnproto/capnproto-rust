@@ -66,6 +66,19 @@ mod pointer_constants;
 
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "build-capnp")]
+fn capnp_exe() -> PathBuf {
+    let mut p = PathBuf::from(env!("OUT_DIR"));
+    p.push("bin");
+    p.push("capnp");
+    p
+}
+
+#[cfg(not(feature = "build-capnp"))]
+fn capnp_exe() -> PathBuf {
+    PathBuf::from("capnp")
+}
+
 // Copied from capnp/src/lib.rs, where this conversion lives behind the "std" feature flag,
 // which we don't want to depend on here.
 pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
@@ -218,7 +231,7 @@ impl CompilerCommand {
         let mut command = if let Some(executable) = &self.executable_path {
             ::std::process::Command::new(executable)
         } else {
-            ::std::process::Command::new("capnp")
+            ::std::process::Command::new(&capnp_exe())
         };
 
         command.arg("compile").arg("-o").arg("-");
