@@ -2470,6 +2470,7 @@ impl <'a> PointerReader<'a> {
         self.cap_table = cap_table;
     }
 
+    #[inline]
     pub fn is_null(&self) -> bool {
         self.pointer.is_null() || unsafe { (*self.pointer).is_null() }
     }
@@ -2623,6 +2624,7 @@ impl <'a> PointerBuilder<'a> {
         self.cap_table = cap_table;
     }
 
+    #[inline]
     pub fn is_null(&self) -> bool {
         unsafe { (*self.pointer).is_null() }
     }
