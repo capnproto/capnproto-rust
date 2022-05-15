@@ -1231,6 +1231,7 @@ fn generate_haser(discriminant_offset: u32,
                     interior.push(
                         Line(format!("!self.{}.get_pointer_field({}).is_null()",
                                      member, reg_field.get_offset())));
+                    result.push(Line("#[inline]".to_string()));
                     result.push(
                         Line(format!("pub fn has_{}(&self) -> bool {{", styled_name)));
                     result.push(
