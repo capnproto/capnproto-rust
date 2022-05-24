@@ -15,6 +15,7 @@ members = [
     "capnp-rpc/examples/calculator",
     "capnp-rpc/examples/pubsub",
     "capnp-rpc/test",
+    "capnp-testdata",
     "example/addressbook",
     "example/addressbook_send",
 ]

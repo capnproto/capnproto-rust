@@ -1,0 +1,24 @@
+[package]
+
+name = "capnp-testdata"
+version = "0.14.6"
+authors = [ "Neal H. Walfield <neal@pep.foundation>" ]
+license = "MIT"
+description = "test data for Cap'n Proto documentation"
+repository = "https://github.com/capnproto/capnproto-rust"
+documentation = "https://docs.capnproto-rust.org/capnp-testdata/"
+edition = "2018"
+build = "build.rs"
+readme = "README.md"
+
+[lib]
+
+name = "capnp_testdata"
+path = "src/lib.rs"
+
+[dependencies]
+quickcheck = { version = "0.9", optional = true }
+capnp = { path = "../capnp" }
+
+[build-dependencies]
+capnpc = { path = "../capnpc" }

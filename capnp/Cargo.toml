@@ -23,6 +23,8 @@ quickcheck = { version = "0.9", optional = true }
 
 [dev-dependencies]
 quickcheck = "0.9"
+capnp-testdata = { version = "0.14.0", path = "../capnp-testdata"}
+capnp-rpc = { version = "0.14.0", path = "../capnp-rpc" }
 
 [features]
 default = ["std"]
