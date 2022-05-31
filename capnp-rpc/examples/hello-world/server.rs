@@ -24,7 +24,7 @@ use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use crate::hello_world_capnp::hello_world;
 
-use futures::{AsyncReadExt, FutureExt};
+use futures::{AsyncReadExt};
 use std::net::ToSocketAddrs;
 
 struct HelloWorldImpl;
@@ -77,7 +77,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let rpc_system =
                 RpcSystem::new(Box::new(network), Some(hello_world_client.clone().client));
 
-            tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
+            tokio::task::spawn_local(rpc_system);
         }
     }).await
 }

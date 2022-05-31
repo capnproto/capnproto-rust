@@ -25,8 +25,6 @@ use std::net::ToSocketAddrs;
 
 use futures::AsyncReadExt;
 
-use futures::FutureExt;
-
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 4 {
@@ -56,7 +54,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let hello_world: hello_world::Client =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
+        tokio::task::spawn_local(rpc_system);
 
         let mut request = hello_world.say_hello_request();
         request.get().init_request().set_name(&msg);
