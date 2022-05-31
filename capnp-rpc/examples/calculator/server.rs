@@ -215,7 +215,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                           rpc_twoparty_capnp::Side::Server, Default::default());
 
             let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
-            tokio::task::spawn_local(Box::pin(rpc_system.map_err(|e| println!("error: {:?}", e)).map(|_| ())));
+            tokio::task::spawn_local(rpc_system.map_err(|e| println!("error: {:?}", e)));
         }
     }).await
 }

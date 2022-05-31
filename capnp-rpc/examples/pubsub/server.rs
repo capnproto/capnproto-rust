@@ -126,7 +126,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                               rpc_twoparty_capnp::Side::Server, Default::default());
                 let rpc_system = RpcSystem::new(Box::new(network), Some(publisher.clone().client));
 
-                tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
+                tokio::task::spawn_local(rpc_system);
             }
         };
 
@@ -149,7 +149,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         request.get().set_message(
                             &format!("system time is: {:?}", ::std::time::SystemTime::now())[..])?;
                         let subscribers2 = subscribers1.clone();
-                        tokio::task::spawn_local(Box::pin(
+                        tokio::task::spawn_local(
                             request.send().promise.map(move |r| {
                                 match r {
                                     Ok(_) => {
@@ -162,7 +162,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         subscribers2.borrow_mut().subscribers.remove(&idx);
                                     }
                                 }
-                            })));
+                            }));
                     }
                 }
             }
