@@ -23,7 +23,7 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use crate::calculator_capnp::calculator;
 use capnp::capability::Promise;
 
-use futures::{AsyncReadExt, FutureExt};
+use futures::{AsyncReadExt};
 
 #[derive(Clone, Copy)]
 pub struct PowerFunction;
@@ -69,7 +69,7 @@ async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
 
     let mut rpc_system = RpcSystem::new(network, None);
     let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-    tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
+    tokio::task::spawn_local(rpc_system);
 
     {
         // Make a request that just evaluates the literal value 123.
