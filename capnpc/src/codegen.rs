@@ -1876,10 +1876,11 @@ fn generate_node(gen: &GeneratorContext,
                         capitalize_first_letter(name), results_ty_params, result_type)));
                 server_interior.push(
                     Line(format!(
-                        "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> ::capnp::capability::Promise<(), ::capnp::Error> {{ ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"method not implemented\".to_string())) }}",
+                        "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> ::capnp::capability::Promise<(), ::capnp::Error> {{ ::capnp::capability::Promise::err(::capnp::Error::unimplemented(format!(\"method {}::Server::{} not implemented\"))) }}",
                         module_name(name),
                         capitalize_first_letter(name), params_ty_params,
-                        capitalize_first_letter(name), results_ty_params
+                        capitalize_first_letter(name), results_ty_params,
+                        node_name, module_name(name),
                     )));
 
                 client_impl_interior.push(
