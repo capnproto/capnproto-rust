@@ -80,9 +80,9 @@ impl Word {
         let mut result: Vec<Word> = Vec::with_capacity(length);
         unsafe {
             result.set_len(length);
-            let p: *mut u8 = result.as_mut_ptr() as *mut u8;
-            core::ptr::write_bytes(p, 0u8, length * core::mem::size_of::<Word>());
         }
+            let p: *mut u8 = result.as_mut_ptr() as *mut u8;
+        unsafe { core::ptr::write_bytes(p, 0u8, length * core::mem::size_of::<Word>()) };
         result
     }
 

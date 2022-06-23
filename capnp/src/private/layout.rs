@@ -2727,16 +2727,16 @@ impl <'a> PointerBuilder<'a> {
             wire_helpers::set_struct_pointer(
                 self.arena,
                 self.segment_id, self.cap_table, self.pointer, *value, canonicalize)?;
+            }
             Ok(())
-        }
     }
 
     pub fn set_list(&self, value: &ListReader, canonicalize: bool) -> Result<()> {
         unsafe {
             wire_helpers::set_list_pointer(self.arena, self.segment_id,
                                            self.cap_table, self.pointer, *value, canonicalize)?;
+                                        }
             Ok(())
-        }
     }
 
     pub fn set_text(&self, value: &str) {
@@ -3102,15 +3102,15 @@ impl <'a> StructBuilder<'a> {
             return Ok(())
         }
 
-        unsafe {
+        
             if self.data_size > shared_data_size {
                 // Since the target is larger than the source, make sure to zero out the extra bits that the
                 // source doesn't have.
                 if self.data_size == 1 {
                     self.set_bool_field(0, false);
                 } else {
-                    let unshared = self.data.offset((shared_data_size / BITS_PER_BYTE as u32) as isize);
-                    ptr::write_bytes(unshared, 0, ((self.data_size - shared_data_size) / BITS_PER_BYTE as u32) as usize);
+                    let unshared = unsafe { self.data.offset((shared_data_size / BITS_PER_BYTE as u32) as isize) };
+                    unsafe { ptr::write_bytes(unshared, 0, ((self.data_size - shared_data_size) / BITS_PER_BYTE as u32) as usize) };
                 }
             }
 
@@ -3118,17 +3118,17 @@ impl <'a> StructBuilder<'a> {
             if shared_data_size == 1 {
                 self.set_bool_field(0, other.get_bool_field(0));
             } else {
-                ptr::copy_nonoverlapping(other.data, self.data, (shared_data_size / BITS_PER_BYTE as u32) as usize);
+                unsafe { ptr::copy_nonoverlapping(other.data, self.data, (shared_data_size / BITS_PER_BYTE as u32) as usize) };
             }
 
             // Zero out all pointers in the target.
             for i in 0..self.pointer_count as isize {
-                wire_helpers::zero_object(self.arena, self.segment_id, self.pointers.offset(i) as *mut _);
+                unsafe { wire_helpers::zero_object(self.arena, self.segment_id, self.pointers.offset(i) as *mut _) };
             }
-            ptr::write_bytes(self.pointers, 0u8, self.pointer_count as usize);
+            unsafe { ptr::write_bytes(self.pointers, 0u8, self.pointer_count as usize) };
 
             for i in 0..shared_pointer_count as isize {
-                wire_helpers::copy_pointer(self.arena,
+                unsafe { wire_helpers::copy_pointer(self.arena,
                                            self.segment_id,
                                            self.cap_table,
                                            self.pointers.offset(i),
@@ -3137,9 +3137,9 @@ impl <'a> StructBuilder<'a> {
                                            other.cap_table,
                                            other.pointers.offset(i),
                                            other.nesting_limit,
-                                           false)?;
+                                           false)? };
             }
-        }
+        
 
         Ok(())
     }
