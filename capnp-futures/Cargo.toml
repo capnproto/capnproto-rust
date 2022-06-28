@@ -26,4 +26,4 @@ features = ["executor"]
 
 [dev-dependencies]
 capnp = { version = "0.15.0-alpha", path = "../capnp", features = ["quickcheck"] }
-quickcheck = "0.9"
+quickcheck = "1"
