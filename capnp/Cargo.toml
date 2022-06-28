@@ -19,10 +19,10 @@ name = "capnp"
 path = "src/lib.rs"
 
 [dependencies]
-quickcheck = { version = "0.9", optional = true }
+quickcheck = { version = "1", optional = true }
 
 [dev-dependencies]
-quickcheck = "0.9"
+quickcheck = "1"
 
 [features]
 default = ["std"]
