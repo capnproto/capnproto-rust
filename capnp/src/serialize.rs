@@ -23,6 +23,9 @@
 //! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream),
 //! where each message is preceded by a segment table indicating the size of its segments.
 
+mod no_alloc_slice_segments;
+pub use no_alloc_slice_segments::NoAllocSliceSegments;
+
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::convert::TryInto;
@@ -33,6 +36,7 @@ use crate::message;
 use crate::private::units::BYTES_PER_WORD;
 use crate::{Error, Result};
 
+pub const SEGMENTS_COUNT_LIMIT : usize = 512;
 
 /// Segments read from a single flat slice of words.
 pub struct SliceSegments<'a> {
@@ -86,6 +90,22 @@ pub fn read_message_from_flat_slice<'a>(slice: &mut &'a [u8],
         *slice = &body_bytes[(num_words * BYTES_PER_WORD)..];
         Ok(message::Reader::new(segment_lengths_builder.into_slice_segments(body_bytes), options))
     }
+}
+
+/// Reads a serialized message (including a segment table) from a flat slice of bytes, without copying.
+/// The slice is allowed to extend beyond the end of the message. On success, updates `slice` to point
+/// to the remaining bytes beyond the end of the message.
+/// 
+/// Unlike read_message_from_flat_slice_no_alloc it does not do heap allocation (except for error message)
+///
+/// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `slice`.
+/// Otherwise, `slice` must be 8-byte aligned (attempts to read the message will trigger errors).
+pub fn read_message_from_flat_slice_no_alloc<'a>(slice: &mut &'a [u8],
+                                        options: message::ReaderOptions)
+                                        -> Result<message::Reader<NoAllocSliceSegments<'a>>> {
+    let segments = NoAllocSliceSegments::try_new(slice, options)?;
+
+    Ok(message::Reader::new(segments, options))
 }
 
 /// Segments read from a buffer, useful for when you have the message in a buffer and don't want the extra
@@ -291,7 +311,7 @@ fn read_segment_table<R>(read: &mut R,
 
     let segment_count = u32::from_le_bytes(buf[0..4].try_into().unwrap()).wrapping_add(1) as usize;
 
-    if segment_count >= 512 {
+    if segment_count >= SEGMENTS_COUNT_LIMIT {
         return Err(Error::failed(format!("Too many segments: {}", segment_count)))
     } else if segment_count == 0 {
         return Err(Error::failed(format!("Too few segments: {}", segment_count)))
