@@ -349,6 +349,7 @@ fn module_name(camel_case: &str) -> String {
     name
 }
 
+// Annotation IDs, as defined in rust.capnp.
 const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
 const PARENT_MODULE_ANNOTATION_ID: u64 = 0xabee386cd1450364;
 
