@@ -1,8 +1,7 @@
 #![no_main]
-extern crate libfuzzer_sys;
-extern crate capnp;
 
 use capnp::{serialize, message};
+use libfuzzer_sys::fuzz_target;
 
 fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
     let orig_data = data;
@@ -26,7 +25,6 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
     Ok(())
 }
 
-#[export_name="rust_fuzzer_test_input"]
-pub extern fn go(data: &[u8]) {
+fuzz_target!(|data: &[u8]| {
     let _ = try_go(data);
-}
+});

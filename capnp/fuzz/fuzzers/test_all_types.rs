@@ -1,11 +1,10 @@
 #![no_main]
-extern crate libfuzzer_sys;
-extern crate capnp;
 
 pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
 }
 
+use libfuzzer_sys::fuzz_target;
 use capnp::{serialize, message};
 use test_capnp::test_all_types;
 
@@ -77,7 +76,6 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
     Ok(())
 }
 
-#[export_name="rust_fuzzer_test_input"]
-pub extern fn go(data: &[u8]) {
+fuzz_target!(|data: &[u8]| {
     let _ = try_go(data);
-}
+});
