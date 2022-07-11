@@ -21,9 +21,6 @@
 
 #![cfg(test)]
 
-#[macro_use]
-extern crate capnp_rpc;
-
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};

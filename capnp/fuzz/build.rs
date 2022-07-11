@@ -1,5 +1,3 @@
-extern crate capnpc;
-
 fn main() {
     ::capnpc::CompilerCommand::new()
         .file("fuzzers/test.capnp")
