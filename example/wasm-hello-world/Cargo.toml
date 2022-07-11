@@ -9,7 +9,7 @@ build = "build.rs"
 members = ["."]
 
 [dependencies]
-wasmer-runtime = "0.16.0"
+wasmer = "2.3.0"
 
 [dependencies.capnp]
 path = "../../capnp"

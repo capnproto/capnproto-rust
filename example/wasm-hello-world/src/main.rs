@@ -1,4 +1,4 @@
-use wasmer_runtime::{imports, Value};
+use wasmer::{imports, Value};
 
 pub mod wasm_hello_world_capnp {
   include!(concat!(env!("OUT_DIR"), "/wasm_hello_world_capnp.rs"));
@@ -11,8 +11,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let import_object = imports! {
         "env" => {},
     };
-    let mut instance = wasmer_runtime::instantiate(WASM, &import_object)?;
-    let memory = instance.context_mut().memory(0);
+    let store = wasmer::Store::default();
+    let module = wasmer::Module::new(&store, WASM)?;
+    let instance = wasmer::Instance::new(&module, &import_object)?;
+    let memory = instance.exports.get_memory("memory")?;
 
     let mut expected_total: i32 = 0;
     let mut message = capnp::message::Builder::new_default();
@@ -44,8 +46,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
 
-    let result = instance.call(
-        "add_numbers",
+    let add_numbers = instance
+        .exports
+        .get_function("add_numbers")?;
+
+    let result = add_numbers.call(
         &[Value::I32(START_BYTE as i32), Value::I32(segment_byte_size as i32)])?;
 
     assert_eq!(result[0], Value::I32(expected_total));
