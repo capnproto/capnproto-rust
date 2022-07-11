@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate capnp_rpc;
-
 pub mod hello_world_capnp {
   include!(concat!(env!("OUT_DIR"), "/hello_world_capnp.rs"));
 }

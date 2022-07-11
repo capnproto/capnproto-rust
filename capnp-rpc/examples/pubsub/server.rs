@@ -23,7 +23,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
+use capnp_rpc::{RpcSystem, pry, twoparty, rpc_twoparty_capnp};
 use crate::pubsub_capnp::{publisher, subscriber, subscription};
 
 use capnp::capability::Promise;

@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
+use capnp_rpc::{RpcSystem, pry, twoparty, rpc_twoparty_capnp};
 use crate::calculator_capnp::calculator;
 use capnp::capability::Promise;
 

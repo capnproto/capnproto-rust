@@ -19,9 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[macro_use]
-extern crate capnp_rpc;
-
 pub mod calculator_capnp {
   include!(concat!(env!("OUT_DIR"), "/calculator_capnp.rs"));
 }
