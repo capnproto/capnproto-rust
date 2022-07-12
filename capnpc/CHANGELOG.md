@@ -1,3 +1,7 @@
+### v0.14.8
+- Include name of method in `unimplemented` error messages.
+- Fix super interface lookup in case of transitive `extends` chain.
+
 ### v0.14.7
 - Canonicalize order of type parameters from the bugfix for issue 260.
 
