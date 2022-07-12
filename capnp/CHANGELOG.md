@@ -1,3 +1,6 @@
+## v0.14.7
+- Add serialize::read_message_from_flat_slice_no_alloc().
+
 ## v0.14.6
 - Update rpc_try feature to work with try_trait_v2
 
