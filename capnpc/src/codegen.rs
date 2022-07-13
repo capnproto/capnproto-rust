@@ -1771,7 +1771,7 @@ fn generate_node(gen: &GeneratorContext,
 
             output.push(Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
-                Line("#[derive(Clone, Copy, Debug, PartialEq)]".to_string()),
+                Line("#[derive(Clone, Copy, Debug, PartialEq, Eq)]".to_string()),
                 Line(format!("pub enum {} {{", last_name)),
                 Indent(Box::new(Branch(members))),
                 Line("}".to_string()))));
@@ -1877,7 +1877,7 @@ fn generate_node(gen: &GeneratorContext,
                         capitalize_first_letter(name), results_ty_params, result_type)));
                 server_interior.push(
                     Line(format!(
-                        "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> ::capnp::capability::Promise<(), ::capnp::Error> {{ ::capnp::capability::Promise::err(::capnp::Error::unimplemented(format!(\"method {}::Server::{} not implemented\"))) }}",
+                        "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> ::capnp::capability::Promise<(), ::capnp::Error> {{ ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }}",
                         module_name(name),
                         capitalize_first_letter(name), params_ty_params,
                         capitalize_first_letter(name), results_ty_params,
