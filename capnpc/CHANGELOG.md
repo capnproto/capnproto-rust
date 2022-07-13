@@ -1,3 +1,6 @@
+### v0.14.9
+- Fix Clippy warnings in generated code.
+
 ### v0.14.8
 - Include name of method in `unimplemented` error messages.
 - Fix super interface lookup in case of transitive `extends` chain.
