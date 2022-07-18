@@ -1,3 +1,6 @@
+## v0.14.8
+- Fix potential integer overflows in `set_list_pointer()` and `zero_object_helper()`.
+
 ## v0.14.7
 - Add serialize::read_message_from_flat_slice_no_alloc().
 
