@@ -569,10 +569,10 @@ mod wire_helpers {
                         ptr::write_bytes(
                             ptr, 0u8,
                             BYTES_PER_WORD as usize *
-                            round_bits_up_to_words((
-                                    (*tag).list_element_count() *
+                            round_bits_up_to_words(
+                                    (*tag).list_element_count() as u64 *
                                         data_bits_per_element(
-                                        (*tag).list_element_size())) as u64) as usize)
+                                        (*tag).list_element_size()) as u64) as usize)
                     }
                     Pointer => {
                         let count = (*tag).list_element_count() as usize;
