@@ -1716,7 +1716,7 @@ mod wire_helpers {
         value: ListReader,
         canonicalize: bool) -> Result<SegmentAnd<*mut u8>>
     {
-        let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
+        let total_size = round_bits_up_to_words(value.element_count as u64 * value.step as u64);
 
         if value.element_size != ElementSize::InlineComposite {
             //# List of non-structs.
