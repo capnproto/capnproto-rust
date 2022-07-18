@@ -1278,12 +1278,25 @@ mod tests {
             }
         }
 
-        let root: test_all_types::Reader<'_> = message.get_root_as_reader().unwrap();
-        let list = root.get_u_int64_list().unwrap();
-        for ii in 0..(length >> step_exponent) {
-            let jj = ii << step_exponent;
-            assert_eq!(list.get(jj), jj as u64);
+        let mut message2 = message::Builder::new_default();
+        {
+            let root: test_all_types::Reader<'_> = message.get_root_as_reader().unwrap();
+            let mut root2 : test_all_types::Builder<'_> = message2.init_root();
+
+            let list = root.get_u_int64_list().unwrap();
+
+            root2.set_u_int64_list(list).unwrap();
+            let list2 = root2.get_u_int64_list().unwrap();
+
+            for ii in 0..(length >> step_exponent) {
+                let jj = ii << step_exponent;
+                assert_eq!(list.get(jj), jj as u64);
+                assert_eq!(list2.get(jj), jj as u64);
+            }
         }
+
+        // Clear the message. (At one point this failed with an integer overflow.)
+        message.init_root::<test_all_types::Builder<'_>>();
     }
 
     #[test]
