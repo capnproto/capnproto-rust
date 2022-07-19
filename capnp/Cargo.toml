@@ -23,6 +23,7 @@ quickcheck = { version = "0.9", optional = true }
 
 [dev-dependencies]
 quickcheck = "0.9"
+rand = "0.7"
 
 [features]
 default = ["std"]

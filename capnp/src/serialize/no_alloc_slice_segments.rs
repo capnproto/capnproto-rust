@@ -328,30 +328,13 @@ mod tests {
     };
 
     use alloc::vec::Vec;
+    use rand::{thread_rng, Rng};
 
-    // Perhaps this should be replaced with `rand` crate; I did not took liberty of importing that as
-    // dependency.
-    struct Rng(u32);
-
-    impl Rng {
-        fn new() -> Self {
-            Rng(1234)
-        }
-
-        fn next(&mut self) -> u8 {
-            self.0 = (self.0 * 75 + 74) % (65537);
-
-            (self.0 % 256) as u8
-        }
-
-        fn next_vec(&mut self, len: usize) -> Vec<u8> {
-            let mut result = vec![];
-            for _ in 0..len {
-                result.push(self.next());
-            }
-
-            result
-        }
+    fn generate_random_vec(len: usize) -> Vec<u8> {
+        let mut result = vec![0_u8; len];
+        let mut rng = thread_rng();
+        rng.fill(result.as_mut_slice());
+        result
     }
 
     #[cfg(feature = "unaligned")]
@@ -421,8 +404,7 @@ mod tests {
 
     #[test]
     fn test_no_alloc_buffer_segments_single_segment_optimization() {
-        let mut rng = Rng::new();
-        let segment_0 = rng.next_vec(128);
+        let segment_0 = generate_random_vec(128);
         let output_segments = OutputSegments::SingleSegment([&segment_0]);
 
         let mut msg = vec![];
@@ -445,11 +427,10 @@ mod tests {
     #[test]
     fn test_no_alloc_buffer_segments_multiple_segments() {
         for count in 1..10 {
-            let mut rng = Rng::new();
             let mut segments_vec = vec![];
             for i in 0..count {
                 let vec_len = 8 * 2_usize.pow(i as u32);
-                segments_vec.push(rng.next_vec(vec_len));
+                segments_vec.push(generate_random_vec(vec_len));
             }
             let segments: Vec<_> = segments_vec.iter().map(|s| s.as_slice()).collect();
 
@@ -513,11 +494,10 @@ mod tests {
 
     #[test]
     fn test_no_alloc_buffer_segments_message_truncated() {
-        let mut rng = Rng::new();
         let mut segments_vec = vec![];
         for i in 0..5 {
             let vec_len = 8 * 2_usize.pow(i as u32);
-            segments_vec.push(rng.next_vec(vec_len));
+            segments_vec.push(generate_random_vec(vec_len));
         }
         let segments: Vec<_> = segments_vec.iter().map(|s| s.as_slice()).collect();
 
@@ -536,10 +516,9 @@ mod tests {
 
     #[test]
     fn test_no_alloc_buffer_segments_message_options_limit() {
-        let mut rng = Rng::new();
         let mut segments_vec = vec![];
         for _ in 0..10 {
-            segments_vec.push(rng.next_vec(128));
+            segments_vec.push(generate_random_vec(128));
         }
         let segments: Vec<_> = segments_vec.iter().map(|s| s.as_slice()).collect();
 
@@ -565,8 +544,7 @@ mod tests {
 
     #[test]
     fn test_no_alloc_buffer_segments_bad_alignment() {
-        let mut rng = Rng::new();
-        let segment_0 = rng.next_vec(128);
+        let segment_0 = generate_random_vec(128);
         let output_segments = OutputSegments::SingleSegment([&segment_0]);
 
         let mut msg = vec![];
