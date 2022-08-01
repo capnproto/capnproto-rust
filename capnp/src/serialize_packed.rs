@@ -437,10 +437,9 @@ mod tests {
         check_packing(&[0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0], &[0,2]);
     }
 
-    #[test]
     #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-    fn check_round_trip() {
-        fn round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
+    quickcheck! {
+        fn test_round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
             use crate::message::ReaderSegments;
             if segments.len() == 0 { return TestResult::discard(); }
             let mut buf: Vec<u8> = Vec::new();
@@ -454,14 +453,7 @@ mod tests {
             }))
         }
 
-        quickcheck(round_trip as fn(Vec<Vec<crate::Word>>) -> TestResult);
-    }
-
-    #[test]
-    #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-    fn fuzz_unpack() {
-        fn unpack(packed: Vec<u8>) -> TestResult {
-
+        fn test_unpack(packed: Vec<u8>) -> TestResult {
             let len = packed.len();
             let mut packed_read = PackedRead { inner: &packed[..] };
 
@@ -470,8 +462,6 @@ mod tests {
             let _ = packed_read.read_exact(&mut out_buffer);
             TestResult::from_bool(true)
         }
-
-        quickcheck(unpack as fn(Vec<u8>) -> TestResult);
     }
 
     #[test]

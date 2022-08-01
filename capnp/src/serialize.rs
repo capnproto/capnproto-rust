@@ -694,10 +694,9 @@ pub mod test {
         buf.clear();
     }
 
-    #[test]
     #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-    fn check_round_trip() {
-        fn round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
+    quickcheck! {
+        fn test_round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
             let mut buf: Vec<u8> = Vec::new();
 
@@ -710,16 +709,10 @@ pub mod test {
             }))
         }
 
-        quickcheck(round_trip as fn(Vec<Vec<crate::Word>>) -> TestResult);
-    }
-
-    #[test]
-    #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-    fn check_round_trip_slice_segments() {
-        fn round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
+        fn test_round_trip_slice_segments(segments: Vec<Vec<crate::Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
             let borrowed_segments: &[&[u8]] = &segments.iter()
-                                                       .map(|segment| crate::Word::words_to_bytes(&segment[..]))
+                .map(|segment| crate::Word::words_to_bytes(&segment[..]))
                 .collect::<Vec<_>>()[..];
             let words = flatten_segments(borrowed_segments);
             let mut word_slice = &words[..];
@@ -731,8 +724,6 @@ pub mod test {
                 crate::Word::words_to_bytes(&segment[..]) == result_segments.get_segment(i as u32).unwrap()
             }))
         }
-
-        quickcheck(round_trip as fn(Vec<Vec<crate::Word>>) -> TestResult);
     }
 
     #[test]
