@@ -62,9 +62,13 @@ jobs:
   minrust:
     name: minrust
     runs-on: ubuntu-latest
+    env:
+      # see https://github.com/rust-lang/cargo/issues/10303
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Install Rust
       run: rustup update ${{ env.minrust }} --no-self-update && rustup default ${{ env.minrust }}
 
