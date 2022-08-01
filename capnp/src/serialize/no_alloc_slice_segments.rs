@@ -316,10 +316,13 @@ fn calculate_data_offset(segments_count: usize) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
+    use quickcheck::{quickcheck, TestResult};
+
     use crate::{
         message::{ReaderOptions, ReaderSegments},
         serialize::{self, no_alloc_slice_segments::calculate_data_offset},
         OutputSegments,
+        Word,
     };
 
     use super::{
@@ -328,14 +331,6 @@ mod tests {
     };
 
     use alloc::vec::Vec;
-    use rand::{thread_rng, Rng};
-
-    fn generate_random_vec(len: usize) -> Vec<u8> {
-        let mut result = vec![0_u8; len];
-        let mut rng = thread_rng();
-        rng.fill(result.as_mut_slice());
-        result
-    }
 
     #[cfg(feature = "unaligned")]
     #[test]
@@ -402,37 +397,36 @@ mod tests {
         assert_eq!(calculate_data_offset(101), Some(408));
     }
 
-    #[test]
-    fn test_no_alloc_buffer_segments_single_segment_optimization() {
-        let segment_0 = generate_random_vec(128);
-        let output_segments = OutputSegments::SingleSegment([&segment_0]);
+    quickcheck! {
+        fn test_no_alloc_buffer_segments_single_segment_optimization(
+            segment_0 : Vec<Word>) -> TestResult
+        {
+            let words = &segment_0[..];
+            let bytes = Word::words_to_bytes(words);
+            let output_segments = OutputSegments::SingleSegment([bytes]);
+            let mut msg = vec![];
 
-        let mut msg = vec![];
+            serialize::write_message_segments(&mut msg, &output_segments).unwrap();
 
-        serialize::write_message_segments(&mut msg, &output_segments).unwrap();
+            let no_alloc_segments =
+                NoAllocSliceSegments::try_new(&mut msg.as_slice(), ReaderOptions::new()).unwrap();
 
-        let no_alloc_segments =
-            NoAllocSliceSegments::try_new(&mut msg.as_slice(), ReaderOptions::new()).unwrap();
+            assert!(matches!(
+                no_alloc_segments,
+                NoAllocSliceSegments::SingleSegment { segment } if segment == bytes
+            ));
 
-        assert!(matches!(
-            no_alloc_segments,
-            NoAllocSliceSegments::SingleSegment { segment } if segment == &segment_0[..]
-        ));
+            assert_eq!(no_alloc_segments.len(), 1);
+            assert_eq!(no_alloc_segments.get_segment(0), Some(bytes));
+            assert_eq!(no_alloc_segments.get_segment(1), None);
+            TestResult::from_bool(true)
+        }
 
-        assert_eq!(no_alloc_segments.len(), 1);
-        assert_eq!(no_alloc_segments.get_segment(0), Some(segment_0.as_slice()));
-        assert_eq!(no_alloc_segments.get_segment(1), None);
-    }
+        fn test_no_alloc_buffer_segments_multiple_segments(segments_vec: Vec<Vec<Word>>) -> TestResult {
+            if segments_vec.is_empty() { return TestResult::discard() };
 
-    #[test]
-    fn test_no_alloc_buffer_segments_multiple_segments() {
-        for count in 1..10 {
-            let mut segments_vec = vec![];
-            for i in 0..count {
-                let vec_len = 8 * 2_usize.pow(i as u32);
-                segments_vec.push(generate_random_vec(vec_len));
-            }
-            let segments: Vec<_> = segments_vec.iter().map(|s| s.as_slice()).collect();
+            let segments: Vec<_> = segments_vec.iter().map(|s|
+                                                           Word::words_to_bytes(s.as_slice())).collect();
 
             let output_segments = OutputSegments::MultiSegment(segments.clone());
 
@@ -452,6 +446,7 @@ mod tests {
                 no_alloc_segments.get_segment(no_alloc_segments.len() as u32),
                 None
             );
+            TestResult::from_bool(true)
         }
     }
 
@@ -492,74 +487,81 @@ mod tests {
         buf.clear();
     }
 
-    #[test]
-    fn test_no_alloc_buffer_segments_message_truncated() {
-        let mut segments_vec = vec![];
-        for i in 0..5 {
-            let vec_len = 8 * 2_usize.pow(i as u32);
-            segments_vec.push(generate_random_vec(vec_len));
-        }
-        let segments: Vec<_> = segments_vec.iter().map(|s| s.as_slice()).collect();
+    quickcheck! {
+        fn test_no_alloc_buffer_segments_message_truncated(segments_vec: Vec<Vec<Word>>) -> TestResult {
+            if segments_vec.is_empty() { return TestResult::discard() }
 
-        let output_segments = OutputSegments::MultiSegment(segments.clone());
+            let segments: Vec<_> = segments_vec.iter()
+                .map(|s| Word::words_to_bytes(s.as_slice())).collect();
 
-        let mut msg = vec![];
+            let output_segments = OutputSegments::MultiSegment(segments.clone());
 
-        serialize::write_message_segments(&mut msg, &output_segments).unwrap();
-        msg.pop().unwrap();
+            let mut msg = vec![];
 
-        let no_alloc_segments =
-            NoAllocSliceSegments::try_new(&mut msg.as_slice(), ReaderOptions::new());
+            serialize::write_message_segments(&mut msg, &output_segments).unwrap();
 
-        assert!(no_alloc_segments.is_err());
-    }
+            // Lop off the final element.
+            msg.pop().unwrap();
 
-    #[test]
-    fn test_no_alloc_buffer_segments_message_options_limit() {
-        let mut segments_vec = vec![];
-        for _ in 0..10 {
-            segments_vec.push(generate_random_vec(128));
-        }
-        let segments: Vec<_> = segments_vec.iter().map(|s| s.as_slice()).collect();
+            let no_alloc_segments =
+                NoAllocSliceSegments::try_new(&mut msg.as_slice(), ReaderOptions::new());
 
-        let output_segments = OutputSegments::MultiSegment(segments.clone());
-
-        let mut msg = vec![];
-
-        serialize::write_message_segments(&mut msg, &output_segments).unwrap();
-
-        let mut options = ReaderOptions::new();
-        options.traversal_limit_in_words(Some(1280 / 8));
-
-        let _no_alloc_segments =
-            NoAllocSliceSegments::try_new(&mut msg.as_slice(), options).unwrap();
-
-        let mut options = ReaderOptions::new();
-        options.traversal_limit_in_words(Some(1280 / 8 - 1));
-
-        let no_alloc_segments = NoAllocSliceSegments::try_new(&mut msg.as_slice(), options);
-
-        assert!(no_alloc_segments.is_err());
-    }
-
-    #[test]
-    fn test_no_alloc_buffer_segments_bad_alignment() {
-        let segment_0 = generate_random_vec(128);
-        let output_segments = OutputSegments::SingleSegment([&segment_0]);
-
-        let mut msg = vec![];
-
-        serialize::write_message_segments(&mut msg, &output_segments).unwrap();
-        // mis-align buffer by 1 byte
-        msg.insert(0_usize, 0_u8);
-
-        let no_alloc_segments = NoAllocSliceSegments::try_new(&mut &msg[1..], ReaderOptions::new());
-
-        if cfg!(feature = "unaligned") {
-            // If we build with "unaligned" feature, alignment requirements should not be enforced
-            no_alloc_segments.unwrap();
-        } else {
             assert!(no_alloc_segments.is_err());
+            TestResult::from_bool(true)
+        }
+
+        fn test_no_alloc_buffer_segments_message_options_limit(
+            segments_vec: Vec<Vec<Word>>) -> TestResult
+        {
+            let mut word_count = 0;
+            let segments: Vec<_> = segments_vec.iter()
+                .map(|s| {
+                    let ws = Word::words_to_bytes(s.as_slice());
+                    word_count += s.len();
+                    ws
+                }).collect();
+            if word_count == 0 { return TestResult::discard() };
+
+            let output_segments = OutputSegments::MultiSegment(segments.clone());
+
+            let mut msg = vec![];
+
+            serialize::write_message_segments(&mut msg, &output_segments).unwrap();
+
+            let mut options = ReaderOptions::new();
+            options.traversal_limit_in_words(Some(word_count));
+
+            let _no_alloc_segments =
+                NoAllocSliceSegments::try_new(&mut msg.as_slice(), options).unwrap();
+
+            let mut options = ReaderOptions::new();
+            options.traversal_limit_in_words(Some(word_count - 1));
+
+            let no_alloc_segments = NoAllocSliceSegments::try_new(&mut msg.as_slice(), options);
+
+            assert!(no_alloc_segments.is_err());
+            TestResult::from_bool(true)
+        }
+
+        fn test_no_alloc_buffer_segments_bad_alignment(segment_0: Vec<Word>) -> TestResult {
+            if segment_0.is_empty() { return TestResult::discard(); }
+            let output_segments = OutputSegments::SingleSegment([Word::words_to_bytes(&segment_0)]);
+
+            let mut msg = vec![];
+
+            serialize::write_message_segments(&mut msg, &output_segments).unwrap();
+            // mis-align buffer by 1 byte
+            msg.insert(0_usize, 0_u8);
+
+            let no_alloc_segments = NoAllocSliceSegments::try_new(&mut &msg[1..], ReaderOptions::new());
+
+            if cfg!(feature = "unaligned") {
+                // If we build with "unaligned" feature, alignment requirements should not be enforced
+                no_alloc_segments.unwrap();
+            } else {
+                assert!(no_alloc_segments.is_err());
+            }
+            TestResult::from_bool(true)
         }
     }
 }
