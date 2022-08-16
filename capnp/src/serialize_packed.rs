@@ -23,22 +23,15 @@
 //! [packed stream encoding](https://capnproto.org/encoding.html#packing).
 
 use alloc::string::ToString;
-use core::{mem, ptr, slice};
-use crate::io::{Read, BufRead, Write};
+use core::{mem, slice};
+use crate::io::{Read, Write};
 
 use crate::serialize;
 use crate::Result;
 use crate::message;
 
-struct PackedRead<R> where R: BufRead {
+struct PackedRead<R> where R: Read{
     inner: R,
-}
-
-impl <R> PackedRead<R> where R: BufRead {
-    fn get_read_buffer(&mut self) -> Result<(*const u8, *const u8)> {
-        let buf = self.inner.fill_buf()?;
-        Ok((buf.as_ptr(), buf.as_ptr().wrapping_offset(buf.len() as isize)))
-    }
 }
 
 #[inline]
@@ -46,150 +39,58 @@ fn ptr_sub<T>(p1: *const T, p2: *const T) -> usize {
     (p1 as usize - p2 as usize) / mem::size_of::<T>()
 }
 
-macro_rules! refresh_buffer(
-    ($this:expr, $size:ident, $in_ptr:ident, $in_end:ident, $out:ident,
-     $outBuf:ident, $buffer_begin:ident) => (
-        {
-            $this.inner.consume($size);
-            let (b, e) = $this.get_read_buffer()?;
-            $in_ptr = b;
-            $in_end = e;
-            $size = ptr_sub($in_end, $in_ptr);
-            $buffer_begin = b;
-            if $size == 0 {
-                return Err(crate::Error::failed("Premature end of packed input.".to_string()));
-            }
-        }
-        );
-    );
+impl <R> Read for PackedRead<R> where R: Read {
+    fn read(&mut self, mut out_buf: &mut [u8]) -> Result<usize> {
+        assert!(out_buf.len() % 8 == 0, "PackedRead reads must be word-aligned.");
 
-impl <R> Read for PackedRead<R> where R: BufRead {
-    fn read(&mut self, out_buf: &mut [u8]) -> Result<usize> {
-        let len = out_buf.len();
-        if len == 0 { return Ok(0); }
+        let mut count = 0; // number of bytes read into out_buf.
 
-        assert!(len % 8 == 0, "PackedRead reads must be word-aligned.");
+        loop {
+            let len = out_buf.len();
+            if len == 0 { return Ok(count); }
 
-        unsafe {
-            let mut out = out_buf.as_mut_ptr();
-            let out_end: *mut u8 = out_buf.as_mut_ptr().wrapping_offset(len as isize);
+            let mut buf : [u8; 9] = [0; 9];
+            self.inner.read_exact(&mut buf[..2])?;
+            let tag = buf[0];
+            if tag == 0 {
+                let num_zero_words = buf[1] as usize + 1;
+                if num_zero_words * 8 > out_buf.len() {
+                    return Err(crate::Error::failed(
+                        "Packed input did not end cleanly on a segment boundary.".to_string()));
+                }
+                out_buf[..num_zero_words * 8].fill(0);
+                count += num_zero_words * 8;
+                out_buf = &mut out_buf[num_zero_words * 8 ..];
+            } else {
+                let one_count = tag.count_ones() as usize;
+                self.inner.read_exact(&mut buf[2..(1 + one_count)])?;
 
-            let (mut in_ptr, mut in_end) = self.get_read_buffer()?;
-            let mut buffer_begin = in_ptr;
-            let mut size = ptr_sub(in_end, in_ptr);
-            if size == 0 {
-                return Ok(0);
-            }
+                let mut in_ptr = unsafe { buf.as_ptr().offset(1) };
+                let mut out_ptr = out_buf.as_mut_ptr();
 
-            loop {
-                let tag: u8;
-
-                assert_eq!(ptr_sub(out, out_buf.as_mut_ptr()) % 8, 0,
-                           "Output pointer should always be aligned here.");
-
-                if ptr_sub(in_end, in_ptr) < 10 {
-                    if ptr_sub(in_end, in_ptr) == 0 {
-                        refresh_buffer!(self, size, in_ptr, in_end, out, out_buf, buffer_begin);
-                        continue;
-                    }
-
-                    //# We have at least 1, but not 10, bytes available. We need to read
-                    //# slowly, doing a bounds check on each byte.
-
-                    tag = *in_ptr;
-                    in_ptr = in_ptr.offset(1);
-
-                    for i in 0..8 {
-                        if (tag & (1u8 << i)) != 0 {
-                            if ptr_sub(in_end, in_ptr) == 0 {
-                                refresh_buffer!(self, size, in_ptr, in_end,
-                                                out, out_buf, buffer_begin);
-                            }
-                            *out = *in_ptr;
-                            out = out.offset(1);
-                            in_ptr = in_ptr.offset(1);
-                        } else {
-                            *out = 0;
-                            out = out.offset(1);
-                        }
-                    }
-
-                    if ptr_sub(in_end, in_ptr) == 0 && (tag == 0 || tag == 0xff) {
-                        refresh_buffer!(self, size, in_ptr, in_end,
-                                        out, out_buf, buffer_begin);
-                    }
-                } else {
-                    tag = *in_ptr;
-                    in_ptr = in_ptr.offset(1);
-
-                    for n in 0..8 {
-                        let is_nonzero = (tag & (1u8 << n)) != 0;
-                        *out = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
-                        out = out.offset(1);
+                for n in 0..8 {
+                    let is_nonzero = (tag & (1u8 << n)) != 0;
+                    unsafe {
+                        *out_ptr = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
+                        out_ptr = out_ptr.offset(1);
                         in_ptr = in_ptr.offset(is_nonzero as isize);
                     }
                 }
-                if tag == 0 {
-                    assert!(ptr_sub(in_end, in_ptr) > 0,
-                            "Should always have non-empty buffer here.");
+                out_buf = &mut out_buf[8..];
+                count += 8;
 
-                    let run_length : usize = (*in_ptr) as usize * 8;
-                    in_ptr = in_ptr.offset(1);
-
-                    if run_length > ptr_sub(out_end, out) {
-                        return Err(crate::Error::failed("Packed input did not end cleanly on a segment boundary.".to_string()));
+                if tag == 0xff {
+                    let mut run_length_buf : [u8;1] = [0];
+                    self.inner.read_exact(&mut run_length_buf)?;
+                    let run_length = run_length_buf[0] as usize;
+                    if run_length * 8 > out_buf.len() {
+                        return Err(crate::Error::failed(
+                            "Packed input did not end cleanly on a segment boundary.".to_string()));
                     }
 
-                    ptr::write_bytes(out, 0, run_length);
-                    out = out.offset(run_length as isize);
-
-                } else if tag == 0xff {
-                    assert!(ptr_sub(in_end, in_ptr) > 0,
-                            "Should always have non-empty buffer here");
-
-                    let mut run_length : usize = (*in_ptr) as usize * 8;
-                    in_ptr = in_ptr.offset(1);
-
-                    if run_length > ptr_sub(out_end, out) {
-                        return Err(crate::Error::failed("Packed input did not end cleanly on a segment boundary.".to_string()));
-                    }
-
-                    let in_remaining = ptr_sub(in_end, in_ptr);
-                    if in_remaining >= run_length {
-                        //# Fast path.
-                        ptr::copy_nonoverlapping(in_ptr, out, run_length);
-                        out = out.offset(run_length as isize);
-                        in_ptr = in_ptr.offset(run_length as isize);
-                    } else {
-                        //# Copy over the first buffer, then do one big read for the rest.
-                        ptr::copy_nonoverlapping(in_ptr, out, in_remaining);
-                        out = out.offset(in_remaining as isize);
-                        run_length -= in_remaining;
-
-                        self.inner.consume(size);
-                        {
-                            let buf = slice::from_raw_parts_mut::<u8>(out, run_length);
-                            self.inner.read_exact(buf)?;
-                        }
-
-                        out = out.offset(run_length as isize);
-
-                        if out == out_end {
-                            return Ok(len);
-                        } else {
-                            let (b, e) = self.get_read_buffer()?;
-                            in_ptr = b;
-                            in_end = e;
-                            size = ptr_sub(e, b);
-                            buffer_begin = in_ptr;
-                            continue;
-                        }
-                    }
-                }
-
-                if out == out_end {
-                    self.inner.consume(ptr_sub(in_ptr, buffer_begin));
-                    return Ok(len);
+                    self.inner.read_exact(&mut out_buf[..run_length * 8])?;
+                    out_buf = &mut out_buf[run_length * 8 ..];
+                    count += run_length * 8;
                 }
             }
         }
@@ -200,7 +101,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 pub fn read_message<R>(read: R,
                        options: message::ReaderOptions)
                        -> Result<crate::message::Reader<serialize::OwnedSegments>>
-    where R: BufRead
+    where R: Read
 {
     let packed_read = PackedRead { inner: read };
     serialize::read_message(packed_read, options)
@@ -210,7 +111,7 @@ pub fn read_message<R>(read: R,
 pub fn try_read_message<R>(read: R,
                            options: message::ReaderOptions)
                            -> Result<Option<crate::message::Reader<serialize::OwnedSegments>>>
-    where R: BufRead
+    where R: Read
 {
     let packed_read = PackedRead { inner: read };
     serialize::try_read_message(packed_read, options)
@@ -488,7 +389,7 @@ mod tests {
             match packed_read.read_exact(&mut bytes[..]) {
                 Ok(_) => panic!("should have been an error"),
                 Err(e) => {
-                    assert_eq!(e.to_string(), "Failed: Premature end of packed input.");
+                    assert_eq!(e.to_string(), "Failed: failed to fill the whole buffer");
                 }
             }
         }
