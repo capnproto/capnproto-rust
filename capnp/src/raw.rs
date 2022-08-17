@@ -51,7 +51,7 @@ pub fn get_list_step_size_in_bits<'a, T>(value: T) -> u32
     value.into_internal_list_reader().get_step_size_in_bits()
 }
 
-/// Gets a slice view of a list, exluding any tag word.
+/// Gets a slice view of a list, excluding any tag word.
 pub fn get_list_bytes<'a, T>(value: T) -> &'a [u8]
     where T: IntoInternalListReader<'a>
 {
