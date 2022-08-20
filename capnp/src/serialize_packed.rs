@@ -34,7 +34,7 @@ use crate::message;
 /// call that would end within an all-zero (tag 0x00) or uncompressed (tag 0xff)
 /// run of words. Calls that come from `serialize_packed::read_message()` and
 /// `serialize_packed::try_read_message()` always mirror `write()` calls from
-/// `serialize_packed::message()`, so they always safely span such runs.
+/// `serialize_packed::write_message()`, so they always safely span such runs.
 struct PackedRead<R> where R: BufRead {
     inner: R,
 }
