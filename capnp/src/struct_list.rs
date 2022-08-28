@@ -75,13 +75,20 @@ impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> crate::tra
 impl <'a, T>  IndexMove<u32, <T as crate::traits::OwnedStruct<'a>>::Reader> for Reader<'a, T>
 where T: for<'b> crate::traits::OwnedStruct<'b> {
     fn index_move(&self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Reader {
-        self.get(index)
+        self.get(index).unwrap()
     }
 }
 
 impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
-    pub fn get(self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Reader {
-        assert!(index < self.len());
+    pub fn get(self, index: u32) -> Option<<T as crate::traits::OwnedStruct<'a>>::Reader> {
+        if index < self.len() {
+            Some(FromStructReader::new(self.reader.get_struct_element(index)))
+        } else {
+            None
+        }
+    }
+
+    pub unsafe fn get_unchecked(self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Reader {
         FromStructReader::new(self.reader.get_struct_element(index))
     }
 }

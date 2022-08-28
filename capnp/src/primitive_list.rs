@@ -62,13 +62,20 @@ impl <'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
 
 impl <'a, T: PrimitiveElement>  IndexMove<u32, T> for Reader<'a, T>{
     fn index_move(&self, index: u32) -> T {
-        self.get(index)
+        self.get(index).unwrap()
     }
 }
 
 impl <'a, T: PrimitiveElement> Reader<'a, T> {
-    pub fn get(&self, index: u32) -> T {
-        assert!(index < self.len());
+    pub fn get(&self, index: u32) -> Option<T> {
+        if index < self.len() {
+            Some(PrimitiveElement::get(&self.reader, index))
+        } else {
+            None
+        }
+    }
+
+    pub unsafe fn get_unchecked(&self, index: u32) -> T {
         PrimitiveElement::get(&self.reader, index)
     }
 

@@ -523,8 +523,8 @@ fn get_params(gen: &GeneratorContext,
         let node = gen.node_map[&node_id];
         let parameters = node.get_parameters()?;
 
-        for idx in 0 .. parameters.len() {
-            result.push(parameters.get(parameters.len() - 1 - idx).get_name()?.into());
+        for idx in (0 .. parameters.len()).rev() {
+            result.push(unsafe { parameters.get_unchecked(idx) }.get_name()?.into());
         }
 
         node_id = node.get_scope_id();
@@ -1020,7 +1020,7 @@ fn used_params_of_type(gen: &GeneratorContext,
                 type_::any_pointer::Parameter(def) => {
                     let the_struct = &gen.node_map[&def.get_scope_id()];
                     let parameters = the_struct.get_parameters()?;
-                    let parameter = parameters.get(def.get_parameter_index() as u32);
+                    let parameter = parameters.get(def.get_parameter_index() as u32).unwrap();
                     let parameter_name = parameter.get_name()?;
                     used_params.insert(parameter_name.to_string());
                 }
@@ -1313,7 +1313,7 @@ fn get_ty_params_of_brand(gen: &GeneratorContext,
     let mut result = String::new();
     for (scope_id, parameter_index) in acc.into_iter() {
         let node = gen.node_map[&scope_id];
-        let p = node.get_parameters()?.get(parameter_index as u32);
+        let p = node.get_parameters()?.get(parameter_index as u32).unwrap();
         result.push_str(p.get_name()?);
         result.push_str(",");
     }
@@ -1762,7 +1762,7 @@ fn generate_node(gen: &GeneratorContext,
             let mut match_branches = Vec::new();
             let enumerants = enum_reader.get_enumerants()?;
             for ii in 0..enumerants.len() {
-                let enumerant = capitalize_first_letter(get_enumerant_name(enumerants.get(ii))?);
+                let enumerant = capitalize_first_letter(get_enumerant_name(unsafe { enumerants.get_unchecked(ii) })?);
                 members.push(Line(format!("{} = {},", enumerant, ii)));
                 match_branches.push(
                     Line(format!("{} => ::core::result::Result::Ok({}::{}),", ii, last_name, enumerant)));
@@ -1829,7 +1829,7 @@ fn generate_node(gen: &GeneratorContext,
 
             let methods = interface.get_methods()?;
             for ordinal in 0..methods.len() {
-                let method = methods.get(ordinal);
+                let method = unsafe { methods.get_unchecked(ordinal) };
                 let name = method.get_name()?;
 
                 method.get_code_order();
@@ -1907,7 +1907,7 @@ fn generate_node(gen: &GeneratorContext,
                 ) -> ::capnp::Result<()>{
                     let extends = interface.get_superclasses()?;
                     for ii in 0..extends.len() {
-                        let superclass = extends.get(ii);
+                        let superclass = unsafe { extends.get_unchecked(ii) };
                         if let node::Interface(interface) = gen.node_map[&superclass.get_id()].which()? {
                           find_super_interfaces(interface, all_extends, gen)?;
                         }
@@ -2159,7 +2159,7 @@ fn generate_node(gen: &GeneratorContext,
                                 let enumerants = e.get_enumerants()?;
                                 if (v as u32) < enumerants.len() {
                                     let variant =
-                                        capitalize_first_letter(get_enumerant_name(enumerants.get(v as u32))?);
+                                        capitalize_first_letter(get_enumerant_name(unsafe { enumerants.get_unchecked(v as u32) })?);
                                     let type_string = typ.type_string(gen, Leaf::Owned)?;
                                     Line(format!("pub const {}: {} = {}::{};",
                                                  styled_name,

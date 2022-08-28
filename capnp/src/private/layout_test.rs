@@ -120,16 +120,17 @@ fn bool_list() {
         let reader = crate::primitive_list::Reader::<bool>::get_from_pointer(&pointer_reader, None).unwrap();
 
         assert_eq!(reader.len(), 10);
-        assert_eq!(reader.get(0), true);
-        assert_eq!(reader.get(1), false);
-        assert_eq!(reader.get(2), true);
-        assert_eq!(reader.get(3), false);
-        assert_eq!(reader.get(4), true);
-        assert_eq!(reader.get(5), true);
-        assert_eq!(reader.get(6), true);
-        assert_eq!(reader.get(7), false);
-        assert_eq!(reader.get(8), false);
-        assert_eq!(reader.get(9), true);
+        assert_eq!(reader.get(0), Some(true));
+        assert_eq!(reader.get(1), Some(false));
+        assert_eq!(reader.get(2), Some(true));
+        assert_eq!(reader.get(3), Some(false));
+        assert_eq!(reader.get(4), Some(true));
+        assert_eq!(reader.get(5), Some(true));
+        assert_eq!(reader.get(6), Some(true));
+        assert_eq!(reader.get(7), Some(false));
+        assert_eq!(reader.get(8), Some(false));
+        assert_eq!(reader.get(9), Some(true));
+        assert_eq!(reader.get(10), None);
     }
 }
 
