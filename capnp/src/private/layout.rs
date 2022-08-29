@@ -3441,11 +3441,20 @@ impl <'a> ListBuilder<'a> {
     }
 }
 
-
+/**
+  An element that can be stored in a `primitive_list`.
+*/
 pub trait PrimitiveElement {
+    /// Gets the element at position `index`. Bounds checking is *not* performed.
     fn get(list_reader: &ListReader, index: ElementCount32) -> Self;
+
+    /// Gets the element at position `index`. Bounds checking is *not* performed.
     fn get_from_builder(list_builder: &ListBuilder, index: ElementCount32) -> Self;
+
+    /// Sets to element at position `index` to be `value`. Bounds checking is *not* performed.
     fn set(list_builder: &ListBuilder, index: ElementCount32, value: Self);
+
+    /// Returns the size of an individual element.
     fn element_size() -> ElementSize;
 }
 
