@@ -56,6 +56,14 @@ impl <'a> Reader<'a> {
         assert!(index <  self.len());
         crate::any_pointer::Reader::new(self.reader.get_pointer_element(index))
     }
+
+    pub fn try_get(self, index : u32) -> Option<crate::any_pointer::Reader<'a>> {
+        if index <  self.len() {
+            Some(crate::any_pointer::Reader::new(self.reader.get_pointer_element(index)))
+        } else {
+            None
+        }
+    }
 }
 
 impl <'a> IndexMove<u32, Result<crate::any_pointer::Reader<'a>>> for Reader<'a>{
@@ -90,6 +98,14 @@ impl <'a> Builder<'a> {
     pub fn get(self, index : u32) -> crate::any_pointer::Builder<'a> {
         assert!(index <  self.len());
         crate::any_pointer::Builder::new(self.builder.get_pointer_element(index))
+    }
+
+    pub fn try_get(self, index : u32) -> Option<crate::any_pointer::Builder<'a>> {
+        if index <  self.len() {
+            Some(crate::any_pointer::Builder::new(self.builder.get_pointer_element(index)))
+        } else {
+            None
+        }
     }
 
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {

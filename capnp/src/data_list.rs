@@ -68,6 +68,14 @@ impl <'a> Reader<'a> {
         assert!(index <  self.len());
         self.reader.get_pointer_element(index).get_data(None)
     }
+
+    pub fn try_get(self, index : u32) -> Option<Result<crate::data::Reader<'a>>> {
+        if index <  self.len() {
+            Some(self.reader.get_pointer_element(index).get_data(None))
+        } else {
+            None
+        }
+    }
 }
 
 impl <'a> crate::traits::IntoInternalListReader<'a> for Reader<'a> {
@@ -120,6 +128,14 @@ impl <'a> Builder<'a> {
     pub fn get(self, index: u32) -> Result<crate::data::Builder<'a>> {
         assert!(index < self.len());
         self.builder.get_pointer_element(index).get_data(None)
+    }
+
+    pub fn try_get(self, index: u32) -> Option<Result<crate::data::Builder<'a>>> {
+        if index < self.len() {
+            Some(self.builder.get_pointer_element(index).get_data(None))
+        } else {
+            None
+        }
     }
 }
 

@@ -78,6 +78,14 @@ impl <'a, T> Reader<'a, T> where T: FromClientHook {
         assert!(index < self.len());
         Ok(FromClientHook::new(self.reader.get_pointer_element(index).get_capability()?))
     }
+
+    pub fn try_get(self, index: u32) -> Option<Result<T>> {
+        if index < self.len() {
+            Some(self.reader.get_pointer_element(index).get_capability().map(FromClientHook::new))
+        } else {
+            None
+        }
+    }
 }
 
 impl <'a, T>  IndexMove<u32, Result<T>> for Reader<'a, T> where T: FromClientHook {
@@ -132,6 +140,14 @@ impl <'a, T> Builder<'a, T> where T: FromClientHook {
     pub fn get(self, index: u32) -> Result<T> {
         assert!(index < self.len());
         Ok(FromClientHook::new(self.builder.get_pointer_element(index).get_capability()?))
+    }
+
+    pub fn try_get(self, index: u32) -> Option<Result<T>> {
+        if index < self.len() {
+            Some(self.builder.get_pointer_element(index).get_capability().map(FromClientHook::new))
+        } else {
+            None
+        }
     }
 }
 

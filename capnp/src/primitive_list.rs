@@ -72,6 +72,14 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
         PrimitiveElement::get(&self.reader, index)
     }
 
+    pub fn try_get(&self, index: u32) -> Option<T> {
+        if index < self.len() {
+            Some(PrimitiveElement::get(&self.reader, index))
+        } else {
+            None
+        }
+    }
+
     #[cfg(all(target_endian = "little"))]
     /// Returns something if the slice is as expected in memory.
     pub fn as_slice(&self) -> Option<&[T]> {
@@ -141,6 +149,14 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
     pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get_from_builder(&self.builder, index)
+    }
+
+    pub fn try_get(&self, index: u32) -> Option<T> {
+        if index < self.len() {
+            Some(PrimitiveElement::get_from_builder(&self.builder, index))
+        } else {
+            None
+        }
     }
 
     pub fn reborrow<'b>(&'b self) -> Builder<'b, T> {
