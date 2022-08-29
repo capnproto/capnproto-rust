@@ -74,6 +74,14 @@ impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
         assert!(index <  self.len());
         FromPointerReader::get_from_pointer(&self.reader.get_pointer_element(index), None)
     }
+
+    pub fn try_get(self, index: u32) -> Option<Result<<T as crate::traits::Owned<'a>>::Reader>> {
+        if index <  self.len() {
+            Some(FromPointerReader::get_from_pointer(&self.reader.get_pointer_element(index), None))
+        } else {
+            None
+        }
+    }
 }
 
 impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
@@ -126,6 +134,14 @@ impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     pub fn get(self, index: u32) -> Result<<T as crate::traits::Owned<'a>>::Builder> {
         assert!(index < self.len());
         FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index), None)
+    }
+
+    pub fn try_get(self, index: u32) -> Option<Result<<T as crate::traits::Owned<'a>>::Builder>> {
+        if index < self.len() {
+            Some(FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index), None))
+        } else {
+            None
+        }
     }
 
     pub fn set<'b>(&self, index: u32, value: <T as crate::traits::Owned<'b>>::Reader) -> Result<()>

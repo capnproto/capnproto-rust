@@ -73,6 +73,15 @@ impl <'a, T : FromU16> Reader<'a, T> {
         let result: u16 = PrimitiveElement::get(&self.reader, index);
         FromU16::from_u16(result)
     }
+
+    pub fn try_get(&self, index: u32) -> Option<::core::result::Result<T, NotInSchema>> {
+        if index < self.len() {
+            let result: u16 = PrimitiveElement::get(&self.reader, index);
+            Some(FromU16::from_u16(result))
+        } else {
+            None
+        }
+    }
 }
 
 impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
@@ -115,6 +124,15 @@ impl <'a, T : ToU16 + FromU16>  Builder<'a, T> {
         assert!(index < self.len());
         let result: u16 = PrimitiveElement::get_from_builder(&self.builder, index);
         FromU16::from_u16(result)
+    }
+
+    pub fn try_get(&self, index: u32) -> Option<::core::result::Result<T, NotInSchema>> {
+        if index < self.len() {
+            let result: u16 = PrimitiveElement::get_from_builder(&self.builder, index);
+            Some(FromU16::from_u16(result))
+        } else {
+            None
+        }
     }
 
     pub fn reborrow<'b>(&'b self) -> Builder<'b, T> {
