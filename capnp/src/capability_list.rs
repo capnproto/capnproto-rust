@@ -74,11 +74,15 @@ impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: FromClientHook {
 }
 
 impl <'a, T> Reader<'a, T> where T: FromClientHook {
+    /// Gets the element at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(self, index: u32) -> Result<T> {
         assert!(index < self.len());
         Ok(FromClientHook::new(self.reader.get_pointer_element(index).get_capability()?))
     }
 
+    /// Gets the element at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<Result<T>> {
         if index < self.len() {
             Some(self.reader.get_pointer_element(index).get_capability().map(FromClientHook::new))
@@ -137,11 +141,15 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: FromClientHook {
 }
 
 impl <'a, T> Builder<'a, T> where T: FromClientHook {
+    /// Gets the element at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(self, index: u32) -> Result<T> {
         assert!(index < self.len());
         Ok(FromClientHook::new(self.builder.get_pointer_element(index).get_capability()?))
     }
 
+    /// Gets the element at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<Result<T>> {
         if index < self.len() {
             Some(self.builder.get_pointer_element(index).get_capability().map(FromClientHook::new))

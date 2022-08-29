@@ -80,11 +80,15 @@ where T: for<'b> crate::traits::OwnedStruct<'b> {
 }
 
 impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
+    /// Gets the element at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Reader {
         assert!(index < self.len());
         FromStructReader::new(self.reader.get_struct_element(index))
     }
 
+    /// Gets the element at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<<T as crate::traits::OwnedStruct<'a>>::Reader> {
         if index < self.len() {
             Some(FromStructReader::new(self.reader.get_struct_element(index)))
@@ -155,11 +159,15 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> crate::t
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::OwnedStruct<'b> {
+    /// Gets the element at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(self, index: u32) -> <T as crate::traits::OwnedStruct<'a>>::Builder {
         assert!(index < self.len());
         FromStructBuilder::new(self.builder.get_struct_element(index))
     }
 
+    /// Gets the element at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<<T as crate::traits::OwnedStruct<'a>>::Builder> {
         if index < self.len() {
             Some(FromStructBuilder::new(self.builder.get_struct_element(index)))

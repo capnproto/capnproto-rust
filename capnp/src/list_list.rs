@@ -70,11 +70,15 @@ impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> crate::tra
 }
 
 impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
+    /// Gets the element at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(self, index: u32) -> Result<<T as crate::traits::Owned<'a>>::Reader> {
         assert!(index <  self.len());
         FromPointerReader::get_from_pointer(&self.reader.get_pointer_element(index), None)
     }
 
+    /// Gets the element at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<Result<<T as crate::traits::Owned<'a>>::Reader>> {
         if index <  self.len() {
             Some(FromPointerReader::get_from_pointer(&self.reader.get_pointer_element(index), None))
@@ -131,11 +135,15 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> crate::t
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
+    /// Gets the element at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(self, index: u32) -> Result<<T as crate::traits::Owned<'a>>::Builder> {
         assert!(index < self.len());
         FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index), None)
     }
 
+    /// Gets the element at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<Result<<T as crate::traits::Owned<'a>>::Builder>> {
         if index < self.len() {
             Some(FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index), None))

@@ -68,12 +68,16 @@ impl <'a, T: FromU16>  IndexMove<u32, ::core::result::Result<T, NotInSchema>> fo
 }
 
 impl <'a, T : FromU16> Reader<'a, T> {
+    /// Gets the `T` at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         assert!(index < self.len());
         let result: u16 = PrimitiveElement::get(&self.reader, index);
         FromU16::from_u16(result)
     }
 
+    /// Gets the `T` at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(&self, index: u32) -> Option<::core::result::Result<T, NotInSchema>> {
         if index < self.len() {
             let result: u16 = PrimitiveElement::get(&self.reader, index);
@@ -120,12 +124,16 @@ impl <'a, T : FromU16> FromPointerBuilder<'a> for Builder<'a, T> {
 }
 
 impl <'a, T : ToU16 + FromU16>  Builder<'a, T> {
+    /// Gets the `T` at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         assert!(index < self.len());
         let result: u16 = PrimitiveElement::get_from_builder(&self.builder, index);
         FromU16::from_u16(result)
     }
 
+    /// Gets the `T` at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(&self, index: u32) -> Option<::core::result::Result<T, NotInSchema>> {
         if index < self.len() {
             let result: u16 = PrimitiveElement::get_from_builder(&self.builder, index);

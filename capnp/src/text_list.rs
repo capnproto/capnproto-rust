@@ -64,11 +64,15 @@ impl <'a>  IndexMove<u32, Result<crate::text::Reader<'a>>> for Reader<'a>{
 }
 
 impl <'a> Reader<'a> {
+    /// Gets the `text::Reader` at position `index`. Panics if `index` is
+    /// greater than or equal to `len()`.
     pub fn get(self, index : u32) -> Result<crate::text::Reader<'a>> {
         assert!(index <  self.len());
         self.reader.get_pointer_element(index).get_text(None)
     }
 
+    /// Gets the `text::Reader` at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(self, index : u32) -> Option<Result<crate::text::Reader<'a>>> {
         if index <  self.len() {
             Some(self.reader.get_pointer_element(index).get_text(None))
@@ -124,11 +128,15 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
 }
 
 impl <'a> Builder<'a> {
+    /// Gets the `text::Builder` at position `index`. Panics if `index` is
+    /// greater than or equal to `len()`.
     pub fn get(self, index: u32) -> Result<crate::text::Builder<'a>> {
         assert!(index <  self.len());
         self.builder.get_pointer_element(index).get_text(None)
     }
 
+    /// Gets the `text::Builder` at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<Result<crate::text::Builder<'a>>> {
         if index < self.len() {
             Some(self.builder.get_pointer_element(index).get_text(None))

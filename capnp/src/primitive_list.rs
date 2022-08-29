@@ -67,11 +67,15 @@ impl <'a, T: PrimitiveElement>  IndexMove<u32, T> for Reader<'a, T>{
 }
 
 impl <'a, T: PrimitiveElement> Reader<'a, T> {
+    /// Gets the `T` at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get(&self.reader, index)
     }
 
+    /// Gets the `T` at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(&self, index: u32) -> Option<T> {
         if index < self.len() {
             Some(PrimitiveElement::get(&self.reader, index))
@@ -146,11 +150,15 @@ impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
 }
 
 impl <'a, T : PrimitiveElement> Builder<'a, T> {
+    /// Gets the `T` at position `index`. Panics if `index` is greater than or
+    /// equal to `len()`.
     pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get_from_builder(&self.builder, index)
     }
 
+    /// Gets the `T` at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
     pub fn try_get(&self, index: u32) -> Option<T> {
         if index < self.len() {
             Some(PrimitiveElement::get_from_builder(&self.builder, index))
