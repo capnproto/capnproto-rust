@@ -439,8 +439,8 @@ mod tests {
                 NoAllocSliceSegments::try_new(&mut msg.as_slice(), ReaderOptions::new()).unwrap();
 
             assert_eq!(no_alloc_segments.len(), segments.len());
-            for i in 0..no_alloc_segments.len() {
-                assert_eq!(no_alloc_segments.get_segment(i as u32), Some(segments[i]));
+            for (i, segment) in segments.iter().enumerate() {
+                assert_eq!(no_alloc_segments.get_segment(i as u32), Some(*segment));
             }
 
             assert_eq!(

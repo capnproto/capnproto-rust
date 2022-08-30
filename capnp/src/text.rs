@@ -74,15 +74,13 @@ impl <'a> Builder <'a> {
 
     pub fn push_str(&mut self, string: &str) {
         let bytes = string.as_bytes();
-        for ii in 0..bytes.len() {
-            self.bytes[self.pos + ii] = bytes[ii];
-        }
+        self.bytes[self.pos..(self.pos+bytes.len())].copy_from_slice(bytes);
         self.pos += bytes.len();
     }
 
     pub fn clear(&mut self) {
-        for ii in 0..self.pos {
-            self.bytes[ii] = 0;
+        for b in &mut self.bytes[..self.pos] {
+            *b = 0;
         }
         self.pos = 0;
     }
