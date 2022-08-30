@@ -1,3 +1,8 @@
+## v0.14.9
+- Add `try_get()` method for the lists.
+- Add missing bounds checking in `text_list::Builder`.
+- Improve documentation.
+
 ## v0.14.8
 - Fix potential integer overflows in `set_list_pointer()` and `zero_object_helper()`.
 
