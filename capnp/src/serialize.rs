@@ -391,9 +391,7 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8
     }
     for i in 0..segment_count {
         let segment = segments.get_segment(i as u32).unwrap();
-        for idx in 0..segment.len() {
-            result.push(segment[idx]);
-        }
+        result.extend(segment);
     }
     result
 }
@@ -442,7 +440,7 @@ where W: Write, R: message::ReaderSegments + ?Sized {
                     &((segments.get_segment(idx as u32).unwrap().len() / BYTES_PER_WORD) as u32).to_le_bytes());
             }
             if segment_count == 2 {
-                for idx in 4..8 { buf[idx] = 0 }
+                for b in &mut buf[4..8] { *b = 0 }
             }
             write.write_all(&buf)?;
         } else {
@@ -743,9 +741,9 @@ pub mod test {
         let message = read_message_from_flat_slice(&mut byte_slice, message::ReaderOptions::new()).unwrap();
         assert_eq!(byte_slice, extra_bytes);
         let result_segments = message.into_segments();
-        for idx in 0..segments.len() {
+        for (idx, segment) in segments.iter().enumerate() {
             assert_eq!(
-                segments[idx],
+                *segment,
                 result_segments.get_segment(idx as u32).expect("segment should exist"));
         }
     }
