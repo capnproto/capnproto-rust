@@ -15,8 +15,9 @@ const U32_LEN_IN_BYTES: usize = core::mem::size_of::<u32>();
 /// Segments read from a buffer, useful for when you have the message in a buffer and don't want the
 /// extra copy of `read_message`.
 ///
-/// `NoAllocSliceSegments` is similar to [`SliceSegments`] but optimized for low memory embedded
-/// environment. It does not do heap allocations and consumes only one fat pointer worth of memory.
+/// `NoAllocSliceSegments` is similar to [`crate::serialize::SliceSegments`] but optimized for
+/// low memory embedded environment. It does not do heap allocations and consumes only one fat
+/// pointer worth of memory.
 ///
 /// # Performance considerations
 ///
