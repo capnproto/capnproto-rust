@@ -181,7 +181,7 @@ impl <'a> SegmentArray<'a> {
 
 impl <'b> ReaderSegments for SegmentArray<'b> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
-        self.segments.get(id as usize).map(|slice| *slice)
+        self.segments.get(id as usize).copied()
     }
 
     fn len(&self) -> usize {
@@ -191,7 +191,7 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
 
 impl <'b> ReaderSegments for [&'b [u8]] {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
-        self.get(id as usize).map(|slice| *slice)
+        self.get(id as usize).copied()
     }
 
     fn len(&self) -> usize {
@@ -456,7 +456,7 @@ impl <A> Builder<A> where A: Allocator {
 
 impl <A> ReaderSegments for Builder<A> where A: Allocator {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
-        self.get_segments_for_output().get(id as usize).map(|x| *x)
+        self.get_segments_for_output().get(id as usize).copied()
     }
 
     fn len(&self) -> usize {

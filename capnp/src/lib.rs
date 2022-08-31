@@ -276,10 +276,10 @@ impl<'s> message::ReaderSegments for OutputSegments<'s> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         match *self {
             OutputSegments::SingleSegment(ref s) => {
-                s.get(id as usize).map(|slice| *slice)
+                s.get(id as usize).copied()
             }
             OutputSegments::MultiSegment(ref v) => {
-                v.get(id as usize).map(|slice| *slice)
+                v.get(id as usize).copied()
             }
         }
     }
