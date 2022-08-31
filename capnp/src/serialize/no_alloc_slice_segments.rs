@@ -122,7 +122,7 @@ impl<'b> NoAllocSliceSegments<'b> {
                 segment: &message[expected_data_offset..],
             })
         } else {
-            Ok(Self::MultipleSegments { message: message })
+            Ok(Self::MultipleSegments { message })
         }
     }
 }

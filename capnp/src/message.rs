@@ -175,7 +175,7 @@ pub struct SegmentArray<'a> {
 
 impl <'a> SegmentArray<'a> {
     pub fn new(segments: &'a [&'a [u8]]) -> SegmentArray<'a> {
-        SegmentArray { segments: segments }
+        SegmentArray { segments }
     }
 }
 
@@ -286,7 +286,7 @@ impl <S, T> TypedReader<S, T>
     pub fn new(message: Reader<S>) -> Self {
         TypedReader {
             marker: ::core::marker::PhantomData,
-            message: message,
+            message,
         }
     }
 
@@ -496,7 +496,7 @@ where
     pub fn new(message: Builder<A>) -> Self {
         Self {
             marker: ::core::marker::PhantomData,
-            message: message,
+            message,
         }
     }
 
@@ -689,7 +689,7 @@ impl <'a> ScratchSpaceHeapAllocator<'a> {
         for b in &mut scratch_space[..] {
             *b = 0;
         }
-        ScratchSpaceHeapAllocator { scratch_space: scratch_space,
+        ScratchSpaceHeapAllocator { scratch_space,
                                     scratch_space_allocated: false,
                                     allocator: HeapAllocator::new()}
     }

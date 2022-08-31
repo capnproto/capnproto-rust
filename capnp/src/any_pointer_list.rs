@@ -42,7 +42,7 @@ pub struct Reader<'a> {
 
 impl <'a> Reader<'a> {
     pub(crate) fn new(reader: ListReader<'_>) -> Reader<'_> {
-        Reader { reader: reader }
+        Reader { reader }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
