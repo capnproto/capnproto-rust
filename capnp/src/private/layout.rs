@@ -1657,7 +1657,7 @@ mod wire_helpers {
                     }
                     let start = end - window;
                     let last_word = &value.get_data_section_as_blob()[start as usize..end as usize];
-                    if last_word == &[0; 8] {
+                    if last_word == [0; 8] {
                         data_size -= window;
                     } else {
                         break 'chop
@@ -1787,7 +1787,7 @@ mod wire_helpers {
                         let window = BYTES_PER_WORD as u32;
                         let start = end - window;
                         let last_word = &se.get_data_section_as_blob()[start as usize..end as usize];
-                        if last_word != &[0; 8] {
+                        if last_word != [0; 8] {
                             break 'data_chop
                         } else {
                             local_data_size -= 1;
@@ -2242,7 +2242,7 @@ mod wire_helpers {
     {
         if (*reff).is_null() {
             match default {
-                None => return Ok(&""),
+                None => return Ok(""),
                 Some(d) => {
                     reff = d.as_ptr() as *const WirePointer;
                     arena = &super::NULL_ARENA;
