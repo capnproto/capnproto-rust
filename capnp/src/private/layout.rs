@@ -3526,10 +3526,10 @@ impl PrimitiveElement for bool {
 
 impl PrimitiveElement for () {
     #[inline]
-    fn get(_list: &ListReader, _index: ElementCount32) -> () { () }
+    fn get(_list: &ListReader, _index: ElementCount32) { }
 
     #[inline]
-    fn get_from_builder(_list: &ListBuilder, _index: ElementCount32) -> () { () }
+    fn get_from_builder(_list: &ListBuilder, _index: ElementCount32) { }
 
     #[inline]
     fn set(_list: &ListBuilder, _index: ElementCount32, _value: ()) { }
