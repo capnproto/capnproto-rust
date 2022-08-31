@@ -92,7 +92,12 @@ pub trait ImbueMut<'a> {
 }
 
 pub trait HasTypeId {
-    fn type_id() -> u64;
+    const TYPE_ID: u64;
+
+    #[inline]
+    fn type_id() -> u64 {
+        Self::TYPE_ID
+    }
 }
 
 pub trait ToU16 {

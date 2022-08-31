@@ -16,8 +16,7 @@ pub mod node {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -59,6 +58,7 @@ pub mod node {
     pub fn get_display_name(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_display_name(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -74,6 +74,7 @@ pub mod node {
     pub fn get_nested_nodes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::nested_node::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_nested_nodes(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
@@ -81,6 +82,7 @@ pub mod node {
     pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
     }
@@ -88,6 +90,7 @@ pub mod node {
     pub fn get_parameters(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::parameter::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(5), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_parameters(&self) -> bool {
       !self.reader.get_pointer_field(5).is_null()
     }
@@ -138,8 +141,7 @@ pub mod node {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 5, pointers: 6 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -200,6 +202,7 @@ pub mod node {
     pub fn init_display_name(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
+    #[inline]
     pub fn has_display_name(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -231,6 +234,7 @@ pub mod node {
     pub fn init_nested_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::nested_node::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
+    #[inline]
     pub fn has_nested_nodes(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
@@ -246,6 +250,7 @@ pub mod node {
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), size)
     }
+    #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(2).is_null()
     }
@@ -315,6 +320,7 @@ pub mod node {
     pub fn init_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(5), size)
     }
+    #[inline]
     pub fn has_parameters(&self) -> bool {
       !self.builder.get_pointer_field(5).is_null()
     }
@@ -397,8 +403,7 @@ pub mod node {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -436,6 +441,7 @@ pub mod node {
       pub fn get_name(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_name(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
@@ -446,8 +452,7 @@ pub mod node {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 0, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -500,6 +505,7 @@ pub mod node {
       pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
+      #[inline]
       pub fn has_name(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
@@ -529,8 +535,7 @@ pub mod node {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -568,6 +573,7 @@ pub mod node {
       pub fn get_name(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_name(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
@@ -582,8 +588,7 @@ pub mod node {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -636,6 +641,7 @@ pub mod node {
       pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
+      #[inline]
       pub fn has_name(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
@@ -673,8 +679,7 @@ pub mod node {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -716,6 +721,7 @@ pub mod node {
       pub fn get_doc_comment(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_doc_comment(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
@@ -723,6 +729,7 @@ pub mod node {
       pub fn get_members(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::source_info::member::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_members(&self) -> bool {
         !self.reader.get_pointer_field(1).is_null()
       }
@@ -733,8 +740,7 @@ pub mod node {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 2 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -795,6 +801,7 @@ pub mod node {
       pub fn init_doc_comment(self, size: u32) -> ::capnp::text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
+      #[inline]
       pub fn has_doc_comment(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
@@ -810,6 +817,7 @@ pub mod node {
       pub fn init_members(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::member::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
       }
+      #[inline]
       pub fn has_members(&self) -> bool {
         !self.builder.get_pointer_field(1).is_null()
       }
@@ -838,8 +846,7 @@ pub mod node {
       pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
       impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
         fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -877,6 +884,7 @@ pub mod node {
         pub fn get_doc_comment(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
           ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
         }
+        #[inline]
         pub fn has_doc_comment(&self) -> bool {
           !self.reader.get_pointer_field(0).is_null()
         }
@@ -887,8 +895,7 @@ pub mod node {
         const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 0, pointers: 1 };
       }
       impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
         fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -941,6 +948,7 @@ pub mod node {
         pub fn init_doc_comment(self, size: u32) -> ::capnp::text::Builder<'a> {
           self.builder.get_pointer_field(0).init_text(size)
         }
+        #[inline]
         pub fn has_doc_comment(&self) -> bool {
           !self.builder.get_pointer_field(0).is_null()
         }
@@ -971,8 +979,7 @@ pub mod node {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -1034,6 +1041,7 @@ pub mod node {
       pub fn get_fields(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::field::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_fields(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
@@ -1044,8 +1052,7 @@ pub mod node {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 5, pointers: 6 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -1146,6 +1153,7 @@ pub mod node {
       pub fn init_fields(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::field::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
+      #[inline]
       pub fn has_fields(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
@@ -1175,8 +1183,7 @@ pub mod node {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -1214,6 +1221,7 @@ pub mod node {
       pub fn get_enumerants(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::enumerant::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_enumerants(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
@@ -1224,8 +1232,7 @@ pub mod node {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 5, pointers: 6 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -1278,6 +1285,7 @@ pub mod node {
       pub fn init_enumerants(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::enumerant::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
+      #[inline]
       pub fn has_enumerants(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
@@ -1307,8 +1315,7 @@ pub mod node {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -1346,6 +1353,7 @@ pub mod node {
       pub fn get_methods(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::method::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_methods(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
@@ -1353,6 +1361,7 @@ pub mod node {
       pub fn get_superclasses(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::superclass::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_superclasses(&self) -> bool {
         !self.reader.get_pointer_field(4).is_null()
       }
@@ -1363,8 +1372,7 @@ pub mod node {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 5, pointers: 6 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -1417,6 +1425,7 @@ pub mod node {
       pub fn init_methods(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::method::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
+      #[inline]
       pub fn has_methods(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
@@ -1432,6 +1441,7 @@ pub mod node {
       pub fn init_superclasses(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::superclass::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
       }
+      #[inline]
       pub fn has_superclasses(&self) -> bool {
         !self.builder.get_pointer_field(4).is_null()
       }
@@ -1461,8 +1471,7 @@ pub mod node {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -1500,6 +1509,7 @@ pub mod node {
       pub fn get_type(self) -> ::capnp::Result<crate::schema_capnp::type_::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
@@ -1507,6 +1517,7 @@ pub mod node {
       pub fn get_value(self) -> ::capnp::Result<crate::schema_capnp::value::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_value(&self) -> bool {
         !self.reader.get_pointer_field(4).is_null()
       }
@@ -1517,8 +1528,7 @@ pub mod node {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 5, pointers: 6 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -1571,6 +1581,7 @@ pub mod node {
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
+      #[inline]
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
@@ -1586,6 +1597,7 @@ pub mod node {
       pub fn init_value(self, ) -> crate::schema_capnp::value::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), 0)
       }
+      #[inline]
       pub fn has_value(&self) -> bool {
         !self.builder.get_pointer_field(4).is_null()
       }
@@ -1621,8 +1633,7 @@ pub mod node {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -1660,6 +1671,7 @@ pub mod node {
       pub fn get_type(self) -> ::capnp::Result<crate::schema_capnp::type_::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
@@ -1718,8 +1730,7 @@ pub mod node {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 5, pointers: 6 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -1772,6 +1783,7 @@ pub mod node {
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
+      #[inline]
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
@@ -1903,8 +1915,7 @@ pub mod field {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -1942,6 +1953,7 @@ pub mod field {
     pub fn get_name(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_name(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -1953,6 +1965,7 @@ pub mod field {
     pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
@@ -1987,8 +2000,7 @@ pub mod field {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 4 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -2041,6 +2053,7 @@ pub mod field {
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
+    #[inline]
     pub fn has_name(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -2064,6 +2077,7 @@ pub mod field {
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
+    #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
@@ -2151,8 +2165,7 @@ pub mod field {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -2194,6 +2207,7 @@ pub mod field {
       pub fn get_type(self) -> ::capnp::Result<crate::schema_capnp::type_::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(2).is_null()
       }
@@ -2201,6 +2215,7 @@ pub mod field {
       pub fn get_default_value(self) -> ::capnp::Result<crate::schema_capnp::value::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_default_value(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
@@ -2215,8 +2230,7 @@ pub mod field {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 4 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -2277,6 +2291,7 @@ pub mod field {
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
       }
+      #[inline]
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(2).is_null()
       }
@@ -2292,6 +2307,7 @@ pub mod field {
       pub fn init_default_value(self, ) -> crate::schema_capnp::value::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
+      #[inline]
       pub fn has_default_value(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
@@ -2335,8 +2351,7 @@ pub mod field {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -2381,8 +2396,7 @@ pub mod field {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 4 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -2459,8 +2473,7 @@ pub mod field {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -2517,8 +2530,7 @@ pub mod field {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 4 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -2617,8 +2629,7 @@ pub mod enumerant {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -2656,6 +2667,7 @@ pub mod enumerant {
     pub fn get_name(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_name(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -2667,6 +2679,7 @@ pub mod enumerant {
     pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
@@ -2677,8 +2690,7 @@ pub mod enumerant {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 2 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -2731,6 +2743,7 @@ pub mod enumerant {
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
+    #[inline]
     pub fn has_name(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -2754,6 +2767,7 @@ pub mod enumerant {
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
+    #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
@@ -2783,8 +2797,7 @@ pub mod superclass {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -2826,6 +2839,7 @@ pub mod superclass {
     pub fn get_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_brand(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -2836,8 +2850,7 @@ pub mod superclass {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 1 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -2898,6 +2911,7 @@ pub mod superclass {
     pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
+    #[inline]
     pub fn has_brand(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -2930,8 +2944,7 @@ pub mod method {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -2969,6 +2982,7 @@ pub mod method {
     pub fn get_name(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_name(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -2988,6 +3002,7 @@ pub mod method {
     pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
@@ -2995,6 +3010,7 @@ pub mod method {
     pub fn get_param_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_param_brand(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
     }
@@ -3002,6 +3018,7 @@ pub mod method {
     pub fn get_result_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_result_brand(&self) -> bool {
       !self.reader.get_pointer_field(3).is_null()
     }
@@ -3009,6 +3026,7 @@ pub mod method {
     pub fn get_implicit_parameters(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::parameter::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_implicit_parameters(&self) -> bool {
       !self.reader.get_pointer_field(4).is_null()
     }
@@ -3019,8 +3037,7 @@ pub mod method {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 5 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -3073,6 +3090,7 @@ pub mod method {
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
+    #[inline]
     pub fn has_name(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -3112,6 +3130,7 @@ pub mod method {
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
+    #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
@@ -3127,6 +3146,7 @@ pub mod method {
     pub fn init_param_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
     }
+    #[inline]
     pub fn has_param_brand(&self) -> bool {
       !self.builder.get_pointer_field(2).is_null()
     }
@@ -3142,6 +3162,7 @@ pub mod method {
     pub fn init_result_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
     }
+    #[inline]
     pub fn has_result_brand(&self) -> bool {
       !self.builder.get_pointer_field(3).is_null()
     }
@@ -3157,6 +3178,7 @@ pub mod method {
     pub fn init_implicit_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
     }
+    #[inline]
     pub fn has_implicit_parameters(&self) -> bool {
       !self.builder.get_pointer_field(4).is_null()
     }
@@ -3194,8 +3216,7 @@ pub mod type_ {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -3337,8 +3358,7 @@ pub mod type_ {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -3621,8 +3641,7 @@ pub mod type_ {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -3660,6 +3679,7 @@ pub mod type_ {
       pub fn get_element_type(self) -> ::capnp::Result<crate::schema_capnp::type_::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_element_type(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
@@ -3670,8 +3690,7 @@ pub mod type_ {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -3724,6 +3743,7 @@ pub mod type_ {
       pub fn init_element_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
+      #[inline]
       pub fn has_element_type(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
@@ -3756,8 +3776,7 @@ pub mod type_ {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -3799,6 +3818,7 @@ pub mod type_ {
       pub fn get_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_brand(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
@@ -3809,8 +3829,7 @@ pub mod type_ {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -3871,6 +3890,7 @@ pub mod type_ {
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
+      #[inline]
       pub fn has_brand(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
@@ -3903,8 +3923,7 @@ pub mod type_ {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -3946,6 +3965,7 @@ pub mod type_ {
       pub fn get_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_brand(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
@@ -3956,8 +3976,7 @@ pub mod type_ {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -4018,6 +4037,7 @@ pub mod type_ {
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
+      #[inline]
       pub fn has_brand(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
@@ -4050,8 +4070,7 @@ pub mod type_ {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -4093,6 +4112,7 @@ pub mod type_ {
       pub fn get_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_brand(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
@@ -4103,8 +4123,7 @@ pub mod type_ {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -4165,6 +4184,7 @@ pub mod type_ {
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
+      #[inline]
       pub fn has_brand(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
@@ -4199,8 +4219,7 @@ pub mod type_ {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -4262,8 +4281,7 @@ pub mod type_ {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -4378,8 +4396,7 @@ pub mod type_ {
       pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
       impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
         fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -4446,8 +4463,7 @@ pub mod type_ {
         const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
       }
       impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
         fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -4564,8 +4580,7 @@ pub mod type_ {
       pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
       impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
         fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -4614,8 +4629,7 @@ pub mod type_ {
         const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
       }
       impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
         fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -4698,8 +4712,7 @@ pub mod type_ {
       pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
       impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
         fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -4744,8 +4757,7 @@ pub mod type_ {
         const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 3, pointers: 1 };
       }
       impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
         fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -4822,8 +4834,7 @@ pub mod brand {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -4861,6 +4872,7 @@ pub mod brand {
     pub fn get_scopes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::brand::scope::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_scopes(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -4871,8 +4883,7 @@ pub mod brand {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 0, pointers: 1 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -4925,6 +4936,7 @@ pub mod brand {
     pub fn init_scopes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::brand::scope::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
+    #[inline]
     pub fn has_scopes(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -4955,8 +4967,7 @@ pub mod brand {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -4994,6 +5005,7 @@ pub mod brand {
       pub fn get_scope_id(self) -> u64 {
         self.reader.get_data_field::<u64>(0)
       }
+      #[inline]
       pub fn has_bind(&self) -> bool {
         if self.reader.get_data_field::<u16>(4) != 0 { return false; }
         !self.reader.get_pointer_field(0).is_null()
@@ -5021,8 +5033,7 @@ pub mod brand {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 2, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -5081,6 +5092,7 @@ pub mod brand {
         self.builder.set_data_field::<u16>(4, 0);
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
       }
+      #[inline]
       pub fn has_bind(&self) -> bool {
         if self.builder.get_data_field::<u16>(4) != 0 { return false; }
         !self.builder.get_pointer_field(0).is_null()
@@ -5139,8 +5151,7 @@ pub mod brand {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -5174,6 +5185,7 @@ pub mod brand {
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
         self.reader.total_size()
       }
+      #[inline]
       pub fn has_type(&self) -> bool {
         if self.reader.get_data_field::<u16>(0) != 1 { return false; }
         !self.reader.get_pointer_field(0).is_null()
@@ -5201,8 +5213,7 @@ pub mod brand {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 1 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -5257,6 +5268,7 @@ pub mod brand {
         self.builder.set_data_field::<u16>(0, 1);
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
+      #[inline]
       pub fn has_type(&self) -> bool {
         if self.builder.get_data_field::<u16>(0) != 1 { return false; }
         !self.builder.get_pointer_field(0).is_null()
@@ -5312,8 +5324,7 @@ pub mod value {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -5347,22 +5358,27 @@ pub mod value {
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
       self.reader.total_size()
     }
+    #[inline]
     pub fn has_text(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 12 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
+    #[inline]
     pub fn has_data(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 13 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
+    #[inline]
     pub fn has_list(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 14 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
+    #[inline]
     pub fn has_struct(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 16 { return false; }
       !self.reader.get_pointer_field(0).is_null()
     }
+    #[inline]
     pub fn has_any_pointer(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 18 { return false; }
       !self.reader.get_pointer_field(0).is_null()
@@ -5475,8 +5491,7 @@ pub mod value {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 2, pointers: 1 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -5586,6 +5601,7 @@ pub mod value {
       self.builder.set_data_field::<u16>(0, 12);
       self.builder.get_pointer_field(0).init_text(size)
     }
+    #[inline]
     pub fn has_text(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 12 { return false; }
       !self.builder.get_pointer_field(0).is_null()
@@ -5600,6 +5616,7 @@ pub mod value {
       self.builder.set_data_field::<u16>(0, 13);
       self.builder.get_pointer_field(0).init_data(size)
     }
+    #[inline]
     pub fn has_data(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 13 { return false; }
       !self.builder.get_pointer_field(0).is_null()
@@ -5611,6 +5628,7 @@ pub mod value {
       result.clear();
       result
     }
+    #[inline]
     pub fn has_list(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 14 { return false; }
       !self.builder.get_pointer_field(0).is_null()
@@ -5627,6 +5645,7 @@ pub mod value {
       result.clear();
       result
     }
+    #[inline]
     pub fn has_struct(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 16 { return false; }
       !self.builder.get_pointer_field(0).is_null()
@@ -5642,6 +5661,7 @@ pub mod value {
       result.clear();
       result
     }
+    #[inline]
     pub fn has_any_pointer(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 18 { return false; }
       !self.builder.get_pointer_field(0).is_null()
@@ -5796,8 +5816,7 @@ pub mod annotation {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -5839,6 +5858,7 @@ pub mod annotation {
     pub fn get_value(self) -> ::capnp::Result<crate::schema_capnp::value::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_value(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -5846,6 +5866,7 @@ pub mod annotation {
     pub fn get_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_brand(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
@@ -5856,8 +5877,7 @@ pub mod annotation {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 2 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -5918,6 +5938,7 @@ pub mod annotation {
     pub fn init_value(self, ) -> crate::schema_capnp::value::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
+    #[inline]
     pub fn has_value(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -5933,6 +5954,7 @@ pub mod annotation {
     pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), 0)
     }
+    #[inline]
     pub fn has_brand(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
@@ -5958,7 +5980,7 @@ pub mod annotation {
 }
 
 #[repr(u16)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ElementSize {
   Empty = 0,
   Bit = 1,
@@ -5990,8 +6012,7 @@ impl ::capnp::traits::ToU16 for ElementSize {
   fn to_u16(self) -> u16 { self as u16 }
 }
 impl ::capnp::traits::HasTypeId for ElementSize {
-  #[inline]
-  fn type_id() -> u64 { 0xd195_8f7d_ba52_1926u64 }
+  const TYPE_ID: u64 = 0xd195_8f7d_ba52_1926u64;
 }
 
 pub mod capnp_version {
@@ -6005,8 +6026,7 @@ pub mod capnp_version {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -6059,8 +6079,7 @@ pub mod capnp_version {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 0 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -6151,8 +6170,7 @@ pub mod code_generator_request {
   pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
   impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
     fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -6190,6 +6208,7 @@ pub mod code_generator_request {
     pub fn get_nodes(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_nodes(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
@@ -6197,6 +6216,7 @@ pub mod code_generator_request {
     pub fn get_requested_files(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::code_generator_request::requested_file::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_requested_files(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
@@ -6204,6 +6224,7 @@ pub mod code_generator_request {
     pub fn get_capnp_version(self) -> ::capnp::Result<crate::schema_capnp::capnp_version::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_capnp_version(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
     }
@@ -6211,6 +6232,7 @@ pub mod code_generator_request {
     pub fn get_source_info(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::node::source_info::Owned>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), ::core::option::Option::None)
     }
+    #[inline]
     pub fn has_source_info(&self) -> bool {
       !self.reader.get_pointer_field(3).is_null()
     }
@@ -6221,8 +6243,7 @@ pub mod code_generator_request {
     const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 0, pointers: 4 };
   }
   impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-    #[inline]
-    fn type_id() -> u64 { _private::TYPE_ID }
+    const TYPE_ID: u64 = _private::TYPE_ID;
   }
   impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
     fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -6275,6 +6296,7 @@ pub mod code_generator_request {
     pub fn init_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
+    #[inline]
     pub fn has_nodes(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
@@ -6290,6 +6312,7 @@ pub mod code_generator_request {
     pub fn init_requested_files(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
+    #[inline]
     pub fn has_requested_files(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
@@ -6305,6 +6328,7 @@ pub mod code_generator_request {
     pub fn init_capnp_version(self, ) -> crate::schema_capnp::capnp_version::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
     }
+    #[inline]
     pub fn has_capnp_version(&self) -> bool {
       !self.builder.get_pointer_field(2).is_null()
     }
@@ -6320,6 +6344,7 @@ pub mod code_generator_request {
     pub fn init_source_info(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::Owned> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
     }
+    #[inline]
     pub fn has_source_info(&self) -> bool {
       !self.builder.get_pointer_field(3).is_null()
     }
@@ -6351,8 +6376,7 @@ pub mod code_generator_request {
     pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
     impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
       fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -6394,6 +6418,7 @@ pub mod code_generator_request {
       pub fn get_filename(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_filename(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
@@ -6401,6 +6426,7 @@ pub mod code_generator_request {
       pub fn get_imports(self) -> ::capnp::Result<::capnp::struct_list::Reader<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1), ::core::option::Option::None)
       }
+      #[inline]
       pub fn has_imports(&self) -> bool {
         !self.reader.get_pointer_field(1).is_null()
       }
@@ -6411,8 +6437,7 @@ pub mod code_generator_request {
       const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 2 };
     }
     impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-      #[inline]
-      fn type_id() -> u64 { _private::TYPE_ID }
+      const TYPE_ID: u64 = _private::TYPE_ID;
     }
     impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
       fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -6473,6 +6498,7 @@ pub mod code_generator_request {
       pub fn init_filename(self, size: u32) -> ::capnp::text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
+      #[inline]
       pub fn has_filename(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
@@ -6488,6 +6514,7 @@ pub mod code_generator_request {
       pub fn init_imports(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
       }
+      #[inline]
       pub fn has_imports(&self) -> bool {
         !self.builder.get_pointer_field(1).is_null()
       }
@@ -6516,8 +6543,7 @@ pub mod code_generator_request {
       pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }
 
       impl <'a,> ::capnp::traits::HasTypeId for Reader<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructReader<'a> for Reader<'a,>  {
         fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,> {
@@ -6559,6 +6585,7 @@ pub mod code_generator_request {
         pub fn get_name(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
           ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0), ::core::option::Option::None)
         }
+        #[inline]
         pub fn has_name(&self) -> bool {
           !self.reader.get_pointer_field(0).is_null()
         }
@@ -6569,8 +6596,7 @@ pub mod code_generator_request {
         const STRUCT_SIZE: ::capnp::private::layout::StructSize = ::capnp::private::layout::StructSize { data: 1, pointers: 1 };
       }
       impl <'a,> ::capnp::traits::HasTypeId for Builder<'a,>  {
-        #[inline]
-        fn type_id() -> u64 { _private::TYPE_ID }
+        const TYPE_ID: u64 = _private::TYPE_ID;
       }
       impl <'a,> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,>  {
         fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, > {
@@ -6631,6 +6657,7 @@ pub mod code_generator_request {
         pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
           self.builder.get_pointer_field(0).init_text(size)
         }
+        #[inline]
         pub fn has_name(&self) -> bool {
           !self.builder.get_pointer_field(0).is_null()
         }

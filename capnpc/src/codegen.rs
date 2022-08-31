@@ -1590,8 +1590,7 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                         Line(format!("impl <'a,{0}> ::capnp::traits::HasTypeId for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
-                        Indent(Box::new(Branch(vec!(Line("#[inline]".to_string()),
-                                               Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))))),
+                        Indent(Box::new(Branch(vec!(Line("const TYPE_ID: u64 = _private::TYPE_ID;".to_string()))))),
                     Line("}".to_string()))),
                 Line(format!("impl <'a,{0}> ::capnp::traits::FromStructReader<'a> for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
@@ -1660,8 +1659,7 @@ fn generate_node(gen: &GeneratorContext,
                     Line(format!("impl <'a,{0}> ::capnp::traits::HasTypeId for Builder<'a,{0}> {1} {{",
                                  params.params, params.where_clause)),
                     Indent(Box::new(Branch(vec!(
-                        Line("#[inline]".to_string()),
-                        Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))))),
+                        Line("const TYPE_ID: u64 = _private::TYPE_ID;".to_string()))))),
                     Line("}".to_string()))),
                 Line(format!(
                     "impl <'a,{0}> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,{0}> {1} {{",
@@ -1793,9 +1791,7 @@ fn generate_node(gen: &GeneratorContext,
             output.push(
                 Branch(vec!(
                     Line(format!("impl ::capnp::traits::HasTypeId for {} {{", last_name)),
-                    Indent(Box::new(Line("#[inline]".to_string()))),
-                    Indent(
-                        Box::new(Line(format!("fn type_id() -> u64 {{ {}u64 }}", format_u64(node_id)).to_string()))),
+                    Indent(Box::new(Line(format!("const TYPE_ID: u64 = {}u64;", format_u64(node_id)).to_string()))),
                     Line("}".to_string()))));
         }
 
@@ -2005,8 +2001,7 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                     Line(format!("impl {0} ::capnp::traits::HasTypeId for Client{0} {{",
                                  bracketed_params)),
-                    Indent(Box::new(Line("#[inline]".to_string()))),
-                    Indent(Box::new(Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))),
+                    Indent(Box::new(Line("const TYPE_ID: u64 = _private::TYPE_ID;".to_string()))),
                     Line("}".to_string()))));
 
             mod_interior.push(
