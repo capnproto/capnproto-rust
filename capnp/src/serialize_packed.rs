@@ -75,17 +75,17 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
         assert!(len % 8 == 0, "PackedRead reads must be word-aligned.");
 
+        let mut out = out_buf.as_mut_ptr();
+        let out_end: *mut u8 = out_buf.as_mut_ptr().wrapping_offset(len as isize);
+        
+        let (mut in_ptr, mut in_end) = self.get_read_buffer()?;
+        let mut buffer_begin = in_ptr;
+        let mut size = ptr_sub(in_end, in_ptr);
+        if size == 0 {
+            return Ok(0);
+        }
+        
         unsafe {
-            let mut out = out_buf.as_mut_ptr();
-            let out_end: *mut u8 = out_buf.as_mut_ptr().wrapping_offset(len as isize);
-
-            let (mut in_ptr, mut in_end) = self.get_read_buffer()?;
-            let mut buffer_begin = in_ptr;
-            let mut size = ptr_sub(in_end, in_ptr);
-            if size == 0 {
-                return Ok(0);
-            }
-
             loop {
                 let tag: u8;
 
@@ -227,13 +227,13 @@ struct PackedWrite<W> where W: Write {
 
 impl <W> Write for PackedWrite<W> where W: Write {
     fn write_all(&mut self, in_buf: &[u8]) -> Result<()> {
+        let mut buf_idx: usize = 0;
+        let mut buf: [u8; 64] = [0; 64];
+        
+        let mut in_ptr: *const u8 = in_buf.as_ptr();
+        let in_end: *const u8 = in_buf.as_ptr().wrapping_offset(in_buf.len() as isize);
+        
         unsafe {
-            let mut buf_idx: usize = 0;
-            let mut buf: [u8; 64] = [0; 64];
-
-            let mut in_ptr: *const u8 = in_buf.as_ptr();
-            let in_end: *const u8 = in_buf.as_ptr().wrapping_offset(in_buf.len() as isize);
-
             while in_ptr < in_end {
 
                 if buf_idx + 10 > buf.len() {
