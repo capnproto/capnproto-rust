@@ -382,9 +382,7 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8
     let segment_count = segments.len();
     let table_size = segment_count / 2 + 1;
     let mut result = Vec::with_capacity(word_count);
-    for _ in 0..(table_size * BYTES_PER_WORD) {
-        result.push(0);
-    }
+    result.resize(table_size * BYTES_PER_WORD, 0);
     {
         let mut bytes = &mut result[..];
         write_segment_table_internal(&mut bytes, segments).expect("Failed to write segment table.");

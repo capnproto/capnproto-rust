@@ -29,12 +29,8 @@ fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {
         let mut unaligned_data = Vec::with_capacity((words.len() + 1) * 8);
         for offset in 0..8 {
             unaligned_data.clear();
-            for _ in 0..offset {
-                unaligned_data.push(0);
-            }
-            for b in crate::Word::words_to_bytes(words) {
-                unaligned_data.push(*b);
-            }
+            unaligned_data.resize(offset, 0);
+            unaligned_data.extend(crate::Word::words_to_bytes(words));
             verify(PointerReader::get_root_unchecked((unaligned_data[offset..]).as_ptr()));
         }
     }
