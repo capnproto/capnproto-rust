@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::slice;
@@ -86,9 +87,9 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
                 {
                     if seg.as_ptr() as usize % BYTES_PER_WORD != 0 {
                         return Err(Error::failed(
-                            format!("Detected unaligned segment. You must either ensure all of your \
-                                     segments are 8-byte aligned, or you must enable the \"unaligned\" \
-                                     feature in the capnp crate")))
+                            String::from("Detected unaligned segment. You must either ensure all of your \
+                                          segments are 8-byte aligned, or you must enable the \"unaligned\" \
+                                          feature in the capnp crate")))
                     }
                 }
 
@@ -105,7 +106,7 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         let offset: i64 = offset_in_words as i64 * BYTES_PER_WORD as i64;
         let start_idx = start as usize;
         if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size {
-            Err(Error::failed(format!("message contained out-of-bounds pointer")))
+            Err(Error::failed(String::from("message contained out-of-bounds pointer")))
         } else {
             unsafe { Ok(start.offset(offset as isize)) }
         }
@@ -119,7 +120,7 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         let size = size_in_words * BYTES_PER_WORD;
 
         if !(start >= this_start && start - this_start + size <= this_size) {
-            Err(Error::failed(format!("message contained out-of-bounds pointer")))
+            Err(Error::failed(String::from("message contained out-of-bounds pointer")))
         } else {
             self.read_limiter.can_read(size_in_words)
         }
@@ -311,7 +312,7 @@ pub struct NullArena;
 
 impl ReaderArena for NullArena {
     fn get_segment(&self, _id: u32) -> Result<(*const u8, u32)> {
-        Err(Error::failed(format!("tried to read from null arena")))
+        Err(Error::failed(String::from("tried to read from null arena")))
     }
 
     fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {

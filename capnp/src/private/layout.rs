@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 use alloc::boxed::Box;
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::mem;
 use core::ptr;
@@ -2552,14 +2553,14 @@ impl <'a> PointerReader<'a> {
 
             match unsafe { (*reff).kind() } {
                 WirePointerKind::Far =>
-                    Err(crate::Error::failed(format!("Unexpected FAR pointer"))),
+                    Err(crate::Error::failed(String::from("Unexpected FAR pointer"))),
                 WirePointerKind::Struct => Ok(PointerType::Struct),
                 WirePointerKind::List => Ok(PointerType::List),
                 WirePointerKind::Other => {
                     if unsafe { (*reff).is_capability() } {
                         Ok(PointerType::Capability)
                     } else {
-                        Err(crate::Error::failed(format!("Unknown pointer type")))
+                        Err(crate::Error::failed(String::from("Unknown pointer type")))
                     }
                 }
             }
@@ -3095,7 +3096,7 @@ impl <'a> StructBuilder<'a> {
             // (but ignore empty sections).
             if (shared_data_size == 0 || other.data == self.data) &&
                 (shared_pointer_count == 0 || other.pointers == self.pointers) {
-                return Err(crate::Error::failed(format!("Only one of the section pointers is pointing to ourself")))
+                return Err(crate::Error::failed(String::from("Only one of the section pointers is pointing to ourself")))
             }
 
             // So `other` appears to be a reader for this same struct. No copying is needed.
