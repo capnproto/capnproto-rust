@@ -243,7 +243,7 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
     }
 
     fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32> {
-        let ref mut seg = &mut self.segments[segment_id as usize];
+        let seg = &mut self.segments[segment_id as usize];
         if amount > seg.capacity - seg.allocated {
             None
         } else {
