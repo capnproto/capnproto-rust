@@ -185,7 +185,7 @@ impl <T> Params <T> {
     pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
         where T: Owned<'a>
     {
-        Ok(self.hook.get()?.get_as()?)
+        self.hook.get()?.get_as()
     }
 }
 
