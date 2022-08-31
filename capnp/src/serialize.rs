@@ -506,7 +506,7 @@ pub mod test {
                 read_segment_table, write_segment_table, write_segments};
 
     /// Writes segments as if they were a Capnproto message.
-    pub fn write_message_segments<W>(write: &mut W, segments: &Vec<Vec<crate::Word>>) where W: Write {
+    pub fn write_message_segments<W>(write: &mut W, segments: &[Vec<crate::Word>]) where W: Write {
         let borrowed_segments: &[&[u8]] = &segments.iter()
                                                    .map(|segment| crate::Word::words_to_bytes(&segment[..]))
                                                    .collect::<Vec<_>>()[..];
