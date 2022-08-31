@@ -35,7 +35,7 @@ fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {
             for b in crate::Word::words_to_bytes(words) {
                 unaligned_data.push(*b);
             }
-            verify(PointerReader::get_root_unchecked((&unaligned_data[offset..]).as_ptr()));
+            verify(PointerReader::get_root_unchecked((unaligned_data[offset..]).as_ptr()));
         }
     }
 }

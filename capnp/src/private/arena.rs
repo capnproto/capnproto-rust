@@ -190,7 +190,7 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
             OutputSegments::SingleSegment([slice])
         } else {
             let mut v = Vec::with_capacity(reff.segments.len());
-            for ref seg in &reff.segments {
+            for seg in &reff.segments {
                 // See safety argument in above branch.
                 let slice = unsafe { slice::from_raw_parts(seg.ptr as *const _, seg.allocated as usize * BYTES_PER_WORD) };
                 v.push(slice);
@@ -272,7 +272,7 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
 
     fn deallocate_all(&mut self) {
         if let Some(ref mut a) = self.allocator {
-            for ref seg in &self.segments {
+            for seg in &self.segments {
                 a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
             }
         }
