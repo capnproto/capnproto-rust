@@ -199,12 +199,12 @@ fn verify_alignment(ptr: *const u8) -> Result<()> {
     if ptr % BYTES_PER_WORD == 0 {
         Ok(())
     } else {
-        return Err(Error::failed(
+        Err(Error::failed(
             "Message was not aligned by 8 bytes boundary. \
             Either ensure that message is properly aligned or compile \
             `capnp` crate with \"unaligned\" feature enabled."
                 .to_string(),
-        ));
+        ))
     }
 }
 
