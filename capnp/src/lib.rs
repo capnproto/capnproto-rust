@@ -187,16 +187,16 @@ pub enum ErrorKind {
 
 impl Error {
     pub fn failed(description: String) -> Error {
-        Error { description: description, kind: ErrorKind::Failed }
+        Error { description, kind: ErrorKind::Failed }
     }
     pub fn overloaded(description: String) -> Error {
-        Error { description: description, kind: ErrorKind::Overloaded }
+        Error { description, kind: ErrorKind::Overloaded }
     }
     pub fn disconnected(description: String) -> Error {
-        Error { description: description, kind: ErrorKind::Disconnected }
+        Error { description, kind: ErrorKind::Disconnected }
     }
     pub fn unimplemented(description: String) -> Error {
-        Error { description: description, kind: ErrorKind::Unimplemented }
+        Error { description, kind: ErrorKind::Unimplemented }
     }
 }
 
@@ -213,7 +213,7 @@ impl core::convert::From<::std::io::Error> for Error {
             io::ErrorKind::NotConnected  => ErrorKind::Disconnected,
             _ => ErrorKind::Failed,
         };
-        Error { description: format!("{}", err), kind: kind }
+        Error { description: format!("{}", err), kind }
     }
 }
 

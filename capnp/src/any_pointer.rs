@@ -49,7 +49,7 @@ pub struct Reader<'a> {
 
 impl <'a> Reader<'a> {
     pub fn new(reader: PointerReader<'_>) -> Reader<'_> {
-        Reader { reader: reader }
+        Reader { reader }
     }
 
     #[inline]
@@ -118,7 +118,7 @@ pub struct Builder<'a> {
 
 impl <'a> Builder<'a> {
     pub fn new(builder: PointerBuilder<'a>) -> Builder<'a> {
-        Builder { builder: builder }
+        Builder { builder }
     }
 
     pub fn reborrow(&mut self) -> Builder<'_> {
@@ -170,13 +170,13 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
         if !builder.is_null() {
             builder.clear();
         }
-        Builder { builder: builder }
+        Builder { builder }
     }
     fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
         if default.is_some() {
             panic!("AnyPointer defaults are unsupported")
         }
-        Ok(Builder { builder: builder })
+        Ok(Builder { builder })
     }
 }
 
@@ -195,7 +195,7 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(hook: Box<dyn PipelineHook>) -> Pipeline {
-        Pipeline { hook: hook, ops: Vec::new() }
+        Pipeline { hook, ops: Vec::new() }
     }
 
     pub fn noop(&self) -> Pipeline {

@@ -982,9 +982,9 @@ mod wire_helpers {
         (*reff).set_struct_size(size);
 
         StructBuilder {
-            arena: arena,
-            segment_id: segment_id,
-            cap_table: cap_table,
+            arena,
+            segment_id,
+            cap_table,
             data: ptr as *mut _,
             pointers: ptr.offset((size.data as usize) as isize * BYTES_PER_WORD as isize) as *mut _,
             data_size: size.data as WordCount32 * (BITS_PER_WORD as BitCount32),
@@ -1059,9 +1059,9 @@ mod wire_helpers {
             ptr::write_bytes(old_ptr, 0, (old_data_size as usize + old_pointer_count as usize) * BYTES_PER_WORD);
 
             Ok(StructBuilder {
-                arena: arena,
-                segment_id: segment_id,
-                cap_table: cap_table,
+                arena,
+                segment_id,
+                cap_table,
                 data: ptr as *mut _,
                 pointers: new_pointer_section,
                 data_size: new_data_size as u32 * BITS_PER_WORD as u32,
@@ -1069,9 +1069,9 @@ mod wire_helpers {
             })
         } else {
             Ok(StructBuilder {
-                arena: arena,
+                arena,
                 segment_id: old_segment_id,
-                cap_table: cap_table,
+                cap_table,
                 data: old_ptr,
                 pointers: old_pointer_section,
                 data_size: old_data_size as u32 * BITS_PER_WORD as u32,
@@ -1101,13 +1101,13 @@ mod wire_helpers {
         (*reff).set_list_size_and_count(element_size, element_count);
 
         ListBuilder {
-            arena: arena,
-            segment_id: segment_id,
-            cap_table: cap_table,
-            ptr: ptr,
-            step: step,
-            element_count: element_count,
-            element_size: element_size,
+            arena,
+            segment_id,
+            cap_table,
+            ptr,
+            step,
+            element_count,
+            element_size,
             struct_data_size: data_size,
             struct_pointer_count: pointer_count as u16
         }
@@ -1141,12 +1141,12 @@ mod wire_helpers {
         let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
 
         ListBuilder {
-            arena: arena,
-            segment_id: segment_id,
-            cap_table: cap_table,
+            arena,
+            segment_id,
+            cap_table,
             ptr: ptr1 as *mut _,
             step: words_per_element * BITS_PER_WORD as u32,
-            element_count: element_count,
+            element_count,
             element_size: ElementSize::InlineComposite,
             struct_data_size: element_size.data as u32 * (BITS_PER_WORD as u32),
             struct_pointer_count: element_size.pointers
@@ -1240,9 +1240,9 @@ mod wire_helpers {
             // OK, looks valid.
 
             Ok(ListBuilder {
-                arena: arena,
-                segment_id: segment_id,
-                cap_table: cap_table,
+                arena,
+                segment_id,
+                cap_table,
                 ptr: ptr as *mut _,
                 element_count: (*tag).inline_composite_list_element_count(),
                 element_size: ElementSize::InlineComposite,
@@ -1263,11 +1263,11 @@ mod wire_helpers {
             let step = data_size + pointer_count * BITS_PER_POINTER as u32;
 
             Ok(ListBuilder {
-                arena: arena,
-                segment_id: segment_id,
-                cap_table: cap_table,
+                arena,
+                segment_id,
+                cap_table,
                 ptr: ptr as *mut _,
-                step: step,
+                step,
                 element_count: (*reff).list_element_count(),
                 element_size: old_size,
                 struct_data_size: data_size,
@@ -1328,11 +1328,11 @@ mod wire_helpers {
             if old_data_size >= element_size.data && old_pointer_count >= element_size.pointers {
                 // Old size is at least as large as we need. Ship it.
                 return Ok(ListBuilder {
-                    arena: arena,
+                    arena,
                     segment_id: old_segment_id,
-                    cap_table: cap_table,
+                    cap_table,
                     ptr: old_ptr as *mut _,
-                    element_count: element_count,
+                    element_count,
                     element_size: ElementSize::InlineComposite,
                     step: old_step * BITS_PER_WORD as u32,
                     struct_data_size: old_data_size as u32 * BITS_PER_WORD as u32,
@@ -1384,11 +1384,11 @@ mod wire_helpers {
                              (old_step as u64 * element_count as u64) as usize * BYTES_PER_WORD);
 
             Ok(ListBuilder {
-                arena: arena,
+                arena,
                 segment_id: new_segment_id,
-                cap_table: cap_table,
+                cap_table,
                 ptr: new_ptr,
-                element_count: element_count,
+                element_count,
                 element_size: ElementSize::InlineComposite,
                 step: new_step * BITS_PER_WORD as u32,
                 struct_data_size: new_data_size as u32 * BITS_PER_WORD as u32,
@@ -1465,11 +1465,11 @@ mod wire_helpers {
                                  round_bits_up_to_bytes(old_step as u64 * element_count as u64) as usize);
 
                 Ok(ListBuilder {
-                    arena: arena,
+                    arena,
                     segment_id: new_segment_id,
-                    cap_table: cap_table,
+                    cap_table,
                     ptr: new_ptr,
-                    element_count: element_count,
+                    element_count,
                     element_size: ElementSize::InlineComposite,
                     step: new_step * BITS_PER_WORD as u32,
                     struct_data_size: new_data_size as u32 * BITS_PER_WORD as u32,
@@ -1497,7 +1497,7 @@ mod wire_helpers {
         (*reff).set_list_size_and_count(Byte, byte_size);
 
         SegmentAnd {
-            segment_id: segment_id,
+            segment_id,
             value: text::Builder::new(slice::from_raw_parts_mut(ptr, size as usize), 0)
                 .expect("empty text builder should be valid utf-8")
         }
@@ -1574,7 +1574,7 @@ mod wire_helpers {
         //# Initialize the pointer.
         (*reff).set_list_size_and_count(Byte, size);
 
-        SegmentAnd { segment_id: segment_id, value: data::builder_from_raw_parts(ptr, size) }
+        SegmentAnd { segment_id, value: data::builder_from_raw_parts(ptr, size) }
     }
 
     #[inline]
@@ -1694,7 +1694,7 @@ mod wire_helpers {
                          canonicalize)?;
         }
 
-        Ok(SegmentAnd { segment_id: segment_id, value: ptr })
+        Ok(SegmentAnd { segment_id, value: ptr })
     }
 
     pub fn set_capability_pointer(
@@ -1766,7 +1766,7 @@ mod wire_helpers {
                 }
             }
 
-            Ok(SegmentAnd { segment_id: segment_id, value: ptr })
+            Ok(SegmentAnd { segment_id, value: ptr })
         } else {
             //# List of structs.
 
@@ -1835,7 +1835,7 @@ mod wire_helpers {
 
                 src = src.offset((decl_pointer_count - ptr_count) as isize * BYTES_PER_WORD as isize);
             }
-            Ok(SegmentAnd { segment_id: segment_id, value: ptr })
+            Ok(SegmentAnd { segment_id, value: ptr })
         }
     }
 
@@ -1925,8 +1925,8 @@ mod wire_helpers {
                             segment_id: src_segment_id,
                             cap_table: src_cap_table,
                             ptr: ptr as *const _,
-                            element_count: element_count,
-                            element_size: element_size,
+                            element_count,
+                            element_size,
                             step: words_per_element * BITS_PER_WORD as u32,
                             struct_data_size: (*tag).struct_data_size() as u32 * BITS_PER_WORD as u32,
                             struct_pointer_count: (*tag).struct_ptr_count(),
@@ -1958,9 +1958,9 @@ mod wire_helpers {
                             segment_id: src_segment_id,
                             cap_table : src_cap_table,
                             ptr: ptr as *const _,
-                            element_count: element_count,
-                            element_size: element_size,
-                            step: step,
+                            element_count,
+                            element_size,
+                            step,
                             struct_data_size: data_size,
                             struct_pointer_count: pointer_count as u16,
                             nesting_limit: nesting_limit - 1
@@ -2032,9 +2032,9 @@ mod wire_helpers {
                      WirePointerKind::Struct)?;
 
         Ok(StructReader {
-            arena: arena,
-            segment_id: segment_id,
-            cap_table: cap_table,
+            arena,
+            segment_id,
+            cap_table,
             data: ptr,
             pointers: ptr.offset(data_size_words as isize * BYTES_PER_WORD as isize) as *const _,
             data_size: data_size_words as u32 * BITS_PER_WORD as BitCount32,
@@ -2163,12 +2163,12 @@ mod wire_helpers {
                 }
 
                 Ok(ListReader {
-                    arena: arena,
-                    segment_id: segment_id,
-                    cap_table: cap_table,
+                    arena,
+                    segment_id,
+                    cap_table,
                     ptr: ptr as *const _,
                     element_count: size,
-                    element_size: element_size,
+                    element_size,
                     step: words_per_element * BITS_PER_WORD as u32,
                     struct_data_size: data_size as u32 * (BITS_PER_WORD as u32),
                     struct_pointer_count: ptr_count,
@@ -2217,13 +2217,13 @@ mod wire_helpers {
                 }
 
                 Ok(ListReader {
-                    arena: arena,
-                    segment_id: segment_id,
-                    cap_table: cap_table,
+                    arena,
+                    segment_id,
+                    cap_table,
                     ptr: ptr as *const _,
-                    element_count: element_count,
-                    element_size: element_size,
-                    step: step,
+                    element_count,
+                    element_size,
+                    step,
                     struct_data_size: data_size,
                     struct_pointer_count: pointer_count as u16,
                     nesting_limit: nesting_limit - 1,
@@ -2445,11 +2445,11 @@ impl <'a> PointerReader<'a> {
                                    WirePointerKind::Struct)?;
 
         Ok(PointerReader {
-            arena: arena,
-            segment_id: segment_id,
+            arena,
+            segment_id,
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *const _,
-            nesting_limit: nesting_limit,
+            nesting_limit,
         })
     }
 
@@ -2609,9 +2609,9 @@ impl <'a> PointerBuilder<'a> {
         -> Self
     {
         PointerBuilder {
-            arena: arena,
+            arena,
             cap_table: CapTableBuilder::Plain(ptr::null_mut()),
-            segment_id: segment_id,
+            segment_id,
             pointer: location as *mut _,
         }
     }

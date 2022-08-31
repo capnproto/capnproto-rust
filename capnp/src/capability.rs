@@ -126,7 +126,7 @@ impl <Results> Response<Results>
     where Results: Pipelined + for<'a> Owned<'a>
 {
     pub fn new(hook: Box<dyn ResponseHook>) -> Response<Results> {
-        Response { marker: PhantomData, hook: hook }
+        Response { marker: PhantomData, hook }
     }
     pub fn get(&self) -> crate::Result<<Results as Owned<'_>>::Reader> {
         self.hook.get()?.get_as()
@@ -143,7 +143,7 @@ impl <Params, Results> Request<Params, Results>
     where Params: for<'a> Owned<'a>
 {
     pub fn new(hook: Box<dyn RequestHook>) -> Request <Params, Results> {
-        Request { hook: hook, marker: PhantomData }
+        Request { hook, marker: PhantomData }
     }
 
     pub fn get(&mut self) -> <Params as Owned<'_>>::Builder {
@@ -180,7 +180,7 @@ pub struct Params<T> {
 
 impl <T> Params <T> {
     pub fn new(hook: Box<dyn ParamsHook>) -> Params<T> {
-        Params { marker: PhantomData, hook: hook }
+        Params { marker: PhantomData, hook }
     }
     pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
         where T: Owned<'a>
@@ -199,7 +199,7 @@ impl <T> Results<T>
     where T: for<'a> Owned<'a>
 {
     pub fn new(hook: Box<dyn ResultsHook>) -> Results<T> {
-        Results { marker: PhantomData, hook: hook }
+        Results { marker: PhantomData, hook }
     }
 
     pub fn get(&mut self) -> <T as Owned<'_>>::Builder {
@@ -227,7 +227,7 @@ pub struct Client {
 
 impl Client {
     pub fn new(hook: Box<dyn ClientHook>) -> Client {
-        Client { hook : hook }
+        Client { hook }
     }
 
     pub fn new_call<Params, Results>(&self,

@@ -63,7 +63,7 @@ impl <'a> Builder <'a> {
                     format!("Text contains non-utf8 data: {:?}", e)))
             }
         }
-        Ok(Builder { bytes: bytes, pos: pos as usize })
+        Ok(Builder { bytes, pos: pos as usize })
     }
 
     pub fn push_ascii(&mut self, ascii: u8) {

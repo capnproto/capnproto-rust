@@ -67,7 +67,7 @@ impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
     {
         let limiter = ReadLimiter::new(options.traversal_limit_in_words);
         ReaderArenaImpl {
-            segments: segments,
+            segments,
             read_limiter: limiter,
             nesting_limit: options.nesting_limit,
         }
