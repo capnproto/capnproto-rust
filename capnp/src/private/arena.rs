@@ -79,7 +79,7 @@ impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
 }
 
 impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
-    fn get_segment<'a>(&'a self, id: u32) -> Result<(*const u8, u32)> {
+    fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
         match self.segments.get_segment(id) {
             Some(seg) => {
                 #[cfg(not(feature = "unaligned"))]
@@ -143,7 +143,7 @@ pub trait BuilderArena: ReaderArena {
     fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32);
     fn get_segment_mut(&self, id: u32) -> (*mut u8, u32);
 
-    fn as_reader<'a>(&'a self) -> &'a dyn ReaderArena;
+    fn as_reader(&self) -> &dyn ReaderArena;
 }
 
 struct BuilderSegment {
@@ -177,7 +177,7 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
         self.inner.borrow_mut().allocate_segment(minimum_size)
     }
 
-    pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
+    pub fn get_segments_for_output(&self) -> OutputSegments<'_> {
         let reff = self.inner.borrow();
         if reff.segments.len() == 1 {
             let seg = &reff.segments[0];
@@ -296,7 +296,7 @@ impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
         self.inner.borrow_mut().get_segment_mut(id)
     }
 
-    fn as_reader<'a>(&'a self) -> &'a dyn ReaderArena {
+    fn as_reader(&self) -> &dyn ReaderArena {
         self
     }
 }
@@ -342,7 +342,7 @@ impl BuilderArena for NullArena {
         (core::ptr::null_mut(), 0)
     }
 
-    fn as_reader<'a>(&'a self) -> &'a dyn ReaderArena {
+    fn as_reader(&self) -> &dyn ReaderArena {
         self
     }
 }

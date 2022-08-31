@@ -86,13 +86,13 @@ impl Word {
         result
     }
 
-    pub fn words_to_bytes<'a>(words: &'a [Word]) -> &'a [u8] {
+    pub fn words_to_bytes(words: &[Word]) -> &[u8] {
         unsafe {
             core::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8)
         }
     }
 
-    pub fn words_to_bytes_mut<'a>(words: &'a mut [Word]) -> &'a mut [u8] {
+    pub fn words_to_bytes_mut(words: &mut [Word]) -> &mut [u8] {
         unsafe {
             core::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8)
         }
@@ -141,7 +141,7 @@ impl ::core::fmt::Display for NotInSchema {
 
 #[cfg(feature="std")]
 impl ::std::error::Error for NotInSchema {
-    fn description<'a>(&'a self) -> &'a str {
+    fn description(&self) -> &str {
         "Enum value or union discriminant was not present in schema."
     }
 }
@@ -260,7 +260,7 @@ pub enum OutputSegments<'a> {
 
 impl <'a> core::ops::Deref for OutputSegments<'a> {
     type Target = [&'a [u8]];
-    fn deref<'b>(&'b self) -> &'b [&'a [u8]] {
+    fn deref(&self) -> &[&'a [u8]] {
         match *self {
             OutputSegments::SingleSegment(ref s) => {
                 s
@@ -273,7 +273,7 @@ impl <'a> core::ops::Deref for OutputSegments<'a> {
 }
 
 impl<'s> message::ReaderSegments for OutputSegments<'s> {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
+    fn get_segment(&self, id: u32) -> Option<&[u8]> {
         match *self {
             OutputSegments::SingleSegment(ref s) => {
                 s.get(id as usize).map(|slice| *slice)

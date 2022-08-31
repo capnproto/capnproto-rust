@@ -61,7 +61,7 @@ impl <'a, T> Reader<'a, T> where T: FromClientHook {
 
 
 impl <'a, T> Reader<'a, T> where T: FromClientHook {
-    pub fn reborrow<'b>(&'b self) -> Reader<'b, T>  {
+    pub fn reborrow(&self) -> Reader<'_, T>  {
         Reader { reader: self.reader, marker: PhantomData }
     }
 }
@@ -120,7 +120,7 @@ impl <'a, T> Builder<'a, T> where T: FromClientHook {
 }
 
 impl <'a, T> Builder<'a, T> where T: FromClientHook {
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b, T> {
+    pub fn reborrow(&mut self) -> Builder<'_, T> {
         Builder { builder: self.builder, marker: PhantomData }
     }
 }

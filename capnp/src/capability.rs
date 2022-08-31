@@ -128,7 +128,7 @@ impl <Results> Response<Results>
     pub fn new(hook: Box<dyn ResponseHook>) -> Response<Results> {
         Response { marker: PhantomData, hook: hook }
     }
-    pub fn get<'a>(&'a self) -> crate::Result<<Results as Owned<'a>>::Reader> {
+    pub fn get(&self) -> crate::Result<<Results as Owned<'_>>::Reader> {
         self.hook.get()?.get_as()
     }
 }
@@ -146,7 +146,7 @@ impl <Params, Results> Request<Params, Results>
         Request { hook: hook, marker: PhantomData }
     }
 
-    pub fn get<'a>(&'a mut self) -> <Params as Owned<'a>>::Builder {
+    pub fn get(&mut self) -> <Params as Owned<'_>>::Builder {
         self.hook.get().get_as().unwrap()
     }
 
@@ -202,7 +202,7 @@ impl <T> Results<T>
         Results { marker: PhantomData, hook: hook }
     }
 
-    pub fn get<'a>(&'a mut self) -> <T as Owned<'a>>::Builder {
+    pub fn get(&mut self) -> <T as Owned<'_>>::Builder {
         self.hook.get().unwrap().get_as().unwrap()
     }
 

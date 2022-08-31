@@ -48,7 +48,7 @@ pub struct Reader<'a> {
 }
 
 impl <'a> Reader<'a> {
-    pub fn new<'b>(reader: PointerReader<'b>) -> Reader<'b> {
+    pub fn new(reader: PointerReader<'_>) -> Reader<'_> {
         Reader { reader: reader }
     }
 
@@ -121,7 +121,7 @@ impl <'a> Builder<'a> {
         Builder { builder: builder }
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn reborrow(&mut self) -> Builder<'_> {
         Builder { builder: self.builder.reborrow() }
     }
 

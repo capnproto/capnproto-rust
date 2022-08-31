@@ -39,7 +39,7 @@ pub struct Reader<'a> {
 }
 
 impl <'a> Reader<'a> {
-    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b> {
+    pub fn new(reader: ListReader<'_>) -> Reader<'_> {
         Reader { reader: reader }
     }
 
@@ -108,7 +108,7 @@ impl <'a> Builder<'a> {
         self.builder.reborrow().get_pointer_element(index).set_data(value);
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn reborrow(&mut self) -> Builder<'_> {
         Builder {builder: self.builder.reborrow()}
     }
 }

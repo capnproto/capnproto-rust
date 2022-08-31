@@ -128,7 +128,7 @@ impl<'b> NoAllocSliceSegments<'b> {
 }
 
 impl<'b> ReaderSegments for NoAllocSliceSegments<'b> {
-    fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [u8]> {
+    fn get_segment(&self, idx: u32) -> Option<&[u8]> {
         // panic safety: we are doing a lot of `unwrap` here. We assume that underlying message slice
         // holds valid capnp message - we already verified slice in NoAllocSliceSegments::try_new,
         // so these unwraps are not expected to panic unless we have bug in the code.

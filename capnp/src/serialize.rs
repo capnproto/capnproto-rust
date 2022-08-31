@@ -48,7 +48,7 @@ pub struct SliceSegments<'a> {
 }
 
 impl <'a> message::ReaderSegments for SliceSegments<'a> {
-    fn get_segment<'b>(&'b self, id: u32) -> Option<&'b [u8]> {
+    fn get_segment(&self, id: u32) -> Option<&[u8]> {
         if id < self.segment_indices.len() as u32 {
             let (a, b) = self.segment_indices[id as usize];
             Some(&self.words[(a * BYTES_PER_WORD)..(b * BYTES_PER_WORD)])
@@ -153,7 +153,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
 }
 
 impl <T: Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
-    fn get_segment<'b>(&'b self, id: u32) -> Option<&'b [u8]> {
+    fn get_segment(&self, id: u32) -> Option<&[u8]> {
         if id < self.segment_indices.len() as u32 {
             let (a, b) = self.segment_indices[id as usize];
             Some(&self.buffer[(self.segment_table_bytes_len + a * BYTES_PER_WORD)..(self.segment_table_bytes_len + b * BYTES_PER_WORD)])
@@ -194,7 +194,7 @@ impl core::ops::DerefMut for OwnedSegments {
 }
 
 impl crate::message::ReaderSegments for OwnedSegments {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
+    fn get_segment(&self, id: u32) -> Option<&[u8]> {
         if id < self.segment_indices.len() as u32 {
             let (a, b) = self.segment_indices[id as usize];
             Some(&self[(a * BYTES_PER_WORD)..(b * BYTES_PER_WORD)])

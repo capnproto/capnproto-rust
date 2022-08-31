@@ -167,7 +167,7 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
         }
     }
 
-    pub fn reborrow<'b>(&'b self) -> Builder<'b, T> {
+    pub fn reborrow(&self) -> Builder<'_, T> {
         Builder { .. *self }
     }
 }

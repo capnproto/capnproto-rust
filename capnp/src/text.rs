@@ -35,7 +35,7 @@ impl<'a> crate::traits::Owned<'a> for Owned {
 
 pub type Reader<'a> = &'a str;
 
-pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
+pub fn new_reader(v : &[u8]) -> Result<Reader<'_>> {
     match str::from_utf8(v) {
         Ok(v) => Ok(v),
         Err(e) => Err(Error::failed(
@@ -56,7 +56,7 @@ pub struct Builder<'a> {
 }
 
 impl <'a> Builder <'a> {
-    pub fn new<'b>(bytes: &'b mut [u8], pos: u32) -> Result<Builder<'b>> {
+    pub fn new(bytes: &mut [u8], pos: u32) -> Result<Builder<'_>> {
         if pos != 0 {
             if let Err(e) = str::from_utf8(bytes) {
                 return Err(Error::failed(
@@ -88,21 +88,21 @@ impl <'a> Builder <'a> {
 
 impl <'a> ops::Deref for Builder <'a> {
     type Target = str;
-    fn deref<'b>(&'b self) -> &'b str {
+    fn deref(&self) -> &str {
         str::from_utf8(self.bytes)
             .expect("text::Builder contents are checked for utf8-validity upon construction")
     }
 }
 
 impl <'a> ops::DerefMut for Builder <'a> {
-    fn deref_mut<'b>(&'b mut self) -> &'b mut str {
+    fn deref_mut(&mut self) -> &mut str {
         str::from_utf8_mut(self.bytes)
             .expect("text::Builder contents are checked for utf8-validity upon construction")
     }
 }
 
 impl <'a> convert::AsRef<str> for Builder<'a> {
-    fn as_ref<'b>(&'b self) -> &'b str {
+    fn as_ref(&self) -> &str {
         str::from_utf8(self.bytes)
             .expect("text::Builder contents are checked for utf8-validity upon construction")
     }

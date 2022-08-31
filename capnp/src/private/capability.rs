@@ -27,11 +27,11 @@ use crate::MessageSize;
 use crate::capability::{Params, Promise, Request, RemotePromise, Results};
 
 pub trait ResponseHook {
-    fn get<'a>(&'a self) -> crate::Result<any_pointer::Reader<'a>>;
+    fn get(&self) -> crate::Result<any_pointer::Reader<'_>>;
 }
 
 pub trait RequestHook {
-    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
+    fn get(&mut self) -> any_pointer::Builder<'_>;
     fn get_brand(&self) -> usize;
     fn send(self: Box<Self>) -> RemotePromise<any_pointer::Owned>;
     fn tail_send(self: Box<Self>)
@@ -77,7 +77,7 @@ impl Clone for Box<dyn ClientHook> {
 }
 
 pub trait ResultsHook {
-    fn get<'a>(&'a mut self) -> crate::Result<any_pointer::Builder<'a>>;
+    fn get(&mut self) -> crate::Result<any_pointer::Builder<'_>>;
     fn allow_cancellation(&self);
     fn tail_call(self: Box<Self>, request: Box<dyn RequestHook>) -> Promise<(), crate::Error>;
     fn direct_tail_call(self: Box<Self>, request: Box<dyn RequestHook>) ->
@@ -85,7 +85,7 @@ pub trait ResultsHook {
 }
 
 pub trait ParamsHook {
-    fn get<'a>(&'a self) -> crate::Result<crate::any_pointer::Reader<'a>>;
+    fn get(&self) -> crate::Result<crate::any_pointer::Reader<'_>>;
 }
 
 // Where should this live?
