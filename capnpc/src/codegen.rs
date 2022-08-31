@@ -523,8 +523,8 @@ fn get_params(gen: &GeneratorContext,
         let node = gen.node_map[&node_id];
         let parameters = node.get_parameters()?;
 
-        for idx in 0 .. parameters.len() {
-            result.push(parameters.get(parameters.len() - 1 - idx).get_name()?.into());
+        for parameter in parameters.into_iter().rev() {
+            result.push(parameter.get_name()?.into());
         }
 
         node_id = node.get_scope_id();
@@ -1761,8 +1761,8 @@ fn generate_node(gen: &GeneratorContext,
             let mut members = Vec::new();
             let mut match_branches = Vec::new();
             let enumerants = enum_reader.get_enumerants()?;
-            for ii in 0..enumerants.len() {
-                let enumerant = capitalize_first_letter(get_enumerant_name(enumerants.get(ii))?);
+            for (ii, enumerant) in enumerants.into_iter().enumerate() {
+                let enumerant = capitalize_first_letter(get_enumerant_name(enumerant)?);
                 members.push(Line(format!("{} = {},", enumerant, ii)));
                 match_branches.push(
                     Line(format!("{} => ::core::result::Result::Ok({}::{}),", ii, last_name, enumerant)));
@@ -1828,8 +1828,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
 
             let methods = interface.get_methods()?;
-            for ordinal in 0..methods.len() {
-                let method = methods.get(ordinal);
+            for (ordinal, method) in methods.into_iter().enumerate() {
                 let name = method.get_name()?;
 
                 method.get_code_order();
@@ -1906,8 +1905,7 @@ fn generate_node(gen: &GeneratorContext,
                   gen: &GeneratorContext<'a>
                 ) -> ::capnp::Result<()>{
                     let extends = interface.get_superclasses()?;
-                    for ii in 0..extends.len() {
-                        let superclass = extends.get(ii);
+                    for superclass in extends {
                         if let node::Interface(interface) = gen.node_map[&superclass.get_id()].which()? {
                           find_super_interfaces(interface, all_extends, gen)?;
                         }
@@ -2157,9 +2155,9 @@ fn generate_node(gen: &GeneratorContext,
                         match node.which()? {
                             node::Enum(e) => {
                                 let enumerants = e.get_enumerants()?;
-                                if (v as u32) < enumerants.len() {
+                                if let Some(enumerant) = enumerants.try_get(v as u32) {
                                     let variant =
-                                        capitalize_first_letter(get_enumerant_name(enumerants.get(v as u32))?);
+                                        capitalize_first_letter(get_enumerant_name(enumerant)?);
                                     let type_string = typ.type_string(gen, Leaf::Owned)?;
                                     Line(format!("pub const {}: {} = {}::{};",
                                                  styled_name,
