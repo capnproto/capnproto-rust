@@ -257,9 +257,8 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
         // first try the existing segments, then try allocating a new segment.
         let allocated_len = self.segments.len() as u32;
         for segment_id in 0.. allocated_len {
-            match self.allocate(segment_id, amount) {
-                Some(idx) => return (segment_id, idx),
-                None => (),
+            if let Some(idx) = self.allocate(segment_id, amount) {
+                return (segment_id, idx);
             }
         }
 
