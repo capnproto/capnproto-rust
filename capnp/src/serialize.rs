@@ -450,7 +450,8 @@ where W: Write, R: message::ReaderSegments + ?Sized {
                     &((segments.get_segment(idx as u32).unwrap().len() / BYTES_PER_WORD) as u32).to_le_bytes());
             }
             if segment_count % 2 == 0 {
-                for idx in (buf.len() - 4)..(buf.len()) { buf[idx] = 0 }
+                let start_idx = buf.len() - 4;
+                for b in &mut buf[start_idx ..] { *b = 0 }
             }
             write.write_all(&buf)?;
         }
