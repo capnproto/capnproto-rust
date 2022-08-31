@@ -41,7 +41,7 @@ pub struct Reader<'a> {
 }
 
 impl <'a> Reader<'a> {
-    pub(crate) fn new<'b>(reader: ListReader<'b>) -> Reader<'b> {
+    pub(crate) fn new(reader: ListReader<'_>) -> Reader<'_> {
         Reader { reader: reader }
     }
 
@@ -116,7 +116,7 @@ impl <'a> Builder<'a> {
         }
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn reborrow(&mut self) -> Builder<'_> {
         Builder {builder: self.builder.reborrow()}
     }
 }

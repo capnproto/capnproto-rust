@@ -125,12 +125,12 @@ impl Default for ReaderOptions {
 impl ReaderOptions {
     pub fn new() -> ReaderOptions { DEFAULT_READER_OPTIONS }
 
-    pub fn nesting_limit<'a>(&'a mut self, value: i32) -> &'a mut ReaderOptions {
+    pub fn nesting_limit(&mut self, value: i32) -> &mut ReaderOptions {
         self.nesting_limit = value;
         self
     }
 
-    pub fn traversal_limit_in_words<'a>(&'a mut self, value: Option<usize>) -> &'a mut ReaderOptions {
+    pub fn traversal_limit_in_words(&mut self, value: Option<usize>) -> &mut ReaderOptions {
         self.traversal_limit_in_words = value;
         self
     }
@@ -145,7 +145,7 @@ pub trait ReaderSegments {
     ///
     /// The returned slice is required to point to memory that remains valid until the ReaderSegments
     /// object is dropped. In safe Rust, it should not be possible to violate this requirement.
-    fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [u8]>;
+    fn get_segment(&self, idx: u32) -> Option<&[u8]>;
 
     /// Gets the number of segments.
     fn len(&self) -> usize {
@@ -159,7 +159,7 @@ pub trait ReaderSegments {
 }
 
 impl <S> ReaderSegments for &S where S: ReaderSegments {
-    fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [u8]> {
+    fn get_segment(&self, idx: u32) -> Option<&[u8]> {
         (**self).get_segment(idx)
     }
 
@@ -180,7 +180,7 @@ impl <'a> SegmentArray<'a> {
 }
 
 impl <'b> ReaderSegments for SegmentArray<'b> {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
+    fn get_segment(&self, id: u32) -> Option<&[u8]> {
         self.segments.get(id as usize).map(|slice| *slice)
     }
 
@@ -190,7 +190,7 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
 }
 
 impl <'b> ReaderSegments for [&'b [u8]] {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
+    fn get_segment(&self, id: u32) -> Option<&[u8]> {
         self.get(id as usize).map(|slice| *slice)
     }
 
@@ -211,7 +211,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         }
     }
 
-    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a>> {
+    fn get_root_internal(&self) -> Result<any_pointer::Reader<'_>> {
         let (segment_start, _seg_len) = self.arena.get_segment(0)?;
         let pointer_reader = layout::PointerReader::get_root(
             &self.arena, 0, segment_start, self.arena.nesting_limit())?;
@@ -290,7 +290,7 @@ impl <S, T> TypedReader<S, T>
         }
     }
 
-    pub fn get<'a> (&'a self) -> Result<<T as Owned<'a>>::Reader> {
+    pub fn get(&self) -> Result<<T as Owned<'_>>::Reader> {
         self.message.get_root()
     }
 
@@ -375,7 +375,7 @@ impl <A> Builder<A> where A: Allocator {
         }
     }
 
-    fn get_root_internal<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+    fn get_root_internal(&mut self) -> any_pointer::Builder<'_> {
         if self.arena.len() == 0 {
             self.arena.allocate_segment(1).expect("allocate root pointer");
             self.arena.allocate(0, 1).expect("allocate root pointer");
@@ -434,7 +434,7 @@ impl <A> Builder<A> where A: Allocator {
         Ok(())
     }
 
-    pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
+    pub fn get_segments_for_output(&self) -> OutputSegments<'_> {
         self.arena.get_segments_for_output()
     }
 
@@ -455,7 +455,7 @@ impl <A> Builder<A> where A: Allocator {
 }
 
 impl <A> ReaderSegments for Builder<A> where A: Allocator {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
+    fn get_segment(&self, id: u32) -> Option<&[u8]> {
         self.get_segments_for_output().get(id as usize).map(|x| *x)
     }
 
@@ -500,19 +500,19 @@ where
         }
     }
 
-    pub fn init_root<'a>(&'a mut self) -> <T as Owned<'a>>::Builder {
+    pub fn init_root(&mut self) -> <T as Owned<'_>>::Builder {
         self.message.init_root()
     }
 
-    pub fn get_root<'a>(&'a mut self) -> Result<<T as Owned<'a>>::Builder> {
+    pub fn get_root(&mut self) -> Result<<T as Owned<'_>>::Builder> {
         self.message.get_root()
     }
 
-    pub fn get_root_as_reader<'a>(&'a self) -> Result<<T as Owned<'a>>::Reader> {
+    pub fn get_root_as_reader(&self) -> Result<<T as Owned<'_>>::Reader> {
         self.message.get_root_as_reader()
     }
 
-    pub fn set_root<'a>(&mut self, value: <T as Owned<'a>>::Reader) -> Result<()> {
+    pub fn set_root(&mut self, value: <T as Owned<'_>>::Reader) -> Result<()> {
         self.message.set_root(value)
     }
 

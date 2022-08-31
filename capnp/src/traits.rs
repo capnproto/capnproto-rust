@@ -80,7 +80,7 @@ pub trait FromPointerBuilder<'a> : Sized {
 }
 
 pub trait SetPointerBuilder {
-    fn set_pointer_builder<'a>(builder: PointerBuilder<'a>, from: Self, canonicalize: bool) -> Result<()>;
+    fn set_pointer_builder(builder: PointerBuilder<'_>, from: Self, canonicalize: bool) -> Result<()>;
 }
 
 pub trait Imbue<'a> {

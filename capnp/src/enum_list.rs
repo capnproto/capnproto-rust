@@ -143,7 +143,7 @@ impl <'a, T : ToU16 + FromU16>  Builder<'a, T> {
         }
     }
 
-    pub fn reborrow<'b>(&'b self) -> Builder<'b, T> {
+    pub fn reborrow(&self) -> Builder<'_, T> {
         Builder { .. *self }
     }
 }

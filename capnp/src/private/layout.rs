@@ -966,12 +966,12 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_struct_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_struct_pointer(
+        arena: &dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
-        size: StructSize) -> StructBuilder<'a>
+        size: StructSize) -> StructBuilder<'_>
     {
         let (ptr, reff, segment_id) = allocate(
             arena,
@@ -1081,13 +1081,13 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_list_pointer(
+        arena: &dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
         element_count: ElementCount32,
-        element_size: ElementSize) -> ListBuilder<'a>
+        element_size: ElementSize) -> ListBuilder<'_>
     {
         assert!(element_size != InlineComposite,
                 "Should have called initStructListPointer() instead");
@@ -1114,13 +1114,13 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_struct_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_struct_list_pointer(
+        arena: &dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
         element_count: ElementCount32,
-        element_size: StructSize) -> ListBuilder<'a>
+        element_size: StructSize) -> ListBuilder<'_>
     {
         let words_per_element = element_size.total();
 
@@ -1154,13 +1154,13 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn get_writable_list_pointer(
+        arena: &dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
         cap_table: CapTableBuilder,
         element_size: ElementSize,
-        default_value: *const u8) -> Result<ListBuilder<'a>>
+        default_value: *const u8) -> Result<ListBuilder<'_>>
     {
         assert!(element_size != InlineComposite,
                 "Use get_writable_struct_list_pointer() for struct lists");
@@ -1277,13 +1277,13 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn get_writable_struct_list_pointer(
+        arena: &dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
         cap_table: CapTableBuilder,
         element_size: StructSize,
-        default_value: *const u8) -> Result<ListBuilder<'a>>
+        default_value: *const u8) -> Result<ListBuilder<'_>>
     {
         let mut orig_ref_target = (*orig_ref).mut_target();
 
@@ -1480,11 +1480,11 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_text_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_text_pointer(
+        arena: &dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        size: ByteCount32) -> SegmentAnd<text::Builder<'a>>
+        size: ByteCount32) -> SegmentAnd<text::Builder<'_>>
     {
         //# The byte list must include a NUL terminator.
         let byte_size = size + 1;
@@ -1561,11 +1561,11 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_data_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn init_data_pointer(
+        arena: &dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        size: ByteCount32) -> SegmentAnd<data::Builder<'a>>
+        size: ByteCount32) -> SegmentAnd<data::Builder<'_>>
     {
         //# Allocate the space.
         let (ptr, reff, segment_id) =
@@ -1708,8 +1708,8 @@ mod wire_helpers {
         unsafe { (*reff).set_cap(cap_table.inject_cap(cap) as u32); }
     }
 
-    pub unsafe fn set_list_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+    pub unsafe fn set_list_pointer(
+        arena: &dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
@@ -2070,14 +2070,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_list_pointer<'a>(
-        mut arena: &'a dyn ReaderArena,
+    pub unsafe fn read_list_pointer(
+        mut arena: &dyn ReaderArena,
         mut segment_id: u32,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default_value: *const u8,
         expected_element_size: Option<ElementSize>,
-        nesting_limit: i32) -> Result<ListReader<'a>>
+        nesting_limit: i32) -> Result<ListReader<'_>>
     {
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
@@ -2453,7 +2453,7 @@ impl <'a> PointerReader<'a> {
         })
     }
 
-    pub fn reborrow<'b>(&'b self) -> PointerReader<'b> {
+    pub fn reborrow(&self) -> PointerReader<'_> {
         PointerReader { arena: self.arena, .. *self }
     }
 
@@ -2616,7 +2616,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> PointerBuilder<'b> {
+    pub fn reborrow(&mut self) -> PointerBuilder<'_> {
         PointerBuilder { arena: self.arena, .. *self }
     }
 
@@ -3382,7 +3382,7 @@ impl <'a> ListBuilder<'a> {
         }
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> ListBuilder<'b> {
+    pub fn reborrow(&mut self) -> ListBuilder<'_> {
         ListBuilder { arena: self.arena, ..*self }
     }
 

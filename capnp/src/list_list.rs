@@ -114,7 +114,7 @@ impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b, T> {
+    pub fn reborrow(&mut self) -> Builder<'_, T> {
         Builder {builder: self.builder.reborrow(), marker: ::core::marker::PhantomData}
     }
 }
