@@ -62,8 +62,10 @@ impl <'a, T : FromU16> FromPointerReader<'a> for Reader<'a, T> {
 }
 
 impl <'a, T: FromU16>  IndexMove<u32, ::core::result::Result<T, NotInSchema>> for Reader<'a, T>{
-    fn index_move(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
-        self.get(index)
+    unsafe fn index_move(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
+        debug_assert!(index < self.len());
+        let result: u16 = PrimitiveElement::get(&self.reader, index);
+        FromU16::from_u16(result)
     }
 }
 

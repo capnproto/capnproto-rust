@@ -103,8 +103,8 @@ pub trait FromU16 : Sized {
     fn from_u16(value: u16) -> ::core::result::Result<Self, crate::NotInSchema>;
 }
 
-pub trait IndexMove<I, T> {
-    fn index_move(&self, index: I) -> T;
+pub(crate) trait IndexMove<I, T> {
+    unsafe fn index_move(&self, index: I) -> T;
 }
 
 pub struct ListIter<T, U> {
@@ -124,7 +124,7 @@ impl <U, T : IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
     type Item = U;
     fn next(&mut self) -> ::core::option::Option<U> {
         if self.index < self.size {
-            let result = self.list.index_move(self.index);
+            let result = unsafe { self.list.index_move(self.index) };
             self.index += 1;
             Some(result)
         } else {
@@ -139,7 +139,7 @@ impl <U, T : IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
     fn nth(&mut self, p: usize) -> Option<U>{
         if self.index + (p as u32) < self.size  {
             self.index += p as u32;
-            let result = self.list.index_move(self.index);
+            let result = unsafe { self.list.index_move(self.index) };
             self.index += 1;
             Some(result)
         } else {
@@ -159,7 +159,7 @@ impl <U, T: IndexMove<u32, U>> ::core::iter::DoubleEndedIterator for ListIter<T,
     fn next_back(&mut self) -> ::core::option::Option<U> {
         if self.size > self.index {
             self.size -= 1;
-            Some(self.list.index_move(self.size))
+            Some(unsafe { self.list.index_move(self.size) })
         } else {
             None
         }

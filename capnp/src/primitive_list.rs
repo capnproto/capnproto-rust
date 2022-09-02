@@ -61,8 +61,9 @@ impl <'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
 }
 
 impl <'a, T: PrimitiveElement>  IndexMove<u32, T> for Reader<'a, T>{
-    fn index_move(&self, index: u32) -> T {
-        self.get(index)
+    unsafe fn index_move(&self, index: u32) -> T {
+        debug_assert!(index < self.len());
+        PrimitiveElement::get(&self.reader, index)
     }
 }
 

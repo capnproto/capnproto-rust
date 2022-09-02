@@ -58,8 +58,9 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
 }
 
 impl <'a> IndexMove<u32, Result<crate::data::Reader<'a>>> for Reader<'a>{
-    fn index_move(&self, index: u32) -> Result<crate::data::Reader<'a>> {
-        self.get(index)
+    unsafe fn index_move(&self, index: u32) -> Result<crate::data::Reader<'a>> {
+        debug_assert!(index <  self.len());
+        self.reader.get_pointer_element(index).get_data(None)
     }
 }
 

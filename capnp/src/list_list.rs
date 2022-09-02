@@ -57,8 +57,9 @@ impl <'a, T> Copy for Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {}
 
 impl <'a, T>  IndexMove<u32, Result<<T as crate::traits::Owned<'a>>::Reader>> for Reader<'a, T>
 where T: for<'b> crate::traits::Owned<'b> {
-    fn index_move(&self, index : u32) -> Result<<T as crate::traits::Owned<'a>>::Reader> {
-        self.get(index)
+    unsafe fn index_move(&self, index : u32) -> Result<<T as crate::traits::Owned<'a>>::Reader> {
+        debug_assert!(index <  self.len());
+        FromPointerReader::get_from_pointer(&self.reader.get_pointer_element(index), None)
     }
 }
 
