@@ -600,9 +600,10 @@ impl HeapAllocator {
 unsafe impl Allocator for HeapAllocator {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         let size = core::cmp::max(minimum_size, self.next_size);
-        let ptr = unsafe {
-            alloc::alloc::alloc_zeroed(alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD, 8).unwrap())
-        };
+        let layout = alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD,
+                                                           8).unwrap();
+        let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
+        if ptr.is_null() { alloc::alloc::handle_alloc_error(layout); }
         match self.allocation_strategy {
             AllocationStrategy::GrowHeuristically => {
                 if size < self.max_segment_words - self.next_size {
@@ -627,7 +628,6 @@ unsafe impl Allocator for HeapAllocator {
 
 #[test]
 fn test_allocate_max() {
-
     let allocation_size = 1 << 24;
     let mut allocator = HeapAllocator::new()
         .max_segment_words((1 << 25) - 1)
