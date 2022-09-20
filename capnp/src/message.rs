@@ -649,6 +649,8 @@ fn test_allocate_max() {
 }
 
 impl Builder<HeapAllocator> {
+    /// Constructs a new `message::Builder<HeapAllocator>` whose first segment has length
+    /// `SUGGESTED_FIRST_SEGMENT_WORDS`.
     pub fn new_default() -> Builder<HeapAllocator> {
         Builder::new(HeapAllocator::new())
     }
