@@ -174,6 +174,7 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
         }
     }
 
+    /// Allocates a new segment with capacity for at least `minimum_size` words.
     pub fn allocate_segment(&self, minimum_size: u32) -> Result<()> {
         self.inner.borrow_mut().allocate_segment(minimum_size)
     }
@@ -233,6 +234,7 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
 }
 
 impl <A> BuilderArenaImplInner<A> where A: Allocator {
+    /// Allocates a new segment with capacity for at least `minimum_size` words.
     fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
         let seg = match self.allocator {
             Some(ref mut a) => a.allocate_segment(minimum_size),
