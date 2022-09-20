@@ -75,15 +75,9 @@ pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8
 }
 
 impl Word {
-    /// Does this, but faster: `vec![word(0,0,0,0,0,0,0,0); length]`.
+    /// Allocates a vec of `length` words, all set to zero.
     pub fn allocate_zeroed_vec(length: usize) -> Vec<Word> {
-        let mut result: Vec<Word> = Vec::with_capacity(length);
-        unsafe {
-            let p: *mut u8 = result.as_mut_ptr() as *mut u8;
-            core::ptr::write_bytes(p, 0u8, length * core::mem::size_of::<Word>());
-            result.set_len(length);
-        }
-        result
+        vec![word(0,0,0,0,0,0,0,0); length]
     }
 
     pub fn words_to_bytes(words: &[Word]) -> &[u8] {
