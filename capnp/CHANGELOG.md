@@ -1,3 +1,6 @@
+## v0.14.10
+- Handle case when `alloc::alloc_zeroed()` returns null.
+
 ## v0.14.9
 - Add `try_get()` method for the lists.
 - Add missing bounds checking in `text_list::Builder`.
