@@ -42,7 +42,7 @@ pub trait BufRead : Read {
 
 /// A rough approximation of std::io::Write.
 pub trait Write {
-    fn write_all(&mut self, buf: &[u8]) -> Result<()>;
+    fn write_all(&mut self, buf: &[u8]) -> Result<usize>;
 }
 
 #[cfg(feature="std")]
@@ -72,9 +72,9 @@ mod std_impls {
     }
 
     impl <W> Write for W where W: std::io::Write {
-        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+        fn write_all(&mut self, buf: &[u8]) -> Result<usize> {
             std::io::Write::write_all(self, buf)?;
-            Ok(())
+            Ok(buf.len())
         }
     }
 }
@@ -86,7 +86,7 @@ mod no_std_impls {
     use crate::io::{Read, BufRead, Write};
 
     impl <'a> Write for &'a mut [u8] {
-        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+        fn write_all(&mut self, buf: &[u8]) -> Result<usize> {
             if buf.len() > self.len() {
                 return Err(Error::failed("buffer is not large enough".to_string()));
             }
@@ -94,19 +94,19 @@ mod no_std_impls {
             let (a, b) = core::mem::replace(self, &mut []).split_at_mut(amt);
             a.copy_from_slice(buf);
             *self = b;
-            Ok(())
+            Ok(amt)
         }
     }
 
     impl Write for alloc::vec::Vec<u8> {
-        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+        fn write_all(&mut self, buf: &[u8]) -> Result<usize> {
             self.extend_from_slice(buf);
-            Ok(())
+            Ok(buf.len())
         }
     }
 
     impl <W: ?Sized> Write for &mut W where W: Write {
-        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+        fn write_all(&mut self, buf: &[u8]) -> Result<usize> {
             (**self).write_all(buf)
         }
     }

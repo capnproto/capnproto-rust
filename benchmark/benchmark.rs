@@ -78,7 +78,7 @@ impl Serialize for NoCompression {
 
     fn write_message<W, A>(&self, write: &mut W, message: &message::Builder<A>) -> ::capnp::Result<()>
         where W: io::Write, A: message::Allocator {
-        serialize::write_message(write, message).map_err(|e| e.into())
+        serialize::write_message(write, message).map(|_| ()).map_err(|e| e.into())
     }
 }
 
@@ -95,7 +95,7 @@ impl Serialize for Packed {
 
     fn write_message<W, A>(&self, write: &mut W, message: &message::Builder<A>) -> ::capnp::Result<()>
         where W: io::Write, A: message::Allocator {
-        serialize_packed::write_message(write, message).map_err(|e| e.into())
+        serialize_packed::write_message(write, message).map(|_| ()).map_err(|e| e.into())
     }
 }
 

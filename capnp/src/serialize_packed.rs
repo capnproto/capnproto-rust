@@ -226,8 +226,9 @@ struct PackedWrite<W> where W: Write {
 }
 
 impl <W> Write for PackedWrite<W> where W: Write {
-    fn write_all(&mut self, in_buf: &[u8]) -> Result<()> {
+    fn write_all(&mut self, in_buf: &[u8]) -> Result<usize> {
         unsafe {
+            let mut written_bytes: usize = 0;
             let mut buf_idx: usize = 0;
             let mut buf: [u8; 64] = [0; 64];
 
@@ -240,7 +241,7 @@ impl <W> Write for PackedWrite<W> where W: Write {
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
                     //# bounds-check on every byte.
-                    self.inner.write_all(&buf[..buf_idx])?;
+                    written_bytes += self.inner.write_all(&buf[..buf_idx])?;
                     buf_idx = 0;
                 }
 
@@ -345,20 +346,20 @@ impl <W> Write for PackedWrite<W> where W: Write {
                     *buf.get_unchecked_mut(buf_idx) = (count / 8) as u8;
                     buf_idx += 1;
 
-                    self.inner.write_all(&buf[..buf_idx])?;
+                    written_bytes += self.inner.write_all(&buf[..buf_idx])?;
                     buf_idx = 0;
-                    self.inner.write_all(slice::from_raw_parts::<u8>(run_start, count))?;
+                    written_bytes += self.inner.write_all(slice::from_raw_parts::<u8>(run_start, count))?;
                 }
             }
 
-            self.inner.write_all(&buf[..buf_idx])?;
-            Ok(())
+            written_bytes += self.inner.write_all(&buf[..buf_idx])?;
+            Ok(written_bytes)
         }
     }
 }
 
-/// Writes a packed message to a stream.
-pub fn write_message<W, A>(write: W, message: &crate::message::Builder<A>) -> Result<()>
+/// Writes a packed message to a stream and returns the number of written bytes.
+pub fn write_message<W, A>(write: W, message: &crate::message::Builder<A>) -> Result<usize>
     where W: Write, A: crate::message::Allocator
 {
     let packed_write = PackedWrite { inner: write };

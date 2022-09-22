@@ -398,22 +398,27 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8
 ///
 /// For optimal performance, `write` should be a buffered writer. `flush()` will not be called on
 /// the writer.
-pub fn write_message<W, A>(mut write: W, message: &message::Builder<A>) -> Result<()>
+pub fn write_message<W, A>(mut write: W, message: &message::Builder<A>) -> Result<usize>
  where W: Write, A: message::Allocator {
+    let mut written_bytes: usize = 0;
     let segments = message.get_segments_for_output();
-    write_segment_table(&mut write, &segments)?;
-    write_segments(&mut write, &segments)
+    written_bytes += write_segment_table(&mut write, &segments)?;
+    written_bytes += write_segments(&mut write, &segments)?;
+
+    Ok(written_bytes)
 }
 
 /// Like `write_message()`, but takes a `ReaderSegments`, allowing it to be
 /// used on `message::Reader` objects (via `into_segments()`).
-pub fn write_message_segments<W, R>(mut write: W, segments: &R) -> Result<()>
+pub fn write_message_segments<W, R>(mut write: W, segments: &R) -> Result<usize>
  where W: Write, R: message::ReaderSegments {
-    write_segment_table_internal(&mut write, segments)?;
-    write_segments(&mut write, segments)
+    let mut written_bytes = write_segment_table_internal(&mut write, segments)?;
+    written_bytes += write_segments(&mut write, segments)?;
+
+    Ok(written_bytes)
 }
 
-fn write_segment_table<W>(write: &mut W, segments: &[&[u8]]) -> Result<()>
+fn write_segment_table<W>(write: &mut W, segments: &[&[u8]]) -> Result<usize>
 where W: Write {
     write_segment_table_internal(write, segments)
 }
@@ -421,15 +426,16 @@ where W: Write {
 /// Writes a segment table to `write`.
 ///
 /// `segments` must contain at least one segment.
-fn write_segment_table_internal<W, R>(write: &mut W, segments: &R) -> Result<()>
+fn write_segment_table_internal<W, R>(write: &mut W, segments: &R) -> Result<usize>
 where W: Write, R: message::ReaderSegments + ?Sized {
+    let mut written_bytes: usize = 0;
     let mut buf: [u8; 8] = [0; 8];
     let segment_count = segments.len();
 
     // write the first Word, which contains segment_count and the 1st segment length
     buf[0..4].copy_from_slice(&(segment_count as u32 - 1).to_le_bytes());
     buf[4..8].copy_from_slice(&((segments.get_segment(0).unwrap().len() / BYTES_PER_WORD)as u32).to_le_bytes());
-    write.write_all(&buf)?;
+    written_bytes += write.write_all(&buf)?;
 
     if segment_count > 1 {
         if segment_count < 4 {
@@ -440,7 +446,7 @@ where W: Write, R: message::ReaderSegments + ?Sized {
             if segment_count == 2 {
                 for b in &mut buf[4..8] { *b = 0 }
             }
-            write.write_all(&buf)?;
+            written_bytes += write.write_all(&buf)?;
         } else {
             let mut buf = vec![0; (segment_count & !1) * 4];
             for idx in 1..segment_count {
@@ -451,23 +457,24 @@ where W: Write, R: message::ReaderSegments + ?Sized {
                 let start_idx = buf.len() - 4;
                 for b in &mut buf[start_idx ..] { *b = 0 }
             }
-            write.write_all(&buf)?;
+            written_bytes += write.write_all(&buf)?;
         }
     }
-    Ok(())
+    Ok(written_bytes)
 }
 
 /// Writes segments to `write`.
-fn write_segments<W, R: message::ReaderSegments + ?Sized>(write: &mut W, segments: &R) -> Result<()>
+fn write_segments<W, R: message::ReaderSegments + ?Sized>(write: &mut W, segments: &R) -> Result<usize>
 where W: Write {
+    let mut written_bytes: usize = 0;
     for i in 0.. {
         if let Some(segment) = segments.get_segment(i) {
-            write.write_all(segment)?;
+            written_bytes += write.write_all(segment)?;
         } else {
             break;
         }
     }
-    Ok(())
+    Ok(written_bytes)
 }
 
 fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) -> usize {

@@ -2229,9 +2229,9 @@ struct WriteWrapper<W> where W: std::io::Write {
 }
 
 impl <W> capnp::io::Write for WriteWrapper<W> where W: std::io::Write {
-    fn write_all(&mut self, buf: &[u8]) -> ::capnp::Result<()> {
+    fn write_all(&mut self, buf: &[u8]) -> ::capnp::Result<usize> {
         std::io::Write::write_all(&mut self.inner, buf).map_err(convert_io_err)?;
-        Ok(())
+        Ok(buf.len())
     }
 }
 
