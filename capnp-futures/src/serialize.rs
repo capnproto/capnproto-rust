@@ -407,9 +407,9 @@ pub mod test {
     }
 
     /// Wraps a `Read` instance and introduces blocking.
-    struct BlockingRead<R> where R: Read {
+    pub(crate) struct BlockingRead<R> where R: Read {
         /// The wrapped reader
-        read: R,
+        pub read: R,
 
         /// Number of bytes to read before blocking
         blocking_period: usize,
@@ -419,7 +419,7 @@ pub mod test {
     }
 
     impl <R> BlockingRead<R> where R: Read {
-        fn new(read: R, blocking_period: usize) -> BlockingRead<R> {
+        pub(crate) fn new(read: R, blocking_period: usize) -> BlockingRead<R> {
             BlockingRead { read: read, blocking_period, idx: 0 }
         }
     }
@@ -443,7 +443,7 @@ pub mod test {
     }
 
     /// Wraps a `Write` instance and introduces blocking.
-    struct BlockingWrite<W> where W: Write {
+    pub(crate) struct BlockingWrite<W> where W: Write {
         /// The wrapped writer
         writer: W,
 
@@ -455,10 +455,10 @@ pub mod test {
     }
 
     impl <W> BlockingWrite<W> where W: Write {
-        fn new(writer: W, blocking_period: usize) -> BlockingWrite<W> {
+        pub(crate) fn new(writer: W, blocking_period: usize) -> BlockingWrite<W> {
             BlockingWrite { writer: writer, blocking_period, idx: 0 }
         }
-        fn into_writer(self) -> W {
+        pub(crate) fn into_writer(self) -> W {
             self.writer
         }
     }

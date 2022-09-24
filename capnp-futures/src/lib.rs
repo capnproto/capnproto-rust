@@ -22,5 +22,6 @@ pub use read_stream::ReadStream;
 pub use write_queue::{write_queue, Sender};
 
 pub mod serialize;
+pub mod serialize_packed;
 mod read_stream;
 mod write_queue;
