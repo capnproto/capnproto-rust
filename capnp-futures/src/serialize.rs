@@ -412,22 +412,22 @@ pub mod test {
         read: R,
 
         /// Number of bytes to read before blocking
-        frequency: usize,
+        blocking_period: usize,
 
         /// Number of bytes read since last blocking
         idx: usize,
     }
 
     impl <R> BlockingRead<R> where R: Read {
-        fn new(read: R, frequency: usize) -> BlockingRead<R> {
-            BlockingRead { read: read, frequency: frequency, idx: 0 }
+        fn new(read: R, blocking_period: usize) -> BlockingRead<R> {
+            BlockingRead { read: read, blocking_period, idx: 0 }
         }
     }
 
     impl <R> AsyncRead for BlockingRead<R> where R: Read + Unpin {
         fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context, buf: &mut [u8]) -> Poll<io::Result<usize>> {
             if self.idx == 0 {
-                self.idx = self.frequency;
+                self.idx = self.blocking_period;
                 cx.waker().clone().wake();
                 Poll::Pending
             } else {
@@ -448,15 +448,15 @@ pub mod test {
         writer: W,
 
         /// Number of bytes to write before blocking
-        frequency: usize,
+        blocking_period: usize,
 
         /// Number of bytes written since last blocking
         idx: usize,
     }
 
     impl <W> BlockingWrite<W> where W: Write {
-        fn new(writer: W, frequency: usize) -> BlockingWrite<W> {
-            BlockingWrite { writer: writer, frequency: frequency, idx: 0 }
+        fn new(writer: W, blocking_period: usize) -> BlockingWrite<W> {
+            BlockingWrite { writer: writer, blocking_period, idx: 0 }
         }
         fn into_writer(self) -> W {
             self.writer
@@ -466,7 +466,7 @@ pub mod test {
     impl <W> AsyncWrite for BlockingWrite<W> where W: Write + Unpin {
         fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
             if self.idx == 0 {
-                self.idx = self.frequency;
+                self.idx = self.blocking_period;
                 cx.waker().clone().wake();
                 Poll::Pending
             } else {
@@ -490,21 +490,21 @@ pub mod test {
 
     #[test]
     fn check_round_trip_async() {
-        fn round_trip(read_block_frequency: usize,
-                      write_block_frequency: usize,
+        fn round_trip(read_blocking_period: usize,
+                      write_blocking_period: usize,
                       segments: Vec<Vec<capnp::Word>>) -> TestResult
         {
-            if segments.len() == 0 || read_block_frequency == 0 || write_block_frequency == 0 {
+            if segments.len() == 0 || read_blocking_period == 0 || write_blocking_period == 0 {
                 return TestResult::discard();
             }
             let (mut read, segments) = {
                 let cursor = std::io::Cursor::new(Vec::new());
-                let mut writer = BlockingWrite::new(cursor, write_block_frequency);
+                let mut writer = BlockingWrite::new(cursor, write_blocking_period);
                 futures::executor::block_on(Box::pin(write_message(&mut writer, &segments))).expect("writing");
 
                 let mut cursor = writer.into_writer();
                 cursor.set_position(0);
-                (BlockingRead::new(cursor, read_block_frequency), segments)
+                (BlockingRead::new(cursor, read_blocking_period), segments)
             };
 
             let message =
