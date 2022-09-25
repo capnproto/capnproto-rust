@@ -1,3 +1,6 @@
+## v0.14.2
+- Add serialize_packed module.
+
 ## v0.14.1
 - Include LICENSE in published crate.
 
