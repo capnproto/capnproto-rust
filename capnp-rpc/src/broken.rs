@@ -25,6 +25,7 @@ use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineO
                                  RequestHook, ResultsHook};
 
 use capnp::capability::{Promise, RemotePromise};
+use capnp::traits::{ImbueMut};
 
 use std::rc::{Rc};
 
@@ -52,6 +53,7 @@ impl PipelineHook for Pipeline {
 pub struct Request {
     error: Error,
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<dyn ClientHook>>>,
 }
 
 impl Request {
@@ -59,13 +61,16 @@ impl Request {
         Request {
             error: error,
             message: ::capnp::message::Builder::new_default(),
+            cap_table: Vec::new(),
         }
     }
 }
 
 impl RequestHook for Request {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        self.message.get_root().unwrap()
+        let mut result: any_pointer::Builder = self.message.get_root().unwrap();
+        result.imbue_mut(&mut self.cap_table);
+        result
     }
     fn get_brand(&self) -> usize {
         0
