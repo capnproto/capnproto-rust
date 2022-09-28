@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use capnp::capability::Promise;
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use crate::hello_world_capnp::hello_world;
 
@@ -36,8 +36,8 @@ impl hello_world::Server for HelloWorldImpl {
         mut results: hello_world::SayHelloResults,
     ) -> Promise<(), ::capnp::Error> {
 
-        let request = params.get().unwrap().get_request().unwrap();
-        let name = request.get_name().unwrap();
+        let request = pry!(pry!(params.get()).get_request());
+        let name = pry!(request.get_name());
         let message = format!("Hello, {}!", name);
 
         results.get().init_reply().set_message(&message);
@@ -54,8 +54,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let addr = args[2]
-        .to_socket_addrs()
-        .unwrap()
+        .to_socket_addrs()?
         .next()
         .expect("could not parse address");
 
