@@ -59,17 +59,14 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut request = hello_world.say_hello_request();
         request.get().init_request().set_name(&msg);
 
-        let reply = request.send().promise.await.unwrap();
+        let reply = request.send().promise.await?;
 
         println!(
             "received: {}",
             reply
-                .get()
-                .unwrap()
-                .get_reply()
-                .unwrap()
-                .get_message()
-                .unwrap()
+                .get()?
+                .get_reply()?
+                .get_message()?
         );
         Ok(())
     }).await
