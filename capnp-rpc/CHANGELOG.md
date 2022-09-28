@@ -1,3 +1,6 @@
+## v0.14.2
+- Fix potential panic in broken pipelined capabilities.
+
 ## v0.14.1
 - Include LICENSE in published crate.
 
