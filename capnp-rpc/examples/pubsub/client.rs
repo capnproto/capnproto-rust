@@ -46,7 +46,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
+    let addr = args[2].to_socket_addrs()?.next().expect("could not parse address");
 
     tokio::task::LocalSet::new().run_until(async move {
         let stream = tokio::net::TcpStream::connect(&addr).await?;
