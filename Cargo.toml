@@ -1,0 +1,21 @@
+[package]
+name = "capnp_import"
+version = "0.1.0"
+edition = "2021"
+authors = ["Erik McClure <erikm@fundament.software>"]
+description = """
+Fetches official Cap-n-Proto compiler (capnp) releases and automatically compiles all capnp files in a set of folders, then combines them in a single capnp_include.rs file.
+"""
+categories = ["compilers", "development-tools::build-utils", "parsing", "web-programming", "network-programming"]
+documentation = "https://docs.rs/capnp_import"
+homepage = "https://github.com/fundament-software/capnp_import"
+readme = "README.md"
+repository = "https://github.com/fundament-software/capnp_import"
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "1.*"
+reqwest = { version = "0.11.*", features = ["blocking"] }
+zip-extract = { version = "^0.1.1", features = ["deflate"] }
+cmake = "0.1"
+capnpc = "0.14"
