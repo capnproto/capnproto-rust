@@ -301,32 +301,13 @@ impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
 /// Creates a new local RPC client of type `C` out of an object that implements a server trait `S`.
 pub fn new_client<C, S>(s: S) -> C where C: capnp::capability::FromServer<S> {
     capnp::capability::FromClientHook::new(Box::new(
-        local::Client::new(Box::new(<C as capnp::capability::FromServer::<S>>::from_server(s)))))
-}
-
-struct RefCountedCap<S>(Rc<RefCell<S>>);
-
-impl <S> Clone for RefCountedCap<S> {
-    fn clone(&self) -> Self {
-        RefCountedCap(self.0.clone())
-    }
-}
-
-impl <S> capnp::capability::Server for RefCountedCap<S> where S: capnp::capability::Server
-{
-    fn dispatch_call(&mut self, interface_id: u64, method_id: u16,
-                     params: capnp::capability::Params<capnp::any_pointer::Owned>,
-                     results: capnp::capability::Results<capnp::any_pointer::Owned>)
-                     -> Promise<(), Error> {
-        self.0.borrow_mut().dispatch_call(interface_id, method_id,
-                                        params, results)
-    }
+        local::Client::new(<C as capnp::capability::FromServer::<S>>::from_server(s))))
 }
 
 pub struct CapabilityServerSet<S,C>
     where C: capnp::capability::FromServer<S>
 {
-    caps: std::collections::HashMap<usize, RefCountedCap<C::Dispatch>>,
+    caps: std::collections::HashMap<usize, Rc<RefCell<C::Dispatch>>>,
 }
 
 impl <S,C> CapabilityServerSet<S,C>
@@ -339,17 +320,20 @@ impl <S,C> CapabilityServerSet<S,C>
     pub fn new_client(&mut self, s: S) -> C {
         let dispatch =
             <C as capnp::capability::FromServer::<S>>::from_server(s);
-        let wrapped = RefCountedCap(Rc::new(RefCell::new(dispatch)));
-        let ptr = wrapped.0.as_ptr() as usize;
-        self.caps.insert(ptr,wrapped.clone());
+        let wrapped = Rc::new(RefCell::new(dispatch));
+        let ptr = wrapped.as_ptr() as usize;
+        self.caps.insert(ptr, wrapped.clone());
         capnp::capability::FromClientHook::new(Box::new(
-            local::Client::new(Box::new(wrapped))))
+            local::Client::from_rc(wrapped)))
     }
 
     pub fn get_local_server(&self, client: &C) -> Option<&S> {
-        // Use ClientHook::get_ptr() or something like that to determine
-        // if `client` is in the set...?
         todo!()
+/*        let ptr = client.get_ptr();
+        match self.caps.get(ptr) {
+            None => None,
+            Some(_) => None,
+        } */
     }
 
     pub fn get_local_server_mut(&self, client: &C) -> Option<&mut S> {

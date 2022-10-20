@@ -278,29 +278,29 @@ impl PipelineHook for Pipeline {
     }
 }
 
-struct ClientInner {
-    server: Box<dyn capability::Server>,
+pub struct Client<S> where S: capability::Server {
+    inner: Rc<RefCell<S>>,
 }
 
-pub struct Client {
-    inner: Rc<RefCell<ClientInner>>,
-}
-
-impl Client {
-    pub fn new(server: Box<dyn capability::Server>) -> Client {
+impl <S> Client<S> where S: capability::Server {
+    pub fn new(server: S) -> Client<S> {
         Client {
-            inner: Rc::new(RefCell::new(ClientInner { server: server }))
+            inner: Rc::new(RefCell::new(server))
         }
+    }
+
+    pub fn from_rc(inner: Rc<RefCell<S>>) -> Client<S> {
+        Client { inner }
     }
 }
 
-impl Clone for Client {
-    fn clone(&self) -> Client {
+impl <S> Clone for Client<S> where S: capability::Server {
+    fn clone(&self) -> Client<S> {
         Client { inner: self.inner.clone() }
     }
 }
 
-impl ClientHook for Client {
+impl <S> ClientHook for Client<S> where S: capability::Server + 'static {
     fn add_ref(&self) -> Box<dyn ClientHook> {
         Box::new(self.clone())
     }
@@ -326,7 +326,7 @@ impl ClientHook for Client {
             let f = {
                 // We put this borrow_mut() inside a block to avoid a potential
                 // double borrow during f.await
-                let server = &mut inner.borrow_mut().server;
+                let server = &mut *inner.borrow_mut();
                 server.dispatch_call(interface_id, method_id,
                                      ::capnp::capability::Params::new(params),
                                      ::capnp::capability::Results::new(results))
@@ -336,7 +336,7 @@ impl ClientHook for Client {
     }
 
     fn get_ptr(&self) -> usize {
-        (&*self.inner.borrow()) as * const _ as usize
+        self.inner.as_ptr() as usize
     }
 
     fn get_brand(&self) -> usize {
