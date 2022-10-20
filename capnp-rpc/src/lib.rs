@@ -327,17 +327,12 @@ impl <S,C> CapabilityServerSet<S,C>
             local::Client::from_rc(wrapped)))
     }
 
-    pub fn get_local_server(&self, client: &C) -> Option<&S> {
-        todo!()
-/*        let ptr = client.get_ptr();
-        match self.caps.get(ptr) {
-            None => None,
-            Some(_) => None,
-        } */
-    }
-
-    pub fn get_local_server_mut(&self, client: &C) -> Option<&mut S> {
-        todo!()
+    pub fn get_local_server(&self,
+                            client: &dyn ClientHook)
+                            -> Option<&Rc<RefCell<C::Dispatch>>>
+    {
+        let ptr = client.get_ptr();
+        self.caps.get(&ptr)
     }
 }
 
