@@ -34,9 +34,9 @@ pub struct Owned<T> where T: FromClientHook {
     marker: PhantomData<T>,
 }
 
-impl<'a, T> crate::traits::Owned<'a> for Owned<T> where T: FromClientHook {
-    type Reader = Reader<'a, T>;
-    type Builder = Builder<'a, T>;
+impl<T> crate::traits::Owned for Owned<T> where T: FromClientHook {
+    type Reader<'a> = Reader<'a, T>;
+    type Builder<'a> = Builder<'a, T>;
 }
 
 pub struct Reader<'a, T> where T: FromClientHook {

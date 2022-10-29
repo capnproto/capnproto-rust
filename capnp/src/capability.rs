@@ -111,7 +111,7 @@ impl<T> std::ops::FromResidual for Promise<T, crate::Error> {
 
 /// A promise for a result from a method call.
 #[must_use]
-pub struct RemotePromise<Results> where Results: Pipelined + for<'a> Owned<'a> + 'static {
+pub struct RemotePromise<Results> where Results: Pipelined + Owned + 'static {
     pub promise: Promise<Response<Results>, crate::Error>,
     pub pipeline: Results::Pipeline,
 }
@@ -123,12 +123,12 @@ pub struct Response<Results> {
 }
 
 impl <Results> Response<Results>
-    where Results: Pipelined + for<'a> Owned<'a>
+    where Results: Pipelined + Owned
 {
     pub fn new(hook: Box<dyn ResponseHook>) -> Response<Results> {
         Response { marker: PhantomData, hook }
     }
-    pub fn get(&self) -> crate::Result<<Results as Owned<'_>>::Reader> {
+    pub fn get(&self) -> crate::Result<Results::Reader<'_>> {
         self.hook.get()?.get_as()
     }
 }
@@ -140,23 +140,23 @@ pub struct Request<Params, Results> {
 }
 
 impl <Params, Results> Request<Params, Results>
-    where Params: for<'a> Owned<'a>
+    where Params: Owned
 {
     pub fn new(hook: Box<dyn RequestHook>) -> Request <Params, Results> {
         Request { hook, marker: PhantomData }
     }
 
-    pub fn get(&mut self) -> <Params as Owned<'_>>::Builder {
+    pub fn get(&mut self) -> Params::Builder<'_> {
         self.hook.get().get_as().unwrap()
     }
 
-    pub fn set(&mut self, from: <Params as Owned>::Reader) -> crate::Result<()> {
+    pub fn set(&mut self, from: Params::Reader<'_>) -> crate::Result<()> {
         self.hook.get().set_as(from)
     }
 }
 
 impl <Params, Results> Request <Params, Results>
-where Results: Pipelined + for<'a> Owned<'a> + 'static + Unpin,
+where Results: Pipelined + Owned + 'static + Unpin,
       <Results as Pipelined>::Pipeline: FromTypelessPipeline
 {
     pub fn send(self) -> RemotePromise<Results> {
@@ -182,8 +182,8 @@ impl <T> Params <T> {
     pub fn new(hook: Box<dyn ParamsHook>) -> Params<T> {
         Params { marker: PhantomData, hook }
     }
-    pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
-        where T: Owned<'a>
+    pub fn get<'a>(&'a self) -> crate::Result<T::Reader<'a>>
+        where T: Owned
     {
         self.hook.get()?.get_as()
     }
@@ -196,17 +196,17 @@ pub struct Results<T> {
 }
 
 impl <T> Results<T>
-    where T: for<'a> Owned<'a>
+    where T: Owned
 {
     pub fn new(hook: Box<dyn ResultsHook>) -> Results<T> {
         Results { marker: PhantomData, hook }
     }
 
-    pub fn get(&mut self) -> <T as Owned<'_>>::Builder {
+    pub fn get(&mut self) -> T::Builder<'_> {
         self.hook.get().unwrap().get_as().unwrap()
     }
 
-    pub fn set(&mut self, other: <T as Owned>::Reader) -> crate::Result<()>
+    pub fn set(&mut self, other: T::Reader<'_>) -> crate::Result<()>
     {
         self.hook.get().unwrap().set_as(other)
     }

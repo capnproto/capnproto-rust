@@ -1554,8 +1554,8 @@ fn generate_node(gen: &GeneratorContext,
                     Branch(vec!(
                         Line("#[derive(Copy, Clone)]".into()),
                         Line("pub struct Owned(());".to_string()),
-                        Line("impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; }".to_string()),
-                        Line("impl <'a> ::capnp::traits::OwnedStruct<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; }".to_string()),
+                        Line("impl ::capnp::traits::Owned for Owned { type Reader<'a> = Reader<'a>; type Builder<'a> = Builder<'a>; }".to_string()),
+                        Line("impl ::capnp::traits::OwnedStruct for Owned { type Reader<'a> = Reader<'a>; type Builder<'a> = Builder<'a>; }".to_string()),
                         Line("impl ::capnp::traits::Pipelined for Owned { type Pipeline = Pipeline; }".to_string())
                     ))
                 } else {
@@ -1564,9 +1564,9 @@ fn generate_node(gen: &GeneratorContext,
                         Line(format!("pub struct Owned<{}> {{", params.params)),
                             Indent(Box::new(Line(params.phantom_data_type.clone()))),
                         Line("}".to_string()),
-                        Line(format!("impl <'a, {0}> ::capnp::traits::Owned<'a> for Owned <{0}> {1} {{ type Reader = Reader<'a, {0}>; type Builder = Builder<'a, {0}>; }}",
+                        Line(format!("impl <{0}> ::capnp::traits::Owned for Owned <{0}> {1} {{ type Reader<'a> = Reader<'a, {0}>; type Builder<'a> = Builder<'a, {0}>; }}",
                             params.params, params.where_clause)),
-                        Line(format!("impl <'a, {0}> ::capnp::traits::OwnedStruct<'a> for Owned <{0}> {1} {{ type Reader = Reader<'a, {0}>; type Builder = Builder<'a, {0}>; }}",
+                        Line(format!("impl <{0}> ::capnp::traits::OwnedStruct for Owned <{0}> {1} {{ type Reader<'a> = Reader<'a, {0}>; type Builder<'a> = Builder<'a, {0}>; }}",
                             params.params, params.where_clause)),
                         Line(format!("impl <{0}> ::capnp::traits::Pipelined for Owned<{0}> {1} {{ type Pipeline = Pipeline{2}; }}",
                             params.params, params.where_clause, bracketed_params)),
@@ -1888,7 +1888,7 @@ fn generate_node(gen: &GeneratorContext,
 
                 fn find_super_interfaces<'a>(
                   interface: crate::schema_capnp::node::interface::Reader<'a>,
-                  all_extends: &mut Vec<<crate::schema_capnp::superclass::Owned as capnp::traits::OwnedStruct<'a>>::Reader>,
+                  all_extends: &mut Vec<<crate::schema_capnp::superclass::Owned as capnp::traits::OwnedStruct>::Reader<'a>>,
                   gen: &GeneratorContext<'a>
                 ) -> ::capnp::Result<()>{
                     let extends = interface.get_superclasses()?;
@@ -1945,7 +1945,7 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                     Line("#[derive(Copy, Clone)]".into()),
                     Line("pub struct Owned(());".to_string()),
-                    Line("impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Client; type Builder = Client; }".to_string()),
+                    Line("impl ::capnp::traits::Owned for Owned { type Reader<'a> = Client; type Builder<'a> = Client; }".to_string()),
                     Line("impl ::capnp::traits::Pipelined for Owned { type Pipeline = Client; }".to_string())))
             } else {
                 Branch(vec!(
@@ -1954,7 +1954,7 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Line(params.phantom_data_type.clone()))),
                     Line("}".to_string()),
                     Line(format!(
-                        "impl <'a, {0}> ::capnp::traits::Owned<'a> for Owned <{0}> {1} {{ type Reader = Client<{0}>; type Builder = Client<{0}>; }}",
+                        "impl <{0}> ::capnp::traits::Owned for Owned <{0}> {1} {{ type Reader<'a> = Client<{0}>; type Builder<'a> = Client<{0}>; }}",
                         params.params, params.where_clause)),
                     Line(format!(
                         "impl <{0}> ::capnp::traits::Pipelined for Owned <{0}> {1} {{ type Pipeline = Client{2}; }}",

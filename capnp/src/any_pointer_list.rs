@@ -30,9 +30,9 @@ use crate::Result;
 #[derive(Clone, Copy)]
 pub struct Owned;
 
-impl <'a> crate::traits::Owned<'a> for Owned {
-    type Reader = Reader<'a>;
-    type Builder = Builder<'a>;
+impl crate::traits::Owned for Owned {
+    type Reader<'a> = Reader<'a>;
+    type Builder<'a> = Builder<'a>;
 }
 
 #[derive(Clone, Copy)]

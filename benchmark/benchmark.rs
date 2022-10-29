@@ -43,14 +43,14 @@ pub mod eval_capnp {
 pub mod eval;
 
 trait TestCase {
-    type Request: for<'a> Owned<'a>;
-    type Response: for<'a> Owned<'a>;
+    type Request: Owned;
+    type Response: Owned;
     type Expectation;
 
-    fn setup_request(&self, rnd: &mut crate::common::FastRand, b: <Self::Request as Owned>::Builder) -> Self::Expectation;
-    fn handle_request(&self, r: <Self::Request as Owned>::Reader, b: <Self::Response as Owned>::Builder)
+    fn setup_request(&self, rnd: &mut crate::common::FastRand, b: <Self::Request as Owned>::Builder<'_>) -> Self::Expectation;
+    fn handle_request(&self, r: <Self::Request as Owned>::Reader<'_>, b: <Self::Response as Owned>::Builder<'_>)
                       -> ::capnp::Result<()>;
-    fn check_response(&self, r: <Self::Response as Owned>::Reader, e: Self::Expectation) -> ::capnp::Result<()>;
+    fn check_response(&self, r: <Self::Response as Owned>::Reader<'_>, e: Self::Expectation) -> ::capnp::Result<()>;
 }
 
 trait Serialize {
