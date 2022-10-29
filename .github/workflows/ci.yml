@@ -11,7 +11,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  minrust: 1.44.0
+  minrust: 1.65.0
 
 jobs:
   build:

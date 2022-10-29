@@ -265,7 +265,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         Ok(result)
     }
 
-    pub fn into_typed<T: for<'a> Owned<'a>>(self) -> TypedReader<S, T> {
+    pub fn into_typed<T: Owned>(self) -> TypedReader<S, T> {
         TypedReader::new(self)
     }
 }
@@ -274,14 +274,14 @@ impl <S> Reader<S> where S: ReaderSegments {
 /// Please see [module documentation](self) for more info about reader type specialization.
 pub struct TypedReader<S, T>
     where S: ReaderSegments,
-          T: for<'a> Owned<'a> {
+          T: Owned {
     marker: ::core::marker::PhantomData<T>,
     message: Reader<S>,
 }
 
 impl <S, T> TypedReader<S, T>
     where S: ReaderSegments,
-          T : for<'a> Owned<'a> {
+          T : Owned {
 
     pub fn new(message: Reader<S>) -> Self {
         TypedReader {
@@ -290,7 +290,7 @@ impl <S, T> TypedReader<S, T>
         }
     }
 
-    pub fn get(&self) -> Result<<T as Owned<'_>>::Reader> {
+    pub fn get(&self) -> Result<T::Reader<'_>> {
         self.message.get_root()
     }
 
@@ -301,7 +301,7 @@ impl <S, T> TypedReader<S, T>
 
 impl <S, T> From<Reader<S>> for TypedReader<S, T>
     where S: ReaderSegments,
-          T: for<'a> Owned<'a> {
+          T: Owned {
 
     fn from(message: Reader<S>) -> TypedReader<S, T> {
         TypedReader::new(message)
@@ -310,7 +310,7 @@ impl <S, T> From<Reader<S>> for TypedReader<S, T>
 
 impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
     where A: Allocator,
-          T: for<'a> Owned<'a> {
+          T: Owned {
 
     fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
         let reader = message.into_reader();
@@ -320,7 +320,7 @@ impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
 
 impl <A, T> From<TypedBuilder<T, A>> for TypedReader<Builder<A>, T>
     where A: Allocator,
-          T: for<'a> Owned<'a> {
+          T: Owned {
 
     fn from(builder: TypedBuilder<T, A>) -> TypedReader<Builder<A>, T> {
         builder.into_reader()
@@ -445,7 +445,7 @@ impl <A> Builder<A> where A: Allocator {
         })
     }
 
-    pub fn into_typed<T: for<'a> Owned<'a>>(self) -> TypedBuilder<T, A> {
+    pub fn into_typed<T: Owned>(self) -> TypedBuilder<T, A> {
         TypedBuilder::new(self)
     }
 
@@ -472,7 +472,7 @@ impl <A> ReaderSegments for Builder<A> where A: Allocator {
 /// - `A` - type of allocator
 pub struct TypedBuilder<T, A = HeapAllocator>
 where
-    T: for<'a> Owned<'a>,
+    T: Owned,
     A: Allocator,
 {
     marker: ::core::marker::PhantomData<T>,
@@ -481,7 +481,7 @@ where
 
 impl<T> TypedBuilder<T, HeapAllocator>
 where
-    T: for<'a> Owned<'a>,
+    T: Owned,
 {
     pub fn new_default() -> Self {
         TypedBuilder::new(Builder::new_default())
@@ -490,7 +490,7 @@ where
 
 impl<T, A> TypedBuilder<T, A>
 where
-    T: for<'a> Owned<'a>,
+    T: Owned,
     A: Allocator,
 {
     pub fn new(message: Builder<A>) -> Self {
@@ -500,19 +500,19 @@ where
         }
     }
 
-    pub fn init_root(&mut self) -> <T as Owned<'_>>::Builder {
+    pub fn init_root(&mut self) -> T::Builder<'_> {
         self.message.init_root()
     }
 
-    pub fn get_root(&mut self) -> Result<<T as Owned<'_>>::Builder> {
+    pub fn get_root(&mut self) -> Result<T::Builder<'_>> {
         self.message.get_root()
     }
 
-    pub fn get_root_as_reader(&self) -> Result<<T as Owned<'_>>::Reader> {
+    pub fn get_root_as_reader(&self) -> Result<T::Reader<'_>> {
         self.message.get_root_as_reader()
     }
 
-    pub fn set_root(&mut self, value: <T as Owned<'_>>::Reader) -> Result<()> {
+    pub fn set_root(&mut self, value: T::Reader<'_>) -> Result<()> {
         self.message.set_root(value)
     }
 
@@ -535,7 +535,7 @@ where
 
 impl<T, A> From<Builder<A>> for TypedBuilder<T, A>
 where
-    T: for<'a> Owned<'a>,
+    T: Owned,
     A: Allocator,
 {
     fn from(builder: Builder<A>) -> Self {

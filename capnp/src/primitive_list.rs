@@ -33,9 +33,9 @@ pub struct Owned<T> {
     marker: marker::PhantomData<T>,
 }
 
-impl <'a, T> crate::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
-    type Reader = Reader<'a, T>;
-    type Builder = Builder<'a, T>;
+impl <T> crate::traits::Owned for Owned<T> where T: PrimitiveElement {
+    type Reader<'a> = Reader<'a, T>;
+    type Builder<'a> = Builder<'a, T>;
 }
 
 #[derive(Clone, Copy)]

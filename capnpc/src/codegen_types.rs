@@ -106,10 +106,10 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 format!("{}",param)
             }).collect::<Vec<String>>().join(",");
             let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}: for<'c> ::capnp::traits::Owned<'c>", param)
+                format!("{}: ::capnp::traits::Owned", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let where_clause_with_static = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}:'static + for<'c> ::capnp::traits::Owned<'c>", param)
+                format!("{}:'static + ::capnp::traits::Owned", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
                 format!("{}: ::capnp::traits::Pipelined, <{} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline", param, param)
@@ -229,12 +229,12 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                             Leaf::Owned => Ok(parameter_name.to_string()),
                             Leaf::Reader(lifetime) => {
                                 Ok(format!(
-                                    "<{} as ::capnp::traits::Owned<{}>>::Reader",
+                                    "<{} as ::capnp::traits::Owned>::Reader<{}>",
                                     parameter_name, lifetime))
                             }
                             Leaf::Builder(lifetime) => {
                                 Ok(format!(
-                                    "<{} as ::capnp::traits::Owned<{}>>::Builder",
+                                    "<{} as ::capnp::traits::Owned>::Builder<{}>",
                                     parameter_name, lifetime))
                             }
                             Leaf::Pipeline => {

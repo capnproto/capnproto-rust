@@ -49,25 +49,24 @@ pub trait FromPointerReader<'a> : Sized {
     fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Self>;
 }
 
-/// Associated types hackery that allows us to reason about Cap'n Proto types
-/// without needing to give them a lifetime `'a`.
+/// A trait to encode relationships readers and builders.
 ///
 /// If `Foo` is a Cap'n Proto struct and `Bar` is a Rust-native struct, then
 /// `foo::Reader<'a>` is to `foo::Owned` as `&'a Bar` is to `Bar`, and
 /// `foo::Builder<'a>` is to `foo::Owned` as `&'a mut Bar` is to `Bar`.
-/// The relationship is formalized by an `impl <'a> capnp::traits::Owned<'a> for foo::Owned`.
+/// The relationship is formalized by an `impl capnp::traits::Owned for foo::Owned`.
 /// Because Cap'n Proto struct layout differs from Rust struct layout, a `foo::Owned` value
 /// cannot be used for anything interesting on its own; the `foo::Owned` type is useful
 /// nonetheless as a type parameter, e.g. for a generic container that owns a Cap'n Proto
-/// message of type `T: for<'a> capnp::traits::Owned<'a>`.
-pub trait Owned<'a> {
-    type Reader: FromPointerReader<'a> + SetPointerBuilder;
-    type Builder: FromPointerBuilder<'a>;
+/// message of type `T: capnp::traits::Owned`.
+pub trait Owned {
+    type Reader<'a>: FromPointerReader<'a> + SetPointerBuilder;
+    type Builder<'a>: FromPointerBuilder<'a>;
 }
 
-pub trait OwnedStruct<'a> {
-    type Reader: FromStructReader<'a> + SetPointerBuilder + IntoInternalStructReader<'a>;
-    type Builder: FromStructBuilder<'a> + HasStructSize;
+pub trait OwnedStruct {
+    type Reader<'a>: FromStructReader<'a> + SetPointerBuilder + IntoInternalStructReader<'a>;
+    type Builder<'a>: FromStructBuilder<'a> + HasStructSize;
 }
 
 pub trait Pipelined {
