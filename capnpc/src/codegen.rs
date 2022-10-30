@@ -1933,6 +1933,9 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Line(format!("fn new(hook: Box<dyn (::capnp::private::capability::ClientHook)>) -> Client{} {{", bracketed_params)))),
                     Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client: ::capnp::capability::Client::new(hook), {} }}", params.phantom_data_value)))))),
                     Indent(Box::new(Line("}".to_string()))),
+                    Indent(Box::new(Line(format!("fn into_client_hook(self) -> Box<dyn (::capnp::private::capability::ClientHook)> {{")))),
+                    Indent(Box::new(Indent(Box::new(Line(format!("self.client.hook")))))),
+                    Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
 

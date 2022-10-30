@@ -22,7 +22,7 @@
 #![cfg(test)]
 
 use capnp::Error;
-use capnp::capability::Promise;
+use capnp::capability::{FromClientHook, Promise};
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use futures::{Future, FutureExt, TryFutureExt};
@@ -459,9 +459,8 @@ fn retain_and_release() {
                 request.send().promise.await?;
             }
 
-            // Do some other call to add a round trip.
-            // ugh, we need upcasting.
-            let client1 = crate::test_capnp::test_call_order::Client { client: client.clone().client };
+            let client1 : crate::test_capnp::test_call_order::Client = client.clone().cast_to();
+
             let response = client1.get_call_sequence_request().send().promise.await?;
             if response.get()?.get_n() != 1 {
                 return Err(Error::failed("N should equal 1".to_string()))
@@ -564,8 +563,7 @@ fn cancel_releases_params() {
 
                 // Allow some time to settle.
 
-                // ugh, we need upcasting.
-                let client = crate::test_capnp::test_call_order::Client { client: client.client };
+                let client : crate::test_capnp::test_call_order::Client = client.cast_to();
                 let response = client.get_call_sequence_request().send().promise.await?;
                 if response.get()?.get_n() != 1 {
                     return Err(Error::failed("N should equal 1.".to_string()));
@@ -630,8 +628,7 @@ fn embargo_success() {
 
         let server = crate::impls::TestCallOrder::new();
 
-        // ugh, we need upcasting.
-        let client2 = crate::test_capnp::test_call_order::Client { client: client.clone().client };
+        let client2 : crate::test_capnp::test_call_order::Client = client.clone().cast_to();
         let early_call = client2.get_call_sequence_request().send();
         drop(client2);
 
@@ -694,8 +691,7 @@ fn embargo_error() {
         let cap: crate::test_capnp::test_call_order::Client =
             ::capnp_rpc::new_promise_client(promise.map_err(canceled_to_error));
 
-        // ugh, we need upcasting.
-        let client2 = crate::test_capnp::test_call_order::Client { client: client.clone().client };
+        let client2 : crate::test_capnp::test_call_order::Client = client.clone().cast_to();
         let early_call = client2.get_call_sequence_request().send();
         drop(client2);
 
@@ -740,8 +736,7 @@ fn echo_destruction() {
         let cap: crate::test_capnp::test_call_order::Client =
             ::capnp_rpc::new_promise_client(promise.map_err(canceled_to_error));
 
-        // ugh, we need upcasting.
-        let client2 = crate::test_capnp::test_call_order::Client { client: client.clone().client };
+        let client2 : crate::test_capnp::test_call_order::Client = client.clone().cast_to();
         let early_call = client2.get_call_sequence_request().send();
         drop(client2);
 

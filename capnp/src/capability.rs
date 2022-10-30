@@ -216,8 +216,20 @@ pub trait FromTypelessPipeline {
     fn new (typeless: any_pointer::Pipeline) -> Self;
 }
 
+/// Trait implemented (via codegen) by all user-defined capability client types.
 pub trait FromClientHook {
+    /// Wraps a client hook to create a new client.
     fn new(hook: Box<dyn ClientHook>) -> Self;
+
+    /// Unwraps client to get the underlying client hook.
+    fn into_client_hook(self) -> Box<dyn ClientHook>;
+
+    /// Casts `self` to another instance of `FromClientHook`. This always succeeds,
+    /// but if the underlying capability does not actually implement `T`'s interface,
+    /// then method calls will fail with "unimplemented" errors.
+    fn cast_to<T: FromClientHook + Sized>(self) -> T where Self: Sized {
+        FromClientHook::new(self.into_client_hook())
+    }
 }
 
 /// An untyped client.
