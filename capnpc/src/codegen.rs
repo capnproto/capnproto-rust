@@ -2220,12 +2220,3 @@ impl <W> capnp::io::Write for WriteWrapper<W> where W: std::io::Write {
         Ok(())
     }
 }
-
-#[deprecated(since = "0.14.2", note = "Use CodeGenerationCommand::run() instead.")]
-pub fn generate_code<T>(inp: T, out_dir: &::std::path::Path) -> ::capnp::Result<()>
-    where T: ::std::io::Read
-{
-    let mut command = CodeGenerationCommand::new();
-    command.output_directory(out_dir);
-    command.run(inp)
-}
