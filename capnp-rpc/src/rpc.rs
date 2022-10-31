@@ -38,7 +38,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 use std::{cmp, mem};
 
-use crate::rpc_capnp::{bootstrap, call, cap_descriptor, disembargo, exception,
+use crate::rpc_capnp::{bootstrap, call, cap_descriptor, disembargo, exception, finish,
                 message, message_target, payload, resolve, return_, promised_answer};
 use crate::attach::Attach;
 use crate::{broken, local, queued};
@@ -711,6 +711,115 @@ impl <VatId> ConnectionState<VatId> {
         Ok(())
     }
 
+    fn handle_finish(connection_state: Rc<ConnectionState<VatId>>,
+                     finish: finish::Reader) -> capnp::Result<()> {
+        let mut exports_to_release = Vec::new();
+        let answer_id = finish.get_question_id();
+
+        let mut erase = false;
+        let answers_slots = &mut connection_state.answers.borrow_mut().slots;
+        match answers_slots.get_mut(&answer_id) {
+            None => {
+                return Err(Error::failed(
+                    format!("Invalid question ID {} in Finish message.", answer_id)));
+            }
+            Some(ref mut answer) => {
+                if !answer.active {
+                    return Err(Error::failed(
+                        format!("'Finish' for invalid question ID {}.", answer_id)));
+                }
+                answer.received_finish.set(true);
+
+                if finish.get_release_result_caps() {
+                    exports_to_release = mem::replace(&mut answer.result_exports, Vec::new());
+                }
+
+                // If the pipeline has not been cloned, the following two lines cancel the call.
+                answer.pipeline.take();
+                answer.call_completion_promise.take();
+
+                if answer.return_has_been_sent {
+                    erase = true;
+                }
+            }
+        }
+
+        if erase {
+            answers_slots.remove(&answer_id);
+        }
+
+        connection_state.release_exports(&exports_to_release)?;
+        Ok(())
+    }
+
+    fn handle_disembargo(connection_state: Rc<ConnectionState<VatId>>,
+                         disembargo: disembargo::Reader) -> capnp::Result<()> {
+        let context = disembargo.get_context();
+        match context.which()? {
+            disembargo::context::SenderLoopback(embargo_id) => {
+                let mut target =
+                    connection_state.get_message_target(disembargo.get_target()?)?;
+                while let Some(resolved) = target.get_resolved() {
+                    target = resolved;
+                }
+
+                if target.get_brand() != connection_state.get_brand() {
+                    return Err(Error::failed(
+                        "'Disembargo' of type 'senderLoopback' sent to an object that does not point \
+                         back to the sender.".to_string()));
+                }
+
+                let connection_state_ref = connection_state.clone();
+                let connection_state_ref1 = connection_state.clone();
+                let task = async move {
+                    if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
+                        let mut message = c.new_outgoing_message(100); // TODO estimate size
+                        {
+                            let root: message::Builder = message.get_body()?.init_as();
+                            let mut disembargo = root.init_disembargo();
+                            disembargo.reborrow().init_context().set_receiver_loopback(embargo_id);
+
+                            let redirect = match Client::from_ptr(target.get_ptr(),
+                                                                  &connection_state_ref1) {
+                                Some(c) => c.write_target(disembargo.init_target()),
+                                None => unreachable!(),
+                            };
+                            if redirect.is_some() {
+                                return Err(Error::failed(
+                                    "'Disembargo' of type 'senderLoopback' sent to an object that \
+                                     does not appear to have been the subject of a previous \
+                                     'Resolve' message.".to_string()));
+                            }
+                        }
+                        let _ = message.send();
+                    }
+                    Ok(())
+                };
+                connection_state.add_task(task);
+            }
+            disembargo::context::ReceiverLoopback(embargo_id) => {
+                if let Some(ref mut embargo) =
+                    connection_state.embargoes.borrow_mut().find(embargo_id)
+                {
+                    let fulfiller = embargo.fulfiller.take().unwrap();
+                    let _ = fulfiller.send(Ok(()));
+                } else {
+                    return Err(
+                        Error::failed(
+                            "Invalid embargo ID in `Disembargo.context.receiverLoopback".to_string()));
+                }
+                connection_state.embargoes.borrow_mut().erase(embargo_id);
+            }
+            disembargo::context::Accept(_) |
+            disembargo::context::Provide(_) => {
+                return Err(
+                    Error::unimplemented(
+                        "Disembargo::Context::Provide/Accept not implemented".to_string()));
+            }
+        }
+        Ok(())
+    }
+
     fn handle_message(weak_state: Weak<ConnectionState<VatId>>,
                       message: Box<dyn crate::IncomingMessage>) -> ::capnp::Result<()> {
         let connection_state = match weak_state.upgrade() {
@@ -731,15 +840,9 @@ impl <VatId> ConnectionState<VatId> {
                 Self::handle_bootstrap(connection_state, bootstrap?)?
             }
             Ok(message::Call(call)) => {
-                let capability = connection_state.get_message_target(call?.get_target()?)?;
+                let call = call?;
+                let capability = connection_state.get_message_target(call.get_target()?)?;
                 let (interface_id, method_id, question_id, cap_table_array, redirect_results) = {
-                    let call = match message.get_body()?.get_as::<message::Reader>()?.which()? {
-                        message::Call(call) => call?,
-                        _ => {
-                            // exception already reported?
-                            unreachable!()
-                        }
-                    };
                     let redirect_results = match call.get_send_results_to().which()? {
                         call::send_results_to::Caller(()) => false,
                         call::send_results_to::Yourself(()) => true,
@@ -907,44 +1010,7 @@ impl <VatId> ConnectionState<VatId> {
                 }
             }
             Ok(message::Finish(finish)) => {
-                let finish = finish?;
-
-                let mut exports_to_release = Vec::new();
-                let answer_id = finish.get_question_id();
-
-                let mut erase = false;
-                let answers_slots = &mut connection_state.answers.borrow_mut().slots;
-                match answers_slots.get_mut(&answer_id) {
-                    None => {
-                        return Err(Error::failed(
-                            format!("Invalid question ID {} in Finish message.", answer_id)));
-                    }
-                    Some(ref mut answer) => {
-                        if !answer.active {
-                            return Err(Error::failed(
-                                format!("'Finish' for invalid question ID {}.", answer_id)));
-                        }
-                        answer.received_finish.set(true);
-
-                        if finish.get_release_result_caps() {
-                            exports_to_release = mem::replace(&mut answer.result_exports, Vec::new());
-                        }
-
-                        // If the pipeline has not been cloned, the following two lines cancel the call.
-                        answer.pipeline.take();
-                        answer.call_completion_promise.take();
-
-                        if answer.return_has_been_sent {
-                            erase = true;
-                        }
-                    }
-                }
-
-                if erase {
-                    answers_slots.remove(&answer_id);
-                }
-
-                connection_state.release_exports(&exports_to_release)?;
+                Self::handle_finish(connection_state, finish?)?
             }
             Ok(message::Resolve(resolve)) => {
                 let resolve = resolve?;
@@ -993,70 +1059,7 @@ impl <VatId> ConnectionState<VatId> {
                 connection_state.release_export(release.get_id(), release.get_reference_count())?;
             }
             Ok(message::Disembargo(disembargo)) => {
-                let disembargo = disembargo?;
-                let context = disembargo.get_context();
-                match context.which()? {
-                    disembargo::context::SenderLoopback(embargo_id) => {
-                        let mut target =
-                            connection_state.get_message_target(disembargo.get_target()?)?;
-                        while let Some(resolved) = target.get_resolved() {
-                            target = resolved;
-                        }
-
-                        if target.get_brand() != connection_state.get_brand() {
-                            return Err(Error::failed(
-                                "'Disembargo' of type 'senderLoopback' sent to an object that does not point \
-                                 back to the sender.".to_string()));
-                        }
-
-                        let connection_state_ref = connection_state.clone();
-                        let connection_state_ref1 = connection_state.clone();
-                        let task = async move {
-                            if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
-                                let mut message = c.new_outgoing_message(100); // TODO estimate size
-                                {
-                                    let root: message::Builder = message.get_body()?.init_as();
-                                    let mut disembargo = root.init_disembargo();
-                                    disembargo.reborrow().init_context().set_receiver_loopback(embargo_id);
-
-                                    let redirect = match Client::from_ptr(target.get_ptr(),
-                                                                          &connection_state_ref1) {
-                                        Some(c) => c.write_target(disembargo.init_target()),
-                                        None => unreachable!(),
-                                    };
-                                    if redirect.is_some() {
-                                        return Err(Error::failed(
-                                            "'Disembargo' of type 'senderLoopback' sent to an object that \
-                                             does not appear to have been the subject of a previous \
-                                             'Resolve' message.".to_string()));
-                                    }
-                                }
-                                let _ = message.send();
-                            }
-                            Ok(())
-                        };
-                        connection_state.add_task(task);
-                    }
-                    disembargo::context::ReceiverLoopback(embargo_id) => {
-                        if let Some(ref mut embargo) =
-                            connection_state.embargoes.borrow_mut().find(embargo_id)
-                        {
-                            let fulfiller = embargo.fulfiller.take().unwrap();
-                            let _ = fulfiller.send(Ok(()));
-                        } else {
-                            return Err(
-                                Error::failed(
-                                    "Invalid embargo ID in `Disembargo.context.receiverLoopback".to_string()));
-                        }
-                        connection_state.embargoes.borrow_mut().erase(embargo_id);
-                    }
-                    disembargo::context::Accept(_) |
-                    disembargo::context::Provide(_) => {
-                        return Err(
-                            Error::unimplemented(
-                                "Disembargo::Context::Provide/Accept not implemented".to_string()));
-                    }
-                }
+                Self::handle_disembargo(connection_state, disembargo?)?
             }
             Ok(message::Provide(_)) | Ok(message::Accept(_)) |
             Ok(message::Join(_)) | Ok(message::ObsoleteSave(_)) | Ok(message::ObsoleteDelete(_)) |
