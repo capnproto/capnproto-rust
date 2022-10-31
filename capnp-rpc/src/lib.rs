@@ -304,6 +304,8 @@ pub fn new_client<C, S>(s: S) -> C where C: capnp::capability::FromServer<S> {
         local::Client::new(<C as capnp::capability::FromServer::<S>>::from_server(s))))
 }
 
+/// Allows a server to recognize its own capabilities when passed back to it, and obtain the
+/// underlying Server objects associated with them.
 pub struct CapabilityServerSet<S,C>
     where C: capnp::capability::FromServer<S>
 {
@@ -317,6 +319,7 @@ impl <S,C> CapabilityServerSet<S,C>
         Self { caps: std::default::Default::default() }
     }
 
+    /// Adds a new capability to the set and returns a client backed by it.
     pub fn new_client(&mut self, s: S) -> C {
         let dispatch =
             <C as capnp::capability::FromServer::<S>>::from_server(s);
@@ -327,11 +330,18 @@ impl <S,C> CapabilityServerSet<S,C>
             local::Client::from_rc(wrapped)))
     }
 
-    pub fn get_local_server(&self,
-                            client: &dyn ClientHook)
-                            -> Option<&Rc<RefCell<C::Dispatch>>>
+    /// Looks up a capability and returns its underlying server object, if found.
+    pub async fn get_local_server(&self,
+                                  client: &C)
+                                  -> Option<&Rc<RefCell<C::Dispatch>>>
+        where C: capnp::capability::FromClientHook
     {
-        let ptr = client.get_ptr();
+        let mut hook = client.as_client_hook().add_ref();
+        let _ = hook.when_resolved().await;
+        while let Some(resolved) = hook.get_resolved() {
+            hook = resolved;
+        }
+        let ptr = hook.get_ptr();
         self.caps.get(&ptr)
     }
 }

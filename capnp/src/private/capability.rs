@@ -50,7 +50,11 @@ pub trait ClientHook {
             params: Box<dyn ParamsHook>, results: Box<dyn ResultsHook>)
             -> crate::capability::Promise<(), crate::Error>;
 
+    /// If this capability is associated with an rpc connection, then this method
+    /// returns an identifier for that connection.
     fn get_brand(&self) -> usize;
+
+    /// Returns a (locally) unique identifier for this capabilitiy.
     fn get_ptr(&self) -> usize;
 
     /// If this ClientHook is a promise that has already resolved, returns the inner, resolved version
