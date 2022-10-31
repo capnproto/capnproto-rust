@@ -37,6 +37,8 @@ struct Inner<In, Out>
     map: BTreeMap<u64, (In, oneshot::Sender<Out>)>,
 }
 
+/// A queue representing tasks that consume input of type `In` and produce output of
+/// type `Out`.
 pub struct SenderQueue<In, Out>
     where In: 'static, Out: 'static
 {
@@ -74,6 +76,9 @@ impl <In, Out> SenderQueue<In, Out> where In: 'static, Out: 'static {
         }
     }
 
+    /// Pushes `value` to the queue, returning a promise that resolves after
+    /// `value` is consumed on the other end of the queue. If the returned promised
+    /// is dropped, then `value` is removed from the queue.
     pub fn push(&mut self, value: In) -> Promise<Out, Error> {
         let weak_inner = Rc::downgrade(&self.inner);
         let Inner { ref mut next_id, ref mut map, .. } = *self.inner.borrow_mut();
@@ -93,6 +98,7 @@ impl <In, Out> SenderQueue<In, Out> where In: 'static, Out: 'static {
         }))
     }
 
+    /// Pushes `values` to the queue.
     pub fn push_detach(&mut self, value: In) {
         let Inner { ref mut next_id, ref mut map, .. } = *self.inner.borrow_mut();
         let (tx, _rx) = oneshot::channel();
