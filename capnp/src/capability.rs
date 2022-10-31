@@ -224,6 +224,9 @@ pub trait FromClientHook {
     /// Unwraps client to get the underlying client hook.
     fn into_client_hook(self) -> Box<dyn ClientHook>;
 
+    /// Gets a reference to the underlying client hook.
+    fn as_client_hook(&self) -> &dyn ClientHook;
+
     /// Casts `self` to another instance of `FromClientHook`. This always succeeds,
     /// but if the underlying capability does not actually implement `T`'s interface,
     /// then method calls will fail with "unimplemented" errors.

@@ -1936,8 +1936,10 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Line(format!("fn into_client_hook(self) -> Box<dyn (::capnp::private::capability::ClientHook)> {{")))),
                     Indent(Box::new(Indent(Box::new(Line(format!("self.client.hook")))))),
                     Indent(Box::new(Line("}".to_string()))),
+                    Indent(Box::new(Line(format!("fn as_client_hook(&self) -> &dyn (::capnp::private::capability::ClientHook) {{")))),
+                    Indent(Box::new(Indent(Box::new(Line(format!("&*self.client.hook")))))),
+                    Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
-
 
             mod_interior.push(if !is_generic {
                 Branch(vec!(
