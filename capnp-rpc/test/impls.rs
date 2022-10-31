@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use crate::test_capnp::{bootstrap, test_handle, test_interface, test_extends, test_pipeline,
-                        test_call_order, test_more_stuff};
+                        test_call_order, test_more_stuff, test_capability_server_set};
 
 
 use capnp::Error;
@@ -29,7 +29,7 @@ use capnp_rpc::pry;
 
 use futures::{FutureExt, TryFutureExt};
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 pub struct Bootstrap;
@@ -94,6 +94,14 @@ impl bootstrap::Server for Bootstrap {
         {
             results.get().set_cap(capnp_rpc::new_client(TestMoreStuff::new()));
         }
+        Promise::ok(())
+    }
+    fn test_capability_server_set(&mut self,
+                                  _params: bootstrap::TestCapabilityServerSetParams,
+                                  mut results: bootstrap::TestCapabilityServerSetResults)
+                                  -> Promise<(), Error>
+    {
+        results.get().set_cap(capnp_rpc::new_client(TestCapabilityServerSet::new()));
         Promise::ok(())
     }
 }
@@ -583,4 +591,57 @@ impl test_interface::Server for TestCapDestructor {
         Promise::err(Error::unimplemented("bar is not implemented".to_string()))
     }
 }
+
+pub struct CssHandle {}
+
+impl CssHandle {
+    pub fn new() -> Self { Self {} }
+}
+
+impl test_capability_server_set::handle::Server for CssHandle {}
+
+pub struct TestCapabilityServerSet {
+    set: Rc<RefCell<
+            capnp_rpc::CapabilityServerSet<CssHandle,
+                                           test_capability_server_set::handle::Client>>>,
+}
+
+impl TestCapabilityServerSet {
+    pub fn new() -> Self {
+        Self {
+            set: Rc::new(RefCell::new(capnp_rpc::CapabilityServerSet::new()))
+        }
+    }
+}
+
+impl test_capability_server_set::Server for TestCapabilityServerSet {
+    fn create_handle(&mut self,
+                     _: test_capability_server_set::CreateHandleParams,
+                     mut results: test_capability_server_set::CreateHandleResults)
+                     -> Promise<(), Error>
+    {
+        results.get().set_handle(self.set.borrow_mut().new_client(CssHandle::new()));
+        Promise::ok(())
+    }
+
+    fn check_handle(&mut self,
+                     params: test_capability_server_set::CheckHandleParams,
+                     mut results: test_capability_server_set::CheckHandleResults)
+                     -> Promise<(), Error>
+    {
+        let set = self.set.clone();
+        let handle = pry!(pry!(params.get()).get_handle());
+        Promise::from_future(async move {
+            let resolved = capnp::capability::get_resolved_cap(handle).await;
+            match set.borrow().get_local_server_of_resolved(&resolved) {
+                None => (),
+                Some(_) => {
+                    results.get().set_is_ours(true)
+                }
+            }
+            Ok(())
+        })
+    }
+}
+
 

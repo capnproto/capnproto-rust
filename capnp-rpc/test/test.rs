@@ -830,3 +830,86 @@ fn capability_list() {
     })
 }
 
+#[test]
+fn capability_server_set() {
+    use capnp_rpc::CapabilityServerSet;
+    use crate::test_capnp::test_interface;
+    use crate::impls;
+    let mut set1 : CapabilityServerSet<impls::TestInterface, test_interface::Client> =
+        CapabilityServerSet::new();
+    let mut set2 : CapabilityServerSet<impls::TestInterface, test_interface::Client> =
+        CapabilityServerSet::new();
+
+    let client_standalone = capnp_rpc::new_client(impls::TestInterface::new());
+
+    let own_server1 = impls::TestInterface::new();
+    let own_server1_counter = own_server1.get_call_count();
+    let client1 = set1.new_client(own_server1);
+
+    let own_server2 = impls::TestInterface::new();
+    let own_server2_counter = own_server2.get_call_count();
+    let client2 = set2.new_client(own_server2);
+
+    // Getting the local server using the correct set works.
+    let own_server1_again = futures::executor::block_on(set1.get_local_server(&client1)).unwrap();
+    assert_eq!(own_server1_again.borrow().get_call_count().as_ptr(), own_server1_counter.as_ptr());
+
+    let own_server2_again = futures::executor::block_on(set2.get_local_server(&client2)).unwrap();
+    assert_eq!(own_server2_again.borrow().get_call_count().as_ptr(), own_server2_counter.as_ptr());
+
+    // Getting the local server using the wrong set doesn't work.
+    assert!(futures::executor::block_on(set1.get_local_server(&client2)).is_none());
+    assert!(futures::executor::block_on(set2.get_local_server(&client1)).is_none());
+    assert!(futures::executor::block_on(set1.get_local_server(&client_standalone)).is_none());
+    assert!(futures::executor::block_on(set2.get_local_server(&client_standalone)).is_none());
+
+    // Also works if the client is a promise.
+    let (fulfiller, promise) = oneshot::channel();
+    let client_promise: test_interface::Client =
+        ::capnp_rpc::new_promise_client(promise.map_err(canceled_to_error));
+
+    let client_promise2: test_interface::Client = client_promise.clone();
+
+    let (error_fulfiller, error_promise) = oneshot::channel();
+    let error_promise: test_interface::Client =
+        ::capnp_rpc::new_promise_client(error_promise.map_err(canceled_to_error));
+
+    assert!(fulfiller.send(client1.client).is_ok());
+    let own_server1_again2 =
+        futures::executor::block_on(set1.get_local_server(&client_promise)).unwrap();
+    assert_eq!(own_server1_again2.borrow().get_call_count().as_ptr(), own_server1_counter.as_ptr());
+
+    // Wrong set; returns None.
+    assert!(futures::executor::block_on(set2.get_local_server(&client_promise2)).is_none());
+
+    drop(error_fulfiller);
+    assert!(futures::executor::block_on(set1.get_local_server(&error_promise)).is_none());
+}
+
+#[test]
+fn capability_server_set_rpc() {
+    rpc_top_level(|_spawner, client| async move {
+        let response1 = client.test_capability_server_set_request().send().promise.await?;
+        let client1 = response1.get()?.get_cap()?;
+
+        let response2 = client.test_capability_server_set_request().send().promise.await?;
+        let client2 = response2.get()?.get_cap()?;
+
+        let handle1 = client1.create_handle_request().send().pipeline.get_handle();
+        let handle2 = client2.create_handle_request().send().pipeline.get_handle();
+
+        // client 1 owns handle 1
+        let mut check_request1 = client1.check_handle_request();
+        check_request1.get().set_handle(handle1.clone());
+        let check_response1 = check_request1.send().promise.await?;
+        assert_eq!(true, check_response1.get()?.get_is_ours());
+
+        // client 1 does not own handle 2
+        let mut check_request2 = client1.check_handle_request();
+        check_request2.get().set_handle(handle2.clone());
+        let check_response2 = check_request2.send().promise.await?;
+        assert_eq!(false, check_response2.get()?.get_is_ours());
+
+        Ok(())
+    })
+}
