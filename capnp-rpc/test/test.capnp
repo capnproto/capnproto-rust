@@ -78,6 +78,7 @@ interface Bootstrap {
   testPipeline @3 () -> (cap: TestPipeline);
   testCallOrder @4 () -> (cap: TestCallOrder);
   testMoreStuff @5 () -> (cap: TestMoreStuff);
+  testCapabilityServerSet @6 () -> (cap: TestCapabilityServerSet);
 }
 
 interface TestInterface {
@@ -170,4 +171,11 @@ interface TestMoreStuff extends(TestCallOrder) {
 
   callEachCapability @13 (caps :List(TestInterface)) -> ();
   # Calls TestInterface::foo(123, true) on each cap.
+}
+
+interface TestCapabilityServerSet {
+  interface Handle {}
+
+  createHandle @0 () -> (handle :Handle);
+  checkHandle @1 (handle: Handle) -> (isOurs :Bool);
 }

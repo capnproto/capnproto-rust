@@ -331,16 +331,30 @@ impl <S,C> CapabilityServerSet<S,C>
     }
 
     /// Looks up a capability and returns its underlying server object, if found.
+    /// Fully resolves the capability before looking it up.
     pub async fn get_local_server(&self,
                                   client: &C)
                                   -> Option<&Rc<RefCell<C::Dispatch>>>
         where C: capnp::capability::FromClientHook
     {
-        let mut hook = client.as_client_hook().add_ref();
-        let _ = hook.when_resolved().await;
-        while let Some(resolved) = hook.get_resolved() {
-            hook = resolved;
-        }
+        let resolved: C = capnp::capability::get_resolved_cap(
+            capnp::capability::FromClientHook::new(client.as_client_hook().add_ref())).await;
+        let hook = resolved.into_client_hook();
+        let ptr = hook.get_ptr();
+        self.caps.get(&ptr)
+    }
+
+    /// Looks up a capability and returns its underlying server object, if found.
+    /// Does *not* attempt to resolve the capability first, so you will usually want
+    /// to call `get_resolved_cap()` before calling this. The advantage of this method
+    /// over `get_local_server()` is that this one is synchronous and borrows `self`
+    /// over a shorter span (which can be very important if `self` is inside a `RefCell`).
+    pub fn get_local_server_of_resolved(&self,
+                                        client: &C)
+                                  -> Option<&Rc<RefCell<C::Dispatch>>>
+        where C: capnp::capability::FromClientHook
+    {
+        let hook = client.as_client_hook();
         let ptr = hook.get_ptr();
         self.caps.get(&ptr)
     }

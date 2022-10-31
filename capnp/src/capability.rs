@@ -279,3 +279,14 @@ pub trait FromServer<S> : FromClientHook {
 
     fn from_server(s: S) -> Self::Dispatch;
 }
+
+/// Gets the "resolved" version of a capability. One place this is useful is for pre-resolving
+/// the argument to `capnp_rpc::CapabilityServerSet::get_local_server_of_resolved()`.
+pub async fn get_resolved_cap<C: FromClientHook>(cap: C) -> C {
+    let mut hook = cap.into_client_hook();
+    let _ = hook.when_resolved().await;
+    while let Some(resolved) = hook.get_resolved() {
+        hook = resolved;
+    }
+    FromClientHook::new(hook)
+}
