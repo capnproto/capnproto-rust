@@ -38,7 +38,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 use std::{cmp, mem};
 
-use crate::rpc_capnp::{call, cap_descriptor, disembargo, exception,
+use crate::rpc_capnp::{bootstrap, call, cap_descriptor, disembargo, exception,
                 message, message_target, payload, resolve, return_, promised_answer};
 use crate::attach::Attach;
 use crate::{broken, local, queued};
@@ -631,9 +631,88 @@ impl <VatId> ConnectionState<VatId> {
         Ok(())
     }
 
+    fn handle_unimplemented(connection_state: Rc<ConnectionState<VatId>>,
+                            message: message::Reader) -> capnp::Result<()> {
+        match message.which()? {
+            message::Resolve(resolve) => {
+                let resolve = resolve?;
+                match resolve.which()? {
+                    resolve::Cap(c) => {
+                        match c?.which()? {
+                            cap_descriptor::None(()) => (),
+                            cap_descriptor::SenderHosted(export_id) => {
+                                connection_state.release_export(export_id, 1)?;
+                            }
+                            cap_descriptor::SenderPromise(export_id) => {
+                                connection_state.release_export(export_id, 1)?;
+                            }
+                            cap_descriptor::ReceiverAnswer(_) |
+                            cap_descriptor::ReceiverHosted(_) => (),
+                            cap_descriptor::ThirdPartyHosted(_) => {
+                                return Err(Error::failed(
+                                    "Peer claims we resolved a ThirdPartyHosted cap.".to_string()));
+                            },
+                        }
+                    }
+                    resolve::Exception(_) => (),
+                }
+            }
+            _ => {
+                return Err(Error::failed(
+                    "Peer did not implement required RPC message type.".to_string()));
+            }
+        }
+        Ok(())
+    }
+
+    fn handle_bootstrap(connection_state: Rc<ConnectionState<VatId>>,
+                        bootstrap: bootstrap::Reader) -> capnp::Result<()> {
+        use ::capnp::traits::ImbueMut;
+
+        let answer_id = bootstrap.get_question_id();
+        if connection_state.connection.borrow().is_err() {
+            // Disconnected; ignore.
+            return Ok(());
+        }
+
+        let mut response = connection_state.new_outgoing_message(50)?; // XXX size hint
+
+        let result_exports = {
+            let mut ret = response.get_body()?.init_as::<message::Builder>().init_return();
+            ret.set_answer_id(answer_id);
+
+            let cap = connection_state.bootstrap_cap.clone();
+            let mut cap_table = Vec::new();
+            let mut payload = ret.init_results();
+            {
+                let mut content = payload.reborrow().get_content();
+                content.imbue_mut(&mut cap_table);
+                content.set_as_capability(cap);
+            }
+            assert_eq!(cap_table.len(), 1);
+
+            ConnectionState::write_descriptors(&connection_state, &cap_table,
+                                               payload)
+        };
+
+        let slots = &mut connection_state.answers.borrow_mut().slots;
+        let answer = slots.entry(answer_id).or_insert_with(Answer::new);
+        if answer.active {
+            connection_state.release_exports(&result_exports)?;
+            return Err(Error::failed("questionId is already in use".to_string()));
+        }
+        answer.active = true;
+        answer.return_has_been_sent = true;
+        answer.result_exports = result_exports;
+        answer.pipeline = Some(Box::new(SingleCapPipeline::new(
+            connection_state.bootstrap_cap.clone())));
+
+        let _ = response.send();
+        Ok(())
+    }
+
     fn handle_message(weak_state: Weak<ConnectionState<VatId>>,
                       message: Box<dyn crate::IncomingMessage>) -> ::capnp::Result<()> {
-
         let connection_state = match weak_state.upgrade() {
             None => return Err(
                 Error::disconnected("handle_message() cannot continue without a connection".into())),
@@ -643,84 +722,13 @@ impl <VatId> ConnectionState<VatId> {
         let reader = message.get_body()?.get_as::<message::Reader>()?;
         match reader.which() {
             Ok(message::Unimplemented(message)) => {
-                let message = message?;
-                match message.which()? {
-                    message::Resolve(resolve) => {
-                        let resolve = resolve?;
-                        match resolve.which()? {
-                            resolve::Cap(c) => {
-                                match c?.which()? {
-                                    cap_descriptor::None(()) => (),
-                                    cap_descriptor::SenderHosted(export_id) => {
-                                        connection_state.release_export(export_id, 1)?;
-                                    }
-                                    cap_descriptor::SenderPromise(export_id) => {
-                                        connection_state.release_export(export_id, 1)?;
-                                    }
-                                    cap_descriptor::ReceiverAnswer(_) |
-                                    cap_descriptor::ReceiverHosted(_) => (),
-                                    cap_descriptor::ThirdPartyHosted(_) => {
-                                        return Err(Error::failed(
-                                            "Peer claims we resolved a ThirdPartyHosted cap.".to_string()));
-                                    },
-                                }
-                            }
-                            resolve::Exception(_) => (),
-                        }
-                    }
-                    _ => {
-                        return Err(Error::failed(
-                            "Peer did not implement required RPC message type.".to_string()));
-                    }
-                }
+                Self::handle_unimplemented(connection_state, message?)?
             }
             Ok(message::Abort(abort)) => {
                 return Err(remote_exception_to_error(abort?))
             }
             Ok(message::Bootstrap(bootstrap)) => {
-                use ::capnp::traits::ImbueMut;
-
-                let bootstrap = bootstrap?;
-                let answer_id = bootstrap.get_question_id();
-
-                if connection_state.connection.borrow().is_err() {
-                    // Disconnected; ignore.
-                    return Ok(());
-                }
-
-                let mut response = connection_state.new_outgoing_message(50)?; // XXX size hint
-
-                let result_exports = {
-                    let mut ret = response.get_body()?.init_as::<message::Builder>().init_return();
-                    ret.set_answer_id(answer_id);
-
-                    let cap = connection_state.bootstrap_cap.clone();
-                    let mut cap_table = Vec::new();
-                    let mut payload = ret.init_results();
-                    {
-                        let mut content = payload.reborrow().get_content();
-                        content.imbue_mut(&mut cap_table);
-                        content.set_as_capability(cap);
-                    }
-                    assert_eq!(cap_table.len(), 1);
-
-                    ConnectionState::write_descriptors(&connection_state, &cap_table,
-                                                       payload)
-                };
-
-                let slots = &mut connection_state.answers.borrow_mut().slots;
-                let answer = slots.entry(answer_id).or_insert_with(Answer::new);
-                if answer.active {
-                    connection_state.release_exports(&result_exports)?;
-                    return Err(Error::failed("questionId is already in use".to_string()));
-                }
-                answer.active = true;
-                answer.return_has_been_sent = true;
-                answer.result_exports = result_exports;
-                answer.pipeline = Some(Box::new(SingleCapPipeline::new(
-                    connection_state.bootstrap_cap.clone())));
-
-                let _ = response.send();
+                Self::handle_bootstrap(connection_state, bootstrap?)?
             }
             Ok(message::Call(call)) => {
                 let capability = connection_state.get_message_target(call?.get_target()?)?;
