@@ -93,8 +93,9 @@ impl <'a, T> Reader<'a, T> where T: FromClientHook {
 }
 
 impl <'a, T>  IndexMove<u32, Result<T>> for Reader<'a, T> where T: FromClientHook {
-    fn index_move(&self, index: u32) -> Result<T> {
-        self.get(index)
+    unsafe fn index_move(&self, index: u32) -> Result<T> {
+        debug_assert!(index < self.len());
+        Ok(FromClientHook::new(self.reader.get_pointer_element(index).get_capability()?))
     }
 }
 
