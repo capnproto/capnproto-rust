@@ -34,7 +34,7 @@ Here's a program that builds two
 `Person` structs, each a part of
 its own `AddressBook` message.
 
-```
+```c++
 #include "addressbook.capnp.h"
 #include <capnp/message.h>
 #include <iostream>
@@ -72,7 +72,7 @@ outlives its `MessageBuilder`.
 
 Here is a snippet showing a related problem.
 
-```
+```c++
 {
   ::capnp::MallocMessageBuilder message;
 
@@ -107,14 +107,14 @@ lifetime.
 To make this concrete, in Rust
 the signature of `MessageBuilder::initRoot` could look something like this:
 
-```
+```rust
 pub fn initRoot<'a, T : FromStructBuilder<'a>>(&'a mut self) -> T;
 
 ```
 
 where `FromStructBuilder` is the trait
 
-```
+```rust
 pub trait FromStructBuilder<'a> {
     fn fromStructBuilder(structBuilder : StructBuilder<'a>) -> Self;
 }
@@ -127,7 +127,7 @@ The generated code for `AddressBook` and `Person` will then
 contain implementations for
 the `FromStructBuilder` trait:
 
-```
+```rust
 impl <'a> FromStructBuilder<'a> for AddressBook::Builder<'a> { ... }
 impl <'a> FromStructBuilder<'a> for Person::Builder<'a> { ... }
 ```
