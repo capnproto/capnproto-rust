@@ -1,3 +1,10 @@
+## v0.15.0
+- Move HasStructSize::struct_size() into a constant HasStructSize::STRUCT_SIZE.
+- Move HasTypeId::type_id() into a constant HasTypeId::TYPE_ID.
+- Updated minimum supported rustc versino to 1.65.0.
+- Use generic associated types in Owned and OwnedStruct.
+- Add capability::get_resolved_cap().
+
 ## v0.14.10
 - Handle case when `alloc::alloc_zeroed()` returns null.
 

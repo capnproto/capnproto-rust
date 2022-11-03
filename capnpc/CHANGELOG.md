@@ -1,3 +1,7 @@
+### v0.15.0
+- Support trait changes in capnp::traits.
+- Remove deprecate function.
+
 ### v0.14.9
 - Fix Clippy warnings in generated code.
 

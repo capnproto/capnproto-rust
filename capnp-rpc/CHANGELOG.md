@@ -1,3 +1,6 @@
+## v0.15.0
+- Add CapabilityServerSet.
+
 ## v0.14.2
 - Fix potential panic in broken pipelined capabilities.
 

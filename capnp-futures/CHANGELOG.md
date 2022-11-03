@@ -1,3 +1,6 @@
+## v0.15.0
+- Follow v0.15.0 release of other capnp crates.
+
 ## v0.14.2
 - Add serialize_packed module.
 
