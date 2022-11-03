@@ -86,5 +86,5 @@ jobs:
           cd ../
 
     - name: Run tests
-      run: cargo test -p capnp -p capnpc
+      run: cargo test -p capnp -p capnpc -p capnp-futures -p capnp-rpc
 
