@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 
-use test_capnp::{test_all_types, test_defaults, TestEnum};
+use crate::test_capnp::{test_all_types, test_defaults, TestEnum};
 
 pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
     builder.set_void_field(());

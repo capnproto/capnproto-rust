@@ -7,7 +7,7 @@ license = "MIT"
 description = "async serialization for Cap'n Proto messages"
 repository = "https://github.com/dwrensha/capnproto-rust"
 documentation = "https://docs.capnproto-rust.org/capnp_futures/"
-edition = "2018"
+edition = "2021"
 
 keywords = ["async"]
 

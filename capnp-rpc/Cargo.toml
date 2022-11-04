@@ -9,7 +9,7 @@ repository = "https://github.com/capnproto/capnproto-rust"
 documentation = "http://docs.capnproto-rust.org/capnp_rpc/"
 categories = ["network-programming"]
 autoexamples = false
-edition = "2018"
+edition = "2021"
 
 readme = "README.md"
 
