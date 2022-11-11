@@ -2,8 +2,6 @@
 
 #![feature(core_intrinsics, alloc_error_handler)]
 
-extern crate alloc;
-
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::panic::PanicInfo;
 
