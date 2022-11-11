@@ -103,7 +103,7 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         let (segment_start, segment_len) = self.get_segment(segment_id)?;
         let this_start: usize = segment_start as usize;
         let this_size: usize = segment_len as usize * BYTES_PER_WORD;
-        let offset: i64 = offset_in_words as i64 * BYTES_PER_WORD as i64;
+        let offset: i64 = i64::from(offset_in_words) * BYTES_PER_WORD as i64;
         let start_idx = start as usize;
         if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size {
             Err(Error::failed(String::from("message contained out-of-bounds pointer")))
@@ -219,7 +219,7 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
     }
 
     fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
-        unsafe { Ok(start.offset((offset_in_words as i64 * BYTES_PER_WORD as i64) as isize)) }
+        unsafe { Ok(start.offset((i64::from(offset_in_words) * BYTES_PER_WORD as i64) as isize)) }
     }
 
     fn contains_interval(&self, _id: u32, _start: *const u8, _size: usize) -> Result<()> {

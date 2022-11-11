@@ -1020,7 +1020,7 @@ fn used_params_of_type(gen: &GeneratorContext,
                 type_::any_pointer::Parameter(def) => {
                     let the_struct = &gen.node_map[&def.get_scope_id()];
                     let parameters = the_struct.get_parameters()?;
-                    let parameter = parameters.get(def.get_parameter_index() as u32);
+                    let parameter = parameters.get(u32::from(def.get_parameter_index()));
                     let parameter_name = parameter.get_name()?;
                     used_params.insert(parameter_name.to_string());
                 }
@@ -1313,7 +1313,7 @@ fn get_ty_params_of_brand(gen: &GeneratorContext,
     let mut result = String::new();
     for (scope_id, parameter_index) in acc.into_iter() {
         let node = gen.node_map[&scope_id];
-        let p = node.get_parameters()?.get(parameter_index as u32);
+        let p = node.get_parameters()?.get(u32::from(parameter_index));
         result.push_str(p.get_name()?);
         result.push_str(",");
     }
@@ -2146,7 +2146,7 @@ fn generate_node(gen: &GeneratorContext,
                         match node.which()? {
                             node::Enum(e) => {
                                 let enumerants = e.get_enumerants()?;
-                                if let Some(enumerant) = enumerants.try_get(v as u32) {
+                                if let Some(enumerant) = enumerants.try_get(u32::from(v)) {
                                     let variant =
                                         capitalize_first_letter(get_enumerant_name(enumerant)?);
                                     let type_string = typ.type_string(gen, Leaf::Owned)?;

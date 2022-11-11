@@ -135,9 +135,9 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
                     while ii < outbuf.len() && bitnum < 8
                     {
                         let is_nonzero = (buf[0] & (1u8 << bitnum)) != 0;
-                        outbuf[ii] = buf[*buf_pos] & ((-(is_nonzero as i8)) as u8);
+                        outbuf[ii] = buf[*buf_pos] & ((-i8::from(is_nonzero)) as u8);
                         ii += 1;
-                        *buf_pos += is_nonzero as usize;
+                        *buf_pos += usize::from(is_nonzero);
                         bitnum += 1;
                     }
                     if bitnum == 8 {
