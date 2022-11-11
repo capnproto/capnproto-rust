@@ -569,7 +569,7 @@ mod wire_helpers {
                     Bit | Byte | TwoBytes | FourBytes | EightBytes => {
                         ptr::write_bytes(
                             ptr, 0u8,
-                            BYTES_PER_WORD as usize *
+                            BYTES_PER_WORD *
                             round_bits_up_to_words(
                                     u64::from((*tag).list_element_count()) *
                                         u64::from(data_bits_per_element(
@@ -602,7 +602,7 @@ mod wire_helpers {
                             }
                         }
                         ptr::write_bytes(ptr, 0u8,
-                                         BYTES_PER_WORD as usize *
+                                         BYTES_PER_WORD *
                                          ((*element_tag).struct_word_size() * count + 1) as usize);
                     }
                 }
@@ -711,7 +711,7 @@ mod wire_helpers {
 
                         // Count the actual size rather than the claimed word count because
                         // that's what we end up with if we make a copy.
-                        result.word_count += actual_size as u64 + POINTER_SIZE_IN_WORDS as u64;
+                        result.word_count += actual_size + POINTER_SIZE_IN_WORDS as u64;
 
                         let data_size = (*element_tag).struct_data_size();
                         let pointer_count = (*element_tag).struct_ptr_count();
@@ -1771,7 +1771,7 @@ mod wire_helpers {
         } else {
             //# List of structs.
 
-            let decl_data_size = value.struct_data_size as u32 / BITS_PER_WORD as u32;
+            let decl_data_size = value.struct_data_size / BITS_PER_WORD as u32;
             let decl_pointer_count = value.struct_pointer_count;
 
             let mut data_size = 0;
@@ -1804,7 +1804,7 @@ mod wire_helpers {
                         ptr_count = local_ptr_count;
                     }
                 }
-                total_size = (data_size as u32 + u32::from(ptr_count)) * value.element_count as u32;
+                total_size = (data_size + u32::from(ptr_count)) * value.element_count;
             } else {
                 data_size = decl_data_size;
                 ptr_count = decl_pointer_count;
@@ -3321,14 +3321,14 @@ impl <'a> ListReader<'a> {
                     if partial_byte & mask != 0 {
                         return Ok(false)
                     }
-                    byte_read_head = unsafe { byte_read_head.offset(1 as isize) };
+                    byte_read_head = unsafe { byte_read_head.offset(1_isize) };
                 }
 
                 while byte_read_head != read_head_end as *const u8 {
                     if unsafe { *byte_read_head } != 0 {
                         return Ok(false)
                     }
-                    byte_read_head = unsafe { byte_read_head.offset(1 as isize) };
+                    byte_read_head = unsafe { byte_read_head.offset(1_isize) };
                 }
 
                 read_head.set(read_head_end);

@@ -614,7 +614,7 @@ unsafe impl Allocator for HeapAllocator {
             }
             AllocationStrategy::FixedSize => { }
         }
-        (ptr, size as u32)
+        (ptr, size)
     }
 
     fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, _words_used: u32) {
