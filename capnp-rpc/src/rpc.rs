@@ -127,7 +127,7 @@ impl <T> ExportTable<T> {
         }
     }
 
-    pub fn find<'a>(&'a mut self, id: u32) -> Option<&'a mut T> {
+    pub fn find(&mut self, id: u32) -> Option<&mut T> {
         let idx = id as usize;
         if idx < self.slots.len() {
             match self.slots[idx] {
@@ -139,7 +139,7 @@ impl <T> ExportTable<T> {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> ExportTableIter<'a, T> {
+    pub fn iter(&self) -> ExportTableIter<T> {
         ExportTableIter {
             table: self,
             idx: 0
@@ -1586,7 +1586,7 @@ impl <VatId> Clone for Response<VatId> {
 }
 
 impl <VatId> ResponseHook for Response<VatId> {
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
         match *self.variant {
             ResponseVariant::Rpc(ref state) => {
                 match state.message.get_body()?.get_as::<message::Reader>()?.which()? {
@@ -1617,8 +1617,8 @@ struct Request<VatId> where VatId: 'static {
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
 }
 
-fn get_call<'a>(message: &'a mut Box<dyn crate::OutgoingMessage>)
-                -> ::capnp::Result<call::Builder<'a>>
+fn get_call(message: &mut Box<dyn crate::OutgoingMessage>)
+                -> ::capnp::Result<call::Builder>
 {
     let message_root: message::Builder = message.get_body()?.get_as()?;
     match message_root.which()? {
@@ -1645,7 +1645,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         })
     }
 
-    fn init_call<'a>(&'a mut self) -> call::Builder<'a> {
+    fn init_call(&mut self) -> call::Builder {
         let message_root: message::Builder = self.message.get_body().unwrap().get_as().unwrap();
         message_root.init_call()
     }
@@ -1697,7 +1697,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
 }
 
 impl <VatId> RequestHook for Request<VatId> {
-    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+    fn get(&mut self) -> any_pointer::Builder {
         use ::capnp::traits::ImbueMut;
         let mut builder = get_call(&mut self.message).unwrap().get_params().unwrap().get_content();
         builder.imbue_mut(&mut self.cap_table);
@@ -1964,7 +1964,7 @@ impl Params {
 }
 
 impl ParamsHook for Params {
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
         let root: message::Reader = self.request.get_body()?.get_as()?;
         match root.which()? {
             message::Call(call) => {
@@ -2062,7 +2062,7 @@ impl <VatId> Drop for Results<VatId> {
 }
 
 impl <VatId> ResultsHook for Results<VatId> {
-    fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
+    fn get(&mut self) -> ::capnp::Result<any_pointer::Builder> {
         use ::capnp::traits::ImbueMut;
         if let Some(ref mut inner) = self.inner {
             inner.ensure_initialized();
@@ -2287,7 +2287,7 @@ impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook> {
         Box::new(ResultsDone { inner: self.inner.clone() })
     }
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
         use ::capnp::traits::Imbue;
         match *self.inner {
             ResultsDoneVariant::Rpc(ref message, ref cap_table) => {

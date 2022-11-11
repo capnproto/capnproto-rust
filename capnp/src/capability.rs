@@ -182,7 +182,7 @@ impl <T> Params <T> {
     pub fn new(hook: Box<dyn ParamsHook>) -> Params<T> {
         Params { marker: PhantomData, hook }
     }
-    pub fn get<'a>(&'a self) -> crate::Result<T::Reader<'a>>
+    pub fn get(&self) -> crate::Result<T::Reader<'_>>
         where T: Owned
     {
         self.hook.get()?.get_as()

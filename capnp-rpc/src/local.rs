@@ -34,7 +34,7 @@ use std::mem;
 
 pub trait ResultsDoneHook {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook>;
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>>;
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader>;
 }
 
 impl Clone for Box<dyn ResultsDoneHook> {
@@ -56,7 +56,7 @@ impl Response {
 }
 
 impl ResponseHook for Response {
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
         self.results.get()
     }
 }
@@ -79,7 +79,7 @@ impl Params {
 }
 
 impl ParamsHook for Params {
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
         let mut result: any_pointer::Reader = self.request.get_root_as_reader()?;
         result.imbue(&self.cap_table);
         Ok(result)
@@ -114,7 +114,7 @@ impl Drop for Results {
 }
 
 impl ResultsHook for Results {
-    fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
+    fn get(&mut self) -> ::capnp::Result<any_pointer::Builder> {
         match *self {
             Results { message: Some(ref mut message), ref mut cap_table, .. } => {
                 let mut result: any_pointer::Builder = message.get_root()?;
@@ -168,7 +168,7 @@ impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook> {
         Box::new(ResultsDone { inner: self.inner.clone() })
     }
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
         let mut result: any_pointer::Reader = self.inner.message.get_root_as_reader()?;
         result.imbue(&self.inner.cap_table);
         Ok(result)
@@ -201,7 +201,7 @@ impl Request {
 }
 
 impl RequestHook for Request {
-    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+    fn get(&mut self) -> any_pointer::Builder {
         let mut result: any_pointer::Builder = self.message.get_root().unwrap();
         result.imbue_mut(&mut self.cap_table);
         result

@@ -106,8 +106,8 @@ mod task_set;
 pub mod twoparty;
 
 pub trait OutgoingMessage {
-    fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>>;
-    fn get_body_as_reader<'a>(&'a self) -> ::capnp::Result<::capnp::any_pointer::Reader<'a>>;
+    fn get_body(&mut self) -> ::capnp::Result<::capnp::any_pointer::Builder>;
+    fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader>;
 
     /// Sends the message. Returns a promise for the message that resolves once the send has completed.
     /// Dropping the returned promise does *not* cancel the send.
@@ -119,7 +119,7 @@ pub trait OutgoingMessage {
 }
 
 pub trait IncomingMessage {
-    fn get_body<'a>(&'a self) -> ::capnp::Result<::capnp::any_pointer::Reader<'a>>;
+    fn get_body(&self) -> ::capnp::Result<::capnp::any_pointer::Reader>;
 }
 
 pub trait Connection<VatId> {

@@ -434,7 +434,7 @@ impl <A> Builder<A> where A: Allocator {
         Ok(())
     }
 
-    pub fn get_segments_for_output(&self) -> OutputSegments<'_> {
+    pub fn get_segments_for_output(&self) -> OutputSegments {
         self.arena.get_segments_for_output()
     }
 
