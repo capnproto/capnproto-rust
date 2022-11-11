@@ -368,7 +368,7 @@ pub fn do_branding(gen: &GeneratorContext,
     accumulator.reverse();
     let accumulated = accumulator.concat();
 
-    let arguments = if accumulated.len() > 0 {
+    let arguments = if !accumulated.is_empty() {
         format!("<{}>", accumulated.join(","))
     } else {
         "".to_string()

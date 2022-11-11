@@ -394,7 +394,7 @@ pub mod test {
 
     impl AsOutputSegments for Vec<Vec<capnp::Word>> {
         fn as_output_segments<'a>(&'a self) -> OutputSegments<'a> {
-            if self.len() == 0 {
+            if self.is_empty() {
                 OutputSegments::SingleSegment([&[]])
             } else if self.len() == 1 {
                 OutputSegments::SingleSegment([capnp::Word::words_to_bytes(&self[0][..])])
@@ -494,7 +494,7 @@ pub mod test {
                       write_blocking_period: usize,
                       segments: Vec<Vec<capnp::Word>>) -> TestResult
         {
-            if segments.len() == 0 || read_blocking_period == 0 || write_blocking_period == 0 {
+            if segments.is_empty() || read_blocking_period == 0 || write_blocking_period == 0 {
                 return TestResult::discard();
             }
             let (mut read, segments) = {
