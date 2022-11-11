@@ -242,7 +242,7 @@ impl WirePointer {
 
     #[inline]
     pub fn struct_data_size(&self) -> WordCount16 {
-        (self.upper32bits.get() & 0xffffffff) as WordCount16
+        self.upper32bits.get() as WordCount16
     }
 
     #[inline]
@@ -2835,7 +2835,7 @@ impl <'a> StructReader<'a> {
             ptr: self.pointers as *const _,
             element_count: self.pointer_count as ElementCount32,
             element_size: ElementSize::Pointer,
-            step: 1 * BITS_PER_WORD as BitCount32,
+            step: BITS_PER_WORD as BitCount32,
             struct_data_size: 0,
             struct_pointer_count: 0,
             nesting_limit: self.nesting_limit,
