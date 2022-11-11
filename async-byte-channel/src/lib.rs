@@ -83,7 +83,7 @@ impl AsyncRead for Receiver {
         } else {
             assert!(inner.read_cursor < inner.write_cursor);
             let copy_len = std::cmp::min(buf.len(), inner.write_cursor - inner.read_cursor);
-            (&mut buf[0..copy_len]).copy_from_slice(&inner.buffer[inner.read_cursor .. inner.read_cursor + copy_len]);
+            buf[0..copy_len].copy_from_slice(&inner.buffer[inner.read_cursor .. inner.read_cursor + copy_len]);
             inner.read_cursor += copy_len;
             if let Some(write_waker) = inner.write_waker.take() {
                 write_waker.wake();
@@ -117,7 +117,7 @@ impl AsyncWrite for Sender {
 
         let copy_len = std::cmp::min(buf.len(), inner.buffer.len() - inner.write_cursor);
         let dest_range = inner.write_cursor..inner.write_cursor + copy_len;
-        (&mut inner.buffer[dest_range]).copy_from_slice(&buf[0..copy_len]);
+        inner.buffer[dest_range].copy_from_slice(&buf[0..copy_len]);
         inner.write_cursor += copy_len;
         if let Some(read_waker) = inner.read_waker.take() {
             read_waker.wake();

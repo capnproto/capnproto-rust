@@ -448,14 +448,14 @@ impl <W> AsyncWrite for PackedWrite<W> where W: AsyncWrite + Unpin {
         cx: &mut Context<'_>,
         inbuf: &[u8]
     ) -> Poll<std::result::Result<usize, std::io::Error>> {
-        (&mut *self).poll_write_aux(cx, inbuf)
+        (*self).poll_write_aux(cx, inbuf)
     }
 
     fn poll_flush(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>
     ) -> Poll<std::result::Result<(), std::io::Error>> {
-        match (&mut *self).finish_pending_writes(cx)? {
+        match (*self).finish_pending_writes(cx)? {
             Poll::Pending => return Poll::Pending,
             Poll::Ready(_) => (),
         }

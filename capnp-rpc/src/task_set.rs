@@ -134,7 +134,7 @@ impl <E> Future for TaskSet<E> where E: 'static {
                         in_progress.push(TaskInProgress::Terminate(Some(r)));
                     }
                     Poll::Ready(Some(EnqueuedTask::Task(f))) => {
-                        let reaper = Rc::downgrade(&reaper);
+                        let reaper = Rc::downgrade(reaper);
                         in_progress.push(
                             TaskInProgress::Task(Box::pin(
                                 f.map(move |r| {
