@@ -17,13 +17,12 @@ pub trait Read {
 
     fn read_exact(&mut self, mut buf: &mut [u8]) -> Result<()> {
         while !buf.is_empty() {
-            match self.read(buf) {
-                Ok(0) => break,
-                Ok(n) => {
+            match self.read(buf)? {
+                0 => break,
+                n => {
                     let tmp = buf;
                     buf = &mut tmp[n..];
                 }
-                Err(e) => return Err(e.into()),
             }
         }
         if !buf.is_empty() {
