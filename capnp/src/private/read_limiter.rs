@@ -24,8 +24,8 @@ pub use sync::ReadLimiter;
 
 #[cfg(feature = "sync_reader")]
 mod sync {
-    use alloc::string::String;
     use crate::{Error, Result};
+    use alloc::string::String;
     use core::sync::atomic::{AtomicUsize, Ordering};
 
     pub struct ReadLimiter {
@@ -36,18 +36,14 @@ mod sync {
     impl ReadLimiter {
         pub fn new(limit: Option<usize>) -> ReadLimiter {
             match limit {
-                Some(value) => {
-                    ReadLimiter {
-                        limit: AtomicUsize::new(value),
-                        error_on_limit_exceeded: true,
-                    }
-                }
-                None => {
-                    ReadLimiter {
-                        limit: AtomicUsize::new(usize::MAX),
-                        error_on_limit_exceeded: false,
-                    }
-                }
+                Some(value) => ReadLimiter {
+                    limit: AtomicUsize::new(value),
+                    error_on_limit_exceeded: true,
+                },
+                None => ReadLimiter {
+                    limit: AtomicUsize::new(usize::MAX),
+                    error_on_limit_exceeded: false,
+                },
             }
         }
 
@@ -66,7 +62,8 @@ mod sync {
                 // The common case is current >= amount. Note that we only branch once in that case.
                 // If we combined the fields into an Option<AtomicUsize>, we would
                 // need to branch twice in the common case.
-                self.limit.store(current.wrapping_sub(amount), Ordering::Relaxed);
+                self.limit
+                    .store(current.wrapping_sub(amount), Ordering::Relaxed);
             }
             Ok(())
         }
@@ -78,8 +75,8 @@ pub use unsync::ReadLimiter;
 
 #[cfg(not(feature = "sync_reader"))]
 mod unsync {
-    use alloc::string::String;
     use crate::{Error, Result};
+    use alloc::string::String;
     use core::cell::Cell;
 
     pub struct ReadLimiter {
@@ -90,18 +87,14 @@ mod unsync {
     impl ReadLimiter {
         pub fn new(limit: Option<usize>) -> ReadLimiter {
             match limit {
-                Some(value) => {
-                    ReadLimiter {
-                        limit: Cell::new(value),
-                        error_on_limit_exceeded: true,
-                    }
-                }
-                None => {
-                    ReadLimiter {
-                        limit: Cell::new(usize::MAX),
-                        error_on_limit_exceeded: false,
-                    }
-                }
+                Some(value) => ReadLimiter {
+                    limit: Cell::new(value),
+                    error_on_limit_exceeded: true,
+                },
+                None => ReadLimiter {
+                    limit: Cell::new(usize::MAX),
+                    error_on_limit_exceeded: false,
+                },
             }
         }
 

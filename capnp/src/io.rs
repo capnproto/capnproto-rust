@@ -26,7 +26,9 @@ pub trait Read {
             }
         }
         if !buf.is_empty() {
-            Err(crate::Error::failed("failed to fill the whole buffer".to_string()))
+            Err(crate::Error::failed(
+                "failed to fill the whole buffer".to_string(),
+            ))
         } else {
             Ok(())
         }
@@ -34,7 +36,7 @@ pub trait Read {
 }
 
 /// A rough approximation of std::io::BufRead.
-pub trait BufRead : Read {
+pub trait BufRead: Read {
     fn fill_buf(&mut self) -> Result<&[u8]>;
     fn consume(&mut self, amt: usize);
 }
@@ -44,12 +46,15 @@ pub trait Write {
     fn write_all(&mut self, buf: &[u8]) -> Result<()>;
 }
 
-#[cfg(feature="std")]
+#[cfg(feature = "std")]
 mod std_impls {
-    use crate::{Result};
-    use crate::io::{Read, BufRead, Write};
+    use crate::io::{BufRead, Read, Write};
+    use crate::Result;
 
-    impl <R> Read for R where R: std::io::Read {
+    impl<R> Read for R
+    where
+        R: std::io::Read,
+    {
         fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
             loop {
                 match std::io::Read::read(self, buf) {
@@ -61,7 +66,10 @@ mod std_impls {
         }
     }
 
-    impl <R> BufRead for R where R: std::io::BufRead {
+    impl<R> BufRead for R
+    where
+        R: std::io::BufRead,
+    {
         fn fill_buf(&mut self) -> Result<&[u8]> {
             Ok(std::io::BufRead::fill_buf(self)?)
         }
@@ -70,7 +78,10 @@ mod std_impls {
         }
     }
 
-    impl <W> Write for W where W: std::io::Write {
+    impl<W> Write for W
+    where
+        W: std::io::Write,
+    {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
             std::io::Write::write_all(self, buf)?;
             Ok(())
@@ -78,13 +89,13 @@ mod std_impls {
     }
 }
 
-#[cfg(not(feature="std"))]
+#[cfg(not(feature = "std"))]
 mod no_std_impls {
-    use alloc::string::ToString;
+    use crate::io::{BufRead, Read, Write};
     use crate::{Error, Result};
-    use crate::io::{Read, BufRead, Write};
+    use alloc::string::ToString;
 
-    impl <'a> Write for &'a mut [u8] {
+    impl<'a> Write for &'a mut [u8] {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
             if buf.len() > self.len() {
                 return Err(Error::failed("buffer is not large enough".to_string()));
@@ -104,13 +115,16 @@ mod no_std_impls {
         }
     }
 
-    impl <W: ?Sized> Write for &mut W where W: Write {
+    impl<W: ?Sized> Write for &mut W
+    where
+        W: Write,
+    {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
             (**self).write_all(buf)
         }
     }
 
-    impl <'a> Read for &'a [u8] {
+    impl<'a> Read for &'a [u8] {
         fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
             let amt = core::cmp::min(buf.len(), self.len());
             let (a, b) = self.split_at(amt);
@@ -121,13 +135,16 @@ mod no_std_impls {
         }
     }
 
-    impl <R: ?Sized> Read for &mut R where R: Read {
+    impl<R: ?Sized> Read for &mut R
+    where
+        R: Read,
+    {
         fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
             (**self).read(buf)
         }
     }
 
-    impl <'a> BufRead for &'a [u8] {
+    impl<'a> BufRead for &'a [u8] {
         fn fill_buf(&mut self) -> Result<&[u8]> {
             Ok(*self)
         }
@@ -136,7 +153,10 @@ mod no_std_impls {
         }
     }
 
-    impl <R: ?Sized> BufRead for &mut R where R: BufRead {
+    impl<R: ?Sized> BufRead for &mut R
+    where
+        R: BufRead,
+    {
         fn fill_buf(&mut self) -> Result<&[u8]> {
             (**self).fill_buf()
         }

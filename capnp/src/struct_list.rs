@@ -23,63 +23,105 @@
 
 use core::marker::PhantomData;
 
-use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
-use crate::traits::{FromPointerReader, FromPointerBuilder,
-                    FromStructBuilder, FromStructReader, HasStructSize,
-                    IndexMove, ListIter};
+use crate::private::layout::{
+    InlineComposite, ListBuilder, ListReader, PointerBuilder, PointerReader,
+};
+use crate::traits::{
+    FromPointerBuilder, FromPointerReader, FromStructBuilder, FromStructReader, HasStructSize,
+    IndexMove, ListIter,
+};
 use crate::Result;
 
 #[derive(Copy, Clone)]
-pub struct Owned<T> where T: crate::traits::OwnedStruct {
+pub struct Owned<T>
+where
+    T: crate::traits::OwnedStruct,
+{
     marker: PhantomData<T>,
 }
 
-impl<T> crate::traits::Owned for Owned<T> where T: crate::traits::OwnedStruct {
+impl<T> crate::traits::Owned for Owned<T>
+where
+    T: crate::traits::OwnedStruct,
+{
     type Reader<'a> = Reader<'a, T>;
     type Builder<'a> = Builder<'a, T>;
 }
 
-pub struct Reader<'a, T> where T: crate::traits::OwnedStruct {
+pub struct Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     marker: PhantomData<T>,
-    reader: ListReader<'a>
+    reader: ListReader<'a>,
 }
 
-impl <'a, T> Clone for Reader<'a, T> where T: crate::traits::OwnedStruct {
+impl<'a, T> Clone for Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     fn clone(&self) -> Reader<'a, T> {
-        Reader { marker : self.marker, reader : self.reader }
+        Reader {
+            marker: self.marker,
+            reader: self.reader,
+        }
     }
 }
-impl <'a, T> Copy for Reader<'a, T> where T: crate::traits::OwnedStruct {}
+impl<'a, T> Copy for Reader<'a, T> where T: crate::traits::OwnedStruct {}
 
-impl <'a, T> Reader<'a, T> where T: crate::traits::OwnedStruct {
-    pub fn len(&self) -> u32 { self.reader.len() }
+impl<'a, T> Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
+    pub fn len(&self) -> u32 {
+        self.reader.len()
+    }
 
     pub fn iter(self) -> ListIter<Reader<'a, T>, T::Reader<'a>> {
         ListIter::new(self, self.len())
     }
 }
 
-impl <'a, T> Reader<'a, T> where T: crate::traits::OwnedStruct {
-    pub fn reborrow(&self) -> Reader<'_, T>  {
-        Reader { reader: self.reader, marker: PhantomData }
+impl<'a, T> Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
+    pub fn reborrow(&self) -> Reader<'_, T> {
+        Reader {
+            reader: self.reader,
+            marker: PhantomData,
+        }
     }
 }
 
-impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: crate::traits::OwnedStruct {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader: reader.get_list(InlineComposite, default)?,
-                    marker: PhantomData })
+impl<'a, T> FromPointerReader<'a> for Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
+    fn get_from_pointer(
+        reader: &PointerReader<'a>,
+        default: Option<&'a [crate::Word]>,
+    ) -> Result<Reader<'a, T>> {
+        Ok(Reader {
+            reader: reader.get_list(InlineComposite, default)?,
+            marker: PhantomData,
+        })
     }
 }
 
-impl <'a, T>  IndexMove<u32, T::Reader<'a>> for Reader<'a, T>
-where T: crate::traits::OwnedStruct {
+impl<'a, T> IndexMove<u32, T::Reader<'a>> for Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     fn index_move(&self, index: u32) -> T::Reader<'a> {
         self.get(index)
     }
 }
 
-impl <'a, T> Reader<'a, T> where T: crate::traits::OwnedStruct {
+impl<'a, T> Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     /// Gets the element at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(self, index: u32) -> T::Reader<'a> {
@@ -98,19 +140,30 @@ impl <'a, T> Reader<'a, T> where T: crate::traits::OwnedStruct {
     }
 }
 
-impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: crate::traits::OwnedStruct {
+impl<'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     fn into_internal_list_reader(self) -> ListReader<'a> {
         self.reader
     }
 }
 
-pub struct Builder<'a, T> where T: crate::traits::OwnedStruct {
+pub struct Builder<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     marker: PhantomData<T>,
-    builder: ListBuilder<'a>
+    builder: ListBuilder<'a>,
 }
 
-impl <'a, T> Builder<'a, T> where T: crate::traits::OwnedStruct {
-    pub fn len(&self) -> u32 { self.builder.len() }
+impl<'a, T> Builder<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
+    pub fn len(&self) -> u32 {
+        self.builder.len()
+    }
 
     pub fn into_reader(self) -> Reader<'a, T> {
         Reader {
@@ -123,41 +176,54 @@ impl <'a, T> Builder<'a, T> where T: crate::traits::OwnedStruct {
     /// struct list are allocated inline: if the source struct is larger than the target struct
     /// (as can happen if it was created with a newer version of the schema), then it will be
     /// truncated, losing fields.
-    pub fn set_with_caveats<'b>(&self, index: u32, value: T::Reader<'b>)
-               -> Result<()>
-        where T::Reader<'b>: crate::traits::IntoInternalStructReader<'b>
+    pub fn set_with_caveats<'b>(&self, index: u32, value: T::Reader<'b>) -> Result<()>
+    where
+        T::Reader<'b>: crate::traits::IntoInternalStructReader<'b>,
     {
         use crate::traits::IntoInternalStructReader;
-        self.builder.get_struct_element(index).copy_content_from(&value.into_internal_struct_reader())
+        self.builder
+            .get_struct_element(index)
+            .copy_content_from(&value.into_internal_struct_reader())
     }
 }
 
-impl <'a, T> Builder<'a, T> where T: crate::traits::OwnedStruct {
+impl<'a, T> Builder<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     pub fn reborrow(&mut self) -> Builder<'_, T> {
-        Builder { builder: self.builder, marker: PhantomData }
+        Builder {
+            builder: self.builder,
+            marker: PhantomData,
+        }
     }
-
 }
 
-impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: crate::traits::OwnedStruct {
+impl<'a, T> FromPointerBuilder<'a> for Builder<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     fn init_pointer(builder: PointerBuilder<'a>, size: u32) -> Builder<'a, T> {
         Builder {
             marker: PhantomData,
-            builder: builder.init_struct_list(
-                size,
-                T::Builder::STRUCT_SIZE)
+            builder: builder.init_struct_list(size, T::Builder::STRUCT_SIZE),
         }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(
+        builder: PointerBuilder<'a>,
+        default: Option<&'a [crate::Word]>,
+    ) -> Result<Builder<'a, T>> {
         Ok(Builder {
             marker: PhantomData,
-            builder:
-            builder.get_struct_list(T::Builder::STRUCT_SIZE, default)?
+            builder: builder.get_struct_list(T::Builder::STRUCT_SIZE, default)?,
         })
     }
 }
 
-impl <'a, T> Builder<'a, T> where T: crate::traits::OwnedStruct {
+impl<'a, T> Builder<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+{
     /// Gets the element at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(self, index: u32) -> T::Builder<'a> {
@@ -169,25 +235,31 @@ impl <'a, T> Builder<'a, T> where T: crate::traits::OwnedStruct {
     /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<T::Builder<'a>> {
         if index < self.len() {
-            Some(FromStructBuilder::new(self.builder.get_struct_element(index)))
+            Some(FromStructBuilder::new(
+                self.builder.get_struct_element(index),
+            ))
         } else {
             None
         }
     }
 }
 
-impl <'a, T> crate::traits::SetPointerBuilder for Reader<'a, T>
-    where T: crate::traits::OwnedStruct
+impl<'a, T> crate::traits::SetPointerBuilder for Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
 {
-    fn set_pointer_builder<'b>(pointer: crate::private::layout::PointerBuilder<'b>,
-                               value: Reader<'a, T>,
-                               canonicalize: bool) -> Result<()> {
+    fn set_pointer_builder<'b>(
+        pointer: crate::private::layout::PointerBuilder<'b>,
+        value: Reader<'a, T>,
+        canonicalize: bool,
+    ) -> Result<()> {
         pointer.set_list(&value.reader, canonicalize)
     }
 }
 
-impl <'a, T> ::core::iter::IntoIterator for Reader<'a, T>
-    where T: crate::traits::OwnedStruct
+impl<'a, T> ::core::iter::IntoIterator for Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
 {
     type Item = T::Reader<'a>;
     type IntoIter = ListIter<Reader<'a, T>, Self::Item>;

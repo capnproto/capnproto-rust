@@ -23,7 +23,7 @@ extern crate capnp;
 extern crate core;
 
 pub mod addressbook_capnp {
-  include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
+    include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }
 
 use capnp::message::{Builder, HeapAllocator, TypedReader};
@@ -32,7 +32,7 @@ use std::thread;
 
 pub mod addressbook {
     use addressbook_capnp::{address_book, person};
-    use capnp::message::{Builder, HeapAllocator, TypedReader, TypedBuilder};
+    use capnp::message::{Builder, HeapAllocator, TypedBuilder, TypedReader};
 
     pub fn build_address_book() -> TypedReader<Builder<HeapAllocator>, address_book::Owned> {
         let mut message = TypedBuilder::<address_book::Owned>::new_default();
@@ -49,7 +49,10 @@ pub mod addressbook {
                 {
                     let mut alice_phones = alice.reborrow().init_phones(1);
                     alice_phones.reborrow().get(0).set_number("555-1212");
-                    alice_phones.reborrow().get(0).set_type(person::phone_number::Type::Mobile);
+                    alice_phones
+                        .reborrow()
+                        .get(0)
+                        .set_type(person::phone_number::Type::Mobile);
                 }
                 alice.get_employment().set_school("MIT");
             }
@@ -62,9 +65,15 @@ pub mod addressbook {
                 {
                     let mut bob_phones = bob.reborrow().init_phones(2);
                     bob_phones.reborrow().get(0).set_number("555-4567");
-                    bob_phones.reborrow().get(0).set_type(person::phone_number::Type::Home);
+                    bob_phones
+                        .reborrow()
+                        .get(0)
+                        .set_type(person::phone_number::Type::Home);
                     bob_phones.reborrow().get(1).set_number("555-7654");
-                    bob_phones.reborrow().get(1).set_type(person::phone_number::Type::Work);
+                    bob_phones
+                        .reborrow()
+                        .get(1)
+                        .set_type(person::phone_number::Type::Work);
                 }
                 bob.get_employment().set_unemployed(());
             }
@@ -84,10 +93,11 @@ pub mod addressbook {
 }
 
 pub fn main() {
-
     let book = addressbook::build_address_book();
 
-    let (tx_book, rx_book) = mpsc::channel::<TypedReader<Builder<HeapAllocator>, addressbook_capnp::address_book::Owned>>();
+    let (tx_book, rx_book) = mpsc::channel::<
+        TypedReader<Builder<HeapAllocator>, addressbook_capnp::address_book::Owned>,
+    >();
     let (tx_id, rx_id) = mpsc::channel::<u32>();
 
     thread::spawn(move || {

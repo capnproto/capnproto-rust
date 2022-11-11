@@ -72,17 +72,23 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
     use std::io;
     let kind = match err.kind() {
         io::ErrorKind::TimedOut => capnp::ErrorKind::Overloaded,
-        io::ErrorKind::BrokenPipe |
-        io::ErrorKind::ConnectionRefused |
-        io::ErrorKind::ConnectionReset |
-        io::ErrorKind::ConnectionAborted |
-        io::ErrorKind::NotConnected  => capnp::ErrorKind::Disconnected,
+        io::ErrorKind::BrokenPipe
+        | io::ErrorKind::ConnectionRefused
+        | io::ErrorKind::ConnectionReset
+        | io::ErrorKind::ConnectionAborted
+        | io::ErrorKind::NotConnected => capnp::ErrorKind::Disconnected,
         _ => capnp::ErrorKind::Failed,
     };
-    capnp::Error { description: format!("{}", err), kind }
+    capnp::Error {
+        description: format!("{}", err),
+        kind,
+    }
 }
 
-fn run_command(mut command: ::std::process::Command, mut code_generation_command: codegen::CodeGenerationCommand) -> ::capnp::Result<()> {
+fn run_command(
+    mut command: ::std::process::Command,
+    mut code_generation_command: codegen::CodeGenerationCommand,
+) -> ::capnp::Result<()> {
     let mut p = command.spawn().map_err(convert_io_err)?;
     code_generation_command.run(p.stdout.take().unwrap())?;
     let exit_status = p.wait().map_err(convert_io_err)?;
@@ -172,7 +178,7 @@ impl CompilerCommand {
     /// on the system (e.g. in working directory or in PATH environment variable).
     pub fn capnp_executable<P>(&mut self, path: P) -> &mut CompilerCommand
     where
-        P: AsRef<Path>
+        P: AsRef<Path>,
     {
         self.executable_path = Some(path.as_ref().to_path_buf());
         self
@@ -196,8 +202,10 @@ impl CompilerCommand {
     /// This option can be overridden by the `parentModule` annotation defined in `rust.capnp`.
     ///
     /// If this option is unset, the default is the crate root.
-    pub fn default_parent_module(&mut self, default_parent_module: Vec<String>) -> &mut CompilerCommand
-    {
+    pub fn default_parent_module(
+        &mut self,
+        default_parent_module: Vec<String>,
+    ) -> &mut CompilerCommand {
         self.default_parent_module = default_parent_module;
         self
     }
@@ -276,7 +284,8 @@ impl CompilerCommand {
             .output_directory(output_path)
             .default_parent_module(self.default_parent_module.clone());
         if let Some(raw_code_generator_request_path) = &self.raw_code_generator_request_path {
-            code_generation_command.raw_code_generator_request_path(raw_code_generator_request_path.clone());
+            code_generation_command
+                .raw_code_generator_request_path(raw_code_generator_request_path.clone());
         }
 
         run_command(command, code_generation_command).map_err(|error| {
@@ -298,6 +307,10 @@ fn compiler_command_new_no_out_dir() {
 
 #[test]
 fn compiler_command_with_output_path_no_out_dir() {
-    let error = CompilerCommand::new().output_path("foo").run().unwrap_err().description;
+    let error = CompilerCommand::new()
+        .output_path("foo")
+        .run()
+        .unwrap_err()
+        .description;
     assert!(error.starts_with("Error while trying to execute `capnp compile`"));
 }

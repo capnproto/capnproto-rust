@@ -88,3 +88,18 @@ jobs:
     - name: Run tests
       run: cargo test -p capnp -p capnpc -p capnp-futures -p capnp-rpc
 
+  fmt:
+    name: formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          profile: minimal
+          components: rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check

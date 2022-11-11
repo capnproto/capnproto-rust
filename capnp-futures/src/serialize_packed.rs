@@ -25,8 +25,8 @@
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use capnp::{message, Result};
 use capnp::serialize::OwnedSegments;
+use capnp::{message, Result};
 use futures::{AsyncRead, AsyncWrite};
 
 use crate::serialize::AsOutputSegments;
@@ -40,7 +40,10 @@ enum PackedReadStage {
 }
 
 /// An `AsyncRead` wrapper that unpacks packed data.
-pub struct PackedRead<R> where R: AsyncRead + Unpin {
+pub struct PackedRead<R>
+where
+    R: AsyncRead + Unpin,
+{
     inner: R,
     stage: PackedReadStage,
 
@@ -55,28 +58,42 @@ pub struct PackedRead<R> where R: AsyncRead + Unpin {
     num_run_bytes_remaining: usize,
 }
 
-impl <R> PackedRead<R> where R: AsyncRead + Unpin {
+impl<R> PackedRead<R>
+where
+    R: AsyncRead + Unpin,
+{
     /// Creates a new `PackedRead` from a `AsyncRead`. For optimal performance,
     /// `inner` should be a buffered `AsyncRead`.
     pub fn new(inner: R) -> Self {
-        Self { inner,
-               stage: PackedReadStage::Start,
-               buf: [0; 10],
-               buf_pos: 0,
-               buf_size: 10,
-               num_run_bytes_remaining: 0,
+        Self {
+            inner,
+            stage: PackedReadStage::Start,
+            buf: [0; 10],
+            buf_pos: 0,
+            buf_size: 10,
+            num_run_bytes_remaining: 0,
         }
     }
 }
 
-impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
+impl<R> AsyncRead for PackedRead<R>
+where
+    R: AsyncRead + Unpin,
+{
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
-        outbuf: &mut [u8]
+        outbuf: &mut [u8],
     ) -> Poll<std::result::Result<usize, std::io::Error>> {
-        let PackedRead { stage, inner, buf, buf_pos, num_run_bytes_remaining,
-                         buf_size, .. } = &mut *self;
+        let PackedRead {
+            stage,
+            inner,
+            buf,
+            buf_pos,
+            num_run_bytes_remaining,
+            buf_size,
+            ..
+        } = &mut *self;
         loop {
             match *stage {
                 PackedReadStage::Start => {
@@ -101,11 +118,11 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
                             }
                         }
                     }
-                },
+                }
                 PackedReadStage::WritingZeroes => {
                     let num_zeroes = std::cmp::min(outbuf.len(), *num_run_bytes_remaining);
 
-                    for ii in 0 .. num_zeroes {
+                    for ii in 0..num_zeroes {
                         outbuf[ii] = 0;
                     }
                     if num_zeroes >= *num_run_bytes_remaining {
@@ -117,8 +134,7 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
                     return Poll::Ready(Ok(num_zeroes));
                 }
                 PackedReadStage::BufferingWord => {
-                    match Pin::new(&mut *inner).poll_read(cx,
-                                                          &mut buf[*buf_pos..*buf_size])? {
+                    match Pin::new(&mut *inner).poll_read(cx, &mut buf[*buf_pos..*buf_size])? {
                         Poll::Pending => return Poll::Pending,
                         Poll::Ready(n) => {
                             *buf_pos += n;
@@ -132,8 +148,7 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
                 PackedReadStage::DrainingBuffer => {
                     let mut ii = 0;
                     let mut bitnum = *buf_pos - 1;
-                    while ii < outbuf.len() && bitnum < 8
-                    {
+                    while ii < outbuf.len() && bitnum < 8 {
                         let is_nonzero = (buf[0] & (1u8 << bitnum)) != 0;
                         outbuf[ii] = buf[*buf_pos] & ((-i8::from(is_nonzero)) as u8);
                         ii += 1;
@@ -161,8 +176,7 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
                     if upper_bound == 0 {
                         *stage = PackedReadStage::Start;
                     } else {
-                        match Pin::new(&mut *inner).poll_read(cx,
-                                                              &mut outbuf[0 ..upper_bound])? {
+                        match Pin::new(&mut *inner).poll_read(cx, &mut outbuf[0..upper_bound])? {
                             Poll::Pending => return Poll::Pending,
                             Poll::Ready(n) => {
                                 if n >= *num_run_bytes_remaining {
@@ -185,22 +199,26 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
 /// repeatedly until it returns `None`.
 pub async fn try_read_message<R>(
     read: R,
-    options: message::ReaderOptions)
--> Result<Option<message::Reader<OwnedSegments>>>
-    where R: AsyncRead + Unpin
+    options: message::ReaderOptions,
+) -> Result<Option<message::Reader<OwnedSegments>>>
+where
+    R: AsyncRead + Unpin,
 {
     let packed_read = PackedRead::new(read);
     crate::serialize::try_read_message(packed_read, options).await
 }
 
 /// Asynchronously reads a message from `reader`.
-pub async fn read_message<R>(reader: R, options: message::ReaderOptions)
-                             -> Result<message::Reader<OwnedSegments>>
-where R: AsyncRead + Unpin
+pub async fn read_message<R>(
+    reader: R,
+    options: message::ReaderOptions,
+) -> Result<message::Reader<OwnedSegments>>
+where
+    R: AsyncRead + Unpin,
 {
     match try_read_message(reader, options).await? {
         Some(s) => Ok(s),
-        None => Err(capnp::Error::failed("Premature end of file".to_string()))
+        None => Err(capnp::Error::failed("Premature end of file".to_string())),
     }
 }
 
@@ -213,7 +231,10 @@ enum PackedWriteStage {
 }
 
 /// An `AsyncWrite` wrapper that packs any data passed into it.
-pub struct PackedWrite<W> where W: AsyncWrite + Unpin {
+pub struct PackedWrite<W>
+where
+    W: AsyncWrite + Unpin,
+{
     inner: W,
     stage: PackedWriteStage,
     buf: [u8; 8],
@@ -226,20 +247,27 @@ pub struct PackedWrite<W> where W: AsyncWrite + Unpin {
     run_bytes_remaining: usize,
 }
 
-struct FinishPendingWrites<W> where W: AsyncWrite + Unpin {
-    inner: PackedWrite<W>
+struct FinishPendingWrites<W>
+where
+    W: AsyncWrite + Unpin,
+{
+    inner: PackedWrite<W>,
 }
 
-impl <W> FinishPendingWrites<W> where W: AsyncWrite + Unpin {
+impl<W> FinishPendingWrites<W>
+where
+    W: AsyncWrite + Unpin,
+{
     fn new(inner: PackedWrite<W>) -> Self {
-        Self {
-            inner
-        }
+        Self { inner }
     }
 }
 
-impl <W> std::future::Future for FinishPendingWrites<W> where W: AsyncWrite + Unpin {
-    type Output = std::result::Result<(),capnp::Error>;
+impl<W> std::future::Future for FinishPendingWrites<W>
+where
+    W: AsyncWrite + Unpin,
+{
+    type Output = std::result::Result<(), capnp::Error>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         match self.inner.finish_pending_writes(cx)? {
             Poll::Ready(()) => Poll::Ready(Ok(())),
@@ -251,8 +279,10 @@ impl <W> std::future::Future for FinishPendingWrites<W> where W: AsyncWrite + Un
 /// Writes the provided message to `writer`. Does not call `writer.flush()`,
 /// so that multiple successive calls can amortize work when `writer` is
 /// buffered.
-pub async fn write_message<W,M>(writer: W, message: M) -> Result<()>
-    where W: AsyncWrite + Unpin, M: AsOutputSegments
+pub async fn write_message<W, M>(writer: W, message: M) -> Result<()>
+where
+    W: AsyncWrite + Unpin,
+    M: AsOutputSegments,
 {
     let mut packed_write = PackedWrite::new(writer);
     crate::serialize::write_message(&mut packed_write, message).await?;
@@ -262,28 +292,39 @@ pub async fn write_message<W,M>(writer: W, message: M) -> Result<()>
     FinishPendingWrites::new(packed_write).await
 }
 
-impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
+impl<W> PackedWrite<W>
+where
+    W: AsyncWrite + Unpin,
+{
     /// Creates a new `PackedWrite` from a `AsyncWrite`. For optimal performance,
     /// `inner` should be a buffered `AsyncWrite`.
     pub fn new(inner: W) -> Self {
-        Self { inner,
-               stage: PackedWriteStage::Start,
-               buf: [0; 8],
-               buf_pos: 0,
-               packed_buf: [0; 9],
-               packed_buf_size: 0,
-               run_bytes_remaining: 0,
+        Self {
+            inner,
+            stage: PackedWriteStage::Start,
+            buf: [0; 8],
+            buf_pos: 0,
+            packed_buf: [0; 9],
+            packed_buf_size: 0,
+            run_bytes_remaining: 0,
         }
     }
 
     fn poll_write_aux(
         &mut self,
         cx: &mut Context<'_>,
-        mut inbuf: &[u8]
+        mut inbuf: &[u8],
     ) -> Poll<std::result::Result<usize, std::io::Error>> {
         let mut inbuf_bytes_consumed: usize = 0;
-        let PackedWrite { stage, inner, buf, buf_pos, packed_buf,
-                          packed_buf_size, run_bytes_remaining } = self;
+        let PackedWrite {
+            stage,
+            inner,
+            buf,
+            buf_pos,
+            packed_buf,
+            packed_buf_size,
+            run_bytes_remaining,
+        } = self;
         loop {
             match *stage {
                 PackedWriteStage::Start => {
@@ -294,7 +335,7 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
                     // copy inbuf into buf
                     let buf_bytes_remaining = 8 - *buf_pos;
                     let bytes_to_copy = std::cmp::min(buf_bytes_remaining, inbuf.len());
-                    buf[*buf_pos ..(*buf_pos + bytes_to_copy)]
+                    buf[*buf_pos..(*buf_pos + bytes_to_copy)]
                         .copy_from_slice(&inbuf[..bytes_to_copy]);
                     inbuf = &inbuf[bytes_to_copy..];
                     inbuf_bytes_consumed += bytes_to_copy;
@@ -303,7 +344,7 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
                     if *buf_pos == 8 {
                         // compute tag
                         packed_buf[0] = 0;
-                        let mut packed_buf_idx : usize = 1;
+                        let mut packed_buf_idx: usize = 1;
                         for (ii, b) in buf.iter().enumerate() {
                             if *b != 0 {
                                 packed_buf[0] |= 1 << ii;
@@ -317,9 +358,9 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
                     }
                 }
                 PackedWriteStage::WriteWord => {
-                    match Pin::new(&mut *inner).poll_write(
-                        cx,
-                        &packed_buf[*buf_pos.. *packed_buf_size])? {
+                    match Pin::new(&mut *inner)
+                        .poll_write(cx, &packed_buf[*buf_pos..*packed_buf_size])?
+                    {
                         Poll::Pending => {
                             if inbuf_bytes_consumed == 0 {
                                 return Poll::Pending;
@@ -351,7 +392,9 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
 
                             let mut zero_bytes_in_word = 0;
                             for (idx, inb) in inbuf.iter().enumerate() {
-                                if idx % 8 == 0 { zero_bytes_in_word = 0; }
+                                if idx % 8 == 0 {
+                                    zero_bytes_in_word = 0;
+                                }
                                 if *inb == 0 {
                                     zero_bytes_in_word += 1;
                                     if zero_bytes_in_word > 1 {
@@ -369,9 +412,9 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
                     }
                 }
                 PackedWriteStage::WriteRunWordCount => {
-                    match Pin::new(&mut *inner).poll_write(
-                        cx,
-                        &[(*run_bytes_remaining / 8) as u8])? {
+                    match Pin::new(&mut *inner)
+                        .poll_write(cx, &[(*run_bytes_remaining / 8) as u8])?
+                    {
                         Poll::Pending => {
                             if inbuf_bytes_consumed == 0 {
                                 return Poll::Pending;
@@ -382,7 +425,7 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
                         Poll::Ready(1) => {
                             if packed_buf[0] == 0 {
                                 // we're done here
-                                inbuf = &inbuf[(*run_bytes_remaining) ..];
+                                inbuf = &inbuf[(*run_bytes_remaining)..];
                                 inbuf_bytes_consumed += *run_bytes_remaining;
                                 *buf_pos = 0;
                                 *stage = PackedWriteStage::Start;
@@ -399,9 +442,7 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
                 }
 
                 PackedWriteStage::WriteUncompressedRun => {
-                    match Pin::new(&mut *inner).poll_write(
-                        cx,
-                        &inbuf[..*run_bytes_remaining])? {
+                    match Pin::new(&mut *inner).poll_write(cx, &inbuf[..*run_bytes_remaining])? {
                         Poll::Pending => {
                             if inbuf_bytes_consumed == 0 {
                                 return Poll::Pending;
@@ -428,10 +469,10 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
     /// Finish any work that we can do without any new bytes.
     fn finish_pending_writes(
         &mut self,
-        cx: &mut Context<'_>
+        cx: &mut Context<'_>,
     ) -> Poll<std::result::Result<(), std::io::Error>> {
-        while self.stage == PackedWriteStage::WriteWord ||
-            self.stage == PackedWriteStage::WriteRunWordCount
+        while self.stage == PackedWriteStage::WriteWord
+            || self.stage == PackedWriteStage::WriteRunWordCount
         {
             match self.poll_write_aux(cx, &[])? {
                 Poll::Pending => return Poll::Pending,
@@ -442,18 +483,21 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
     }
 }
 
-impl <W> AsyncWrite for PackedWrite<W> where W: AsyncWrite + Unpin {
+impl<W> AsyncWrite for PackedWrite<W>
+where
+    W: AsyncWrite + Unpin,
+{
     fn poll_write(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        inbuf: &[u8]
+        inbuf: &[u8],
     ) -> Poll<std::result::Result<usize, std::io::Error>> {
         (*self).poll_write_aux(cx, inbuf)
     }
 
     fn poll_flush(
         mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>
+        cx: &mut Context<'_>,
     ) -> Poll<std::result::Result<(), std::io::Error>> {
         match (*self).finish_pending_writes(cx)? {
             Poll::Pending => return Poll::Pending,
@@ -465,56 +509,51 @@ impl <W> AsyncWrite for PackedWrite<W> where W: AsyncWrite + Unpin {
 
     fn poll_close(
         mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>
+        cx: &mut Context<'_>,
     ) -> Poll<std::result::Result<(), std::io::Error>> {
         Pin::new(&mut self.inner).poll_close(cx)
     }
 }
 
-
 #[cfg(test)]
 pub mod test {
-    use futures::{AsyncReadExt, AsyncWriteExt};
-    use quickcheck::{quickcheck, TestResult};
-    use capnp::message::ReaderSegments;
     use crate::serialize::test::{BlockingRead, BlockingWrite};
     use crate::serialize_packed::{PackedRead, PackedWrite};
+    use capnp::message::ReaderSegments;
+    use futures::{AsyncReadExt, AsyncWriteExt};
+    use quickcheck::{quickcheck, TestResult};
 
-    pub fn check_unpacks_to(blocking_period: usize,
-                            packed: &[u8],
-                            unpacked: &[u8])
-    {
-        let mut packed_read =
-            PackedRead::new(crate::serialize::test::BlockingRead::new(packed,
-                                                                      blocking_period));
+    pub fn check_unpacks_to(blocking_period: usize, packed: &[u8], unpacked: &[u8]) {
+        let mut packed_read = PackedRead::new(crate::serialize::test::BlockingRead::new(
+            packed,
+            blocking_period,
+        ));
 
         let mut bytes: Vec<u8> = vec![0; unpacked.len()];
-        futures::executor::block_on(
-            Box::pin(packed_read.read_exact(&mut bytes))).expect("reading");
+        futures::executor::block_on(Box::pin(packed_read.read_exact(&mut bytes))).expect("reading");
 
         assert!(packed_read.inner.read.is_empty()); // nothing left to read
         assert_eq!(bytes, unpacked);
     }
 
-
-    pub fn check_packing_with_periods(read_blocking_period: usize,
-                                      write_blocking_period: usize,
-                                      unpacked: &[u8],
-                                      packed: &[u8])
-    {
+    pub fn check_packing_with_periods(
+        read_blocking_period: usize,
+        write_blocking_period: usize,
+        unpacked: &[u8],
+        packed: &[u8],
+    ) {
         // --------
         // write
 
         let mut bytes: Vec<u8> = vec![0; packed.len()];
         {
-            let mut packed_write =
-                PackedWrite::new(crate::serialize::test::BlockingWrite::new(
-                    &mut bytes[..],
-                    write_blocking_period));
-            futures::executor::block_on(
-                Box::pin(packed_write.write_all(unpacked))).expect("writing");
-            futures::executor::block_on(
-                Box::pin(packed_write.flush())).expect("flushing");
+            let mut packed_write = PackedWrite::new(crate::serialize::test::BlockingWrite::new(
+                &mut bytes[..],
+                write_blocking_period,
+            ));
+            futures::executor::block_on(Box::pin(packed_write.write_all(unpacked)))
+                .expect("writing");
+            futures::executor::block_on(Box::pin(packed_write.flush())).expect("flushing");
         }
 
         assert_eq!(bytes, packed);
@@ -524,12 +563,10 @@ pub mod test {
         check_unpacks_to(read_blocking_period, packed, unpacked);
     }
 
-    pub fn check_packing(unpacked: &[u8],
-                         packed: &[u8])
-    {
-        for ii in 1 .. 10 {
-            for jj in 1 .. 10 {
-                check_packing_with_periods(ii, jj, unpacked,packed);
+    pub fn check_packing(unpacked: &[u8], packed: &[u8]) {
+        for ii in 1..10 {
+            for jj in 1..10 {
+                check_packing_with_periods(ii, jj, unpacked, packed);
             }
         }
     }
@@ -537,69 +574,110 @@ pub mod test {
     #[test]
     pub fn simple_packing() {
         check_packing(&[], &[]);
-        check_packing(&[0; 8], &[0,0]);
-        check_packing(&[0,0,12,0,0,34,0,0], &[0x24,12,34]);
-        check_packing(&[1,3,2,4,5,7,6,8], &[0xff,1,3,2,4,5,7,6,8,0]);
-        check_packing(&[0,0,0,0,0,0,0,0,1,3,2,4,5,7,6,8], &[0,0,0xff,1,3,2,4,5,7,6,8,0]);
-        check_packing(&[0,0,12,0,0,34,0,0,1,3,2,4,5,7,6,8], &[0x24,12,34,0xff,1,3,2,4,5,7,6,8,0]);
-
-        check_packing(&[1,3,2,4,5,7,6,8,8,6,7,4,5,2,3,1], &[0xff,1,3,2,4,5,7,6,8,1,8,6,7,4,5,2,3,1]);
+        check_packing(&[0; 8], &[0, 0]);
+        check_packing(&[0, 0, 12, 0, 0, 34, 0, 0], &[0x24, 12, 34]);
         check_packing(
-            &[1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 0,2,4,0,9,0,5,1],
-            &[0xff,1,2,3,4,5,6,7,8, 3, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8,
-              0xd6,2,4,9,5,1]);
-
+            &[1, 3, 2, 4, 5, 7, 6, 8],
+            &[0xff, 1, 3, 2, 4, 5, 7, 6, 8, 0],
+        );
         check_packing(
-            &[1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 6,2,4,3,9,0,5,1, 1,2,3,4,5,6,7,8, 0,2,4,0,9,0,5,1],
-            &[0xff,1,2,3,4,5,6,7,8, 3, 1,2,3,4,5,6,7,8, 6,2,4,3,9,0,5,1, 1,2,3,4,5,6,7,8,
-              0xd6,2,4,9,5,1]);
+            &[0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 2, 4, 5, 7, 6, 8],
+            &[0, 0, 0xff, 1, 3, 2, 4, 5, 7, 6, 8, 0],
+        );
+        check_packing(
+            &[0, 0, 12, 0, 0, 34, 0, 0, 1, 3, 2, 4, 5, 7, 6, 8],
+            &[0x24, 12, 34, 0xff, 1, 3, 2, 4, 5, 7, 6, 8, 0],
+        );
 
         check_packing(
-            &[8,0,100,6,0,1,1,2, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,1,0,2,0,3,1],
-            &[0xed,8,100,6,1,1,2, 0,2, 0xd4,1,2,3,1]);
-        check_packing(&[0; 16], &[0,1]);
-        check_packing(&[0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0], &[0,2]);
+            &[1, 3, 2, 4, 5, 7, 6, 8, 8, 6, 7, 4, 5, 2, 3, 1],
+            &[0xff, 1, 3, 2, 4, 5, 7, 6, 8, 1, 8, 6, 7, 4, 5, 2, 3, 1],
+        );
+        check_packing(
+            &[
+                1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4,
+                5, 6, 7, 8, 0, 2, 4, 0, 9, 0, 5, 1,
+            ],
+            &[
+                0xff, 1, 2, 3, 4, 5, 6, 7, 8, 3, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1,
+                2, 3, 4, 5, 6, 7, 8, 0xd6, 2, 4, 9, 5, 1,
+            ],
+        );
+
+        check_packing(
+            &[
+                1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 6, 2, 4, 3, 9, 0, 5, 1, 1, 2, 3, 4,
+                5, 6, 7, 8, 0, 2, 4, 0, 9, 0, 5, 1,
+            ],
+            &[
+                0xff, 1, 2, 3, 4, 5, 6, 7, 8, 3, 1, 2, 3, 4, 5, 6, 7, 8, 6, 2, 4, 3, 9, 0, 5, 1, 1,
+                2, 3, 4, 5, 6, 7, 8, 0xd6, 2, 4, 9, 5, 1,
+            ],
+        );
+
+        check_packing(
+            &[
+                8, 0, 100, 6, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 3, 1,
+            ],
+            &[0xed, 8, 100, 6, 1, 1, 2, 0, 2, 0xd4, 1, 2, 3, 1],
+        );
+        check_packing(&[0; 16], &[0, 1]);
+        check_packing(
+            &[
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ],
+            &[0, 2],
+        );
     }
 
-    fn round_trip(read_blocking_period: usize,
-                  write_blocking_period: usize,
-                  segments: Vec<Vec<capnp::Word>>) -> TestResult
-    {
+    fn round_trip(
+        read_blocking_period: usize,
+        write_blocking_period: usize,
+        segments: Vec<Vec<capnp::Word>>,
+    ) -> TestResult {
         if segments.is_empty() || read_blocking_period == 0 || write_blocking_period == 0 {
             return TestResult::discard();
         }
         let (mut read, segments) = {
             let cursor = std::io::Cursor::new(Vec::new());
             let mut writer = BlockingWrite::new(cursor, write_blocking_period);
-            futures::executor::block_on(Box::pin(
-                crate::serialize_packed::write_message(
-                    &mut writer,
-                    &segments))).expect("writing");
+            futures::executor::block_on(Box::pin(crate::serialize_packed::write_message(
+                &mut writer,
+                &segments,
+            )))
+            .expect("writing");
             futures::executor::block_on(Box::pin(writer.flush())).expect("writing");
-
 
             let mut cursor = writer.into_writer();
             cursor.set_position(0);
             (BlockingRead::new(cursor, read_blocking_period), segments)
         };
 
-        let message =
-            futures::executor::block_on(Box::pin(
-                crate::serialize_packed::try_read_message(
-                    &mut read,
-                    Default::default()))).expect("reading").unwrap();
+        let message = futures::executor::block_on(Box::pin(
+            crate::serialize_packed::try_read_message(&mut read, Default::default()),
+        ))
+        .expect("reading")
+        .unwrap();
         let message_segments = message.into_segments();
 
         TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
-            capnp::Word::words_to_bytes(&segment[..]) == message_segments.get_segment(i as u32).unwrap()
+            capnp::Word::words_to_bytes(&segment[..])
+                == message_segments.get_segment(i as u32).unwrap()
         }))
     }
 
     #[test]
     fn check_packed_round_trip_async_bug() {
-        assert!(!round_trip(1,1,
-                            vec![vec![capnp::word(8, 14, 90, 7, 21, 13, 59, 17),
-                                      capnp::word(0, 31, 21, 73, 0, 54, 61, 12)]]).is_failure());
+        assert!(!round_trip(
+            1,
+            1,
+            vec![vec![
+                capnp::word(8, 14, 90, 7, 21, 13, 59, 17),
+                capnp::word(0, 31, 21, 73, 0, 54, 61, 12)
+            ]]
+        )
+        .is_failure());
     }
 
     #[test]

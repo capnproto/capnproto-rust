@@ -23,8 +23,8 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use crate::any_pointer;
+use crate::capability::{Params, Promise, RemotePromise, Request, Results};
 use crate::MessageSize;
-use crate::capability::{Params, Promise, Request, RemotePromise, Results};
 
 pub trait ResponseHook {
     fn get(&self) -> crate::Result<any_pointer::Reader<'_>>;
@@ -34,21 +34,31 @@ pub trait RequestHook {
     fn get(&mut self) -> any_pointer::Builder<'_>;
     fn get_brand(&self) -> usize;
     fn send(self: Box<Self>) -> RemotePromise<any_pointer::Owned>;
-    fn tail_send(self: Box<Self>)
-                 -> Option<(u32, crate::capability::Promise<(), crate::Error>, Box<dyn PipelineHook>)>;
+    fn tail_send(
+        self: Box<Self>,
+    ) -> Option<(
+        u32,
+        crate::capability::Promise<(), crate::Error>,
+        Box<dyn PipelineHook>,
+    )>;
 }
 
 pub trait ClientHook {
     fn add_ref(&self) -> Box<dyn ClientHook>;
-    fn new_call(&self,
-                interface_id: u64,
-                method_id: u16,
-                size_hint: Option<MessageSize>)
-                -> Request<any_pointer::Owned, any_pointer::Owned>;
+    fn new_call(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        size_hint: Option<MessageSize>,
+    ) -> Request<any_pointer::Owned, any_pointer::Owned>;
 
-    fn call(&self, interface_id: u64, method_id: u16,
-            params: Box<dyn ParamsHook>, results: Box<dyn ResultsHook>)
-            -> crate::capability::Promise<(), crate::Error>;
+    fn call(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        params: Box<dyn ParamsHook>,
+        results: Box<dyn ResultsHook>,
+    ) -> crate::capability::Promise<(), crate::Error>;
 
     /// If this capability is associated with an rpc connection, then this method
     /// returns an identifier for that connection.
@@ -63,12 +73,13 @@ pub trait ClientHook {
     /// `whenMoreResolved()` to distinguish between them.
     fn get_resolved(&self) -> Option<Box<dyn ClientHook>>;
 
-
     /// If this client is a settled reference (not a promise), return nullptr.  Otherwise, return a
     /// promise that eventually resolves to a new client that is closer to being the final, settled
     /// client (i.e. the value eventually returned by `getResolved()`).  Calling this repeatedly
     /// should eventually produce a settled client.
-    fn when_more_resolved(&self) -> Option<crate::capability::Promise<Box<dyn ClientHook>, crate::Error>>;
+    fn when_more_resolved(
+        &self,
+    ) -> Option<crate::capability::Promise<Box<dyn ClientHook>, crate::Error>>;
 
     /// Repeatedly calls whenMoreResolved() until it returns nullptr.
     fn when_resolved(&self) -> Promise<(), crate::Error>;
@@ -84,8 +95,13 @@ pub trait ResultsHook {
     fn get(&mut self) -> crate::Result<any_pointer::Builder<'_>>;
     fn allow_cancellation(&self);
     fn tail_call(self: Box<Self>, request: Box<dyn RequestHook>) -> Promise<(), crate::Error>;
-    fn direct_tail_call(self: Box<Self>, request: Box<dyn RequestHook>) ->
-        (crate::capability::Promise<(), crate::Error>, Box<dyn PipelineHook>);
+    fn direct_tail_call(
+        self: Box<Self>,
+        request: Box<dyn RequestHook>,
+    ) -> (
+        crate::capability::Promise<(), crate::Error>,
+        Box<dyn PipelineHook>,
+    );
 }
 
 pub trait ParamsHook {
@@ -94,15 +110,24 @@ pub trait ParamsHook {
 
 // Where should this live?
 pub fn internal_get_typed_params<T>(typeless: Params<any_pointer::Owned>) -> Params<T> {
-    Params { hook: typeless.hook, marker: ::core::marker::PhantomData }
+    Params {
+        hook: typeless.hook,
+        marker: ::core::marker::PhantomData,
+    }
 }
 
 pub fn internal_get_typed_results<T>(typeless: Results<any_pointer::Owned>) -> Results<T> {
-    Results { hook: typeless.hook, marker: ::core::marker::PhantomData }
+    Results {
+        hook: typeless.hook,
+        marker: ::core::marker::PhantomData,
+    }
 }
 
 pub fn internal_get_untyped_results<T>(typeful: Results<T>) -> Results<any_pointer::Owned> {
-    Results { hook: typeful.hook, marker: ::core::marker::PhantomData }
+    Results {
+        hook: typeful.hook,
+        marker: ::core::marker::PhantomData,
+    }
 }
 
 pub trait PipelineHook {

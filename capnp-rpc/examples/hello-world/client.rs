@@ -39,34 +39,31 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let msg = args[3].to_string();
 
-    tokio::task::LocalSet::new().run_until(async move {
-        let stream = tokio::net::TcpStream::connect(&addr).await?;
-        stream.set_nodelay(true)?;
-        let (reader, writer) = tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
-        let rpc_network = Box::new(twoparty::VatNetwork::new(
-            reader,
-            writer,
-            rpc_twoparty_capnp::Side::Client,
-            Default::default(),
-        ));
-        let mut rpc_system = RpcSystem::new(rpc_network, None);
-        let hello_world: hello_world::Client =
-            rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+    tokio::task::LocalSet::new()
+        .run_until(async move {
+            let stream = tokio::net::TcpStream::connect(&addr).await?;
+            stream.set_nodelay(true)?;
+            let (reader, writer) =
+                tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
+            let rpc_network = Box::new(twoparty::VatNetwork::new(
+                reader,
+                writer,
+                rpc_twoparty_capnp::Side::Client,
+                Default::default(),
+            ));
+            let mut rpc_system = RpcSystem::new(rpc_network, None);
+            let hello_world: hello_world::Client =
+                rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        tokio::task::spawn_local(rpc_system);
+            tokio::task::spawn_local(rpc_system);
 
-        let mut request = hello_world.say_hello_request();
-        request.get().init_request().set_name(&msg);
+            let mut request = hello_world.say_hello_request();
+            request.get().init_request().set_name(&msg);
 
-        let reply = request.send().promise.await?;
+            let reply = request.send().promise.await?;
 
-        println!(
-            "received: {}",
-            reply
-                .get()?
-                .get_reply()?
-                .get_message()?
-        );
-        Ok(())
-    }).await
+            println!("received: {}", reply.get()?.get_reply()?.get_message()?);
+            Ok(())
+        })
+        .await
 }

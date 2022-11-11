@@ -322,8 +322,7 @@ mod tests {
     use crate::{
         message::{ReaderOptions, ReaderSegments},
         serialize::{self, no_alloc_slice_segments::calculate_data_offset},
-        OutputSegments,
-        Word,
+        OutputSegments, Word,
     };
 
     use super::{

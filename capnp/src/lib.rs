@@ -64,46 +64,46 @@ use alloc::vec::Vec;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(C, align(8))]
 pub struct Word {
-    raw_content: [u8; 8]
+    raw_content: [u8; 8],
 }
 
 ///
 /// Constructs a word with the given bytes.
 ///
 pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8) -> Word {
-    Word { raw_content: [b0,b1,b2,b3,b4,b5,b6,b7] }
+    Word {
+        raw_content: [b0, b1, b2, b3, b4, b5, b6, b7],
+    }
 }
 
 impl Word {
     /// Allocates a vec of `length` words, all set to zero.
     pub fn allocate_zeroed_vec(length: usize) -> Vec<Word> {
-        vec![word(0,0,0,0,0,0,0,0); length]
+        vec![word(0, 0, 0, 0, 0, 0, 0, 0); length]
     }
 
     pub fn words_to_bytes(words: &[Word]) -> &[u8] {
-        unsafe {
-            core::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8)
-        }
+        unsafe { core::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8) }
     }
 
     pub fn words_to_bytes_mut(words: &mut [Word]) -> &mut [u8] {
-        unsafe {
-            core::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8)
-        }
+        unsafe { core::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8) }
     }
 }
 
-#[cfg(any(feature="quickcheck", test))]
+#[cfg(any(feature = "quickcheck", test))]
 impl quickcheck::Arbitrary for Word {
     fn arbitrary(g: &mut quickcheck::Gen) -> Word {
-        crate::word(quickcheck::Arbitrary::arbitrary(g),
-                    quickcheck::Arbitrary::arbitrary(g),
-                    quickcheck::Arbitrary::arbitrary(g),
-                    quickcheck::Arbitrary::arbitrary(g),
-                    quickcheck::Arbitrary::arbitrary(g),
-                    quickcheck::Arbitrary::arbitrary(g),
-                    quickcheck::Arbitrary::arbitrary(g),
-                    quickcheck::Arbitrary::arbitrary(g))
+        crate::word(
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+            quickcheck::Arbitrary::arbitrary(g),
+        )
     }
 }
 
@@ -113,7 +113,7 @@ pub struct MessageSize {
     pub word_count: u64,
 
     /// Size of the capability table.
-    pub cap_count: u32
+    pub cap_count: u32,
 }
 
 impl core::ops::AddAssign for MessageSize {
@@ -128,12 +128,19 @@ impl core::ops::AddAssign for MessageSize {
 pub struct NotInSchema(pub u16);
 
 impl ::core::fmt::Display for NotInSchema {
-    fn fmt(&self, fmt: &mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error> {
-        write!(fmt, "Enum value or union discriminant {} was not present in the schema.", self.0)
+    fn fmt(
+        &self,
+        fmt: &mut ::core::fmt::Formatter,
+    ) -> ::core::result::Result<(), ::core::fmt::Error> {
+        write!(
+            fmt,
+            "Enum value or union discriminant {} was not present in the schema.",
+            self.0
+        )
     }
 }
 
-#[cfg(feature="std")]
+#[cfg(feature = "std")]
 impl ::std::error::Error for NotInSchema {
     fn description(&self) -> &str {
         "Enum value or union discriminant was not present in schema."
@@ -181,33 +188,48 @@ pub enum ErrorKind {
 
 impl Error {
     pub fn failed(description: String) -> Error {
-        Error { description, kind: ErrorKind::Failed }
+        Error {
+            description,
+            kind: ErrorKind::Failed,
+        }
     }
     pub fn overloaded(description: String) -> Error {
-        Error { description, kind: ErrorKind::Overloaded }
+        Error {
+            description,
+            kind: ErrorKind::Overloaded,
+        }
     }
     pub fn disconnected(description: String) -> Error {
-        Error { description, kind: ErrorKind::Disconnected }
+        Error {
+            description,
+            kind: ErrorKind::Disconnected,
+        }
     }
     pub fn unimplemented(description: String) -> Error {
-        Error { description, kind: ErrorKind::Unimplemented }
+        Error {
+            description,
+            kind: ErrorKind::Unimplemented,
+        }
     }
 }
 
-#[cfg(feature="std")]
+#[cfg(feature = "std")]
 impl core::convert::From<::std::io::Error> for Error {
     fn from(err: ::std::io::Error) -> Error {
         use std::io;
         let kind = match err.kind() {
             io::ErrorKind::TimedOut => ErrorKind::Overloaded,
-            io::ErrorKind::BrokenPipe |
-            io::ErrorKind::ConnectionRefused |
-            io::ErrorKind::ConnectionReset |
-            io::ErrorKind::ConnectionAborted |
-            io::ErrorKind::NotConnected  => ErrorKind::Disconnected,
+            io::ErrorKind::BrokenPipe
+            | io::ErrorKind::ConnectionRefused
+            | io::ErrorKind::ConnectionReset
+            | io::ErrorKind::ConnectionAborted
+            | io::ErrorKind::NotConnected => ErrorKind::Disconnected,
             _ => ErrorKind::Failed,
         };
-        Error { description: format!("{}", err), kind }
+        Error {
+            description: format!("{}", err),
+            kind,
+        }
     }
 }
 
@@ -225,7 +247,10 @@ impl core::convert::From<alloc::str::Utf8Error> for Error {
 
 impl core::convert::From<NotInSchema> for Error {
     fn from(e: NotInSchema) -> Error {
-        Error::failed(format!("Enum value or union discriminant {} was not present in schema.", e.0))
+        Error::failed(format!(
+            "Enum value or union discriminant {} was not present in schema.",
+            e.0
+        ))
     }
 }
 
@@ -235,7 +260,7 @@ impl core::fmt::Display for Error {
     }
 }
 
-#[cfg(feature="std")]
+#[cfg(feature = "std")]
 impl ::std::error::Error for Error {
     fn description(&self) -> &str {
         &self.description
@@ -252,16 +277,12 @@ pub enum OutputSegments<'a> {
     MultiSegment(Vec<&'a [u8]>),
 }
 
-impl <'a> core::ops::Deref for OutputSegments<'a> {
+impl<'a> core::ops::Deref for OutputSegments<'a> {
     type Target = [&'a [u8]];
     fn deref(&self) -> &[&'a [u8]] {
         match *self {
-            OutputSegments::SingleSegment(ref s) => {
-                s
-            }
-            OutputSegments::MultiSegment(ref v) => {
-                v
-            }
+            OutputSegments::SingleSegment(ref s) => s,
+            OutputSegments::MultiSegment(ref v) => v,
         }
     }
 }
@@ -269,12 +290,8 @@ impl <'a> core::ops::Deref for OutputSegments<'a> {
 impl<'s> message::ReaderSegments for OutputSegments<'s> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         match *self {
-            OutputSegments::SingleSegment(ref s) => {
-                s.get(id as usize).copied()
-            }
-            OutputSegments::MultiSegment(ref v) => {
-                v.get(id as usize).copied()
-            }
+            OutputSegments::SingleSegment(ref s) => s.get(id as usize).copied(),
+            OutputSegments::MultiSegment(ref v) => v.get(id as usize).copied(),
         }
     }
 }

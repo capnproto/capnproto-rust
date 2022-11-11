@@ -20,15 +20,15 @@
 // THE SOFTWARE.
 
 pub mod addressbook_capnp {
-  include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
+    include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }
 
 #[cfg(test)]
 mod tests {
-    use futures::task::{LocalSpawnExt};
+    use crate::addressbook_capnp::{address_book, person};
     use capnp::message;
     use capnp_futures::serialize;
-    use crate::addressbook_capnp::{address_book, person};
+    use futures::task::LocalSpawnExt;
 
     fn populate_address_book(address_book: address_book::Builder) {
         let mut people = address_book.init_people(2);
@@ -40,7 +40,10 @@ mod tests {
             {
                 let mut alice_phones = alice.reborrow().init_phones(1);
                 alice_phones.reborrow().get(0).set_number("555-1212");
-                alice_phones.reborrow().get(0).set_type(person::phone_number::Type::Mobile);
+                alice_phones
+                    .reborrow()
+                    .get(0)
+                    .set_type(person::phone_number::Type::Mobile);
             }
             alice.get_employment().set_school("MIT");
         }
@@ -53,9 +56,15 @@ mod tests {
             {
                 let mut bob_phones = bob.reborrow().init_phones(2);
                 bob_phones.reborrow().get(0).set_number("555-4567");
-                bob_phones.reborrow().get(0).set_type(person::phone_number::Type::Home);
+                bob_phones
+                    .reborrow()
+                    .get(0)
+                    .set_type(person::phone_number::Type::Home);
                 bob_phones.reborrow().get(1).set_number("555-7654");
-                bob_phones.reborrow().get(1).set_type(person::phone_number::Type::Work);
+                bob_phones
+                    .reborrow()
+                    .get(1)
+                    .set_type(person::phone_number::Type::Work);
             }
             bob.get_employment().set_unemployed(());
         }
@@ -78,8 +87,8 @@ mod tests {
     fn write_stream_and_read_queue() {
         use capnp;
         use capnp_futures;
-        use futures::future::{FutureExt};
-        use futures::stream::{StreamExt};
+        use futures::future::FutureExt;
+        use futures::stream::StreamExt;
 
         use std::cell::Cell;
         use std::rc::Rc;
@@ -93,15 +102,13 @@ mod tests {
         let messages_read = Rc::new(Cell::new(0u32));
         let messages_read1 = messages_read.clone();
 
-        let done_reading = read_stream.for_each(|m| {
-            match m {
-                Err(e) => panic!("read error: {:?}", e),
-                Ok(msg) => {
-                    let address_book = msg.get_root::<address_book::Reader>().unwrap();
-                    read_address_book(address_book);
-                    messages_read.set(messages_read.get() + 1);
-                    futures::future::ready(())
-                }
+        let done_reading = read_stream.for_each(|m| match m {
+            Err(e) => panic!("read error: {:?}", e),
+            Ok(msg) => {
+                let address_book = msg.get_root::<address_book::Reader>().unwrap();
+                read_address_book(address_book);
+                messages_read.set(messages_read.get() + 1);
+                futures::future::ready(())
             }
         });
 
@@ -110,7 +117,7 @@ mod tests {
         let mut m = capnp::message::Builder::new_default();
         populate_address_book(m.init_root());
 
-        spawner.spawn_local(sender.send(m).map(|_|())).unwrap();
+        spawner.spawn_local(sender.send(m).map(|_| ())).unwrap();
         drop(sender);
         pool.run_until(io);
         assert_eq!(messages_read1.get(), 1);
@@ -128,23 +135,21 @@ mod tests {
         let mut pool = futures::executor::LocalPool::new();
         let (stream0, stream1) = async_byte_channel::channel();
         let f0 = serialize::write_message(stream0, message)
-                .map_err(|e| panic!("write error {:?}", e)).map(|_|());
-        let f1 =
-            serialize::try_read_message(stream1, capnp::message::ReaderOptions::new()).and_then(|maybe_message_reader| {
-                match maybe_message_reader {
-                    None => panic!("did not get message"),
-                    Some(m) => {
-                        let address_book = m.get_root::<address_book::Reader>().unwrap();
-                        read_address_book(address_book);
-                        futures::future::ready(Ok::<(),capnp::Error>(()))
-                    }
+            .map_err(|e| panic!("write error {:?}", e))
+            .map(|_| ());
+        let f1 = serialize::try_read_message(stream1, capnp::message::ReaderOptions::new())
+            .and_then(|maybe_message_reader| match maybe_message_reader {
+                None => panic!("did not get message"),
+                Some(m) => {
+                    let address_book = m.get_root::<address_book::Reader>().unwrap();
+                    read_address_book(address_book);
+                    futures::future::ready(Ok::<(), capnp::Error>(()))
                 }
             });
 
         pool.spawner().spawn_local(f0).unwrap();
         pool.run_until(f1).unwrap();
     }
-
 
     #[test]
     fn single_segment() {
@@ -154,7 +159,8 @@ mod tests {
     #[test]
     fn multi_segment() {
         let builder_options = capnp::message::HeapAllocator::new()
-            .first_segment_words(1).allocation_strategy(capnp::message::AllocationStrategy::FixedSize);
+            .first_segment_words(1)
+            .allocation_strategy(capnp::message::AllocationStrategy::FixedSize);
         fill_and_send_message(capnp::message::Builder::new(builder_options));
     }
 
@@ -169,6 +175,7 @@ mod tests {
     fn static_lifetime_not_required_on_highlevel() {
         let (mut write, mut read) = async_byte_channel::channel();
         let _ = capnp_futures::ReadStream::new(&mut read, message::ReaderOptions::default());
-        let _ = capnp_futures::write_queue::<_, message::Builder<message::HeapAllocator>>(&mut write);
+        let _ =
+            capnp_futures::write_queue::<_, message::Builder<message::HeapAllocator>>(&mut write);
     }
 }

@@ -21,11 +21,12 @@
 
 //! List of primitives.
 
-use core::{marker};
+use core::marker;
 
-use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
-use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                             PrimitiveElement, data_bits_per_element};
+use crate::private::layout::{
+    data_bits_per_element, ListBuilder, ListReader, PointerBuilder, PointerReader, PrimitiveElement,
+};
+use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
 use crate::Result;
 
 #[derive(Clone, Copy)]
@@ -33,40 +34,53 @@ pub struct Owned<T> {
     marker: marker::PhantomData<T>,
 }
 
-impl <T> crate::traits::Owned for Owned<T> where T: PrimitiveElement {
+impl<T> crate::traits::Owned for Owned<T>
+where
+    T: PrimitiveElement,
+{
     type Reader<'a> = Reader<'a, T>;
     type Builder<'a> = Builder<'a, T>;
 }
 
 #[derive(Clone, Copy)]
-pub struct Reader<'a, T> where T: PrimitiveElement {
+pub struct Reader<'a, T>
+where
+    T: PrimitiveElement,
+{
     marker: marker::PhantomData<T>,
-    reader: ListReader<'a>
+    reader: ListReader<'a>,
 }
 
-impl <'a, T: PrimitiveElement> Reader<'a, T> {
-    pub fn len(&self) -> u32 { self.reader.len() }
+impl<'a, T: PrimitiveElement> Reader<'a, T> {
+    pub fn len(&self) -> u32 {
+        self.reader.len()
+    }
 
-    pub fn iter(self) -> ListIter<Reader<'a, T>, T>{
+    pub fn iter(self) -> ListIter<Reader<'a, T>, T> {
         let l = self.len();
         ListIter::new(self, l)
     }
 }
 
-impl <'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader: reader.get_list(T::element_size(), default)?,
-                    marker: marker::PhantomData })
+impl<'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
+    fn get_from_pointer(
+        reader: &PointerReader<'a>,
+        default: Option<&'a [crate::Word]>,
+    ) -> Result<Reader<'a, T>> {
+        Ok(Reader {
+            reader: reader.get_list(T::element_size(), default)?,
+            marker: marker::PhantomData,
+        })
     }
 }
 
-impl <'a, T: PrimitiveElement>  IndexMove<u32, T> for Reader<'a, T>{
+impl<'a, T: PrimitiveElement> IndexMove<u32, T> for Reader<'a, T> {
     fn index_move(&self, index: u32) -> T {
         self.get(index)
     }
 }
 
-impl <'a, T: PrimitiveElement> Reader<'a, T> {
+impl<'a, T: PrimitiveElement> Reader<'a, T> {
     /// Gets the `T` at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(&self, index: u32) -> T {
@@ -89,9 +103,12 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
     pub fn as_slice(&self) -> Option<&[T]> {
         if self.reader.get_element_size() == T::element_size() {
             let bytes = self.reader.into_raw_bytes();
-            Some (unsafe {
+            Some(unsafe {
                 use core::slice;
-                slice::from_raw_parts(bytes.as_ptr() as *mut T, 8*bytes.len()/(data_bits_per_element(T::element_size())) as usize)
+                slice::from_raw_parts(
+                    bytes.as_ptr() as *mut T,
+                    8 * bytes.len() / (data_bits_per_element(T::element_size())) as usize,
+                )
             })
         } else {
             None
@@ -99,19 +116,30 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
     }
 }
 
-impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
+impl<'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T>
+where
+    T: PrimitiveElement,
+{
     fn into_internal_list_reader(self) -> ListReader<'a> {
         self.reader
     }
 }
 
-pub struct Builder<'a, T> where T: PrimitiveElement {
+pub struct Builder<'a, T>
+where
+    T: PrimitiveElement,
+{
     marker: marker::PhantomData<T>,
-    builder: ListBuilder<'a>
+    builder: ListBuilder<'a>,
 }
 
-impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
-    pub fn len(&self) -> u32 { self.builder.len() }
+impl<'a, T> Builder<'a, T>
+where
+    T: PrimitiveElement,
+{
+    pub fn len(&self) -> u32 {
+        self.builder.len()
+    }
 
     pub fn into_reader(self) -> Reader<'a, T> {
         Reader {
@@ -128,9 +156,12 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
     pub fn as_slice(&self) -> Option<&mut [T]> {
         if self.builder.get_element_size() == T::element_size() {
             let bytes = self.builder.into_raw_bytes();
-            Some (unsafe {
+            Some(unsafe {
                 use core::slice;
-                slice::from_raw_parts_mut(bytes.as_ptr() as *mut T, 8*bytes.len()/(data_bits_per_element(T::element_size())) as usize)
+                slice::from_raw_parts_mut(
+                    bytes.as_ptr() as *mut T,
+                    8 * bytes.len() / (data_bits_per_element(T::element_size())) as usize,
+                )
             })
         } else {
             None
@@ -138,18 +169,25 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
     }
 }
 
-impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
+impl<'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
     fn init_pointer(builder: PointerBuilder<'a>, size: u32) -> Builder<'a, T> {
-        Builder { builder: builder.init_list(T::element_size(), size),
-                  marker: marker::PhantomData }
+        Builder {
+            builder: builder.init_list(T::element_size(), size),
+            marker: marker::PhantomData,
+        }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, T>> {
-        Ok(Builder { builder: builder.get_list(T::element_size(), default)?,
-                     marker: marker::PhantomData })
+    fn get_from_pointer(
+        builder: PointerBuilder<'a>,
+        default: Option<&'a [crate::Word]>,
+    ) -> Result<Builder<'a, T>> {
+        Ok(Builder {
+            builder: builder.get_list(T::element_size(), default)?,
+            marker: marker::PhantomData,
+        })
     }
 }
 
-impl <'a, T : PrimitiveElement> Builder<'a, T> {
+impl<'a, T: PrimitiveElement> Builder<'a, T> {
     /// Gets the `T` at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(&self, index: u32) -> T {
@@ -168,22 +206,26 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
     }
 
     pub fn reborrow(&self) -> Builder<'_, T> {
-        Builder { .. *self }
+        Builder { ..*self }
     }
 }
 
-impl <'a, T> crate::traits::SetPointerBuilder for Reader<'a, T>
-    where T: PrimitiveElement
+impl<'a, T> crate::traits::SetPointerBuilder for Reader<'a, T>
+where
+    T: PrimitiveElement,
 {
-    fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,
-                               value: Reader<'a, T>,
-                               canonicalize: bool) -> Result<()> {
+    fn set_pointer_builder<'b>(
+        pointer: PointerBuilder<'b>,
+        value: Reader<'a, T>,
+        canonicalize: bool,
+    ) -> Result<()> {
         pointer.set_list(&value.reader, canonicalize)
     }
 }
 
-impl <'a, T> ::core::iter::IntoIterator for Reader<'a, T>
-    where T: PrimitiveElement
+impl<'a, T> ::core::iter::IntoIterator for Reader<'a, T>
+where
+    T: PrimitiveElement,
 {
     type Item = T;
     type IntoIter = ListIter<Reader<'a, T>, Self::Item>;

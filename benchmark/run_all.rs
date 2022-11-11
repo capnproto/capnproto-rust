@@ -21,9 +21,17 @@
 
 use std::{env, process, time};
 
-fn run_one(executable: &str, case: &str, mode: &str, scratch: &str, compression: &str, iteration_count: u64) {
+fn run_one(
+    executable: &str,
+    case: &str,
+    mode: &str,
+    scratch: &str,
+    compression: &str,
+    iteration_count: u64,
+) {
     let mut command = process::Command::new(executable);
-    command.arg(case)
+    command
+        .arg(case)
         .arg(mode)
         .arg(scratch)
         .arg(compression)
@@ -49,7 +57,14 @@ fn run_case(executable: &str, case: &str, scratch_options: &[&str], iteration_co
     for mode in &["bytes", "pipe"] {
         for compression in &["none", "packed"] {
             for scratch in scratch_options {
-                run_one(executable, case, mode, scratch, compression, iteration_count);
+                run_one(
+                    executable,
+                    case,
+                    mode,
+                    scratch,
+                    compression,
+                    iteration_count,
+                );
             }
         }
     }
@@ -58,12 +73,18 @@ fn run_case(executable: &str, case: &str, scratch_options: &[&str], iteration_co
 fn try_main() -> ::capnp::Result<()> {
     let args: Vec<String> = env::args().collect();
 
-    assert!(args.len() == 2 || args.len() == 5,
-            "USAGE: {} BENCHMARK_EXECUTABLE [CARSALES_ITERS CATRANK_ITERS EVAL_ITERS]",
-            args[0]);
+    assert!(
+        args.len() == 2 || args.len() == 5,
+        "USAGE: {} BENCHMARK_EXECUTABLE [CARSALES_ITERS CATRANK_ITERS EVAL_ITERS]",
+        args[0]
+    );
 
     let (carsales_iters, catrank_iters, eval_iters) = if args.len() > 2 {
-        (args[2].parse::<u64>().unwrap(), args[3].parse::<u64>().unwrap(), args[4].parse::<u64>().unwrap())
+        (
+            args[2].parse::<u64>().unwrap(),
+            args[3].parse::<u64>().unwrap(),
+            args[4].parse::<u64>().unwrap(),
+        )
     } else {
         (10000, 1000, 200000)
     };
@@ -71,7 +92,12 @@ fn try_main() -> ::capnp::Result<()> {
     let executable = &*args[1];
 
     println!("running carsales with {} iterations", carsales_iters);
-    run_case(executable, "carsales", &["reuse", "no-reuse"], carsales_iters);
+    run_case(
+        executable,
+        "carsales",
+        &["reuse", "no-reuse"],
+        carsales_iters,
+    );
 
     println!("running catrank with {} iterations", catrank_iters);
     run_case(executable, "catrank", &["no-reuse"], catrank_iters);

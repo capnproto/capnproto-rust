@@ -46,7 +46,6 @@ macro_rules! primitive_impl(
         );
     );
 
-
 primitive_impl!(u8, 1);
 primitive_impl!(i8, 1);
 primitive_impl!(u16, 2);
@@ -91,16 +90,26 @@ impl Primitive for f64 {
 /// A value casted directly from a little-endian byte buffer. On big-endian
 /// processors, the bytes of the value need to be swapped upon reading and writing.
 #[repr(C)]
-pub struct WireValue<T> where T: Primitive {
+pub struct WireValue<T>
+where
+    T: Primitive,
+{
     value: <T as Primitive>::Raw,
 }
 
-impl<T> WireValue<T> where T: Primitive {
+impl<T> WireValue<T>
+where
+    T: Primitive,
+{
     /// Reads the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn get(&self) -> T { <T as Primitive>::get(&self.value) }
+    pub fn get(&self) -> T {
+        <T as Primitive>::get(&self.value)
+    }
 
     /// Writes the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn set(&mut self, value: T) { <T as Primitive>::set(&mut self.value, value) }
+    pub fn set(&mut self, value: T) {
+        <T as Primitive>::set(&mut self.value, value)
+    }
 }

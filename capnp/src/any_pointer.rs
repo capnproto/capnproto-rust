@@ -26,8 +26,8 @@ use alloc::vec::Vec;
 
 use crate::capability::FromClientHook;
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
-use crate::private::layout::{PointerReader, PointerBuilder};
-use crate::traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
+use crate::private::layout::{PointerBuilder, PointerReader};
+use crate::traits::{FromPointerBuilder, FromPointerReader, SetPointerBuilder};
 use crate::Result;
 
 #[derive(Copy, Clone)]
@@ -44,10 +44,10 @@ impl crate::traits::Pipelined for Owned {
 
 #[derive(Copy, Clone)]
 pub struct Reader<'a> {
-    reader: PointerReader<'a>
+    reader: PointerReader<'a>,
 }
 
-impl <'a> Reader<'a> {
+impl<'a> Reader<'a> {
     pub fn new(reader: PointerReader<'_>) -> Reader<'_> {
         Reader { reader }
     }
@@ -78,7 +78,7 @@ impl <'a> Reader<'a> {
 
         for op in ops {
             match *op {
-                PipelineOp::Noop =>  { }
+                PipelineOp::Noop => {}
                 PipelineOp::GetPointerField(idx) => {
                     pointer = pointer.get_struct(None)?.get_pointer_field(idx as usize);
                 }
@@ -89,8 +89,11 @@ impl <'a> Reader<'a> {
     }
 }
 
-impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
+impl<'a> FromPointerReader<'a> for Reader<'a> {
+    fn get_from_pointer(
+        reader: &PointerReader<'a>,
+        default: Option<&'a [crate::Word]>,
+    ) -> Result<Reader<'a>> {
         if default.is_some() {
             panic!("Unsupported: any_pointer with a default value.");
         }
@@ -98,31 +101,36 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
     }
 }
 
-impl <'a> crate::traits::SetPointerBuilder for Reader<'a> {
-    fn set_pointer_builder<'b>(mut pointer: crate::private::layout::PointerBuilder<'b>,
-                               value: Reader<'a>,
-                               canonicalize: bool) -> Result<()> {
+impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    fn set_pointer_builder<'b>(
+        mut pointer: crate::private::layout::PointerBuilder<'b>,
+        value: Reader<'a>,
+        canonicalize: bool,
+    ) -> Result<()> {
         pointer.copy_from(value.reader, canonicalize)
     }
 }
 
-impl <'a> crate::traits::Imbue<'a> for Reader<'a> {
+impl<'a> crate::traits::Imbue<'a> for Reader<'a> {
     fn imbue(&mut self, cap_table: &'a crate::private::layout::CapTable) {
-        self.reader.imbue(crate::private::layout::CapTableReader::Plain(cap_table));
+        self.reader
+            .imbue(crate::private::layout::CapTableReader::Plain(cap_table));
     }
 }
 
 pub struct Builder<'a> {
-    builder: PointerBuilder<'a>
+    builder: PointerBuilder<'a>,
 }
 
-impl <'a> Builder<'a> {
+impl<'a> Builder<'a> {
     pub fn new(builder: PointerBuilder<'a>) -> Builder<'a> {
         Builder { builder }
     }
 
     pub fn reborrow(&mut self) -> Builder<'_> {
-        Builder { builder: self.builder.reborrow() }
+        Builder {
+            builder: self.builder.reborrow(),
+        }
     }
 
     pub fn is_null(&self) -> bool {
@@ -134,11 +142,11 @@ impl <'a> Builder<'a> {
         self.builder.into_reader().total_size()
     }
 
-    pub fn get_as<T : FromPointerBuilder<'a>>(self) -> Result<T> {
+    pub fn get_as<T: FromPointerBuilder<'a>>(self) -> Result<T> {
         FromPointerBuilder::get_from_pointer(self.builder, None)
     }
 
-    pub fn init_as<T : FromPointerBuilder<'a>>(self) -> T {
+    pub fn init_as<T: FromPointerBuilder<'a>>(self) -> T {
         FromPointerBuilder::init_pointer(self.builder, 0)
     }
 
@@ -161,18 +169,23 @@ impl <'a> Builder<'a> {
     }
 
     pub fn into_reader(self) -> Reader<'a> {
-        Reader { reader: self.builder.into_reader() }
+        Reader {
+            reader: self.builder.into_reader(),
+        }
     }
 }
 
-impl <'a> FromPointerBuilder<'a> for Builder<'a> {
+impl<'a> FromPointerBuilder<'a> for Builder<'a> {
     fn init_pointer(mut builder: PointerBuilder<'a>, _len: u32) -> Builder<'a> {
         if !builder.is_null() {
             builder.clear();
         }
         Builder { builder }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
+    fn get_from_pointer(
+        builder: PointerBuilder<'a>,
+        default: Option<&'a [crate::Word]>,
+    ) -> Result<Builder<'a>> {
         if default.is_some() {
             panic!("AnyPointer defaults are unsupported")
         }
@@ -180,9 +193,10 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
     }
 }
 
-impl <'a> crate::traits::ImbueMut<'a> for Builder<'a> {
+impl<'a> crate::traits::ImbueMut<'a> for Builder<'a> {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
-        self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table));
+        self.builder
+            .imbue(crate::private::layout::CapTableBuilder::Plain(cap_table));
     }
 }
 
@@ -195,11 +209,17 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(hook: Box<dyn PipelineHook>) -> Pipeline {
-        Pipeline { hook, ops: Vec::new() }
+        Pipeline {
+            hook,
+            ops: Vec::new(),
+        }
     }
 
     pub fn noop(&self) -> Pipeline {
-        Pipeline { hook: self.hook.add_ref(), ops: self.ops.clone() }
+        Pipeline {
+            hook: self.hook.add_ref(),
+            ops: self.ops.clone(),
+        }
     }
 
     pub fn get_pointer_field(&self, pointer_index: u16) -> Pipeline {
@@ -208,7 +228,10 @@ impl Pipeline {
             new_ops.push(*op)
         }
         new_ops.push(PipelineOp::GetPointerField(pointer_index));
-        Pipeline { hook : self.hook.add_ref(), ops: new_ops }
+        Pipeline {
+            hook: self.hook.add_ref(),
+            ops: new_ops,
+        }
     }
 
     pub fn as_cap(&self) -> Box<dyn ClientHook> {

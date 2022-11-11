@@ -19,9 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use crate::{Result};
-use crate::private::layout::{CapTable, ListReader, StructReader, StructBuilder, StructSize,
-                             PointerBuilder, PointerReader};
+use crate::private::layout::{
+    CapTable, ListReader, PointerBuilder, PointerReader, StructBuilder, StructReader, StructSize,
+};
+use crate::Result;
 
 use core::marker::PhantomData;
 
@@ -45,8 +46,11 @@ pub trait IntoInternalListReader<'a> {
     fn into_internal_list_reader(self) -> ListReader<'a>;
 }
 
-pub trait FromPointerReader<'a> : Sized {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Self>;
+pub trait FromPointerReader<'a>: Sized {
+    fn get_from_pointer(
+        reader: &PointerReader<'a>,
+        default: Option<&'a [crate::Word]>,
+    ) -> Result<Self>;
 }
 
 /// A trait to encode relationships readers and builders.
@@ -73,13 +77,20 @@ pub trait Pipelined {
     type Pipeline;
 }
 
-pub trait FromPointerBuilder<'a> : Sized {
+pub trait FromPointerBuilder<'a>: Sized {
     fn init_pointer(builder: PointerBuilder<'a>, length: u32) -> Self;
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Self>;
+    fn get_from_pointer(
+        builder: PointerBuilder<'a>,
+        default: Option<&'a [crate::Word]>,
+    ) -> Result<Self>;
 }
 
 pub trait SetPointerBuilder {
-    fn set_pointer_builder(builder: PointerBuilder<'_>, from: Self, canonicalize: bool) -> Result<()>;
+    fn set_pointer_builder(
+        builder: PointerBuilder<'_>,
+        from: Self,
+        canonicalize: bool,
+    ) -> Result<()>;
 }
 
 pub trait Imbue<'a> {
@@ -103,7 +114,7 @@ pub trait ToU16 {
     fn to_u16(self) -> u16;
 }
 
-pub trait FromU16 : Sized {
+pub trait FromU16: Sized {
     fn from_u16(value: u16) -> ::core::result::Result<Self, crate::NotInSchema>;
 }
 
@@ -118,13 +129,18 @@ pub struct ListIter<T, U> {
     size: u32,
 }
 
-impl <T, U> ListIter<T, U>{
+impl<T, U> ListIter<T, U> {
     pub fn new(list: T, size: u32) -> ListIter<T, U> {
-        ListIter { list, index: 0, size, marker: PhantomData }
+        ListIter {
+            list,
+            index: 0,
+            size,
+            marker: PhantomData,
+        }
     }
 }
 
-impl <U, T : IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
+impl<U, T: IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
     type Item = U;
     fn next(&mut self) -> ::core::option::Option<U> {
         if self.index < self.size {
@@ -136,12 +152,12 @@ impl <U, T : IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
         }
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>){
+    fn size_hint(&self) -> (usize, Option<usize>) {
         (self.size as usize, Some(self.size as usize))
     }
 
-    fn nth(&mut self, p: usize) -> Option<U>{
-        if self.index + (p as u32) < self.size  {
+    fn nth(&mut self, p: usize) -> Option<U> {
+        if self.index + (p as u32) < self.size {
             self.index += p as u32;
             let result = self.list.index_move(self.index);
             self.index += 1;
@@ -153,13 +169,13 @@ impl <U, T : IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
     }
 }
 
-impl <U, T: IndexMove<u32, U>> ::core::iter::ExactSizeIterator for ListIter<T, U>{
-    fn len(&self) -> usize{
+impl<U, T: IndexMove<u32, U>> ::core::iter::ExactSizeIterator for ListIter<T, U> {
+    fn len(&self) -> usize {
         self.size as usize
     }
 }
 
-impl <U, T: IndexMove<u32, U>> ::core::iter::DoubleEndedIterator for ListIter<T, U>{
+impl<U, T: IndexMove<u32, U>> ::core::iter::DoubleEndedIterator for ListIter<T, U> {
     fn next_back(&mut self) -> ::core::option::Option<U> {
         if self.size > self.index {
             self.size -= 1;
