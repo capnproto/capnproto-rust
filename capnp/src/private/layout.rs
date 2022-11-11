@@ -660,7 +660,7 @@ mod wire_helpers {
                     ptr.offset((*reff).struct_data_size() as isize * BYTES_PER_WORD as isize) as *const _;
                 let count: isize = (*reff).struct_ptr_count() as isize;
                 for i in 0..count {
-                    result.plus_eq(total_size(arena, segment_id, pointer_section.offset(i), nesting_limit)?);
+                    result += total_size(arena, segment_id, pointer_section.offset(i), nesting_limit)?;
                 }
             }
             WirePointerKind::List => {
@@ -683,10 +683,10 @@ mod wire_helpers {
                         result.word_count += u64::from(count) * WORDS_PER_POINTER as u64;
 
                         for i in 0..count as isize {
-                            result.plus_eq(
+                            result +=
                                 total_size(arena, segment_id,
                                            (ptr as *const WirePointer).offset(i),
-                                           nesting_limit)?);
+                                           nesting_limit)?;
                         }
                     }
                     InlineComposite => {
@@ -722,9 +722,9 @@ mod wire_helpers {
                                 pos = pos.offset(data_size as isize * BYTES_PER_WORD as isize);
 
                                 for _ in 0..pointer_count {
-                                    result.plus_eq(
+                                    result +=
                                         total_size(arena, segment_id,
-                                                   pos as *const WirePointer, nesting_limit)?);
+                                                   pos as *const WirePointer, nesting_limit)?;
                                     pos = pos.add(BYTES_PER_WORD);
                                 }
                             }
@@ -2919,9 +2919,9 @@ impl <'a> StructReader<'a> {
 
         for i in 0.. self.pointer_count as isize {
             unsafe {
-                result.plus_eq(wire_helpers::total_size(
+                result += wire_helpers::total_size(
                     self.arena, self.segment_id, self.pointers.offset(i),
-                    self.nesting_limit)?);
+                    self.nesting_limit)?;
             }
         }
 

@@ -116,10 +116,10 @@ pub struct MessageSize {
     pub cap_count: u32
 }
 
-impl MessageSize {
-    pub fn plus_eq(&mut self, other : MessageSize) {
-        self.word_count += other.word_count;
-        self.cap_count += other.cap_count;
+impl core::ops::AddAssign for MessageSize {
+    fn add_assign(&mut self, rhs: Self) {
+        self.word_count += rhs.word_count;
+        self.cap_count += rhs.cap_count;
     }
 }
 
