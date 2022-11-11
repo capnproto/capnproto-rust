@@ -79,7 +79,7 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
         io::ErrorKind::NotConnected  => capnp::ErrorKind::Disconnected,
         _ => capnp::ErrorKind::Failed,
     };
-    capnp::Error { description: format!("{}", err), kind: kind }
+    capnp::Error { description: format!("{}", err), kind }
 }
 
 fn run_command(mut command: ::std::process::Command, mut code_generation_command: codegen::CodeGenerationCommand) -> ::capnp::Result<()> {

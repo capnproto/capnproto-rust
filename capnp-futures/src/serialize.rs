@@ -420,7 +420,7 @@ pub mod test {
 
     impl <R> BlockingRead<R> where R: Read {
         pub(crate) fn new(read: R, blocking_period: usize) -> BlockingRead<R> {
-            BlockingRead { read: read, blocking_period, idx: 0 }
+            BlockingRead { read, blocking_period, idx: 0 }
         }
     }
 
@@ -456,7 +456,7 @@ pub mod test {
 
     impl <W> BlockingWrite<W> where W: Write {
         pub(crate) fn new(writer: W, blocking_period: usize) -> BlockingWrite<W> {
-            BlockingWrite { writer: writer, blocking_period, idx: 0 }
+            BlockingWrite { writer, blocking_period, idx: 0 }
         }
         pub(crate) fn into_writer(self) -> W {
             self.writer

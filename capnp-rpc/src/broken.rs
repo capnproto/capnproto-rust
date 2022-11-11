@@ -35,9 +35,7 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(error: Error) -> Pipeline {
-        Pipeline {
-            error: error
-        }
+        Pipeline { error }
     }
 }
 
@@ -59,7 +57,7 @@ pub struct Request {
 impl Request {
     pub fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> Request {
         Request {
-            error: error,
+            error,
             message: ::capnp::message::Builder::new_default(),
             cap_table: Vec::new(),
         }
@@ -103,9 +101,9 @@ impl Client {
     pub fn new(error: Error, resolved: bool, brand: usize) -> Client {
         Client {
             inner: Rc::new(ClientInner {
-                error: error,
+                error,
                 _resolved: resolved,
-                brand: brand,
+                brand,
             }),
         }
     }

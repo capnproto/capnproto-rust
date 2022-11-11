@@ -180,7 +180,7 @@ impl <VatId> QuestionRef<VatId> {
            fulfiller: oneshot::Sender<Promise<Response<VatId>, Error>>)
            -> QuestionRef<VatId>
     {
-        QuestionRef { connection_state: state, id: id, fulfiller: Some(fulfiller) }
+        QuestionRef { connection_state: state, id, fulfiller: Some(fulfiller) }
     }
     fn fulfill(&mut self, response: Promise<Response<VatId>, Error>) {
         if let Some(fulfiller) = self.fulfiller.take() {
@@ -281,7 +281,7 @@ impl Export {
     fn new(client_hook: Box<dyn ClientHook>) -> Export {
         Export {
             refcount: 1,
-            client_hook: client_hook,
+            client_hook,
             resolve_op: Promise::err(Error::failed("no resolve op".to_string())),
         }
     }
@@ -360,7 +360,7 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
             (::capnp::ErrorKind::Unimplemented, reason),
         _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
     };
-    Error { description: format!("remote exception: {}", reason), kind: kind }
+    Error { description: format!("remote exception: {}", reason), kind }
 }
 
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
@@ -369,7 +369,7 @@ pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
 
 impl <VatId> ConnectionErrorHandler<VatId> {
     fn new(weak_state: Weak<ConnectionState<VatId>>) -> ConnectionErrorHandler<VatId> {
-        ConnectionErrorHandler { weak_state: weak_state }
+        ConnectionErrorHandler { weak_state }
     }
 }
 
@@ -407,7 +407,7 @@ impl <VatId> ConnectionState<VatId> {
         -> (TaskSet<Error>, Rc<ConnectionState<VatId>>)
     {
         let state = Rc::new(ConnectionState {
-            bootstrap_cap: bootstrap_cap,
+            bootstrap_cap,
             exports: RefCell::new(ExportTable::new()),
             questions: RefCell::new(ExportTable::new()),
             answers: RefCell::new(ImportTable::new()),
@@ -1495,8 +1495,8 @@ impl <VatId> Disconnector<VatId> {
             }
         };
         Disconnector {
-            connection_state: connection_state,
-            state: state,
+            connection_state,
+            state,
         }
     }
     fn disconnect(&self) {
@@ -1564,7 +1564,7 @@ impl <VatId> Response<VatId> {
         Response {
             variant: Rc::new(ResponseVariant::Rpc(ResponseState {
                 _connection_state: connection_state,
-                message: message,
+                message,
                 cap_table: cap_table_array,
                 _question_ref: question_ref,
             })),
@@ -1638,9 +1638,9 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
         let message = connection_state.new_outgoing_message(100)?;
         Ok(Request {
-            connection_state: connection_state,
-            target: target,
-            message: message,
+            connection_state,
+            target,
+            message,
             cap_table: Vec::new(),
         })
     }
@@ -1879,7 +1879,7 @@ impl <VatId> Pipeline<VatId> {
             }
             None => {}
         }
-        Pipeline { state: state }
+        Pipeline { state }
     }
 
     fn when_resolved(&self) -> Promise<(), Error> {
@@ -1892,14 +1892,14 @@ impl <VatId> Pipeline<VatId> {
     {
         let state = Rc::new(RefCell::new(PipelineState {
             variant: PipelineVariant::Waiting(question_ref),
-            connection_state: connection_state,
+            connection_state,
             redirect_later: None,
             resolve_self_promise: Promise::from_future(future::pending()),
             promise_clients_to_resolve: RefCell::new(crate::sender_queue::SenderQueue::new()),
             resolution_waiters: crate::sender_queue::SenderQueue::new(),
         }));
 
-        Pipeline { state: state }
+        Pipeline { state }
     }
 }
 
@@ -1957,8 +1957,8 @@ impl Params {
            -> Params
     {
         Params {
-            request: request,
-            cap_table: cap_table,
+            request,
+            cap_table,
         }
     }
 }
@@ -2040,9 +2040,9 @@ impl <VatId> Results<VatId> where VatId: 'static {
             inner: Some(ResultsInner {
                 variant: None,
                 connection_state: connection_state.clone(),
-                redirect_results: redirect_results,
-                answer_id: answer_id,
-                finish_received: finish_received,
+                redirect_results,
+                answer_id,
+                finish_received,
             }),
             results_done_fulfiller: Some(fulfiller),
         }
@@ -2374,7 +2374,7 @@ impl <VatId> WeakClient<VatId> where VatId: 'static {
         };
         Some(Client {
             connection_state: state,
-            variant: variant,
+            variant,
         })
     }
 }
@@ -2431,7 +2431,7 @@ impl <VatId> ImportClient<VatId> where VatId: 'static {
            -> Rc<RefCell<ImportClient<VatId>>> {
         Rc::new(RefCell::new(ImportClient {
             connection_state: connection_state.clone(),
-            import_id: import_id,
+            import_id,
             remote_ref_count: 0,
         }))
     }
@@ -2461,8 +2461,8 @@ impl <VatId> PipelineClient<VatId> where VatId: 'static {
            ops: Vec<PipelineOp>) -> Rc<RefCell<PipelineClient<VatId>>> {
         Rc::new(RefCell::new(PipelineClient {
             connection_state: connection_state.clone(),
-            question_ref: question_ref,
-            ops: ops,
+            question_ref,
+            ops,
         }))
     }
 }
@@ -2501,7 +2501,7 @@ impl <VatId> PromiseClient<VatId> {
             connection_state: connection_state.clone(),
             is_resolved: false,
             cap: initial,
-            import_id: import_id,
+            import_id,
             received_call: false,
             resolution_waiters: crate::sender_queue::SenderQueue::new(),
         }))
@@ -2616,7 +2616,7 @@ impl <VatId> Client<VatId> {
     {
         let client = Client {
             connection_state: connection_state.clone(),
-            variant: variant,
+            variant,
         };
         let weak = client.downgrade();
 
@@ -2641,7 +2641,7 @@ impl <VatId> Client<VatId> {
         };
         WeakClient {
             connection_state: Rc::downgrade(&self.connection_state),
-            variant: variant,
+            variant,
         }
     }
 
@@ -2740,7 +2740,7 @@ impl <VatId> Clone for Client<VatId> {
                 unimplemented!()
             }
         };
-        Client { connection_state: self.connection_state.clone(), variant: variant}
+        Client { connection_state: self.connection_state.clone(), variant}
     }
 }
 
@@ -2893,7 +2893,7 @@ struct SingleCapPipeline {
 
 impl SingleCapPipeline {
     fn new(cap: Box<dyn ClientHook>) -> SingleCapPipeline {
-        SingleCapPipeline { cap: cap }
+        SingleCapPipeline { cap }
     }
 }
 

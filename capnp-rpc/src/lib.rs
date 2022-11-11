@@ -203,11 +203,11 @@ impl <VatId> RpcSystem <VatId> {
         }));
 
         let mut result = RpcSystem {
-            network: network,
-            bootstrap_cap: bootstrap_cap,
+            network,
+            bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
 
-            tasks: tasks,
+            tasks,
             handle: handle.clone(),
         };
 

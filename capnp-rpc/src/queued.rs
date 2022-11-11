@@ -105,7 +105,7 @@ impl Pipeline {
         }));
 
 
-        (PipelineInnerSender { inner: Some(Rc::downgrade(&inner)) }, Pipeline { inner: inner })
+        (PipelineInnerSender { inner: Some(Rc::downgrade(&inner)) }, Pipeline { inner })
     }
 
     pub fn drive<F>(&mut self, promise: F)
@@ -201,14 +201,12 @@ impl Client {
     {
         let inner = Rc::new(RefCell::new(ClientInner {
             promise_to_drive: None,
-            pipeline_inner: pipeline_inner,
+            pipeline_inner,
             redirect: None,
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),
         }));
-        Client {
-            inner: inner
-        }
+        Client { inner }
     }
 
     pub fn drive<F>(&mut self, promise: F)

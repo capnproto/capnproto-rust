@@ -37,7 +37,7 @@ struct IncomingMessage {
 
 impl IncomingMessage {
     pub fn new(message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>) -> IncomingMessage {
-        IncomingMessage { message: message }
+        IncomingMessage { message }
     }
 }
 
@@ -116,9 +116,9 @@ impl <T> Connection<T> where T: AsyncRead {
             inner: Rc::new(RefCell::new(
                 ConnectionInner {
                     input_stream: Rc::new(RefCell::new(Some(input_stream))),
-                    sender: sender,
-                    side: side,
-                    receive_options: receive_options,
+                    sender,
+                    side,
+                    receive_options,
                     on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
                 })),
         }
@@ -216,8 +216,8 @@ impl <T> VatNetwork<T> where T: AsyncRead + Unpin {
         VatNetwork {
             connection: Some(connection),
             weak_connection_inner: weak_inner,
-            execution_driver: execution_driver,
-            side: side,
+            execution_driver,
+            side,
         }
     }
 }
