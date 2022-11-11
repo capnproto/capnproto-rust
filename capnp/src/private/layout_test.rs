@@ -61,26 +61,26 @@ fn simple_raw_data_struct() {
         // TODO the rest of uints.
 
         // Bits.
-        assert_eq!(reader.get_bool_field(0), true);
-        assert_eq!(reader.get_bool_field(1), false);
-        assert_eq!(reader.get_bool_field(2), false);
-        assert_eq!(reader.get_bool_field(3), false);
-        assert_eq!(reader.get_bool_field(4), false);
-        assert_eq!(reader.get_bool_field(5), false);
-        assert_eq!(reader.get_bool_field(6), false);
-        assert_eq!(reader.get_bool_field(7), false);
+        assert!(reader.get_bool_field(0));
+        assert!(!reader.get_bool_field(1));
+        assert!(!reader.get_bool_field(2));
+        assert!(!reader.get_bool_field(3));
+        assert!(!reader.get_bool_field(4));
+        assert!(!reader.get_bool_field(5));
+        assert!(!reader.get_bool_field(6));
+        assert!(!reader.get_bool_field(7));
 
-        assert_eq!(reader.get_bool_field(8),  true);
-        assert_eq!(reader.get_bool_field(9),  true);
-        assert_eq!(reader.get_bool_field(10), false);
-        assert_eq!(reader.get_bool_field(11), false);
-        assert_eq!(reader.get_bool_field(12), false);
-        assert_eq!(reader.get_bool_field(13), true);
-        assert_eq!(reader.get_bool_field(14), false);
-        assert_eq!(reader.get_bool_field(15), false);
+        assert!(reader.get_bool_field(8));
+        assert!(reader.get_bool_field(9));
+        assert!(!reader.get_bool_field(10));
+        assert!(!reader.get_bool_field(11));
+        assert!(!reader.get_bool_field(12));
+        assert!(reader.get_bool_field(13));
+        assert!(!reader.get_bool_field(14));
+        assert!(!reader.get_bool_field(15));
 
         assert_eq!(reader.get_bool_field(63), true);
-        assert_eq!(reader.get_bool_field(64), false); // past end of struct --> default value
+        assert!(!reader.get_bool_field(64)); // past end of struct --> default value
     }
 }
 
@@ -102,30 +102,30 @@ fn bool_list() {
         let reader = pointer_reader.get_list(crate::private::layout::ElementSize::Bit, None).unwrap();
 
         assert_eq!(reader.len(), 10);
-        assert_eq!(bool::get(&reader, 0), true);
-        assert_eq!(bool::get(&reader, 1), false);
-        assert_eq!(bool::get(&reader, 2), true);
-        assert_eq!(bool::get(&reader, 3), false);
-        assert_eq!(bool::get(&reader, 4), true);
-        assert_eq!(bool::get(&reader, 5), true);
-        assert_eq!(bool::get(&reader, 6), true);
-        assert_eq!(bool::get(&reader, 7), false);
-        assert_eq!(bool::get(&reader, 8), false);
-        assert_eq!(bool::get(&reader, 9), true);
+        assert!(bool::get(&reader, 0));
+        assert!(!bool::get(&reader, 1));
+        assert!(bool::get(&reader, 2));
+        assert!(!bool::get(&reader, 3));
+        assert!(bool::get(&reader, 4));
+        assert!(bool::get(&reader, 5));
+        assert!(bool::get(&reader, 6));
+        assert!(!bool::get(&reader, 7));
+        assert!(!bool::get(&reader, 8));
+        assert!(bool::get(&reader, 9));
 
         let reader = crate::primitive_list::Reader::<bool>::get_from_pointer(&pointer_reader, None).unwrap();
 
         assert_eq!(reader.len(), 10);
-        assert_eq!(reader.get(0), true);
-        assert_eq!(reader.get(1), false);
-        assert_eq!(reader.get(2), true);
-        assert_eq!(reader.get(3), false);
-        assert_eq!(reader.get(4), true);
-        assert_eq!(reader.get(5), true);
-        assert_eq!(reader.get(6), true);
-        assert_eq!(reader.get(7), false);
-        assert_eq!(reader.get(8), false);
-        assert_eq!(reader.get(9), true);
+        assert!(reader.get(0));
+        assert!(!reader.get(1));
+        assert!(reader.get(2));
+        assert!(!reader.get(3));
+        assert!(reader.get(4));
+        assert!(reader.get(5));
+        assert!(reader.get(6));
+        assert!(!reader.get(7));
+        assert!(!reader.get(8));
+        assert!(reader.get(9));
     }
 }
 
