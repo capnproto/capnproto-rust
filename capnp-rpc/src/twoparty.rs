@@ -21,10 +21,10 @@
 
 //! An implementation of `VatNetwork` for the common case of a client-server connection.
 
-use capnp::message::ReaderOptions;
 use capnp::capability::Promise;
-use futures::{AsyncRead, AsyncWrite, FutureExt, TryFutureExt};
+use capnp::message::ReaderOptions;
 use futures::channel::oneshot;
+use futures::{AsyncRead, AsyncWrite, FutureExt, TryFutureExt};
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
@@ -36,7 +36,9 @@ struct IncomingMessage {
 }
 
 impl IncomingMessage {
-    pub fn new(message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>) -> IncomingMessage {
+    pub fn new(
+        message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>,
+    ) -> IncomingMessage {
         IncomingMessage { message }
     }
 }
@@ -61,25 +63,30 @@ impl crate::OutgoingMessage for OutgoingMessage {
         self.message.get_root_as_reader()
     }
 
-    fn send(self: Box<Self>)
-            ->
-        (Promise<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>, ::capnp::Error>,
-         Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>)
-    {
+    fn send(
+        self: Box<Self>,
+    ) -> (
+        Promise<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>, ::capnp::Error>,
+        Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
+    ) {
         let tmp = *self;
-        let OutgoingMessage {message, mut sender} = tmp;
+        let OutgoingMessage {
+            message,
+            mut sender,
+        } = tmp;
         let m = Rc::new(message);
         (Promise::from_future(sender.send(m.clone())), m)
     }
 
-    fn take(self: Box<Self>)
-            -> ::capnp::message::Builder<::capnp::message::HeapAllocator>
-    {
+    fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator> {
         self.message
     }
 }
 
-struct ConnectionInner<T> where T: AsyncRead + 'static {
+struct ConnectionInner<T>
+where
+    T: AsyncRead + 'static,
+{
     input_stream: Rc<RefCell<Option<T>>>,
     sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
     side: crate::rpc_twoparty_capnp::Side,
@@ -87,11 +94,17 @@ struct ConnectionInner<T> where T: AsyncRead + 'static {
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
 }
 
-struct Connection<T> where T: AsyncRead + 'static {
+struct Connection<T>
+where
+    T: AsyncRead + 'static,
+{
     inner: Rc<RefCell<ConnectionInner<T>>>,
 }
 
-impl <T> Drop for ConnectionInner<T> where T: AsyncRead {
+impl<T> Drop for ConnectionInner<T>
+where
+    T: AsyncRead,
+{
     fn drop(&mut self) {
         let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
         match maybe_fulfiller {
@@ -103,43 +116,52 @@ impl <T> Drop for ConnectionInner<T> where T: AsyncRead {
     }
 }
 
-impl <T> Connection<T> where T: AsyncRead {
-    fn new(input_stream: T,
-           sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
-           side: crate::rpc_twoparty_capnp::Side,
-           receive_options: ReaderOptions,
-           on_disconnect_fulfiller: oneshot::Sender<()>,
-           ) -> Connection<T>
-    {
-
+impl<T> Connection<T>
+where
+    T: AsyncRead,
+{
+    fn new(
+        input_stream: T,
+        sender: ::capnp_futures::Sender<
+            Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
+        >,
+        side: crate::rpc_twoparty_capnp::Side,
+        receive_options: ReaderOptions,
+        on_disconnect_fulfiller: oneshot::Sender<()>,
+    ) -> Connection<T> {
         Connection {
-            inner: Rc::new(RefCell::new(
-                ConnectionInner {
-                    input_stream: Rc::new(RefCell::new(Some(input_stream))),
-                    sender,
-                    side,
-                    receive_options,
-                    on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
-                })),
+            inner: Rc::new(RefCell::new(ConnectionInner {
+                input_stream: Rc::new(RefCell::new(Some(input_stream))),
+                sender,
+                side,
+                receive_options,
+                on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
+            })),
         }
     }
 }
 
-impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
-    where T: AsyncRead + Unpin
+impl<T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
+where
+    T: AsyncRead + Unpin,
 {
     fn get_peer_vat_id(&self) -> crate::rpc_twoparty_capnp::Side {
         self.inner.borrow().side
     }
 
-    fn new_outgoing_message(&mut self, _first_segment_word_size: u32) -> Box<dyn crate::OutgoingMessage> {
+    fn new_outgoing_message(
+        &mut self,
+        _first_segment_word_size: u32,
+    ) -> Box<dyn crate::OutgoingMessage> {
         Box::new(OutgoingMessage {
             message: ::capnp::message::Builder::new_default(),
             sender: self.inner.borrow().sender.clone(),
         })
     }
 
-    fn receive_incoming_message(&mut self) -> Promise<Option<Box<dyn crate::IncomingMessage + 'static>>, ::capnp::Error> {
+    fn receive_incoming_message(
+        &mut self,
+    ) -> Promise<Option<Box<dyn crate::IncomingMessage + 'static>>, ::capnp::Error> {
         let inner = self.inner.borrow_mut();
 
         let maybe_input_stream = ::std::mem::replace(&mut *inner.input_stream.borrow_mut(), None);
@@ -148,15 +170,20 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
             Some(mut s) => {
                 let receive_options = inner.receive_options;
                 Promise::from_future(async move {
-                    let maybe_message = ::capnp_futures::serialize::try_read_message(&mut s, receive_options).await?;
+                    let maybe_message =
+                        ::capnp_futures::serialize::try_read_message(&mut s, receive_options)
+                            .await?;
                     *return_it_here.borrow_mut() = Some(s);
-                    Ok(maybe_message.map(|message|
-                                         Box::new(IncomingMessage::new(message)) as Box<dyn crate::IncomingMessage>))
+                    Ok(maybe_message.map(|message| {
+                        Box::new(IncomingMessage::new(message)) as Box<dyn crate::IncomingMessage>
+                    }))
                 })
             }
             None => {
-                Promise::err(::capnp::Error::failed("this should not be possible".to_string()))
-             //   unreachable!(),
+                Promise::err(::capnp::Error::failed(
+                    "this should not be possible".to_string(),
+                ))
+                //   unreachable!(),
             }
         }
     }
@@ -167,7 +194,10 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
 }
 
 /// A vat network with two parties, the client and the server.
-pub struct VatNetwork<T> where T: AsyncRead + 'static + Unpin {
+pub struct VatNetwork<T>
+where
+    T: AsyncRead + 'static + Unpin,
+{
     // connection handle that we will return on accept()
     connection: Option<Connection<T>>,
 
@@ -178,7 +208,10 @@ pub struct VatNetwork<T> where T: AsyncRead + 'static + Unpin {
     side: crate::rpc_twoparty_capnp::Side,
 }
 
-impl <T> VatNetwork<T> where T: AsyncRead + Unpin {
+impl<T> VatNetwork<T>
+where
+    T: AsyncRead + Unpin,
+{
     /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
     /// `output_stream`.
     ///
@@ -188,28 +221,34 @@ impl <T> VatNetwork<T> where T: AsyncRead + Unpin {
     /// will make more sense once we have vat networks with more than two parties.
     ///
     /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
-    pub fn new<U>(input_stream: T,
-               output_stream: U,
-               side: crate::rpc_twoparty_capnp::Side,
-               receive_options: ReaderOptions) -> VatNetwork<T>
-        where U: AsyncWrite + 'static + Unpin,
+    pub fn new<U>(
+        input_stream: T,
+        output_stream: U,
+        side: crate::rpc_twoparty_capnp::Side,
+        receive_options: ReaderOptions,
+    ) -> VatNetwork<T>
+    where
+        U: AsyncWrite + 'static + Unpin,
     {
-
         let (fulfiller, disconnect_promise) = oneshot::channel();
-        let disconnect_promise = disconnect_promise
-            .map_err(|_| ::capnp::Error::disconnected("disconnected".into()));
+        let disconnect_promise =
+            disconnect_promise.map_err(|_| ::capnp::Error::disconnected("disconnected".into()));
 
         let (execution_driver, sender) = {
             let (tx, write_queue) = ::capnp_futures::write_queue(output_stream);
 
             // Don't use `.join()` here because we need to make sure to wait for `disconnect_promise` to
             // resolve even if `write_queue` resolves to an error.
-            (Promise::from_future(
-                write_queue
-                    .then(move |r| disconnect_promise.then(move |_| futures::future::ready(r)).map_ok(|_| ()))).shared(),
-             tx)
+            (
+                Promise::from_future(write_queue.then(move |r| {
+                    disconnect_promise
+                        .then(move |_| futures::future::ready(r))
+                        .map_ok(|_| ())
+                }))
+                .shared(),
+                tx,
+            )
         };
-
 
         let connection = Connection::new(input_stream, sender, side, receive_options, fulfiller);
         let weak_inner = Rc::downgrade(&connection.inner);
@@ -222,17 +261,18 @@ impl <T> VatNetwork<T> where T: AsyncRead + Unpin {
     }
 }
 
-impl <T> crate::VatNetwork<VatId> for VatNetwork<T>
-    where T: AsyncRead + Unpin
+impl<T> crate::VatNetwork<VatId> for VatNetwork<T>
+where
+    T: AsyncRead + Unpin,
 {
     fn connect(&mut self, host_id: VatId) -> Option<Box<dyn crate::Connection<VatId>>> {
         if host_id == self.side {
             None
         } else {
             match self.weak_connection_inner.upgrade() {
-                Some(connection_inner) => {
-                    Some(Box::new(Connection { inner: connection_inner }))
-                }
+                Some(connection_inner) => Some(Box::new(Connection {
+                    inner: connection_inner,
+                })),
                 None => {
                     panic!("tried to reconnect a disconnected twoparty vat network.")
                 }

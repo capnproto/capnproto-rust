@@ -22,17 +22,28 @@
 use futures::{Future, FutureExt};
 
 use std::cell::RefCell;
-use std::rc::{Rc};
+use std::rc::Rc;
 
-pub fn split<F, T1, T2, E>(f: F) -> (impl Future<Output=Result<T1, E>>,
-                                     impl Future<Output=Result<T2, E>>)
-    where F: Future<Output=Result<(T1, T2), E>>,
-          E: Clone,
+pub fn split<F, T1, T2, E>(
+    f: F,
+) -> (
+    impl Future<Output = Result<T1, E>>,
+    impl Future<Output = Result<T2, E>>,
+)
+where
+    F: Future<Output = Result<(T1, T2), E>>,
+    E: Clone,
 {
-    let shared = f.map(|r| {
-        let (v1, v2) = r?;
-        Ok(Rc::new(RefCell::new((Some(v1), Some(v2)))))
-        }).shared();
-    (shared.clone().map(|r| Ok::<T1, E>(r?.borrow_mut().0.take().unwrap())),
-     shared.map(|r| Ok::<T2, E>(r?.borrow_mut().1.take().unwrap())))
+    let shared = f
+        .map(|r| {
+            let (v1, v2) = r?;
+            Ok(Rc::new(RefCell::new((Some(v1), Some(v2)))))
+        })
+        .shared();
+    (
+        shared
+            .clone()
+            .map(|r| Ok::<T1, E>(r?.borrow_mut().0.take().unwrap())),
+        shared.map(|r| Ok::<T2, E>(r?.borrow_mut().1.take().unwrap())),
+    )
 }

@@ -24,16 +24,16 @@
 //! Roughly corresponds to capability.h in the C++ implementation.
 
 use alloc::boxed::Box;
-use core::future::{Future};
-use core::pin::{Pin};
+use core::future::Future;
 use core::marker::{PhantomData, Unpin};
-use core::task::Poll;
 #[cfg(feature = "rpc_try")]
 use core::ops::Try;
+use core::pin::Pin;
+use core::task::Poll;
 
-use crate::{any_pointer, Error, MessageSize};
-use crate::traits::{Pipelined, Owned};
 use crate::private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
+use crate::traits::{Owned, Pipelined};
+use crate::{any_pointer, Error, MessageSize};
 
 /// A computation that might eventually resolve to a value of type `T` or to an error
 ///  of type `E`. Dropping the promise cancels the computation.
@@ -43,33 +43,39 @@ pub struct Promise<T, E> {
 }
 
 enum PromiseInner<T, E> {
-    Immediate(Result<T,E>),
-    Deferred(Pin<Box<dyn Future<Output=core::result::Result<T,E>> + 'static>>),
+    Immediate(Result<T, E>),
+    Deferred(Pin<Box<dyn Future<Output = core::result::Result<T, E>> + 'static>>),
     Empty,
 }
 
 // Allow Promise<T,E> to be Unpin, regardless of whether T and E are.
-impl <T, E> Unpin for PromiseInner<T,E> {}
+impl<T, E> Unpin for PromiseInner<T, E> {}
 
-impl <T, E> Promise<T, E> {
+impl<T, E> Promise<T, E> {
     pub fn ok(value: T) -> Promise<T, E> {
-        Promise { inner: PromiseInner::Immediate(Ok(value)) }
+        Promise {
+            inner: PromiseInner::Immediate(Ok(value)),
+        }
     }
 
     pub fn err(error: E) -> Promise<T, E> {
-        Promise { inner: PromiseInner::Immediate(Err(error)) }
+        Promise {
+            inner: PromiseInner::Immediate(Err(error)),
+        }
     }
 
     pub fn from_future<F>(f: F) -> Promise<T, E>
-        where F: Future<Output=core::result::Result<T,E>> + 'static
+    where
+        F: Future<Output = core::result::Result<T, E>> + 'static,
     {
-        Promise { inner: PromiseInner::Deferred(Box::pin(f)) }
+        Promise {
+            inner: PromiseInner::Deferred(Box::pin(f)),
+        }
     }
 }
 
-impl <T, E> Future for Promise<T, E>
-{
-    type Output = core::result::Result<T,E>;
+impl<T, E> Future for Promise<T, E> {
+    type Output = core::result::Result<T, E>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut ::core::task::Context) -> Poll<Self::Output> {
         match self.get_mut().inner {
@@ -111,7 +117,10 @@ impl<T> std::ops::FromResidual for Promise<T, crate::Error> {
 
 /// A promise for a result from a method call.
 #[must_use]
-pub struct RemotePromise<Results> where Results: Pipelined + Owned + 'static {
+pub struct RemotePromise<Results>
+where
+    Results: Pipelined + Owned + 'static,
+{
     pub promise: Promise<Response<Results>, crate::Error>,
     pub pipeline: Results::Pipeline,
 }
@@ -122,11 +131,15 @@ pub struct Response<Results> {
     pub hook: Box<dyn ResponseHook>,
 }
 
-impl <Results> Response<Results>
-    where Results: Pipelined + Owned
+impl<Results> Response<Results>
+where
+    Results: Pipelined + Owned,
 {
     pub fn new(hook: Box<dyn ResponseHook>) -> Response<Results> {
-        Response { marker: PhantomData, hook }
+        Response {
+            marker: PhantomData,
+            hook,
+        }
     }
     pub fn get(&self) -> crate::Result<Results::Reader<'_>> {
         self.hook.get()?.get_as()
@@ -136,14 +149,18 @@ impl <Results> Response<Results>
 /// A method call that has not been sent yet.
 pub struct Request<Params, Results> {
     pub marker: PhantomData<(Params, Results)>,
-    pub hook: Box<dyn RequestHook>
+    pub hook: Box<dyn RequestHook>,
 }
 
-impl <Params, Results> Request<Params, Results>
-    where Params: Owned
+impl<Params, Results> Request<Params, Results>
+where
+    Params: Owned,
 {
-    pub fn new(hook: Box<dyn RequestHook>) -> Request <Params, Results> {
-        Request { hook, marker: PhantomData }
+    pub fn new(hook: Box<dyn RequestHook>) -> Request<Params, Results> {
+        Request {
+            hook,
+            marker: PhantomData,
+        }
     }
 
     pub fn get(&mut self) -> Params::Builder<'_> {
@@ -155,20 +172,25 @@ impl <Params, Results> Request<Params, Results>
     }
 }
 
-impl <Params, Results> Request <Params, Results>
-where Results: Pipelined + Owned + 'static + Unpin,
-      <Results as Pipelined>::Pipeline: FromTypelessPipeline
+impl<Params, Results> Request<Params, Results>
+where
+    Results: Pipelined + Owned + 'static + Unpin,
+    <Results as Pipelined>::Pipeline: FromTypelessPipeline,
 {
     pub fn send(self) -> RemotePromise<Results> {
-        let RemotePromise {promise, pipeline, ..} = self.hook.send();
-        let typed_promise = Promise::from_future(
-            async move {
-                Ok(Response {hook: promise.await?.hook,
-                             marker: PhantomData})
-            });
-        RemotePromise { promise: typed_promise,
-                        pipeline: FromTypelessPipeline::new(pipeline)
-                      }
+        let RemotePromise {
+            promise, pipeline, ..
+        } = self.hook.send();
+        let typed_promise = Promise::from_future(async move {
+            Ok(Response {
+                hook: promise.await?.hook,
+                marker: PhantomData,
+            })
+        });
+        RemotePromise {
+            promise: typed_promise,
+            pipeline: FromTypelessPipeline::new(pipeline),
+        }
     }
 }
 
@@ -178,12 +200,16 @@ pub struct Params<T> {
     pub hook: Box<dyn ParamsHook>,
 }
 
-impl <T> Params <T> {
+impl<T> Params<T> {
     pub fn new(hook: Box<dyn ParamsHook>) -> Params<T> {
-        Params { marker: PhantomData, hook }
+        Params {
+            marker: PhantomData,
+            hook,
+        }
     }
     pub fn get(&self) -> crate::Result<T::Reader<'_>>
-        where T: Owned
+    where
+        T: Owned,
     {
         self.hook.get()?.get_as()
     }
@@ -195,25 +221,28 @@ pub struct Results<T> {
     pub hook: Box<dyn ResultsHook>,
 }
 
-impl <T> Results<T>
-    where T: Owned
+impl<T> Results<T>
+where
+    T: Owned,
 {
     pub fn new(hook: Box<dyn ResultsHook>) -> Results<T> {
-        Results { marker: PhantomData, hook }
+        Results {
+            marker: PhantomData,
+            hook,
+        }
     }
 
     pub fn get(&mut self) -> T::Builder<'_> {
         self.hook.get().unwrap().get_as().unwrap()
     }
 
-    pub fn set(&mut self, other: T::Reader<'_>) -> crate::Result<()>
-    {
+    pub fn set(&mut self, other: T::Reader<'_>) -> crate::Result<()> {
         self.hook.get().unwrap().set_as(other)
     }
 }
 
 pub trait FromTypelessPipeline {
-    fn new (typeless: any_pointer::Pipeline) -> Self;
+    fn new(typeless: any_pointer::Pipeline) -> Self;
 }
 
 /// Trait implemented (via codegen) by all user-defined capability client types.
@@ -230,14 +259,17 @@ pub trait FromClientHook {
     /// Casts `self` to another instance of `FromClientHook`. This always succeeds,
     /// but if the underlying capability does not actually implement `T`'s interface,
     /// then method calls will fail with "unimplemented" errors.
-    fn cast_to<T: FromClientHook + Sized>(self) -> T where Self: Sized {
+    fn cast_to<T: FromClientHook + Sized>(self) -> T
+    where
+        Self: Sized,
+    {
         FromClientHook::new(self.into_client_hook())
     }
 }
 
 /// An untyped client.
 pub struct Client {
-    pub hook: Box<dyn ClientHook>
+    pub hook: Box<dyn ClientHook>,
 }
 
 impl Client {
@@ -245,13 +277,17 @@ impl Client {
         Client { hook }
     }
 
-    pub fn new_call<Params, Results>(&self,
-                                     interface_id : u64,
-                                     method_id : u16,
-                                     size_hint : Option<MessageSize>)
-                                     -> Request<Params, Results> {
+    pub fn new_call<Params, Results>(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        size_hint: Option<MessageSize>,
+    ) -> Request<Params, Results> {
         let typeless = self.hook.new_call(interface_id, method_id, size_hint);
-        Request { hook: typeless.hook, marker: PhantomData }
+        Request {
+            hook: typeless.hook,
+            marker: PhantomData,
+        }
     }
 
     /// If the capability is actually only a promise, the returned promise resolves once the
@@ -266,16 +302,19 @@ impl Client {
 
 /// An untyped server.
 pub trait Server {
-    fn dispatch_call(&mut self, interface_id: u64, method_id: u16,
-                     params: Params<any_pointer::Owned>,
-                     results: Results<any_pointer::Owned>)
-                     -> Promise<(), Error>;
+    fn dispatch_call(
+        &mut self,
+        interface_id: u64,
+        method_id: u16,
+        params: Params<any_pointer::Owned>,
+        results: Results<any_pointer::Owned>,
+    ) -> Promise<(), Error>;
 }
 
 /// Trait to track the relationship between generated Server traits and Client structs.
-pub trait FromServer<S> : FromClientHook {
+pub trait FromServer<S>: FromClientHook {
     // Implemented by the generated ServerDispatch struct.
-    type Dispatch: Server + 'static + core::ops::DerefMut<Target=S>;
+    type Dispatch: Server + 'static + core::ops::DerefMut<Target = S>;
 
     fn from_server(s: S) -> Self::Dispatch;
 }

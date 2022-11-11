@@ -19,19 +19,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp::Error;
 use capnp::primitive_list;
+use capnp::Error;
 
-use capnp_rpc::{RpcSystem, pry, twoparty, rpc_twoparty_capnp};
+use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use crate::calculator_capnp::calculator;
 use capnp::capability::Promise;
 
-use futures::{AsyncReadExt, FutureExt, TryFutureExt};
 use futures::future;
+use futures::{AsyncReadExt, FutureExt, TryFutureExt};
 
 struct ValueImpl {
-    value: f64
+    value: f64,
 }
 
 impl ValueImpl {
@@ -41,42 +41,40 @@ impl ValueImpl {
 }
 
 impl calculator::value::Server for ValueImpl {
-    fn read(&mut self,
-            _params: calculator::value::ReadParams,
-            mut results: calculator::value::ReadResults)
-            -> Promise<(), Error>
-    {
+    fn read(
+        &mut self,
+        _params: calculator::value::ReadParams,
+        mut results: calculator::value::ReadResults,
+    ) -> Promise<(), Error> {
         results.get().set_value(self.value);
         Promise::ok(())
     }
 }
 
-fn evaluate_impl(expression: calculator::expression::Reader,
-                 params: Option<primitive_list::Reader<f64>>)
-                 -> Promise<f64, Error>
-{
+fn evaluate_impl(
+    expression: calculator::expression::Reader,
+    params: Option<primitive_list::Reader<f64>>,
+) -> Promise<f64, Error> {
     match pry!(expression.which()) {
-        calculator::expression::Literal(v) => {
-            Promise::ok(v)
+        calculator::expression::Literal(v) => Promise::ok(v),
+        calculator::expression::PreviousResult(p) => Promise::from_future(
+            pry!(p)
+                .read_request()
+                .send()
+                .promise
+                .map(|v| Ok(v?.get()?.get_value())),
+        ),
+        calculator::expression::Parameter(p) => match params {
+            Some(params) if p < params.len() => Promise::ok(params.get(p)),
+            _ => Promise::err(Error::failed(format!("bad parameter: {}", p))),
         },
-        calculator::expression::PreviousResult(p) => {
-            Promise::from_future(pry!(p).read_request().send().promise.map(|v| {
-                Ok(v?.get()?.get_value())
-            }))
-        }
-        calculator::expression::Parameter(p) => {
-            match params {
-                Some(params) if p < params.len() => {
-                    Promise::ok(params.get(p))
-                }
-                _ => {
-                    Promise::err(Error::failed(format!("bad parameter: {}", p)))
-                }
-            }
-        }
         calculator::expression::Call(call) => {
             let func = pry!(call.get_function());
-            let eval_params = future::try_join_all(pry!(call.get_params()).iter().map(|p| evaluate_impl(p, params)));
+            let eval_params = future::try_join_all(
+                pry!(call.get_params())
+                    .iter()
+                    .map(|p| evaluate_impl(p, params)),
+            );
             Promise::from_future(async move {
                 let param_values = eval_params.await?;
                 let mut request = func.call_request();
@@ -98,7 +96,10 @@ struct FunctionImpl {
 }
 
 impl FunctionImpl {
-    fn new(param_count: u32, body: calculator::expression::Reader) -> ::capnp::Result<FunctionImpl> {
+    fn new(
+        param_count: u32,
+        body: calculator::expression::Reader,
+    ) -> ::capnp::Result<FunctionImpl> {
         let mut result = FunctionImpl {
             param_count: param_count,
             body: ::capnp_rpc::ImbuedMessageBuilder::new(::capnp::message::HeapAllocator::new()),
@@ -109,19 +110,24 @@ impl FunctionImpl {
 }
 
 impl calculator::function::Server for FunctionImpl {
-    fn call(&mut self,
-            params: calculator::function::CallParams,
-            mut results: calculator::function::CallResults)
-        -> Promise<(), Error>
-    {
+    fn call(
+        &mut self,
+        params: calculator::function::CallParams,
+        mut results: calculator::function::CallResults,
+    ) -> Promise<(), Error> {
         let params = pry!(pry!(params.get()).get_params());
         if params.len() != self.param_count {
-            return Promise::err(Error::failed(
-                    format!("Expected {} parameters but got {}.", self.param_count, params.len())));
+            return Promise::err(Error::failed(format!(
+                "Expected {} parameters but got {}.",
+                self.param_count,
+                params.len()
+            )));
         }
 
-        let eval = evaluate_impl(pry!(self.body.get_root::<calculator::expression::Builder>()).into_reader(),
-                                 Some(params));
+        let eval = evaluate_impl(
+            pry!(self.body.get_root::<calculator::expression::Builder>()).into_reader(),
+            Some(params),
+        );
         Promise::from_future(async move {
             results.get().set_value(eval.await?);
             Ok(())
@@ -135,20 +141,20 @@ pub struct OperatorImpl {
 }
 
 impl calculator::function::Server for OperatorImpl {
-    fn call(&mut self,
-            params: calculator::function::CallParams,
-            mut results: calculator::function::CallResults)
-            -> Promise<(), Error>
-    {
+    fn call(
+        &mut self,
+        params: calculator::function::CallParams,
+        mut results: calculator::function::CallResults,
+    ) -> Promise<(), Error> {
         let params = pry!(pry!(params.get()).get_params());
         if params.len() != 2 {
             Promise::err(Error::failed("Wrong number of paramters.".to_string()))
         } else {
             let v = match self.op {
-                calculator::Operator::Add =>       params.get(0) + params.get(1),
-                calculator::Operator::Subtract =>  params.get(0) - params.get(1),
-                calculator::Operator::Multiply =>  params.get(0) * params.get(1),
-                calculator::Operator::Divide =>    params.get(0) / params.get(1),
+                calculator::Operator::Add => params.get(0) + params.get(1),
+                calculator::Operator::Subtract => params.get(0) - params.get(1),
+                calculator::Operator::Multiply => params.get(0) * params.get(1),
+                calculator::Operator::Divide => params.get(0) / params.get(1),
             };
             results.get().set_value(v);
             Promise::ok(())
@@ -159,35 +165,41 @@ impl calculator::function::Server for OperatorImpl {
 struct CalculatorImpl;
 
 impl calculator::Server for CalculatorImpl {
-    fn evaluate(&mut self,
-                params: calculator::EvaluateParams,
-                mut results: calculator::EvaluateResults)
-                -> Promise<(), Error>
-    {
+    fn evaluate(
+        &mut self,
+        params: calculator::EvaluateParams,
+        mut results: calculator::EvaluateResults,
+    ) -> Promise<(), Error> {
         Promise::from_future(async move {
             let v = evaluate_impl(params.get()?.get_expression()?, None).await?;
-            results.get().set_value(capnp_rpc::new_client(ValueImpl::new(v)));
+            results
+                .get()
+                .set_value(capnp_rpc::new_client(ValueImpl::new(v)));
             Ok(())
         })
     }
-    fn def_function(&mut self,
-                    params: calculator::DefFunctionParams,
-                    mut results: calculator::DefFunctionResults)
-                    -> Promise<(), Error>
-    {
-        results.get().set_func(
-            capnp_rpc::new_client(
-                pry!(FunctionImpl::new(pry!(params.get()).get_param_count() as u32,
-                                       pry!(pry!(params.get()).get_body())))));
+    fn def_function(
+        &mut self,
+        params: calculator::DefFunctionParams,
+        mut results: calculator::DefFunctionResults,
+    ) -> Promise<(), Error> {
+        results
+            .get()
+            .set_func(capnp_rpc::new_client(pry!(FunctionImpl::new(
+                pry!(params.get()).get_param_count() as u32,
+                pry!(pry!(params.get()).get_body())
+            ))));
         Promise::ok(())
     }
-    fn get_operator(&mut self,
-                    params: calculator::GetOperatorParams,
-                    mut results: calculator::GetOperatorResults)
-                    -> Promise<(), Error>
-    {
+    fn get_operator(
+        &mut self,
+        params: calculator::GetOperatorParams,
+        mut results: calculator::GetOperatorResults,
+    ) -> Promise<(), Error> {
         let op = pry!(pry!(params.get()).get_op());
-        results.get().set_func(capnp_rpc::new_client(OperatorImpl {op : op}));
+        results
+            .get()
+            .set_func(capnp_rpc::new_client(OperatorImpl { op: op }));
         Promise::ok(())
     }
 }
@@ -200,22 +212,31 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let addr = args[2].to_socket_addrs()?.next().expect("could not parse address");
+    let addr = args[2]
+        .to_socket_addrs()?
+        .next()
+        .expect("could not parse address");
 
-    tokio::task::LocalSet::new().run_until(async move {
-        let listener = tokio::net::TcpListener::bind(&addr).await?;
-        let calc: calculator::Client = capnp_rpc::new_client(CalculatorImpl);
+    tokio::task::LocalSet::new()
+        .run_until(async move {
+            let listener = tokio::net::TcpListener::bind(&addr).await?;
+            let calc: calculator::Client = capnp_rpc::new_client(CalculatorImpl);
 
-        loop {
-            let (stream, _) = listener.accept().await?;
-            stream.set_nodelay(true)?;
-            let (reader, writer) = tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
-            let network =
-                twoparty::VatNetwork::new(reader, writer,
-                                          rpc_twoparty_capnp::Side::Server, Default::default());
+            loop {
+                let (stream, _) = listener.accept().await?;
+                stream.set_nodelay(true)?;
+                let (reader, writer) =
+                    tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
+                let network = twoparty::VatNetwork::new(
+                    reader,
+                    writer,
+                    rpc_twoparty_capnp::Side::Server,
+                    Default::default(),
+                );
 
-            let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
-            tokio::task::spawn_local(rpc_system.map_err(|e| println!("error: {:?}", e)));
-        }
-    }).await
+                let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
+                tokio::task::spawn_local(rpc_system.map_err(|e| println!("error: {:?}", e)));
+            }
+        })
+        .await
 }

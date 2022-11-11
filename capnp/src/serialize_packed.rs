@@ -22,24 +22,30 @@
 //! Reading and writing of messages using the
 //! [packed stream encoding](https://capnproto.org/encoding.html#packing).
 
+use crate::io::{BufRead, Read, Write};
 use alloc::string::ToString;
 use core::{mem, ptr, slice};
-use crate::io::{Read, BufRead, Write};
 
+use crate::message;
 use crate::serialize;
 use crate::Result;
-use crate::message;
 
 /// A `BufRead` wrapper that unpacks packed data. Returns an error on any `read()`
 /// call that would end within an all-zero (tag 0x00) or uncompressed (tag 0xff)
 /// run of words. Calls that come from `serialize_packed::read_message()` and
 /// `serialize_packed::try_read_message()` always mirror `write()` calls from
 /// `serialize_packed::write_message()`, so they always safely span such runs.
-struct PackedRead<R> where R: BufRead {
+struct PackedRead<R>
+where
+    R: BufRead,
+{
     inner: R,
 }
 
-impl <R> PackedRead<R> where R: BufRead {
+impl<R> PackedRead<R>
+where
+    R: BufRead,
+{
     fn get_read_buffer(&mut self) -> Result<(*const u8, *const u8)> {
         let buf = self.inner.fill_buf()?;
         Ok((buf.as_ptr(), buf.as_ptr().wrapping_add(buf.len())))
@@ -68,10 +74,15 @@ macro_rules! refresh_buffer(
         );
     );
 
-impl <R> Read for PackedRead<R> where R: BufRead {
+impl<R> Read for PackedRead<R>
+where
+    R: BufRead,
+{
     fn read(&mut self, out_buf: &mut [u8]) -> Result<usize> {
         let len = out_buf.len();
-        if len == 0 { return Ok(0); }
+        if len == 0 {
+            return Ok(0);
+        }
 
         assert!(len % 8 == 0, "PackedRead reads must be word-aligned.");
 
@@ -89,8 +100,11 @@ impl <R> Read for PackedRead<R> where R: BufRead {
             loop {
                 let tag: u8;
 
-                assert_eq!(ptr_sub(out, out_buf.as_mut_ptr()) % 8, 0,
-                           "Output pointer should always be aligned here.");
+                assert_eq!(
+                    ptr_sub(out, out_buf.as_mut_ptr()) % 8,
+                    0,
+                    "Output pointer should always be aligned here."
+                );
 
                 if ptr_sub(in_end, in_ptr) < 10 {
                     if ptr_sub(in_end, in_ptr) == 0 {
@@ -107,8 +121,15 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                     for i in 0..8 {
                         if (tag & (1u8 << i)) != 0 {
                             if ptr_sub(in_end, in_ptr) == 0 {
-                                refresh_buffer!(self, size, in_ptr, in_end,
-                                                out, out_buf, buffer_begin);
+                                refresh_buffer!(
+                                    self,
+                                    size,
+                                    in_ptr,
+                                    in_end,
+                                    out,
+                                    out_buf,
+                                    buffer_begin
+                                );
                             }
                             *out = *in_ptr;
                             out = out.offset(1);
@@ -120,8 +141,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                     }
 
                     if ptr_sub(in_end, in_ptr) == 0 && (tag == 0 || tag == 0xff) {
-                        refresh_buffer!(self, size, in_ptr, in_end,
-                                        out, out_buf, buffer_begin);
+                        refresh_buffer!(self, size, in_ptr, in_end, out, out_buf, buffer_begin);
                     }
                 } else {
                     tag = *in_ptr;
@@ -135,28 +155,35 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                     }
                 }
                 if tag == 0 {
-                    assert!(ptr_sub(in_end, in_ptr) > 0,
-                            "Should always have non-empty buffer here.");
+                    assert!(
+                        ptr_sub(in_end, in_ptr) > 0,
+                        "Should always have non-empty buffer here."
+                    );
 
-                    let run_length : usize = (*in_ptr) as usize * 8;
+                    let run_length: usize = (*in_ptr) as usize * 8;
                     in_ptr = in_ptr.offset(1);
 
                     if run_length > ptr_sub(out_end, out) {
-                        return Err(crate::Error::failed("Packed input did not end cleanly on a segment boundary.".to_string()));
+                        return Err(crate::Error::failed(
+                            "Packed input did not end cleanly on a segment boundary.".to_string(),
+                        ));
                     }
 
                     ptr::write_bytes(out, 0, run_length);
                     out = out.add(run_length);
-
                 } else if tag == 0xff {
-                    assert!(ptr_sub(in_end, in_ptr) > 0,
-                            "Should always have non-empty buffer here");
+                    assert!(
+                        ptr_sub(in_end, in_ptr) > 0,
+                        "Should always have non-empty buffer here"
+                    );
 
-                    let mut run_length : usize = (*in_ptr) as usize * 8;
+                    let mut run_length: usize = (*in_ptr) as usize * 8;
                     in_ptr = in_ptr.offset(1);
 
                     if run_length > ptr_sub(out_end, out) {
-                        return Err(crate::Error::failed("Packed input did not end cleanly on a segment boundary.".to_string()));
+                        return Err(crate::Error::failed(
+                            "Packed input did not end cleanly on a segment boundary.".to_string(),
+                        ));
                     }
 
                     let in_remaining = ptr_sub(in_end, in_ptr);
@@ -202,30 +229,40 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 }
 
 /// Reads a packed message from a stream using the provided options.
-pub fn read_message<R>(read: R,
-                       options: message::ReaderOptions)
-                       -> Result<crate::message::Reader<serialize::OwnedSegments>>
-    where R: BufRead
+pub fn read_message<R>(
+    read: R,
+    options: message::ReaderOptions,
+) -> Result<crate::message::Reader<serialize::OwnedSegments>>
+where
+    R: BufRead,
 {
     let packed_read = PackedRead { inner: read };
     serialize::read_message(packed_read, options)
 }
 
 /// Like read_message(), but returns None instead of an error if there are zero bytes left in `read`.
-pub fn try_read_message<R>(read: R,
-                           options: message::ReaderOptions)
-                           -> Result<Option<crate::message::Reader<serialize::OwnedSegments>>>
-    where R: BufRead
+pub fn try_read_message<R>(
+    read: R,
+    options: message::ReaderOptions,
+) -> Result<Option<crate::message::Reader<serialize::OwnedSegments>>>
+where
+    R: BufRead,
 {
     let packed_read = PackedRead { inner: read };
     serialize::try_read_message(packed_read, options)
 }
 
-struct PackedWrite<W> where W: Write {
+struct PackedWrite<W>
+where
+    W: Write,
+{
     inner: W,
 }
 
-impl <W> Write for PackedWrite<W> where W: Write {
+impl<W> Write for PackedWrite<W>
+where
+    W: Write,
+{
     fn write_all(&mut self, in_buf: &[u8]) -> Result<()> {
         unsafe {
             let mut buf_idx: usize = 0;
@@ -235,7 +272,6 @@ impl <W> Write for PackedWrite<W> where W: Write {
             let in_end: *const u8 = in_buf.as_ptr().wrapping_add(in_buf.len());
 
             while in_ptr < in_end {
-
                 if buf_idx + 10 > buf.len() {
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
@@ -287,9 +323,14 @@ impl <W> Write for PackedWrite<W> where W: Write {
                 buf_idx += bit7 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let tag: u8 = bit0 | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
-                            | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
-
+                let tag: u8 = bit0
+                    | (bit1 << 1)
+                    | (bit2 << 2)
+                    | (bit3 << 3)
+                    | (bit4 << 4)
+                    | (bit5 << 5)
+                    | (bit6 << 6)
+                    | (bit7 << 7);
 
                 *buf.get_unchecked_mut(tag_pos) = tag;
 
@@ -298,16 +339,17 @@ impl <W> Write for PackedWrite<W> where W: Write {
                     //# consecutive zero words (not including the first
                     //# one).
 
-                    let mut in_word : *const [u8; 8] = in_ptr as *const [u8; 8];
-                    let mut limit : *const [u8; 8] = in_end as *const [u8; 8];
+                    let mut in_word: *const [u8; 8] = in_ptr as *const [u8; 8];
+                    let mut limit: *const [u8; 8] = in_end as *const [u8; 8];
                     if ptr_sub(limit, in_word) > 255 {
                         limit = in_word.offset(255);
                     }
-                    while in_word < limit && *in_word == [0;8] {
+                    while in_word < limit && *in_word == [0; 8] {
                         in_word = in_word.offset(1);
                     }
 
-                    *buf.get_unchecked_mut(buf_idx) = ptr_sub(in_word, in_ptr as *const [u8; 8]) as u8;
+                    *buf.get_unchecked_mut(buf_idx) =
+                        ptr_sub(in_word, in_ptr as *const [u8; 8]) as u8;
                     buf_idx += 1;
                     in_ptr = in_word as *const u8;
                 } else if tag == 0xff {
@@ -347,7 +389,8 @@ impl <W> Write for PackedWrite<W> where W: Write {
 
                     self.inner.write_all(&buf[..buf_idx])?;
                     buf_idx = 0;
-                    self.inner.write_all(slice::from_raw_parts::<u8>(run_start, count))?;
+                    self.inner
+                        .write_all(slice::from_raw_parts::<u8>(run_start, count))?;
                 }
             }
 
@@ -359,7 +402,9 @@ impl <W> Write for PackedWrite<W> where W: Write {
 
 /// Writes a packed message to a stream.
 pub fn write_message<W, A>(write: W, message: &crate::message::Builder<A>) -> Result<()>
-    where W: Write, A: crate::message::Allocator
+where
+    W: Write,
+    A: crate::message::Allocator,
 {
     let packed_write = PackedWrite { inner: write };
     serialize::write_message(packed_write, message)
@@ -370,14 +415,14 @@ mod tests {
     use alloc::string::ToString;
     use alloc::vec::Vec;
 
-    use crate::io::{Write, Read};
+    use crate::io::{Read, Write};
 
     use quickcheck::{quickcheck, TestResult};
 
-    use crate::message::{ReaderOptions};
+    use super::read_message;
+    use crate::message::ReaderOptions;
     use crate::serialize::test::write_message_segments;
     use crate::serialize_packed::{PackedRead, PackedWrite};
-    use super::read_message;
 
     #[test]
     pub fn premature_eof() {
@@ -404,7 +449,9 @@ mod tests {
 
         let mut bytes: Vec<u8> = vec![0; packed.len()];
         {
-            let mut packed_write = PackedWrite { inner: &mut bytes[..] };
+            let mut packed_write = PackedWrite {
+                inner: &mut bytes[..],
+            };
             packed_write.write_all(unpacked).unwrap();
         }
 
@@ -418,28 +465,61 @@ mod tests {
     #[test]
     pub fn simple_packing() {
         check_packing(&[], &[]);
-        check_packing(&[0; 8], &[0,0]);
-        check_packing(&[0,0,12,0,0,34,0,0], &[0x24,12,34]);
-        check_packing(&[1,3,2,4,5,7,6,8], &[0xff,1,3,2,4,5,7,6,8,0]);
-        check_packing(&[0,0,0,0,0,0,0,0,1,3,2,4,5,7,6,8], &[0,0,0xff,1,3,2,4,5,7,6,8,0]);
-        check_packing(&[0,0,12,0,0,34,0,0,1,3,2,4,5,7,6,8], &[0x24,12,34,0xff,1,3,2,4,5,7,6,8,0]);
-        check_packing(&[1,3,2,4,5,7,6,8,8,6,7,4,5,2,3,1], &[0xff,1,3,2,4,5,7,6,8,1,8,6,7,4,5,2,3,1]);
+        check_packing(&[0; 8], &[0, 0]);
+        check_packing(&[0, 0, 12, 0, 0, 34, 0, 0], &[0x24, 12, 34]);
+        check_packing(
+            &[1, 3, 2, 4, 5, 7, 6, 8],
+            &[0xff, 1, 3, 2, 4, 5, 7, 6, 8, 0],
+        );
+        check_packing(
+            &[0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 2, 4, 5, 7, 6, 8],
+            &[0, 0, 0xff, 1, 3, 2, 4, 5, 7, 6, 8, 0],
+        );
+        check_packing(
+            &[0, 0, 12, 0, 0, 34, 0, 0, 1, 3, 2, 4, 5, 7, 6, 8],
+            &[0x24, 12, 34, 0xff, 1, 3, 2, 4, 5, 7, 6, 8, 0],
+        );
+        check_packing(
+            &[1, 3, 2, 4, 5, 7, 6, 8, 8, 6, 7, 4, 5, 2, 3, 1],
+            &[0xff, 1, 3, 2, 4, 5, 7, 6, 8, 1, 8, 6, 7, 4, 5, 2, 3, 1],
+        );
 
         check_packing(
-            &[1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 0,2,4,0,9,0,5,1],
-            &[0xff,1,2,3,4,5,6,7,8, 3, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8,
-              0xd6,2,4,9,5,1]);
+            &[
+                1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4,
+                5, 6, 7, 8, 0, 2, 4, 0, 9, 0, 5, 1,
+            ],
+            &[
+                0xff, 1, 2, 3, 4, 5, 6, 7, 8, 3, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1,
+                2, 3, 4, 5, 6, 7, 8, 0xd6, 2, 4, 9, 5, 1,
+            ],
+        );
         check_packing(
-            &[1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 6,2,4,3,9,0,5,1, 1,2,3,4,5,6,7,8, 0,2,4,0,9,0,5,1],
-            &[0xff,1,2,3,4,5,6,7,8, 3, 1,2,3,4,5,6,7,8, 6,2,4,3,9,0,5,1, 1,2,3,4,5,6,7,8,
-              0xd6,2,4,9,5,1]);
+            &[
+                1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 6, 2, 4, 3, 9, 0, 5, 1, 1, 2, 3, 4,
+                5, 6, 7, 8, 0, 2, 4, 0, 9, 0, 5, 1,
+            ],
+            &[
+                0xff, 1, 2, 3, 4, 5, 6, 7, 8, 3, 1, 2, 3, 4, 5, 6, 7, 8, 6, 2, 4, 3, 9, 0, 5, 1, 1,
+                2, 3, 4, 5, 6, 7, 8, 0xd6, 2, 4, 9, 5, 1,
+            ],
+        );
 
         check_packing(
-            &[8,0,100,6,0,1,1,2, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,1,0,2,0,3,1],
-            &[0xed,8,100,6,1,1,2, 0,2, 0xd4,1,2,3,1]);
+            &[
+                8, 0, 100, 6, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 3, 1,
+            ],
+            &[0xed, 8, 100, 6, 1, 1, 2, 0, 2, 0xd4, 1, 2, 3, 1],
+        );
 
-        check_packing(&[0; 16], &[0,1]);
-        check_packing(&[0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0], &[0,2]);
+        check_packing(&[0; 16], &[0, 1]);
+        check_packing(
+            &[
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ],
+            &[0, 2],
+        );
     }
 
     #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
@@ -472,14 +552,16 @@ mod tests {
     #[test]
     fn did_not_end_cleanly_on_a_segment_boundary() {
         let packed = &[0xff, 1, 2, 3, 4, 5, 6, 7, 8, 37, 1, 2];
-        let mut packed_read = PackedRead {inner: &packed[..]};
+        let mut packed_read = PackedRead { inner: &packed[..] };
 
         let mut bytes: Vec<u8> = vec![0; 200];
         match packed_read.read_exact(&mut bytes[..]) {
             Ok(_) => panic!("should have been an error"),
             Err(e) => {
-                assert_eq!(e.to_string(),
-                           "Failed: Packed input did not end cleanly on a segment boundary.");
+                assert_eq!(
+                    e.to_string(),
+                    "Failed: Packed input did not end cleanly on a segment boundary."
+                );
             }
         }
     }
@@ -487,7 +569,7 @@ mod tests {
     #[test]
     fn premature_end_of_packed_input() {
         fn helper(packed: &[u8]) {
-            let mut packed_read = PackedRead {inner: packed};
+            let mut packed_read = PackedRead { inner: packed };
 
             let mut bytes: Vec<u8> = vec![0; 200];
             match packed_read.read_exact(&mut bytes[..]) {
@@ -513,10 +595,11 @@ mod tests {
 
         check_unpacks_to(
             packed_buf,
-            &[4, 0, 0, 0, 1, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0]);
+            &[
+                4, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0,
+            ],
+        );
 
         // At one point, this failed due to serialize::read_message()
         // reading the segment table only one word at a time.

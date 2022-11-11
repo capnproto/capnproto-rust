@@ -1,5 +1,5 @@
 fn main() {
-     capnpc::CompilerCommand::new()
+    capnpc::CompilerCommand::new()
         .file("../test/test.capnp")
         .src_prefix("../test/")
         .run()

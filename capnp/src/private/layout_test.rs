@@ -22,16 +22,20 @@
 use crate::private::layout::PointerReader;
 
 fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {
-    verify(PointerReader::get_root_unchecked(words.as_ptr() as *const u8));
+    verify(PointerReader::get_root_unchecked(
+        words.as_ptr() as *const u8
+    ));
 
-    #[cfg(feature="unaligned")]
+    #[cfg(feature = "unaligned")]
     {
         let mut unaligned_data = Vec::with_capacity((words.len() + 1) * 8);
         for offset in 0..8 {
             unaligned_data.clear();
             unaligned_data.resize(offset, 0);
             unaligned_data.extend(crate::Word::words_to_bytes(words));
-            verify(PointerReader::get_root_unchecked((unaligned_data[offset..]).as_ptr()));
+            verify(PointerReader::get_root_unchecked(
+                (unaligned_data[offset..]).as_ptr(),
+            ));
         }
     }
 }
@@ -40,7 +44,8 @@ fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {
 fn simple_raw_data_struct() {
     let data: &[crate::Word] = &[
         crate::word(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
-        crate::word(0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)];
+        crate::word(0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef),
+    ];
 
     test_at_alignments(data, &verify);
     fn verify(reader: PointerReader) {
@@ -58,7 +63,7 @@ fn simple_raw_data_struct() {
         assert_eq!(0xab89u16, reader.get_data_field::<u16>(2));
         assert_eq!(0xefcdu16, reader.get_data_field::<u16>(3));
         assert_eq!(0u16, reader.get_data_field::<u16>(4)); // past end of struct --> default value
-        // TODO the rest of uints.
+                                                           // TODO the rest of uints.
 
         // Bits.
         assert_eq!(reader.get_bool_field(0), true);
@@ -70,8 +75,8 @@ fn simple_raw_data_struct() {
         assert_eq!(reader.get_bool_field(6), false);
         assert_eq!(reader.get_bool_field(7), false);
 
-        assert_eq!(reader.get_bool_field(8),  true);
-        assert_eq!(reader.get_bool_field(9),  true);
+        assert_eq!(reader.get_bool_field(8), true);
+        assert_eq!(reader.get_bool_field(9), true);
         assert_eq!(reader.get_bool_field(10), false);
         assert_eq!(reader.get_bool_field(11), false);
         assert_eq!(reader.get_bool_field(12), false);
@@ -92,14 +97,17 @@ fn bool_list() {
 
     let data: &[crate::Word] = &[
         crate::word(0x01, 0x00, 0x00, 0x00, 0x51, 0x00, 0x00, 0x00),
-        crate::word(0x75, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)];
+        crate::word(0x75, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
 
     test_at_alignments(data, &verify);
     fn verify(pointer_reader: PointerReader) {
         use crate::private::layout::PrimitiveElement;
         use crate::traits::FromPointerReader;
 
-        let reader = pointer_reader.get_list(crate::private::layout::ElementSize::Bit, None).unwrap();
+        let reader = pointer_reader
+            .get_list(crate::private::layout::ElementSize::Bit, None)
+            .unwrap();
 
         assert_eq!(reader.len(), 10);
         assert_eq!(bool::get(&reader, 0), true);
@@ -113,7 +121,8 @@ fn bool_list() {
         assert_eq!(bool::get(&reader, 8), false);
         assert_eq!(bool::get(&reader, 9), true);
 
-        let reader = crate::primitive_list::Reader::<bool>::get_from_pointer(&pointer_reader, None).unwrap();
+        let reader =
+            crate::primitive_list::Reader::<bool>::get_from_pointer(&pointer_reader, None).unwrap();
 
         assert_eq!(reader.len(), 10);
         assert_eq!(reader.get(0), true);
@@ -144,7 +153,6 @@ fn struct_size() {
     }
 }
 
-
 #[test]
 fn struct_list_size() {
     let data: &[crate::Word] = &[
@@ -171,10 +179,8 @@ fn empty_struct_list_size() {
     let data: &[crate::Word] = &[
         // Struct, one pointer
         crate::word(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00),
-
         // Inline-composite list, zero words long
         crate::word(0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00),
-
         // Tag
         crate::word(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
     ];

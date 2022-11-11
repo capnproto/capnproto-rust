@@ -25,16 +25,12 @@
 
 pub mod arena;
 pub mod capability;
-mod primitive;
 pub mod layout;
 mod mask;
-pub mod units;
+mod primitive;
 mod read_limiter;
+pub mod units;
 mod zero;
 
 #[cfg(test)]
 mod layout_test;
-
-
-
-

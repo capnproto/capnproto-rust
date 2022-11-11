@@ -42,26 +42,26 @@
 //! [TypedReader] and [TypedBuilder] accept generic type parameter `T`. This parameter must be
 //! a corresponding `Owned` type which was auto-generated inside the corresponding module.
 //!
-//! For example, for auto-generated module `crate::test_data::simple_struct` you'd supply 
+//! For example, for auto-generated module `crate::test_data::simple_struct` you'd supply
 //! `crate::test_data::simple_struct::Owned` type into [TypedReader]/[TypedBuilder]
 //!
 //! ```ignore
 //! include!(concat!(env!("OUT_DIR"), "/simple_struct_capnp.rs"));
 //!
 //! use capnp::message::{self, TypedBuilder, TypedReader};
-//! 
+//!
 //! fn main() {
 //!     let mut builder = TypedBuilder::<simple_struct::Owned>::new_default();
 //!     let mut builder_root = builder.init_root();
 //!     builder_root.set_x(10);
 //!     builder_root.set_y(20);
-//! 
+//!
 //!     let mut buffer = vec![];
 //!     capnp::serialize_packed::write_message(&mut buffer, builder.borrow_inner()).unwrap();
-//! 
+//!
 //!     let reader = capnp::serialize_packed::read_message(buffer.as_slice(), ReaderOptions::new()).unwrap();
 //!     let typed_reader = TypedReader::<_, simple_struct::Owned>::new(reader);
-//! 
+//!
 //!     let reader_root = typed_reader.get().unwrap();
 //!     assert_eq!(reader_root.get_x(), 10);
 //!     assert_eq!(reader_root.get_x(), 20);
@@ -72,16 +72,15 @@ use alloc::vec::Vec;
 use core::convert::From;
 
 use crate::any_pointer;
-use crate::private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
+use crate::private::arena::{BuilderArena, BuilderArenaImpl, ReaderArena, ReaderArenaImpl};
 use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
-use crate::traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder, Owned};
+use crate::traits::{FromPointerBuilder, FromPointerReader, Owned, SetPointerBuilder};
 use crate::{OutputSegments, Result};
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy, Debug)]
 pub struct ReaderOptions {
-
     /// Limits how many total (8-byte) words of data are allowed to be traversed. Traversal is counted
     /// when a new struct or list builder is obtained, e.g. from a get() accessor. This means that
     /// calling the getter for the same sub-struct multiple times will cause it to be double-counted.
@@ -112,9 +111,10 @@ pub struct ReaderOptions {
     pub nesting_limit: i32,
 }
 
-pub const DEFAULT_READER_OPTIONS: ReaderOptions =
-    ReaderOptions { traversal_limit_in_words: Some(8 * 1024 * 1024), nesting_limit: 64 };
-
+pub const DEFAULT_READER_OPTIONS: ReaderOptions = ReaderOptions {
+    traversal_limit_in_words: Some(8 * 1024 * 1024),
+    nesting_limit: 64,
+};
 
 impl Default for ReaderOptions {
     fn default() -> ReaderOptions {
@@ -123,7 +123,9 @@ impl Default for ReaderOptions {
 }
 
 impl ReaderOptions {
-    pub fn new() -> ReaderOptions { DEFAULT_READER_OPTIONS }
+    pub fn new() -> ReaderOptions {
+        DEFAULT_READER_OPTIONS
+    }
 
     pub fn nesting_limit(&mut self, value: i32) -> &mut ReaderOptions {
         self.nesting_limit = value;
@@ -158,7 +160,10 @@ pub trait ReaderSegments {
     }
 }
 
-impl <S> ReaderSegments for &S where S: ReaderSegments {
+impl<S> ReaderSegments for &S
+where
+    S: ReaderSegments,
+{
     fn get_segment(&self, idx: u32) -> Option<&[u8]> {
         (**self).get_segment(idx)
     }
@@ -173,13 +178,13 @@ pub struct SegmentArray<'a> {
     segments: &'a [&'a [u8]],
 }
 
-impl <'a> SegmentArray<'a> {
+impl<'a> SegmentArray<'a> {
     pub fn new(segments: &'a [&'a [u8]]) -> SegmentArray<'a> {
         SegmentArray { segments }
     }
 }
 
-impl <'b> ReaderSegments for SegmentArray<'b> {
+impl<'b> ReaderSegments for SegmentArray<'b> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         self.segments.get(id as usize).copied()
     }
@@ -189,7 +194,7 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
     }
 }
 
-impl <'b> ReaderSegments for [&'b [u8]] {
+impl<'b> ReaderSegments for [&'b [u8]] {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         self.get(id as usize).copied()
     }
@@ -200,11 +205,17 @@ impl <'b> ReaderSegments for [&'b [u8]] {
 }
 
 /// A container used to read a message.
-pub struct Reader<S> where S: ReaderSegments {
+pub struct Reader<S>
+where
+    S: ReaderSegments,
+{
     arena: ReaderArenaImpl<S>,
 }
 
-impl <S> Reader<S> where S: ReaderSegments {
+impl<S> Reader<S>
+where
+    S: ReaderSegments,
+{
     pub fn new(segments: S, options: ReaderOptions) -> Self {
         Reader {
             arena: ReaderArenaImpl::new(segments, options),
@@ -214,7 +225,11 @@ impl <S> Reader<S> where S: ReaderSegments {
     fn get_root_internal(&self) -> Result<any_pointer::Reader<'_>> {
         let (segment_start, _seg_len) = self.arena.get_segment(0)?;
         let pointer_reader = layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.arena.nesting_limit())?;
+            &self.arena,
+            0,
+            segment_start,
+            self.arena.nesting_limit(),
+        )?;
         Ok(any_pointer::Reader::new(pointer_reader))
     }
 
@@ -236,15 +251,20 @@ impl <S> Reader<S> where S: ReaderSegments {
             // segments there are?
 
             // There is more than one segment, so the message cannot be canonical.
-            return Ok(false)
+            return Ok(false);
         }
 
         let pointer_reader = layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.arena.nesting_limit())?;
-        let read_head = ::core::cell::Cell::new(unsafe {segment_start.add(BYTES_PER_WORD)});
+            &self.arena,
+            0,
+            segment_start,
+            self.arena.nesting_limit(),
+        )?;
+        let read_head = ::core::cell::Cell::new(unsafe { segment_start.add(BYTES_PER_WORD) });
         let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
-        let all_words_consumed =
-            (read_head.get() as usize - segment_start as usize) / BYTES_PER_WORD == seg_len as usize;
+        let all_words_consumed = (read_head.get() as usize - segment_start as usize)
+            / BYTES_PER_WORD
+            == seg_len as usize;
         Ok(root_is_canonical && all_words_consumed)
     }
 
@@ -273,16 +293,19 @@ impl <S> Reader<S> where S: ReaderSegments {
 /// A message reader whose value is known to be of type `T`.
 /// Please see [module documentation](self) for more info about reader type specialization.
 pub struct TypedReader<S, T>
-    where S: ReaderSegments,
-          T: Owned {
+where
+    S: ReaderSegments,
+    T: Owned,
+{
     marker: ::core::marker::PhantomData<T>,
     message: Reader<S>,
 }
 
-impl <S, T> TypedReader<S, T>
-    where S: ReaderSegments,
-          T : Owned {
-
+impl<S, T> TypedReader<S, T>
+where
+    S: ReaderSegments,
+    T: Owned,
+{
     pub fn new(message: Reader<S>) -> Self {
         TypedReader {
             marker: ::core::marker::PhantomData,
@@ -299,34 +322,36 @@ impl <S, T> TypedReader<S, T>
     }
 }
 
-impl <S, T> From<Reader<S>> for TypedReader<S, T>
-    where S: ReaderSegments,
-          T: Owned {
-
+impl<S, T> From<Reader<S>> for TypedReader<S, T>
+where
+    S: ReaderSegments,
+    T: Owned,
+{
     fn from(message: Reader<S>) -> TypedReader<S, T> {
         TypedReader::new(message)
     }
 }
 
-impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
-    where A: Allocator,
-          T: Owned {
-
+impl<A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
+where
+    A: Allocator,
+    T: Owned,
+{
     fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
         let reader = message.into_reader();
         reader.into_typed()
     }
 }
 
-impl <A, T> From<TypedBuilder<T, A>> for TypedReader<Builder<A>, T>
-    where A: Allocator,
-          T: Owned {
-
+impl<A, T> From<TypedBuilder<T, A>> for TypedReader<Builder<A>, T>
+where
+    A: Allocator,
+    T: Owned,
+{
     fn from(builder: TypedBuilder<T, A>) -> TypedReader<Builder<A>, T> {
         builder.into_reader()
     }
 }
-
 
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
 pub unsafe trait Allocator {
@@ -352,11 +377,14 @@ pub unsafe trait Allocator {
 }
 
 /// A container used to build a message.
-pub struct Builder<A> where A: Allocator {
+pub struct Builder<A>
+where
+    A: Allocator,
+{
     arena: BuilderArenaImpl<A>,
 }
 
-unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
+unsafe impl<A> Send for Builder<A> where A: Send + Allocator {}
 
 fn _assert_kinds() {
     fn _assert_send<T: Send>() {}
@@ -368,7 +396,10 @@ fn _assert_kinds() {
     }
 }
 
-impl <A> Builder<A> where A: Allocator {
+impl<A> Builder<A>
+where
+    A: Allocator,
+{
     pub fn new(allocator: A) -> Self {
         Builder {
             arena: BuilderArenaImpl::new(allocator),
@@ -377,15 +408,16 @@ impl <A> Builder<A> where A: Allocator {
 
     fn get_root_internal(&mut self) -> any_pointer::Builder<'_> {
         if self.arena.len() == 0 {
-            self.arena.allocate_segment(1).expect("allocate root pointer");
+            self.arena
+                .allocate_segment(1)
+                .expect("allocate root pointer");
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
         let location: *mut u8 = seg_start;
         let Builder { ref mut arena } = *self;
 
-        any_pointer::Builder::new(
-            layout::PointerBuilder::get_root(arena, 0, location))
+        any_pointer::Builder::new(layout::PointerBuilder::get_root(arena, 0, location))
     }
 
     /// Initializes the root as a value of the given type.
@@ -406,7 +438,11 @@ impl <A> Builder<A> where A: Allocator {
         } else {
             let (segment_start, _segment_len) = self.arena.get_segment(0)?;
             let pointer_reader = layout::PointerReader::get_root(
-                self.arena.as_reader(), 0, segment_start, 0x7fffffff)?;
+                self.arena.as_reader(),
+                0,
+                segment_start,
+                0x7fffffff,
+            )?;
             let root = any_pointer::Reader::new(pointer_reader);
             root.get_as()
         }
@@ -421,10 +457,11 @@ impl <A> Builder<A> where A: Allocator {
     /// Sets the root to a canonicalized version of `value`. If this was the first action taken
     /// on this `Builder`, then a subsequent call to `get_segments_for_output()` should return
     /// a single segment, containing the full canonicalized message.
-    pub fn set_root_canonical<From: SetPointerBuilder>(&mut self, value: From) -> Result<()>
-    {
+    pub fn set_root_canonical<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
         if self.arena.len() == 0 {
-            self.arena.allocate_segment(1).expect("allocate root pointer");
+            self.arena
+                .allocate_segment(1)
+                .expect("allocate root pointer");
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
@@ -439,10 +476,13 @@ impl <A> Builder<A> where A: Allocator {
     }
 
     pub fn into_reader(self) -> Reader<Builder<A>> {
-        Reader::new(self, ReaderOptions {
-            traversal_limit_in_words: None,
-            nesting_limit: i32::max_value()
-        })
+        Reader::new(
+            self,
+            ReaderOptions {
+                traversal_limit_in_words: None,
+                nesting_limit: i32::max_value(),
+            },
+        )
     }
 
     pub fn into_typed<T: Owned>(self) -> TypedBuilder<T, A> {
@@ -454,7 +494,10 @@ impl <A> Builder<A> where A: Allocator {
     }
 }
 
-impl <A> ReaderSegments for Builder<A> where A: Allocator {
+impl<A> ReaderSegments for Builder<A>
+where
+    A: Allocator,
+{
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         self.get_segments_for_output().get(id as usize).copied()
     }
@@ -465,9 +508,9 @@ impl <A> ReaderSegments for Builder<A> where A: Allocator {
 }
 
 /// Stongly typed variant of the [Builder]
-/// 
+///
 /// Generic type parameters:
-/// - `T` - type of the capnp message which this builder is specialized on. Please see 
+/// - `T` - type of the capnp message which this builder is specialized on. Please see
 ///   [module documentation](self) for more info about builder type specialization.
 /// - `A` - type of allocator
 pub struct TypedBuilder<T, A = HeapAllocator>
@@ -571,9 +614,11 @@ pub const SUGGESTED_ALLOCATION_STRATEGY: AllocationStrategy = AllocationStrategy
 
 impl HeapAllocator {
     pub fn new() -> HeapAllocator {
-        HeapAllocator { next_size: SUGGESTED_FIRST_SEGMENT_WORDS,
-                        allocation_strategy: SUGGESTED_ALLOCATION_STRATEGY,
-                        max_segment_words: 1 << 29, }
+        HeapAllocator {
+            next_size: SUGGESTED_FIRST_SEGMENT_WORDS,
+            allocation_strategy: SUGGESTED_ALLOCATION_STRATEGY,
+            max_segment_words: 1 << 29,
+        }
     }
 
     /// Sets the size of the initial segment in words, where 1 word = 8 bytes.
@@ -600,10 +645,12 @@ impl HeapAllocator {
 unsafe impl Allocator for HeapAllocator {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         let size = core::cmp::max(minimum_size, self.next_size);
-        let layout = alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD,
-                                                           8).unwrap();
+        let layout =
+            alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD, 8).unwrap();
         let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
-        if ptr.is_null() { alloc::alloc::handle_alloc_error(layout); }
+        if ptr.is_null() {
+            alloc::alloc::handle_alloc_error(layout);
+        }
         match self.allocation_strategy {
             AllocationStrategy::GrowHeuristically => {
                 if size < self.max_segment_words - self.next_size {
@@ -612,15 +659,18 @@ unsafe impl Allocator for HeapAllocator {
                     self.next_size = self.max_segment_words;
                 }
             }
-            AllocationStrategy::FixedSize => { }
+            AllocationStrategy::FixedSize => {}
         }
         (ptr, size)
     }
 
     fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, _words_used: u32) {
         unsafe {
-            alloc::alloc::dealloc(ptr,
-                                  alloc::alloc::Layout::from_size_align(word_size as usize * BYTES_PER_WORD, 8).unwrap());
+            alloc::alloc::dealloc(
+                ptr,
+                alloc::alloc::Layout::from_size_align(word_size as usize * BYTES_PER_WORD, 8)
+                    .unwrap(),
+            );
         }
         self.next_size = SUGGESTED_FIRST_SEGMENT_WORDS;
     }
@@ -633,9 +683,9 @@ fn test_allocate_max() {
         .max_segment_words((1 << 25) - 1)
         .first_segment_words(allocation_size);
 
-    let (a1,s1) = allocator.allocate_segment(allocation_size);
-    let (a2,s2) = allocator.allocate_segment(allocation_size);
-    let (a3,s3) = allocator.allocate_segment(allocation_size);
+    let (a1, s1) = allocator.allocate_segment(allocation_size);
+    let (a2, s2) = allocator.allocate_segment(allocation_size);
+    let (a3, s3) = allocator.allocate_segment(allocation_size);
 
     assert_eq!(s1, allocation_size);
 
@@ -643,9 +693,9 @@ fn test_allocate_max() {
     assert_eq!(s2, allocator.max_segment_words);
     assert_eq!(s3, allocator.max_segment_words);
 
-    allocator.deallocate_segment(a1,s1,0);
-    allocator.deallocate_segment(a2,s2,0);
-    allocator.deallocate_segment(a3,s3,0);
+    allocator.deallocate_segment(a1, s1, 0);
+    allocator.deallocate_segment(a2, s2, 0);
+    allocator.deallocate_segment(a3, s3, 0);
 }
 
 impl Builder<HeapAllocator> {
@@ -672,7 +722,7 @@ pub struct ScratchSpaceHeapAllocator<'a> {
     allocator: HeapAllocator,
 }
 
-impl <'a> ScratchSpaceHeapAllocator<'a> {
+impl<'a> ScratchSpaceHeapAllocator<'a> {
     /// Writes zeroes into the entire buffer and constructs a new allocator from it.
     ///
     /// If the buffer is large, this operation could be relatively expensive. If you want to reuse
@@ -682,8 +732,10 @@ impl <'a> ScratchSpaceHeapAllocator<'a> {
         #[cfg(not(feature = "unaligned"))]
         {
             if scratch_space.as_ptr() as usize % BYTES_PER_WORD != 0 {
-                panic!("Scratch space must be 8-byte aligned, or you must enable the \"unaligned\" \
-                        feature in the capnp crate");
+                panic!(
+                    "Scratch space must be 8-byte aligned, or you must enable the \"unaligned\" \
+                        feature in the capnp crate"
+                );
             }
         }
 
@@ -691,29 +743,41 @@ impl <'a> ScratchSpaceHeapAllocator<'a> {
         for b in &mut scratch_space[..] {
             *b = 0;
         }
-        ScratchSpaceHeapAllocator { scratch_space,
-                                    scratch_space_allocated: false,
-                                    allocator: HeapAllocator::new()}
+        ScratchSpaceHeapAllocator {
+            scratch_space,
+            scratch_space_allocated: false,
+            allocator: HeapAllocator::new(),
+        }
     }
 
     /// Sets the size of the second segment in words, where 1 word = 8 bytes.
     /// (The first segment is the scratch space passed to `ScratchSpaceHeapAllocator::new()`.
     pub fn second_segment_words(self, value: u32) -> ScratchSpaceHeapAllocator<'a> {
-        ScratchSpaceHeapAllocator { allocator: self.allocator.first_segment_words(value), ..self }
-
+        ScratchSpaceHeapAllocator {
+            allocator: self.allocator.first_segment_words(value),
+            ..self
+        }
     }
 
     /// Sets the allocation strategy for segments after the second one.
     pub fn allocation_strategy(self, value: AllocationStrategy) -> ScratchSpaceHeapAllocator<'a> {
-        ScratchSpaceHeapAllocator { allocator: self.allocator.allocation_strategy(value), ..self }
+        ScratchSpaceHeapAllocator {
+            allocator: self.allocator.allocation_strategy(value),
+            ..self
+        }
     }
 }
 
-unsafe impl <'a> Allocator for ScratchSpaceHeapAllocator<'a> {
+unsafe impl<'a> Allocator for ScratchSpaceHeapAllocator<'a> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
-        if (minimum_size as usize) < (self.scratch_space.len() / BYTES_PER_WORD) && !self.scratch_space_allocated {
+        if (minimum_size as usize) < (self.scratch_space.len() / BYTES_PER_WORD)
+            && !self.scratch_space_allocated
+        {
             self.scratch_space_allocated = true;
-            (self.scratch_space.as_mut_ptr(), (self.scratch_space.len() / BYTES_PER_WORD) as u32)
+            (
+                self.scratch_space.as_mut_ptr(),
+                (self.scratch_space.len() / BYTES_PER_WORD) as u32,
+            )
         } else {
             self.allocator.allocate_segment(minimum_size)
         }
@@ -728,12 +792,16 @@ unsafe impl <'a> Allocator for ScratchSpaceHeapAllocator<'a> {
             }
             self.scratch_space_allocated = false;
         } else {
-            self.allocator.deallocate_segment(ptr, word_size, words_used);
+            self.allocator
+                .deallocate_segment(ptr, word_size, words_used);
         }
     }
 }
 
-unsafe impl <'a, A> Allocator for &'a mut A where A: Allocator {
+unsafe impl<'a, A> Allocator for &'a mut A
+where
+    A: Allocator,
+{
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         (*self).allocate_segment(minimum_size)
     }
@@ -742,4 +810,3 @@ unsafe impl <'a, A> Allocator for &'a mut A where A: Allocator {
         (*self).deallocate_segment(ptr, word_size, words_used)
     }
 }
-

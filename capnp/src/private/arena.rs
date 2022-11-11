@@ -24,10 +24,10 @@ use core::cell::RefCell;
 use core::slice;
 use core::u64;
 
-use crate::private::units::*;
-use crate::private::read_limiter::ReadLimiter;
 use crate::message;
 use crate::message::{Allocator, ReaderSegments};
+use crate::private::read_limiter::ReadLimiter;
+use crate::private::units::*;
 use crate::{Error, OutputSegments, Result};
 
 pub type SegmentId = u32;
@@ -36,7 +36,12 @@ pub trait ReaderArena {
     // return pointer to start of segment, and number of words in that segment
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
 
-    fn check_offset(&self, segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8>;
+    fn check_offset(
+        &self,
+        segment_id: u32,
+        start: *const u8,
+        offset_in_words: i32,
+    ) -> Result<*const u8>;
     fn contains_interval(&self, segment_id: u32, start: *const u8, size: usize) -> Result<()>;
     fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
 
@@ -61,11 +66,11 @@ fn _assert_sync() {
     }
 }
 
-impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
-    pub fn new(segments: S,
-               options: message::ReaderOptions)
-               -> Self
-    {
+impl<S> ReaderArenaImpl<S>
+where
+    S: ReaderSegments,
+{
+    pub fn new(segments: S, options: message::ReaderOptions) -> Self {
         let limiter = ReadLimiter::new(options.traversal_limit_in_words);
         ReaderArenaImpl {
             segments,
@@ -79,7 +84,10 @@ impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
     }
 }
 
-impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
+impl<S> ReaderArena for ReaderArenaImpl<S>
+where
+    S: ReaderSegments,
+{
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
         match self.segments.get_segment(id) {
             Some(seg) => {
@@ -89,7 +97,7 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
                         return Err(Error::failed(
                             String::from("Detected unaligned segment. You must either ensure all of your \
                                           segments are 8-byte aligned, or you must enable the \"unaligned\" \
-                                          feature in the capnp crate")))
+                                          feature in the capnp crate")));
                     }
                 }
 
@@ -99,14 +107,22 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         }
     }
 
-    fn check_offset(&self, segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+    fn check_offset(
+        &self,
+        segment_id: u32,
+        start: *const u8,
+        offset_in_words: i32,
+    ) -> Result<*const u8> {
         let (segment_start, segment_len) = self.get_segment(segment_id)?;
         let this_start: usize = segment_start as usize;
         let this_size: usize = segment_len as usize * BYTES_PER_WORD;
         let offset: i64 = i64::from(offset_in_words) * BYTES_PER_WORD as i64;
         let start_idx = start as usize;
-        if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size {
-            Err(Error::failed(String::from("message contained out-of-bounds pointer")))
+        if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size
+        {
+            Err(Error::failed(String::from(
+                "message contained out-of-bounds pointer",
+            )))
         } else {
             unsafe { Ok(start.offset(offset as isize)) }
         }
@@ -120,7 +136,9 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         let size = size_in_words * BYTES_PER_WORD;
 
         if !(start >= this_start && start - this_start + size <= this_size) {
-            Err(Error::failed(String::from("message contained out-of-bounds pointer")))
+            Err(Error::failed(String::from(
+                "message contained out-of-bounds pointer",
+            )))
         } else {
             self.read_limiter.can_read(size_in_words)
         }
@@ -130,7 +148,9 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         self.read_limiter.can_read(virtual_amount as usize)
     }
 
-    fn nesting_limit(&self) -> i32 { self.nesting_limit }
+    fn nesting_limit(&self) -> i32 {
+        self.nesting_limit
+    }
 }
 
 pub trait BuilderArena: ReaderArena {
@@ -149,22 +169,31 @@ pub trait BuilderArena: ReaderArena {
 
 struct BuilderSegment {
     ptr: *mut u8,
-    capacity: u32, // in words
+    capacity: u32,  // in words
     allocated: u32, // in words
 }
 
-pub struct BuilderArenaImplInner<A> where A: Allocator {
+pub struct BuilderArenaImplInner<A>
+where
+    A: Allocator,
+{
     allocator: Option<A>, // None if has already be deallocated.
 
     // TODO(perf): Try using smallvec to avoid heap allocations in the single-segment case?
     segments: Vec<BuilderSegment>,
 }
 
-pub struct BuilderArenaImpl<A> where A: Allocator {
-    inner: RefCell<BuilderArenaImplInner<A>>
+pub struct BuilderArenaImpl<A>
+where
+    A: Allocator,
+{
+    inner: RefCell<BuilderArenaImplInner<A>>,
 }
 
-impl <A> BuilderArenaImpl<A> where A: Allocator {
+impl<A> BuilderArenaImpl<A>
+where
+    A: Allocator,
+{
     pub fn new(allocator: A) -> Self {
         BuilderArenaImpl {
             inner: RefCell::new(BuilderArenaImplInner {
@@ -187,13 +216,20 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
             // The user must mutably borrow the `message::Builder` to be able to modify segment memory.
             // No such borrow will be possible while `self` is still immutably borrowed from this method,
             // so returning this slice is safe.
-            let slice = unsafe { slice::from_raw_parts(seg.ptr as *const _, seg.allocated as usize * BYTES_PER_WORD) };
+            let slice = unsafe {
+                slice::from_raw_parts(seg.ptr as *const _, seg.allocated as usize * BYTES_PER_WORD)
+            };
             OutputSegments::SingleSegment([slice])
         } else {
             let mut v = Vec::with_capacity(reff.segments.len());
             for seg in &reff.segments {
                 // See safety argument in above branch.
-                let slice = unsafe { slice::from_raw_parts(seg.ptr as *const _, seg.allocated as usize * BYTES_PER_WORD) };
+                let slice = unsafe {
+                    slice::from_raw_parts(
+                        seg.ptr as *const _,
+                        seg.allocated as usize * BYTES_PER_WORD,
+                    )
+                };
                 v.push(slice);
             }
             OutputSegments::MultiSegment(v)
@@ -211,14 +247,22 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
     }
 }
 
-impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
+impl<A> ReaderArena for BuilderArenaImpl<A>
+where
+    A: Allocator,
+{
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
         let borrow = self.inner.borrow();
         let seg = &borrow.segments[id as usize];
         Ok((seg.ptr, seg.allocated))
     }
 
-    fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+    fn check_offset(
+        &self,
+        _segment_id: u32,
+        start: *const u8,
+        offset_in_words: i32,
+    ) -> Result<*const u8> {
         unsafe { Ok(start.offset((i64::from(offset_in_words) * BYTES_PER_WORD as i64) as isize)) }
     }
 
@@ -230,17 +274,26 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
         Ok(())
     }
 
-    fn nesting_limit(&self) -> i32 { 0x7fffffff }
+    fn nesting_limit(&self) -> i32 {
+        0x7fffffff
+    }
 }
 
-impl <A> BuilderArenaImplInner<A> where A: Allocator {
+impl<A> BuilderArenaImplInner<A>
+where
+    A: Allocator,
+{
     /// Allocates a new segment with capacity for at least `minimum_size` words.
     fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
         let seg = match self.allocator {
             Some(ref mut a) => a.allocate_segment(minimum_size),
             None => unreachable!(),
         };
-        self.segments.push(BuilderSegment { ptr: seg.0, capacity: seg.1, allocated: 0});
+        self.segments.push(BuilderSegment {
+            ptr: seg.0,
+            capacity: seg.1,
+            allocated: 0,
+        });
         Ok(())
     }
 
@@ -258,7 +311,7 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
     fn allocate_anywhere(&mut self, amount: u32) -> (SegmentId, u32) {
         // first try the existing segments, then try allocating a new segment.
         let allocated_len = self.segments.len() as u32;
-        for segment_id in 0.. allocated_len {
+        for segment_id in 0..allocated_len {
             if let Some(idx) = self.allocate(segment_id, amount) {
                 return (segment_id, idx);
             }
@@ -267,8 +320,11 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
         // Need to allocate a new segment.
 
         self.allocate_segment(amount).expect("allocate new segment");
-        (allocated_len,
-         self.allocate(allocated_len, amount).expect("use freshly-allocated segment"))
+        (
+            allocated_len,
+            self.allocate(allocated_len, amount)
+                .expect("use freshly-allocated segment"),
+        )
     }
 
     fn deallocate_all(&mut self) {
@@ -285,7 +341,10 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
     }
 }
 
-impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
+impl<A> BuilderArena for BuilderArenaImpl<A>
+where
+    A: Allocator,
+{
     fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32> {
         self.inner.borrow_mut().allocate(segment_id, amount)
     }
@@ -303,7 +362,10 @@ impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
     }
 }
 
-impl <A> Drop for BuilderArenaImplInner<A> where A: Allocator {
+impl<A> Drop for BuilderArenaImplInner<A>
+where
+    A: Allocator,
+{
     fn drop(&mut self) {
         self.deallocate_all()
     }
@@ -316,7 +378,12 @@ impl ReaderArena for NullArena {
         Err(Error::failed(String::from("tried to read from null arena")))
     }
 
-    fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+    fn check_offset(
+        &self,
+        _segment_id: u32,
+        start: *const u8,
+        offset_in_words: i32,
+    ) -> Result<*const u8> {
         unsafe { Ok(start.add(offset_in_words as usize * BYTES_PER_WORD)) }
     }
 
@@ -328,7 +395,9 @@ impl ReaderArena for NullArena {
         Ok(())
     }
 
-    fn nesting_limit(&self) -> i32 { 0x7fffffff }
+    fn nesting_limit(&self) -> i32 {
+        0x7fffffff
+    }
 }
 
 impl BuilderArena for NullArena {
@@ -348,4 +417,3 @@ impl BuilderArena for NullArena {
         self
     }
 }
-

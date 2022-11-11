@@ -18,19 +18,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp::{any_pointer, message};
-use capnp::Error;
-use capnp::traits::{Imbue, ImbueMut};
 use capnp::capability::{self, Promise};
-use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
-                                 RequestHook, ResponseHook, ResultsHook};
+use capnp::private::capability::{
+    ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResponseHook, ResultsHook,
+};
+use capnp::traits::{Imbue, ImbueMut};
+use capnp::Error;
+use capnp::{any_pointer, message};
 
-use futures::{TryFutureExt};
 use futures::channel::oneshot;
+use futures::TryFutureExt;
 
 use std::cell::RefCell;
-use std::rc::{Rc};
 use std::mem;
+use std::rc::Rc;
 
 pub trait ResultsDoneHook {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook>;
@@ -44,14 +45,12 @@ impl Clone for Box<dyn ResultsDoneHook> {
 }
 
 pub struct Response {
-    results: Box<dyn ResultsDoneHook>
+    results: Box<dyn ResultsDoneHook>,
 }
 
 impl Response {
     fn new(results: Box<dyn ResultsDoneHook>) -> Response {
-        Response {
-            results
-        }
+        Response { results }
     }
 }
 
@@ -67,14 +66,11 @@ struct Params {
 }
 
 impl Params {
-    fn new(request: message::Builder<message::HeapAllocator>,
-           cap_table: Vec<Option<Box<dyn ClientHook>>>)
-           -> Params
-    {
-        Params {
-            request,
-            cap_table,
-        }
+    fn new(
+        request: message::Builder<message::HeapAllocator>,
+        cap_table: Vec<Option<Box<dyn ClientHook>>>,
+    ) -> Params {
+        Params { request, cap_table }
     }
 }
 
@@ -104,7 +100,9 @@ impl Results {
 
 impl Drop for Results {
     fn drop(&mut self) {
-        if let (Some(message), Some(fulfiller)) = (self.message.take(), self.results_done_fulfiller.take()) {
+        if let (Some(message), Some(fulfiller)) =
+            (self.message.take(), self.results_done_fulfiller.take())
+        {
             let cap_table = mem::replace(&mut self.cap_table, Vec::new());
             let _ = fulfiller.send(Box::new(ResultsDone::new(message, cap_table)));
         } else {
@@ -116,7 +114,11 @@ impl Drop for Results {
 impl ResultsHook for Results {
     fn get(&mut self) -> ::capnp::Result<any_pointer::Builder> {
         match *self {
-            Results { message: Some(ref mut message), ref mut cap_table, .. } => {
+            Results {
+                message: Some(ref mut message),
+                ref mut cap_table,
+                ..
+            } => {
                 let mut result: any_pointer::Builder = message.get_root()?;
                 result.imbue_mut(cap_table);
                 Ok(result)
@@ -129,9 +131,10 @@ impl ResultsHook for Results {
         unimplemented!()
     }
 
-    fn direct_tail_call(self: Box<Self>, _request: Box<dyn RequestHook>)
-                        -> (Promise<(), Error>, Box<dyn PipelineHook>)
-    {
+    fn direct_tail_call(
+        self: Box<Self>,
+        _request: Box<dyn RequestHook>,
+    ) -> (Promise<(), Error>, Box<dyn PipelineHook>) {
         unimplemented!()
     }
 
@@ -150,23 +153,21 @@ struct ResultsDone {
 }
 
 impl ResultsDone {
-    fn new(message: message::Builder<message::HeapAllocator>,
-           cap_table: Vec<Option<Box<dyn ClientHook>>>,
-    )
-        -> ResultsDone
-    {
+    fn new(
+        message: message::Builder<message::HeapAllocator>,
+        cap_table: Vec<Option<Box<dyn ClientHook>>>,
+    ) -> ResultsDone {
         ResultsDone {
-            inner: Rc::new(ResultsDoneInner {
-                message,
-                cap_table,
-            }),
+            inner: Rc::new(ResultsDoneInner { message, cap_table }),
         }
     }
 }
 
 impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook> {
-        Box::new(ResultsDone { inner: self.inner.clone() })
+        Box::new(ResultsDone {
+            inner: self.inner.clone(),
+        })
     }
     fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
         let mut result: any_pointer::Reader = self.inner.message.get_root_as_reader()?;
@@ -174,7 +175,6 @@ impl ResultsDoneHook for ResultsDone {
         Ok(result)
     }
 }
-
 
 pub struct Request {
     message: message::Builder<::capnp::message::HeapAllocator>,
@@ -185,11 +185,12 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(interface_id: u64, method_id: u16,
-           _size_hint: Option<::capnp::MessageSize>,
-           client: Box<dyn ClientHook>)
-           -> Request
-    {
+    pub fn new(
+        interface_id: u64,
+        method_id: u16,
+        _size_hint: Option<::capnp::MessageSize>,
+        client: Box<dyn ClientHook>,
+    ) -> Request {
         Request {
             message: message::Builder::new_default(),
             cap_table: Vec::new(),
@@ -211,21 +212,34 @@ impl RequestHook for Request {
     }
     fn send(self: Box<Self>) -> capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
-        let Request { message, cap_table, interface_id, method_id, client } = tmp;
+        let Request {
+            message,
+            cap_table,
+            interface_id,
+            method_id,
+            client,
+        } = tmp;
         let params = Params::new(message, cap_table);
 
-        let (results_done_fulfiller, results_done_promise) = oneshot::channel::<Box<dyn ResultsDoneHook>>();
+        let (results_done_fulfiller, results_done_promise) =
+            oneshot::channel::<Box<dyn ResultsDoneHook>>();
         let results_done_promise = results_done_promise.map_err(crate::canceled_to_error);
         let results = Results::new(results_done_fulfiller);
         let promise = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
-
         let (pipeline_sender, mut pipeline) = crate::queued::Pipeline::new();
 
-        let p = futures::future::try_join(promise, results_done_promise).and_then(move |((), results_done_hook)| {
-            pipeline_sender.complete(Box::new(Pipeline::new(results_done_hook.add_ref())) as Box<dyn PipelineHook>);
-            Promise::ok((capability::Response::new(Box::new(Response::new(results_done_hook))), ()))
-        });
+        let p = futures::future::try_join(promise, results_done_promise).and_then(
+            move |((), results_done_hook)| {
+                pipeline_sender
+                    .complete(Box::new(Pipeline::new(results_done_hook.add_ref()))
+                        as Box<dyn PipelineHook>);
+                Promise::ok((
+                    capability::Response::new(Box::new(Response::new(results_done_hook))),
+                    (),
+                ))
+            },
+        );
 
         let (left, right) = crate::split::split(p);
 
@@ -237,9 +251,7 @@ impl RequestHook for Request {
             pipeline,
         }
     }
-    fn tail_send(self: Box<Self>)
-                 -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)>
-    {
+    fn tail_send(self: Box<Self>) -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)> {
         unimplemented!()
     }
 }
@@ -255,14 +267,16 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn new(results: Box<dyn ResultsDoneHook>) -> Pipeline {
         Pipeline {
-            inner: Rc::new(RefCell::new(PipelineInner { results }))
+            inner: Rc::new(RefCell::new(PipelineInner { results })),
         }
     }
 }
 
 impl Clone for Pipeline {
     fn clone(&self) -> Pipeline {
-        Pipeline { inner: self.inner.clone() }
+        Pipeline {
+            inner: self.inner.clone(),
+        }
     }
 }
 
@@ -271,21 +285,34 @@ impl PipelineHook for Pipeline {
         Box::new(self.clone())
     }
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<dyn ClientHook> {
-        match self.inner.borrow_mut().results.get().unwrap().get_pipelined_cap(ops) {
+        match self
+            .inner
+            .borrow_mut()
+            .results
+            .get()
+            .unwrap()
+            .get_pipelined_cap(ops)
+        {
             Ok(v) => v,
             Err(e) => Box::new(crate::broken::Client::new(e, true, 0)) as Box<dyn ClientHook>,
         }
     }
 }
 
-pub struct Client<S> where S: capability::Server {
+pub struct Client<S>
+where
+    S: capability::Server,
+{
     inner: Rc<RefCell<S>>,
 }
 
-impl <S> Client<S> where S: capability::Server {
+impl<S> Client<S>
+where
+    S: capability::Server,
+{
     pub fn new(server: S) -> Client<S> {
         Client {
-            inner: Rc::new(RefCell::new(server))
+            inner: Rc::new(RefCell::new(server)),
         }
     }
 
@@ -294,27 +321,45 @@ impl <S> Client<S> where S: capability::Server {
     }
 }
 
-impl <S> Clone for Client<S> where S: capability::Server {
+impl<S> Clone for Client<S>
+where
+    S: capability::Server,
+{
     fn clone(&self) -> Client<S> {
-        Client { inner: self.inner.clone() }
+        Client {
+            inner: self.inner.clone(),
+        }
     }
 }
 
-impl <S> ClientHook for Client<S> where S: capability::Server + 'static {
+impl<S> ClientHook for Client<S>
+where
+    S: capability::Server + 'static,
+{
     fn add_ref(&self) -> Box<dyn ClientHook> {
         Box::new(self.clone())
     }
-    fn new_call(&self, interface_id: u64, method_id: u16,
-                size_hint: Option<::capnp::MessageSize>)
-                -> capability::Request<any_pointer::Owned, any_pointer::Owned>
-    {
-        capability::Request::new(
-            Box::new(Request::new(interface_id, method_id, size_hint, self.add_ref())))
+    fn new_call(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        size_hint: Option<::capnp::MessageSize>,
+    ) -> capability::Request<any_pointer::Owned, any_pointer::Owned> {
+        capability::Request::new(Box::new(Request::new(
+            interface_id,
+            method_id,
+            size_hint,
+            self.add_ref(),
+        )))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<dyn ParamsHook>, results: Box<dyn ResultsHook>)
-        -> Promise<(), Error>
-    {
+    fn call(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        params: Box<dyn ParamsHook>,
+        results: Box<dyn ResultsHook>,
+    ) -> Promise<(), Error> {
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
@@ -327,9 +372,12 @@ impl <S> ClientHook for Client<S> where S: capability::Server + 'static {
                 // We put this borrow_mut() inside a block to avoid a potential
                 // double borrow during f.await
                 let server = &mut *inner.borrow_mut();
-                server.dispatch_call(interface_id, method_id,
-                                     ::capnp::capability::Params::new(params),
-                                     ::capnp::capability::Results::new(results))
+                server.dispatch_call(
+                    interface_id,
+                    method_id,
+                    ::capnp::capability::Params::new(params),
+                    ::capnp::capability::Results::new(results),
+                )
             };
             f.await
         })

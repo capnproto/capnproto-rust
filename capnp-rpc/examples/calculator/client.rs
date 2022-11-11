@@ -19,24 +19,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp_rpc::{RpcSystem, pry, twoparty, rpc_twoparty_capnp};
 use crate::calculator_capnp::calculator;
 use capnp::capability::Promise;
+use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
 
-use futures::{AsyncReadExt};
+use futures::AsyncReadExt;
 
 #[derive(Clone, Copy)]
 pub struct PowerFunction;
 
 impl calculator::function::Server for PowerFunction {
-    fn call(&mut self,
-            params: calculator::function::CallParams,
-            mut results: calculator::function::CallResults)
-        -> Promise<(), ::capnp::Error>
-    {
+    fn call(
+        &mut self,
+        params: calculator::function::CallParams,
+        mut results: calculator::function::CallResults,
+    ) -> Promise<(), ::capnp::Error> {
         let params = pry!(pry!(params.get()).get_params());
         if params.len() != 2 {
-            Promise::err(::capnp::Error::failed("Wrong number of parameters".to_string()))
+            Promise::err(::capnp::Error::failed(
+                "Wrong number of parameters".to_string(),
+            ))
         } else {
             results.get().set_value(params.get(0).powf(params.get(1)));
             Promise::ok(())
@@ -53,19 +55,23 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::task::LocalSet::new().run_until(try_main(args)).await
 }
 
-async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
-{
+async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     use std::net::ToSocketAddrs;
 
-    let addr = args[2].to_socket_addrs()?.next().expect("could not parse address");
+    let addr = args[2]
+        .to_socket_addrs()?
+        .next()
+        .expect("could not parse address");
     let stream = tokio::net::TcpStream::connect(&addr).await?;
     stream.set_nodelay(true)?;
     let (reader, writer) = tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
 
-    let network =
-        Box::new(twoparty::VatNetwork::new(reader, writer,
-                                           rpc_twoparty_capnp::Side::Client,
-                                           Default::default()));
+    let network = Box::new(twoparty::VatNetwork::new(
+        reader,
+        writer,
+        rpc_twoparty_capnp::Side::Client,
+        Default::default(),
+    ));
 
     let mut rpc_system = RpcSystem::new(network, None);
     let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
@@ -188,22 +194,38 @@ async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
             let mut add3_call = add3_request.get().init_expression().init_call();
             add3_call.set_function(add.clone());
             let mut add3_params = add3_call.init_params(2);
-            add3_params.reborrow().get(0).set_previous_result(multiply_result.clone());
+            add3_params
+                .reborrow()
+                .get(0)
+                .set_previous_result(multiply_result.clone());
             add3_params.reborrow().get(1).set_literal(3.0);
         }
 
-        let add3_promise = add3_request.send().pipeline.get_value().read_request().send();
+        let add3_promise = add3_request
+            .send()
+            .pipeline
+            .get_value()
+            .read_request()
+            .send();
 
         let mut add5_request = calculator.evaluate_request();
         {
             let mut add5_call = add5_request.get().init_expression().init_call();
             add5_call.set_function(add);
             let mut add5_params = add5_call.init_params(2);
-            add5_params.reborrow().get(0).set_previous_result(multiply_result);
+            add5_params
+                .reborrow()
+                .get(0)
+                .set_previous_result(multiply_result);
             add5_params.get(1).set_literal(5.0);
         }
 
-        let add5_promise = add5_request.send().pipeline.get_value().read_request().send();
+        let add5_promise = add5_request
+            .send()
+            .pipeline
+            .get_value()
+            .read_request()
+            .send();
 
         // Now wait for the results.
         assert!(add3_promise.promise.await?.get()?.get_value() == 27.0);
@@ -292,7 +314,12 @@ async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
             f_params.reborrow().get(0).set_literal(12.0);
             f_params.get(1).set_literal(34.0);
         }
-        let f_eval_promise = f_eval_request.send().pipeline.get_value().read_request().send();
+        let f_eval_promise = f_eval_request
+            .send()
+            .pipeline
+            .get_value()
+            .read_request()
+            .send();
 
         let mut g_eval_request = calculator.evaluate_request();
         {
@@ -300,7 +327,12 @@ async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
             g_call.set_function(g);
             g_call.init_params(1).get(0).set_literal(21.0);
         }
-        let g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
+        let g_eval_promise = g_eval_request
+            .send()
+            .pipeline
+            .get_value()
+            .read_request()
+            .send();
 
         assert!(f_eval_promise.promise.await?.get()?.get_value() == 1234.0);
         assert!(g_eval_promise.promise.await?.get()?.get_value() == 4244.0);

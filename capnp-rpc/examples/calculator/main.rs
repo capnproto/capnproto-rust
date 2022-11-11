@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 pub mod calculator_capnp {
-  include!(concat!(env!("OUT_DIR"), "/calculator_capnp.rs"));
+    include!(concat!(env!("OUT_DIR"), "/calculator_capnp.rs"));
 }
 
 pub mod client;
@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match &args[1][..] {
             "client" => return client::main().await,
             "server" => return server::main().await,
-            _ => ()
+            _ => (),
         }
     }
 
