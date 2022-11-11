@@ -200,7 +200,7 @@ impl <'a> GeneratorContext<'a> {
         Ok(gen)
     }
 
-    fn get_last_name<'b>(&'b self, id: u64) -> ::capnp::Result<&'b str> {
+    fn get_last_name(&self, id: u64) -> ::capnp::Result<&str> {
         match self.scope_map.get(&id) {
             None => Err(Error::failed(format!("node not found: {}", id))),
             Some(v) => match v.last() {

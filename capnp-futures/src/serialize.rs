@@ -139,18 +139,18 @@ fn parse_segment_table_first(buf: &[u8]) -> Result<(usize, usize)>
 
 /// Something that contains segments ready to be written out.
 pub trait AsOutputSegments {
-    fn as_output_segments<'a>(&'a self) -> OutputSegments<'a>;
+    fn as_output_segments(&self) -> OutputSegments;
 }
 
 
 impl <'a, M> AsOutputSegments for &'a M where M: AsOutputSegments {
-    fn as_output_segments<'b>(&'b self) -> OutputSegments<'b> {
+    fn as_output_segments(&self) -> OutputSegments {
         (*self).as_output_segments()
     }
 }
 
 impl <A> AsOutputSegments for message::Builder<A> where A: message::Allocator {
-    fn as_output_segments<'a>(&'a self) -> OutputSegments<'a> {
+    fn as_output_segments(&self) -> OutputSegments {
         self.get_segments_for_output()
     }
 }
@@ -162,7 +162,7 @@ impl <A> AsOutputSegments for message::Builder<A> where A: message::Allocator {
 }*/
 
 impl <A> AsOutputSegments for ::std::rc::Rc<message::Builder<A>> where A: message::Allocator {
-    fn as_output_segments<'a>(&'a self) -> OutputSegments<'a> {
+    fn as_output_segments(&self) -> OutputSegments {
         self.get_segments_for_output()
     }
 }
@@ -394,7 +394,7 @@ pub mod test {
     }
 
     impl AsOutputSegments for Vec<Vec<capnp::Word>> {
-        fn as_output_segments<'a>(&'a self) -> OutputSegments<'a> {
+        fn as_output_segments(&self) -> OutputSegments {
             if self.is_empty() {
                 OutputSegments::SingleSegment([&[]])
             } else if self.len() == 1 {

@@ -179,7 +179,7 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
         self.inner.borrow_mut().allocate_segment(minimum_size)
     }
 
-    pub fn get_segments_for_output(&self) -> OutputSegments<'_> {
+    pub fn get_segments_for_output(&self) -> OutputSegments {
         let reff = self.inner.borrow();
         if reff.segments.len() == 1 {
             let seg = &reff.segments[0];
