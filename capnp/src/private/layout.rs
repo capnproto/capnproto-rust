@@ -1552,7 +1552,7 @@ mod wire_helpers {
         }
 
         let count = (*reff).list_element_count();
-        if count <= 0 || *ptr.offset((count - 1) as isize) != 0 {
+        if count == 0 || *ptr.offset((count - 1) as isize) != 0 {
             return Err(Error::failed(
                 "Text blob missing NUL terminator.".to_string()));
         }
@@ -2156,7 +2156,7 @@ mod wire_helpers {
                         // first field in the struct is the pointer we were looking for, we want to
                         // munge the pointer to point at the first element's pointer section.
                         ptr = ptr.offset(data_size as isize * BYTES_PER_WORD as isize);
-                        if ptr_count <= 0 {
+                        if ptr_count == 0 {
                             return Err(Error::failed(
                                 "Expected a pointer list, but got a list of data-only structs".to_string()));
                         }
@@ -2268,7 +2268,7 @@ mod wire_helpers {
                      round_bytes_up_to_words(size) as usize,
                      WirePointerKind::List)?;
 
-        if size <= 0 {
+        if size == 0 {
             return Err(Error::failed("Message contains text that is not NUL-terminated.".to_string()));
         }
 
