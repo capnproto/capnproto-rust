@@ -129,9 +129,9 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
                     for n in 0..8 {
                         let is_nonzero = (tag & (1u8 << n)) != 0;
-                        *out = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
+                        *out = (*in_ptr) & ((-i8::from(is_nonzero)) as u8);
                         out = out.offset(1);
-                        in_ptr = in_ptr.offset(is_nonzero as isize);
+                        in_ptr = in_ptr.offset(isize::from(is_nonzero));
                     }
                 }
                 if tag == 0 {
@@ -247,42 +247,42 @@ impl <W> Write for PackedWrite<W> where W: Write {
                 let tag_pos = buf_idx;
                 buf_idx += 1;
 
-                let bit0 = (*in_ptr != 0) as u8;
+                let bit0 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit0 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let bit1 = (*in_ptr != 0) as u8;
+                let bit1 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit1 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let bit2 = (*in_ptr != 0) as u8;
+                let bit2 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit2 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let bit3 = (*in_ptr != 0) as u8;
+                let bit3 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit3 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let bit4 = (*in_ptr != 0) as u8;
+                let bit4 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit4 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let bit5 = (*in_ptr != 0) as u8;
+                let bit5 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit5 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let bit6 = (*in_ptr != 0) as u8;
+                let bit6 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit6 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let bit7 = (*in_ptr != 0) as u8;
+                let bit7 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit7 as usize;
                 in_ptr = in_ptr.offset(1);
@@ -329,7 +329,7 @@ impl <W> Write for PackedWrite<W> where W: Write {
                         let mut c = 0;
 
                         for _ in 0..8 {
-                            c += (*in_ptr == 0) as u8;
+                            c += u8::from(*in_ptr == 0);
                             in_ptr = in_ptr.offset(1);
                         }
 
