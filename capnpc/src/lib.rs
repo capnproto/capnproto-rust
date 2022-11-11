@@ -82,7 +82,7 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
     capnp::Error { description: format!("{}", err), kind: kind }
 }
 
-fn run_command(mut command: ::std::process::Command, mut code_generation_command: codegen::CodeGenerationCommand) -> ::capnp::Result<()> {
+fn run_command(mut command: std::process::Command, mut code_generation_command: codegen::CodeGenerationCommand) -> capnp::Result<()> {
     let mut p = command.spawn().map_err(convert_io_err)?;
     code_generation_command.run(p.stdout.take().unwrap())?;
     let exit_status = p.wait().map_err(convert_io_err)?;
@@ -214,11 +214,11 @@ impl CompilerCommand {
 
     /// Runs the command.
     /// Returns an error if `OUT_DIR` or a custom output directory was not set, or if `capnp compile` fails.
-    pub fn run(&mut self) -> ::capnp::Result<()> {
+    pub fn run(&mut self) -> capnp::Result<()> {
         let mut command = if let Some(executable) = &self.executable_path {
-            ::std::process::Command::new(executable)
+            std::process::Command::new(executable)
         } else {
-            ::std::process::Command::new("capnp")
+            std::process::Command::new("capnp")
         };
 
         command.arg("compile").arg("-o").arg("-");
@@ -242,7 +242,7 @@ impl CompilerCommand {
                     Err(..) => "<unknown working directory>".to_string(),
                 };
 
-                ::capnp::Error::failed(format!(
+                capnp::Error::failed(format!(
                     "Unable to stat capnp input file `{}` in working directory {}: {}.  \
                      Please check that the file exists and is accessible for read.",
                     file.display(),
@@ -259,7 +259,7 @@ impl CompilerCommand {
         } else {
             // Try `OUT_DIR` by default
             PathBuf::from(::std::env::var("OUT_DIR").map_err(|error| {
-                ::capnp::Error::failed(format!(
+                capnp::Error::failed(format!(
                     "Could not access `OUT_DIR` environment variable: {}. \
                      You might need to set it up or instead create you own output \
                      structure using `CompilerCommand::output_path`",
@@ -280,7 +280,7 @@ impl CompilerCommand {
         }
 
         run_command(command, code_generation_command).map_err(|error| {
-            ::capnp::Error::failed(format!(
+            capnp::Error::failed(format!(
                 "Error while trying to execute `capnp compile`: {}.  \
                  Please verify that version 0.5.2 or higher of the capnp executable \
                  is installed on your system. See https://capnproto.org/install.html",

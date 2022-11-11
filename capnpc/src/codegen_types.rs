@@ -36,8 +36,8 @@ pub enum Leaf {
     Pipeline
 }
 
-impl ::std::fmt::Display for Leaf {
-    fn fmt(&self, fmt:&mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl std::fmt::Display for Leaf {
+    fn fmt(&self, fmt:&mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let display_string = match self {
             &Leaf::Reader(lt) => format!("Reader<{}>", lt),
             &Leaf::Builder(lt) => format!("Builder<{}>", lt),
@@ -47,7 +47,7 @@ impl ::std::fmt::Display for Leaf {
             &Leaf::ServerDispatch => "ServerDispatch".to_string(),
             &Leaf::Pipeline => "Pipeline".to_string(),
         };
-        ::std::fmt::Display::fmt(&display_string, fmt)
+        std::fmt::Display::fmt(&display_string, fmt)
     }
 }
 
@@ -106,21 +106,21 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 format!("{}",param)
             }).collect::<Vec<String>>().join(",");
             let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}: ::capnp::traits::Owned", param)
+                format!("{}: capnp::traits::Owned", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let where_clause_with_static = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}:'static + ::capnp::traits::Owned", param)
+                format!("{}:'static + capnp::traits::Owned", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}: ::capnp::traits::Pipelined, <{} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline", param, param)
+                format!("{}: capnp::traits::Pipelined, <{} as capnp::traits::Pipelined>::Pipeline: capnp::capability::FromTypelessPipeline", param, param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let phantom_data_type = if params.len() == 1 {
                 // omit parens to avoid linter error
-                format!("_phantom: ::core::marker::PhantomData<{}>", type_parameters)
+                format!("_phantom: core::marker::PhantomData<{}>", type_parameters)
             } else {
-                format!("_phantom: ::core::marker::PhantomData<({})>", type_parameters)
+                format!("_phantom: core::marker::PhantomData<({})>", type_parameters)
             };
-            let phantom_data_value = "_phantom: ::core::marker::PhantomData,".to_string();
+            let phantom_data_value = "_phantom: core::marker::PhantomData,".to_string();
 
             TypeParameterTexts {
                 expanded_list: params,
@@ -147,7 +147,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
 
 impl <'a> RustTypeInfo for type_::Reader<'a> {
 
-    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> Result<String, ::capnp::Error> {
+    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> Result<String, capnp::Error> {
 
         let local_lifetime = match module {
             Leaf::Reader(lt) => lt,
@@ -229,16 +229,16 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                             Leaf::Owned => Ok(parameter_name.to_string()),
                             Leaf::Reader(lifetime) => {
                                 Ok(format!(
-                                    "<{} as ::capnp::traits::Owned>::Reader<{}>",
+                                    "<{} as capnp::traits::Owned>::Reader<{}>",
                                     parameter_name, lifetime))
                             }
                             Leaf::Builder(lifetime) => {
                                 Ok(format!(
-                                    "<{} as ::capnp::traits::Owned>::Builder<{}>",
+                                    "<{} as capnp::traits::Owned>::Builder<{}>",
                                     parameter_name, lifetime))
                             }
                             Leaf::Pipeline => {
-                                Ok(format!("<{} as ::capnp::traits::Pipelined>::Pipeline", parameter_name))
+                                Ok(format!("<{} as capnp::traits::Pipelined>::Pipeline", parameter_name))
                             }
                             _ => Err(Error::unimplemented("unimplemented any_pointer leaf".to_string())),
                         }
