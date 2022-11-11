@@ -62,7 +62,7 @@ impl Drop for Receiver {
 pub fn channel() -> (Sender, Receiver) {
     let inner = Arc::new(Mutex::new(Inner::new()));
     let sender = Sender { inner: inner.clone() };
-    let receiver = Receiver { inner: inner };
+    let receiver = Receiver { inner };
     (sender, receiver)
 }
 

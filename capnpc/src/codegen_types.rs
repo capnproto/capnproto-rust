@@ -125,11 +125,11 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             TypeParameterTexts {
                 expanded_list: params,
                 params: type_parameters,
-                where_clause: where_clause,
-                where_clause_with_static: where_clause_with_static,
-                pipeline_where_clause: pipeline_where_clause,
+                where_clause,
+                where_clause_with_static,
+                pipeline_where_clause,
                 phantom_data_type,
-                phantom_data_value: phantom_data_value
+                phantom_data_value
             }
         } else {
             TypeParameterTexts {

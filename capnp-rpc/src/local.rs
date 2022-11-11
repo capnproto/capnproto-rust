@@ -50,7 +50,7 @@ pub struct Response {
 impl Response {
     fn new(results: Box<dyn ResultsDoneHook>) -> Response {
         Response {
-            results: results
+            results
         }
     }
 }
@@ -72,8 +72,8 @@ impl Params {
            -> Params
     {
         Params {
-            request: request,
-            cap_table: cap_table,
+            request,
+            cap_table,
         }
     }
 }
@@ -157,8 +157,8 @@ impl ResultsDone {
     {
         ResultsDone {
             inner: Rc::new(ResultsDoneInner {
-                message: message,
-                cap_table: cap_table,
+                message,
+                cap_table,
             }),
         }
     }
@@ -193,9 +193,9 @@ impl Request {
         Request {
             message: message::Builder::new_default(),
             cap_table: Vec::new(),
-            interface_id: interface_id,
-            method_id: method_id,
-            client: client,
+            interface_id,
+            method_id,
+            client,
         }
     }
 }
@@ -234,7 +234,7 @@ impl RequestHook for Request {
 
         capability::RemotePromise {
             promise: Promise::from_future(left),
-            pipeline: pipeline,
+            pipeline,
         }
     }
     fn tail_send(self: Box<Self>)
@@ -255,7 +255,7 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn new(results: Box<dyn ResultsDoneHook>) -> Pipeline {
         Pipeline {
-            inner: Rc::new(RefCell::new(PipelineInner { results: results }))
+            inner: Rc::new(RefCell::new(PipelineInner { results }))
         }
     }
 }

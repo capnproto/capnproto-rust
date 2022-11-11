@@ -87,7 +87,7 @@ impl<E> TaskSet<E> where E: 'static {
         set.in_progress.push(TaskInProgress::Task(Box::pin(::futures::future::pending())));
 
         let handle = TaskSetHandle {
-            sender: sender,
+            sender,
         };
 
         (handle, set)

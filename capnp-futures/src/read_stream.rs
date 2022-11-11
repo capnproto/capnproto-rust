@@ -47,7 +47,7 @@ impl <'a, R> ReadStream<'a, R> where R: AsyncRead + Unpin + 'a  {
     {
         ReadStream {
             read: Box::pin(read_next_message(reader, options)),
-            options: options,
+            options,
         }
     }
 }
