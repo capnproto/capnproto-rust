@@ -42,7 +42,7 @@ struct PackedRead<R> where R: BufRead {
 impl <R> PackedRead<R> where R: BufRead {
     fn get_read_buffer(&mut self) -> Result<(*const u8, *const u8)> {
         let buf = self.inner.fill_buf()?;
-        Ok((buf.as_ptr(), buf.as_ptr().wrapping_offset(buf.len() as isize)))
+        Ok((buf.as_ptr(), buf.as_ptr().wrapping_add(buf.len())))
     }
 }
 
@@ -77,7 +77,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
         unsafe {
             let mut out = out_buf.as_mut_ptr();
-            let out_end: *mut u8 = out_buf.as_mut_ptr().wrapping_offset(len as isize);
+            let out_end: *mut u8 = out_buf.as_mut_ptr().wrapping_add(len);
 
             let (mut in_ptr, mut in_end) = self.get_read_buffer()?;
             let mut buffer_begin = in_ptr;
@@ -146,7 +146,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                     }
 
                     ptr::write_bytes(out, 0, run_length);
-                    out = out.offset(run_length as isize);
+                    out = out.add(run_length);
 
                 } else if tag == 0xff {
                     assert!(ptr_sub(in_end, in_ptr) > 0,
@@ -163,12 +163,12 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                     if in_remaining >= run_length {
                         //# Fast path.
                         ptr::copy_nonoverlapping(in_ptr, out, run_length);
-                        out = out.offset(run_length as isize);
-                        in_ptr = in_ptr.offset(run_length as isize);
+                        out = out.add(run_length);
+                        in_ptr = in_ptr.add(run_length);
                     } else {
                         //# Copy over the first buffer, then do one big read for the rest.
                         ptr::copy_nonoverlapping(in_ptr, out, in_remaining);
-                        out = out.offset(in_remaining as isize);
+                        out = out.add(in_remaining);
                         run_length -= in_remaining;
 
                         self.inner.consume(size);
@@ -177,7 +177,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                             self.inner.read_exact(buf)?;
                         }
 
-                        out = out.offset(run_length as isize);
+                        out = out.add(run_length);
 
                         if out == out_end {
                             return Ok(len);
@@ -232,7 +232,7 @@ impl <W> Write for PackedWrite<W> where W: Write {
             let mut buf: [u8; 64] = [0; 64];
 
             let mut in_ptr: *const u8 = in_buf.as_ptr();
-            let in_end: *const u8 = in_buf.as_ptr().wrapping_offset(in_buf.len() as isize);
+            let in_end: *const u8 = in_buf.as_ptr().wrapping_add(in_buf.len());
 
             while in_ptr < in_end {
 

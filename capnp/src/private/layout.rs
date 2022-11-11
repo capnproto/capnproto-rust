@@ -416,7 +416,7 @@ mod wire_helpers {
                 //# data immediately follows the pad.
                 let reff = ptr as *mut WirePointer;
 
-                let ptr1 = ptr.offset(BYTES_PER_WORD as isize);
+                let ptr1 = ptr.add(BYTES_PER_WORD);
                 (*reff).set_kind_and_target(kind, ptr1);
                 (ptr1, reff, segment_id)
             }
@@ -590,19 +590,19 @@ mod wire_helpers {
 
                         let data_size = (*element_tag).struct_data_size();
                         let pointer_count = (*element_tag).struct_ptr_count();
-                        let mut pos = ptr.offset(BYTES_PER_WORD as isize);
+                        let mut pos = ptr.add(BYTES_PER_WORD);
                         let count = (*element_tag).inline_composite_list_element_count();
                         if pointer_count > 0 {
                             for _ in 0..count {
                                 pos = pos.offset(data_size as isize * BYTES_PER_WORD as isize);
                                 for _ in 0..pointer_count {
                                     zero_object(arena, segment_id, pos as *mut WirePointer);
-                                    pos = pos.offset(BYTES_PER_WORD as isize);
+                                    pos = pos.add(BYTES_PER_WORD);
                                 }
                             }
                         }
                         ptr::write_bytes(ptr, 0u8,
-                                         BYTES_PER_WORD as usize *
+                                         BYTES_PER_WORD *
                                          ((*element_tag).struct_word_size() * count + 1) as usize);
                     }
                 }
@@ -717,7 +717,7 @@ mod wire_helpers {
                         let pointer_count = (*element_tag).struct_ptr_count();
 
                         if pointer_count > 0 {
-                            let mut pos = ptr.offset(BYTES_PER_WORD as isize);
+                            let mut pos = ptr.add(BYTES_PER_WORD);
                             for _ in 0..count {
                                 pos = pos.offset(data_size as isize * BYTES_PER_WORD as isize);
 
@@ -725,7 +725,7 @@ mod wire_helpers {
                                     result.plus_eq(
                                         total_size(arena, segment_id,
                                                    pos as *const WirePointer, nesting_limit)?);
-                                    pos = pos.offset(BYTES_PER_WORD as isize);
+                                    pos = pos.add(BYTES_PER_WORD);
                                 }
                             }
                         }
@@ -845,8 +845,8 @@ mod wire_helpers {
                         let src_tag: *const WirePointer = src_ptr as _;
                         ptr::copy_nonoverlapping(src_tag, dst_ptr as *mut WirePointer, 1);
 
-                        let mut src_element = src_ptr.offset(BYTES_PER_WORD as isize);
-                        let mut dst_element = dst_ptr.offset(BYTES_PER_WORD as isize);
+                        let mut src_element = src_ptr.add(BYTES_PER_WORD);
+                        let mut dst_element = dst_ptr.add(BYTES_PER_WORD);
 
                         if (*src_tag).kind() != WirePointerKind::Struct {
                             panic!("unsupported INLINE_COMPOSITE list");
@@ -1139,7 +1139,7 @@ mod wire_helpers {
         (*ptr).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, element_count);
         (*ptr).set_struct_size(element_size);
 
-        let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
+        let ptr1 = ptr.add(POINTER_SIZE_IN_WORDS);
 
         ListBuilder {
             arena,
@@ -1209,7 +1209,7 @@ mod wire_helpers {
                     "InlineComposite list with non-STRUCT elements not supported.".to_string()));
             }
 
-            ptr = ptr.offset(BYTES_PER_WORD as isize);
+            ptr = ptr.add(BYTES_PER_WORD);
 
             let data_size = (*tag).struct_data_size();
             let pointer_count = (*tag).struct_ptr_count();
@@ -1315,7 +1315,7 @@ mod wire_helpers {
             // Existing list is InlineComposite, but we need to verify that the sizes match.
 
             let old_tag: *const WirePointer = old_ptr as *const _;
-            old_ptr = old_ptr.offset(BYTES_PER_WORD as isize);
+            old_ptr = old_ptr.add(BYTES_PER_WORD);
             if (*old_tag).kind() != WirePointerKind::Struct {
                 return Err(Error::failed(
                     "InlineComposite list with non-STRUCT elements not supported.".to_string()));
@@ -1360,7 +1360,7 @@ mod wire_helpers {
             let new_tag: *mut WirePointer = new_ptr as *mut _;
             (*new_tag).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, element_count);
             (*new_tag).set_struct_size_from_pieces(new_data_size, new_pointer_count);
-            new_ptr = new_ptr.offset(BYTES_PER_WORD as isize);
+            new_ptr = new_ptr.add(BYTES_PER_WORD);
 
             let mut src = old_ptr as *mut WirePointer;
             let mut dst = new_ptr as *mut WirePointer;
@@ -1440,7 +1440,7 @@ mod wire_helpers {
                 let tag: *mut WirePointer = new_ptr as *mut _;
                 (*tag).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, element_count);
                 (*tag).set_struct_size_from_pieces(new_data_size, new_pointer_count);
-                new_ptr = new_ptr.offset(BYTES_PER_WORD as isize);
+                new_ptr = new_ptr.add(BYTES_PER_WORD);
 
                 if old_size == ElementSize::Pointer {
                     let mut dst = new_ptr.offset(new_data_size as isize * BYTES_PER_WORD as isize);
@@ -1818,7 +1818,7 @@ mod wire_helpers {
             let tag: *mut WirePointer = ptr as *mut _;
             (*tag).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, value.element_count);
             (*tag).set_struct_size_from_pieces(data_size as u16, ptr_count);
-            let mut dst = ptr.offset(BYTES_PER_WORD as isize);
+            let mut dst = ptr.add(BYTES_PER_WORD);
 
             let mut src: *const u8 = value.ptr;
             for _ in 0.. value.element_count {
@@ -1830,8 +1830,8 @@ mod wire_helpers {
                     copy_pointer(arena, segment_id, cap_table, dst as *mut _,
                                  value.arena, value.segment_id, value.cap_table, src as *const WirePointer,
                                  value.nesting_limit, canonicalize)?;
-                    dst = dst.offset(BYTES_PER_WORD as isize);
-                    src = src.offset(BYTES_PER_WORD as isize);
+                    dst = dst.add(BYTES_PER_WORD);
+                    src = src.add(BYTES_PER_WORD);
                 }
 
                 src = src.offset((decl_pointer_count - ptr_count) as isize * BYTES_PER_WORD as isize);
@@ -1893,7 +1893,7 @@ mod wire_helpers {
                 if element_size == InlineComposite {
                     let word_count = (*src).list_inline_composite_word_count();
                     let tag: *const WirePointer = ptr as *const _;
-                    ptr = ptr.offset(BYTES_PER_WORD as isize);
+                    ptr = ptr.add(BYTES_PER_WORD);
 
                     bounds_check(
                         src_arena, src_segment_id, ptr.offset(-(BYTES_PER_WORD as isize)), word_count as usize + 1,
@@ -2106,7 +2106,7 @@ mod wire_helpers {
 
                 let tag: *const WirePointer = ptr as *const WirePointer;
 
-                ptr = ptr.offset(BYTES_PER_WORD as isize);
+                ptr = ptr.add(BYTES_PER_WORD);
 
                 bounds_check(arena, segment_id, ptr.offset(-(BYTES_PER_WORD as isize)),
                              word_count as usize + 1,
@@ -2862,7 +2862,7 @@ impl <'a> StructReader<'a> {
         if (offset + 1) * bits_per_element::<T>() <= self.data_size as usize {
             let dwv: *const <T as Primitive>::Raw = self.data as *const _;
             unsafe {
-                <T as Primitive>::get(&*dwv.offset(offset as isize))
+                <T as Primitive>::get(&*dwv.add(offset))
             }
         } else {
             T::zero()
@@ -2874,7 +2874,7 @@ impl <'a> StructReader<'a> {
         let boffset: BitCount32 = offset as BitCount32;
         if boffset < self.data_size {
             unsafe {
-                let b: *const u8 = self.data.offset((boffset as usize / BITS_PER_BYTE) as isize);
+                let b: *const u8 = self.data.add(boffset as usize / BITS_PER_BYTE);
                 ((*b) & (1u8 << (boffset % BITS_PER_BYTE as u32) as usize)) != 0
             }
         } else {
@@ -2903,7 +2903,7 @@ impl <'a> StructReader<'a> {
                 arena: self.arena,
                 segment_id: self.segment_id,
                 cap_table: self.cap_table,
-                pointer: unsafe { self.pointers.offset(ptr_index as isize) },
+                pointer: unsafe { self.pointers.add(ptr_index) },
                 nesting_limit: self.nesting_limit
             }
         } else {
@@ -3013,7 +3013,7 @@ impl <'a> StructBuilder<'a> {
     pub fn set_data_field<T:Primitive>(&self, offset: ElementCount, value: T) {
         let ptr: *mut <T as Primitive>::Raw = self.data as *mut _;
         unsafe {
-            <T as Primitive>::set(&mut*ptr.offset(offset as isize), value)
+            <T as Primitive>::set(&mut*ptr.add(offset), value)
         }
     }
 
@@ -3029,7 +3029,7 @@ impl <'a> StructBuilder<'a> {
     pub fn get_data_field<T: Primitive>(&self, offset: ElementCount) -> T {
         let ptr: *const <T as Primitive>::Raw = self.data as *const _;
         unsafe {
-            <T as Primitive>::get(&*ptr.offset(offset as isize))
+            <T as Primitive>::get(&*ptr.add(offset))
         }
     }
 
@@ -3046,7 +3046,7 @@ impl <'a> StructBuilder<'a> {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.
         let boffset: BitCount0 = offset;
-        let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as isize)};
+        let b = unsafe { self.data.add(boffset / BITS_PER_BYTE)};
         let bitnum = boffset % BITS_PER_BYTE;
         unsafe { (*b) = ( (*b) & !(1 << bitnum)) | ((value as u8) << bitnum) }
     }
@@ -3062,7 +3062,7 @@ impl <'a> StructBuilder<'a> {
     #[inline]
     pub fn get_bool_field(&self, offset: ElementCount) -> bool {
         let boffset: BitCount0 = offset;
-        let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as isize) };
+        let b = unsafe { self.data.add(boffset / BITS_PER_BYTE) };
         unsafe { ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0 }
     }
 
@@ -3080,7 +3080,7 @@ impl <'a> StructBuilder<'a> {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe { self.pointers.offset(ptr_index as isize) }
+            pointer: unsafe { self.pointers.add(ptr_index) }
         }
     }
 
@@ -3213,7 +3213,7 @@ impl <'a> ListReader<'a> {
         let struct_data: *const u8 = unsafe { self.ptr.offset(index_byte as isize) };
 
         let struct_pointers: *const WirePointer = unsafe {
-            struct_data.offset((self.struct_data_size as usize / BITS_PER_BYTE) as isize) as *const _
+            struct_data.add(self.struct_data_size as usize / BITS_PER_BYTE) as *const _
         };
 
         StructReader {
@@ -3248,7 +3248,7 @@ impl <'a> ListReader<'a> {
     {
         match self.element_size {
             ElementSize::InlineComposite => {
-                read_head.set(unsafe { read_head.get().offset(BYTES_PER_WORD as isize) }); // tag word
+                read_head.set(unsafe { read_head.get().add(BYTES_PER_WORD) }); // tag word
                 if self.ptr as *const _ != read_head.get() {
                     return Ok(false)
                 }
@@ -3265,7 +3265,7 @@ impl <'a> ListReader<'a> {
                     return Ok(true)
                 }
                 let list_end =
-                    unsafe { read_head.get().offset(((self.element_count * struct_size) as usize * BYTES_PER_WORD)  as isize) };
+                    unsafe { read_head.get().add((self.element_count * struct_size) as usize * BYTES_PER_WORD) };
                 let pointer_head = Cell::new(list_end);
                 let mut list_data_trunc = false;
                 let mut list_ptr_trunc = false;
@@ -3399,7 +3399,7 @@ impl <'a> ListBuilder<'a> {
         let index_byte = ((index as u64 * self.step as u64) / BITS_PER_BYTE as u64) as u32;
         let struct_data = unsafe{ self.ptr.offset(index_byte as isize)};
         let struct_pointers = unsafe {
-            struct_data.offset(((self.struct_data_size as usize) / BITS_PER_BYTE) as isize) as *mut _
+            struct_data.add((self.struct_data_size as usize) / BITS_PER_BYTE) as *mut _
         };
         StructBuilder {
             arena: self.arena,

@@ -241,7 +241,7 @@ impl <S> Reader<S> where S: ReaderSegments {
 
         let pointer_reader = layout::PointerReader::get_root(
             &self.arena, 0, segment_start, self.arena.nesting_limit())?;
-        let read_head = ::core::cell::Cell::new(unsafe {segment_start.offset(BYTES_PER_WORD as isize)});
+        let read_head = ::core::cell::Cell::new(unsafe {segment_start.add(BYTES_PER_WORD)});
         let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
         let all_words_consumed =
             (read_head.get() as usize - segment_start as usize) / BYTES_PER_WORD == seg_len as usize;
