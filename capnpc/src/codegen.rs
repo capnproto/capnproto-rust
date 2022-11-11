@@ -1156,7 +1156,7 @@ fn generate_union(gen: &GeneratorContext,
     }
 
     let enum_name = format!("Which{}",
-                            if ty_params.len() > 0 { format!("<{}>", ty_params.join(",")) }
+                            if !ty_params.is_empty() { format!("<{}>", ty_params.join(",")) }
                             else {"".to_string()} );
 
 
@@ -1174,7 +1174,7 @@ fn generate_union(gen: &GeneratorContext,
     let concrete_type =
             format!("Which{}{}",
                     if is_reader {"Reader"} else {"Builder"},
-                    if ty_params.len() > 0 {
+                    if !ty_params.is_empty() {
                         format!("<'a,{}>",
                                 params.expanded_list
                                 .iter()
@@ -1186,7 +1186,7 @@ fn generate_union(gen: &GeneratorContext,
     let typedef =
         Line(format!("pub type {} = Which{};",
                      concrete_type,
-                     if ty_args.len() > 0 {format!("<{}>",
+                     if !ty_args.is_empty() {format!("<{}>",
                                                    ty_args.join(","))} else {"".to_string()}));
 
     let getter_result =
@@ -1916,7 +1916,7 @@ fn generate_node(gen: &GeneratorContext,
                     base_traits.push(
                         do_branding(gen, type_id, brand, Leaf::Server, the_mod, None)?);
                 }
-                if extends.len() > 0 { format!(": {}", base_traits.join(" + ")) }
+                if !extends.is_empty() { format!(": {}", base_traits.join(" + ")) }
                 else { "".to_string() }
             };
 

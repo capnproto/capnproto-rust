@@ -287,7 +287,7 @@ impl <W> PackedWrite<W> where W: AsyncWrite + Unpin {
         loop {
             match *stage {
                 PackedWriteStage::Start => {
-                    if inbuf.len() == 0 {
+                    if inbuf.is_empty() {
                         return Poll::Ready(Ok(inbuf_bytes_consumed));
                     }
 
@@ -565,7 +565,7 @@ pub mod test {
                   write_blocking_period: usize,
                   segments: Vec<Vec<capnp::Word>>) -> TestResult
     {
-        if segments.len() == 0 || read_blocking_period == 0 || write_blocking_period == 0 {
+        if segments.is_empty() || read_blocking_period == 0 || write_blocking_period == 0 {
             return TestResult::discard();
         }
         let (mut read, segments) = {

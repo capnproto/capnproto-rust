@@ -446,7 +446,7 @@ mod tests {
     quickcheck! {
         fn test_round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
             use crate::message::ReaderSegments;
-            if segments.len() == 0 { return TestResult::discard(); }
+            if segments.is_empty() { return TestResult::discard(); }
             let mut buf: Vec<u8> = Vec::new();
 
             write_message_segments(&mut PackedWrite { inner: &mut buf }, &segments);
