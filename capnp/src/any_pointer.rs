@@ -239,7 +239,7 @@ fn init_clears_value() {
     }
 
     let mut output: Vec<u8> = Vec::new();
-    crate::serialize::write_message(&mut output, &mut message).unwrap();
+    crate::serialize::write_message(&mut output, &message).unwrap();
     assert_eq!(output.len(), 40);
     for byte in &output[8..] {
         // Everything not in the message header is zero.

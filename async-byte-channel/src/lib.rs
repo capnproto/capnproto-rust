@@ -176,7 +176,7 @@ pub mod test {
         drop(receiver);
 
         let mut pool = futures::executor::LocalPool::new();
-        let result = pool.run_until(sender.write_all(&mut [0,1,2]));
+        let result = pool.run_until(sender.write_all(&[0,1,2]));
         assert!(result.is_err());
     }
 }
