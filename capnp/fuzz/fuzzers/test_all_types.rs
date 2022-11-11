@@ -59,6 +59,22 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
         let mut root_builder = message.get_root::<test_all_types::Builder>()?;
         root_builder.total_size()?;
 
+        let mut sl = root_builder.reborrow().get_struct_list()?;
+        for idx in 0..sl.len() {
+            let mut s = sl.reborrow().get(idx);
+            s.reborrow().get_text_list()?;
+            s.set_text_list(root.get_text_list()?)?;
+
+            s.reborrow().get_bool_list()?;
+            s.reborrow().set_bool_list(root.get_bool_list()?)?;
+
+            s.reborrow().get_enum_list()?;
+            s.reborrow().set_enum_list(root.get_enum_list()?)?;
+
+            s.reborrow().get_int32_list()?;
+            s.reborrow().set_int32_list(root.get_int32_list()?)?;
+        }
+
         root_builder.set_struct_field(root)?;
         {
             let list = root_builder.reborrow().init_struct_list(2);
@@ -69,9 +85,11 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
         traverse(root_builder.into_reader())?;
     }
 
-    // init_root() will zero the previous value
-    let mut new_root = message.init_root::<test_all_types::Builder>();
-    new_root.set_struct_field(root)?;
+    {
+        // init_root() will zero the previous value
+        let mut new_root = message.init_root::<test_all_types::Builder>();
+        new_root.set_struct_field(root)?;
+    }
 
     Ok(())
 }
