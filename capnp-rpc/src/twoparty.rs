@@ -69,7 +69,7 @@ impl crate::OutgoingMessage for OutgoingMessage {
         let tmp = *self;
         let OutgoingMessage {message, mut sender} = tmp;
         let m = Rc::new(message);
-        (Promise::from_future(sender.send(m.clone()).map_err(|e| e.into())), m)
+        (Promise::from_future(sender.send(m.clone())), m)
     }
 
     fn take(self: Box<Self>)
@@ -162,7 +162,7 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
     }
 
     fn shutdown(&mut self, result: ::capnp::Result<()>) -> Promise<(), ::capnp::Error> {
-        Promise::from_future(self.inner.borrow_mut().sender.terminate(result).map_err(|e| e.into()))
+        Promise::from_future(self.inner.borrow_mut().sender.terminate(result))
     }
 }
 
