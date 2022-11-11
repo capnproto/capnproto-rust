@@ -287,7 +287,7 @@ impl <W> Write for PackedWrite<W> where W: Write {
                 buf_idx += bit7 as usize;
                 in_ptr = in_ptr.offset(1);
 
-                let tag: u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
+                let tag: u8 = bit0 | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
                             | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
 
 
