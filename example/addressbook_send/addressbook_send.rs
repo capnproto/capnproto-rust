@@ -19,9 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate capnp;
-extern crate core;
-
 pub mod addressbook_capnp {
     include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }
@@ -31,7 +28,7 @@ use std::sync::mpsc;
 use std::thread;
 
 pub mod addressbook {
-    use addressbook_capnp::{address_book, person};
+    use crate::addressbook_capnp::{address_book, person};
     use capnp::message::{Builder, HeapAllocator, TypedBuilder, TypedReader};
 
     pub fn build_address_book() -> TypedReader<Builder<HeapAllocator>, address_book::Owned> {
