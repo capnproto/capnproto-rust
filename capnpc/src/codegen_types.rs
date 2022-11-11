@@ -101,7 +101,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
     fn parameters_texts(&self, gen:&crate::codegen::GeneratorContext,
                         parent_node_id: Option<u64>) -> TypeParameterTexts {
         if self.get_is_generic() {
-            let params = get_type_parameters(&gen, self.get_id(), parent_node_id);
+            let params = get_type_parameters(gen, self.get_id(), parent_node_id);
             let type_parameters = params.iter().map(|param| {
                 format!("{}",param)
             }).collect::<Vec<String>>().join(",");

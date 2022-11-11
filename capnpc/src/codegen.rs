@@ -131,7 +131,7 @@ impl CodeGenerationCommand {
         }
 
         if let Some(raw_code_generator_request) = &self.raw_code_generator_request_path {
-            let raw_code_generator_request_file = ::std::fs::File::create(&raw_code_generator_request).map_err(convert_io_err)?;
+            let raw_code_generator_request_file = ::std::fs::File::create(raw_code_generator_request).map_err(convert_io_err)?;
             serialize::write_message_segments(WriteWrapper{ inner: raw_code_generator_request_file }, &message.into_segments())?;
         }
 
@@ -205,7 +205,7 @@ impl <'a> GeneratorContext<'a> {
             None => Err(Error::failed(format!("node not found: {}", id))),
             Some(v) => match v.last() {
                 None => Err(Error::failed(format!("node has no scope: {}", id))),
-                Some(n) => Ok(&n),
+                Some(n) => Ok(n),
             }
         }
     }
@@ -315,7 +315,7 @@ fn to_lines(ft : &FormattedText, indent : usize) -> Vec<String> {
         }
         Line(ref s) => {
             let mut s1 : String = ::std::iter::repeat(' ').take(indent * 2).collect();
-            s1.push_str(&s);
+            s1.push_str(s);
             return vec!(s1.to_string());
         }
         BlankLine => return vec!("".to_string())
@@ -1831,7 +1831,7 @@ fn generate_node(gen: &GeneratorContext,
                     (gen.scope_map[&param_node.get_id()].clone(),
                      get_ty_params_of_brand(gen, method.get_param_brand()?)?)
                 };
-                let param_type = do_branding(&gen, param_id, method.get_param_brand()?,
+                let param_type = do_branding(gen, param_id, method.get_param_brand()?,
                                              Leaf::Owned, param_scopes.join("::"), Some(node_id))?;
 
                 let result_id = method.get_result_struct_type();
@@ -1846,7 +1846,7 @@ fn generate_node(gen: &GeneratorContext,
                     (gen.scope_map[&result_node.get_id()].clone(),
                      get_ty_params_of_brand(gen, method.get_result_brand()?)?)
                 };
-                let result_type = do_branding(&gen, result_id, method.get_result_brand()?,
+                let result_type = do_branding(gen, result_id, method.get_result_brand()?,
                                               Leaf::Owned, result_scopes.join("::"), Some(node_id))?;
 
                 dispatch_arms.push(
