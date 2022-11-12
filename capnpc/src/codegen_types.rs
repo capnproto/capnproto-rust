@@ -179,7 +179,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             _ => "",
         };
 
-        let lifetime_comma = if local_lifetime == "" {
+        let lifetime_comma = if local_lifetime.is_empty() {
             "".to_string()
         } else {
             format!("{},", local_lifetime)

@@ -1603,7 +1603,7 @@ fn generate_node(
             } else {
                 output.push(Line(format!("pub mod {} {{", node_name)));
             }
-            let bracketed_params = if params.params == "" {
+            let bracketed_params = if params.params.is_empty() {
                 "".to_string()
             } else {
                 format!("<{}>", params.params)
@@ -2007,7 +2007,7 @@ fn generate_node(
             let mut dispatch_arms = Vec::new();
             let mut private_mod_interior = Vec::new();
 
-            let bracketed_params = if params.params == "" {
+            let bracketed_params = if params.params.is_empty() {
                 "".to_string()
             } else {
                 format!("<{}>", params.params)
