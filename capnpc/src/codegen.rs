@@ -342,7 +342,7 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
             return result;
         }
         Line(ref s) => {
-            let mut s1: String = ::std::iter::repeat(' ').take(indent * 2).collect();
+            let mut s1: String = " ".repeat(indent * 2);
             s1.push_str(s);
             return vec![s1.to_string()];
         }
