@@ -747,12 +747,10 @@ pub fn getter_text(
                 (type_::AnyPointer(_), value::AnyPointer(_)) => {
                     if !raw_type.is_parameter()? {
                         Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module_string, member, offset))
+                    } else if is_reader {
+                        Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
                     } else {
-                        if is_reader {
-                            Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
-                        } else {
-                            Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
-                        }
+                        Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
                     }
                 }
                 _ => return Err(Error::failed(format!("default value was of wrong type"))),
