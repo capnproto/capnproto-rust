@@ -330,7 +330,7 @@ pub enum FormattedText {
 fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
     match *ft {
         Indent(ref ft) => {
-            return to_lines(&**ft, indent + 1);
+            return to_lines(ft, indent + 1);
         }
         Branch(ref fts) => {
             let mut result = Vec::new();
@@ -621,7 +621,7 @@ pub fn getter_text(
             } else {
                 Leaf::Builder("'a")
             };
-            let member = camel_to_snake_case(&*format!("{}", module_string));
+            let member = camel_to_snake_case(&format!("{}", module_string));
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(
                 typ: &str,
@@ -691,18 +691,18 @@ pub fn getter_text(
                         Line(format!("self.{}.get_bool_field({})", member, offset))
                     }
                 }
-                (type_::Int8(()), value::Int8(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Int16(()), value::Int16(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Int32(()), value::Int32(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Int64(()), value::Int64(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Uint8(()), value::Uint8(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Uint16(()), value::Uint16(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Uint32(()), value::Uint32(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Uint64(()), value::Uint64(i)) => primitive_case(&*typ, member, offset, i, 0),
+                (type_::Int8(()), value::Int8(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Int16(()), value::Int16(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Int32(()), value::Int32(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Int64(()), value::Int64(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Uint8(()), value::Uint8(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Uint16(()), value::Uint16(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Uint32(()), value::Uint32(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Uint64(()), value::Uint64(i)) => primitive_case(&typ, member, offset, i, 0),
                 (type_::Float32(()), value::Float32(f)) =>
-                    primitive_case(&*typ, member, offset, f.to_bits(), 0),
+                    primitive_case(&typ, member, offset, f.to_bits(), 0),
                 (type_::Float64(()), value::Float64(f)) =>
-                    primitive_case(&*typ, member, offset, f.to_bits(), 0),
+                    primitive_case(&typ, member, offset, f.to_bits(), 0),
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
                         Line(format!("::capnp::traits::FromU16::from_u16(self.{}.get_data_field::<u16>({}))",
@@ -2030,7 +2030,7 @@ fn generate_node(
                 let (param_scopes, params_ty_params) = if param_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Params", name));
-                    nested_output.push(generate_node(gen, param_id, &*local_name, Some(node_id))?);
+                    nested_output.push(generate_node(gen, param_id, &local_name, Some(node_id))?);
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
@@ -2053,7 +2053,7 @@ fn generate_node(
                 let (result_scopes, results_ty_params) = if result_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Results", name));
-                    nested_output.push(generate_node(gen, result_id, &*local_name, Some(node_id))?);
+                    nested_output.push(generate_node(gen, result_id, &local_name, Some(node_id))?);
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
