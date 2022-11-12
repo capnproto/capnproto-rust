@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#![allow(clippy::bool_assert_comparison)]
+
 use crate::private::layout::PointerReader;
 
 fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {

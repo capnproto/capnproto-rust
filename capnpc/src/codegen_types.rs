@@ -38,14 +38,14 @@ pub enum Leaf {
 
 impl ::std::fmt::Display for Leaf {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        let display_string = match self {
-            &Leaf::Reader(lt) => format!("Reader<{}>", lt),
-            &Leaf::Builder(lt) => format!("Builder<{}>", lt),
-            &Leaf::Owned => "Owned".to_string(),
-            &Leaf::Client => "Client".to_string(),
-            &Leaf::Server => "Server".to_string(),
-            &Leaf::ServerDispatch => "ServerDispatch".to_string(),
-            &Leaf::Pipeline => "Pipeline".to_string(),
+        let display_string = match *self {
+            Leaf::Reader(lt) => format!("Reader<{}>", lt),
+            Leaf::Builder(lt) => format!("Builder<{}>", lt),
+            Leaf::Owned => "Owned".to_string(),
+            Leaf::Client => "Client".to_string(),
+            Leaf::Server => "Server".to_string(),
+            Leaf::ServerDispatch => "ServerDispatch".to_string(),
+            Leaf::Pipeline => "Pipeline".to_string(),
         };
         ::std::fmt::Display::fmt(&display_string, fmt)
     }
@@ -53,14 +53,14 @@ impl ::std::fmt::Display for Leaf {
 
 impl Leaf {
     fn bare_name(&self) -> &'static str {
-        match self {
-            &Leaf::Reader(_) => "Reader",
-            &Leaf::Builder(_) => "Builder",
-            &Leaf::Owned => "Owned",
-            &Leaf::Client => "Client",
-            &Leaf::Server => "Server",
-            &Leaf::ServerDispatch => "ServerDispatch",
-            &Leaf::Pipeline => "Pipeline",
+        match *self {
+            Leaf::Reader(_) => "Reader",
+            Leaf::Builder(_) => "Builder",
+            Leaf::Owned => "Owned",
+            Leaf::Client => "Client",
+            Leaf::Server => "Server",
+            Leaf::ServerDispatch => "ServerDispatch",
+            Leaf::Pipeline => "Pipeline",
         }
     }
 
@@ -179,7 +179,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             _ => "",
         };
 
-        let lifetime_comma = if local_lifetime == "" {
+        let lifetime_comma = if local_lifetime.is_empty() {
             "".to_string()
         } else {
             format!("{},", local_lifetime)
@@ -273,7 +273,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             }
             type_::Enum(en) => {
                 let scope = &gen.scope_map[&en.get_type_id()];
-                Ok(scope.join("::").to_string())
+                Ok(scope.join("::"))
             }
             type_::AnyPointer(pointer) => match pointer.which()? {
                 type_::any_pointer::Parameter(def) => {
@@ -409,9 +409,8 @@ pub fn do_branding(
         }
         accumulator.push(arguments);
         current_node_id = current_node.get_scope_id();
-        match (current_node_id, parent_scope_id) {
-            (0, Some(id)) => current_node_id = id,
-            _ => (),
+        if let (0, Some(id)) = (current_node_id, parent_scope_id) {
+            current_node_id = id
         }
         parent_scope_id = None; // Only consider on the first time around.
     }
@@ -436,7 +435,7 @@ pub fn do_branding(
     Ok(format!(
         "{mod}::{leaf}{maybe_colons}{arguments}",
         mod = the_mod,
-        leaf = leaf.bare_name().to_string(),
+        leaf = leaf.bare_name(),
         maybe_colons = if leaf == Leaf::ServerDispatch { "::" } else { "" }, // HACK
         arguments = arguments))
 }
@@ -460,9 +459,8 @@ pub fn get_type_parameters(
 
         accumulator.push(params);
         current_node_id = current_node.get_scope_id();
-        match (current_node_id, parent_scope_id) {
-            (0, Some(id)) => current_node_id = id,
-            _ => (),
+        if let (0, Some(id)) = (current_node_id, parent_scope_id) {
+            current_node_id = id
         }
         parent_scope_id = None; // Only consider on the first time around.
     }

@@ -103,7 +103,7 @@ impl CodeGenerationCommand {
                 ::std::fs::create_dir_all(parent).map_err(convert_io_err)?;
             }
 
-            let root_name = path_to_stem_string(&filepath)?.replace("-", "_");
+            let root_name = path_to_stem_string(&filepath)?.replace('-', "_");
             filepath.set_file_name(&format!("{}_capnp.rs", root_name));
 
             let lines = Branch(vec![
@@ -199,7 +199,7 @@ impl<'a> GeneratorContext<'a> {
                 let importpath = ::std::path::Path::new(import.get_name()?);
                 let root_name: String = format!(
                     "{}_capnp",
-                    path_to_stem_string(importpath)?.replace("-", "_")
+                    path_to_stem_string(importpath)?.replace('-', "_")
                 );
                 populate_scope_map(
                     &gen.node_map,
@@ -212,7 +212,7 @@ impl<'a> GeneratorContext<'a> {
             }
 
             let root_name = path_to_stem_string(requested_file.get_filename()?)?;
-            let root_mod = format!("{}_capnp", root_name.replace("-", "_"));
+            let root_mod = format!("{}_capnp", root_name.replace('-', "_"));
             populate_scope_map(
                 &gen.node_map,
                 &mut gen.scope_map,
@@ -329,9 +329,7 @@ pub enum FormattedText {
 
 fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
     match *ft {
-        Indent(ref ft) => {
-            return to_lines(&**ft, indent + 1);
-        }
+        Indent(ref ft) => to_lines(ft, indent + 1),
         Branch(ref fts) => {
             let mut result = Vec::new();
             for ft in fts.iter() {
@@ -339,24 +337,24 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
                     result.push(line.clone()); // TODO there's probably a better way to do this.
                 }
             }
-            return result;
+            result
         }
         Line(ref s) => {
-            let mut s1: String = ::std::iter::repeat(' ').take(indent * 2).collect();
+            let mut s1: String = " ".repeat(indent * 2);
             s1.push_str(s);
-            return vec![s1.to_string()];
+            vec![s1.to_string()]
         }
-        BlankLine => return vec!["".to_string()],
+        BlankLine => vec!["".to_string()],
     }
 }
 
 fn stringify(ft: &FormattedText) -> String {
     let mut result = to_lines(ft, 0).join("\n");
-    result.push_str("\n");
+    result.push('\n');
     result.to_string()
 }
 
-const RUST_KEYWORDS: [&'static str; 53] = [
+const RUST_KEYWORDS: [&str; 53] = [
     "abstract", "alignof", "as", "be", "become", "box", "break", "const", "continue", "crate",
     "do", "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl", "in", "let",
     "loop", "macro", "match", "mod", "move", "mut", "offsetof", "once", "override", "priv", "proc",
@@ -499,26 +497,20 @@ fn populate_scope_map(
         }
     }
 
-    match node_reader.which() {
-        Ok(schema_capnp::node::Struct(struct_reader)) => {
-            let fields = struct_reader.get_fields()?;
-            for field in fields.iter() {
-                match field.which() {
-                    Ok(schema_capnp::field::Group(group)) => {
-                        populate_scope_map(
-                            node_map,
-                            scope_map,
-                            scope_names.clone(),
-                            get_field_name(field)?.to_string(),
-                            NameKind::Module,
-                            group.get_type_id(),
-                        )?;
-                    }
-                    _ => {}
-                }
+    if let Ok(schema_capnp::node::Struct(struct_reader)) = node_reader.which() {
+        let fields = struct_reader.get_fields()?;
+        for field in fields.iter() {
+            if let Ok(schema_capnp::field::Group(group)) = field.which() {
+                populate_scope_map(
+                    node_map,
+                    scope_map,
+                    scope_names.clone(),
+                    get_field_name(field)?.to_string(),
+                    NameKind::Module,
+                    group.get_type_id(),
+                )?;
             }
         }
-        _ => {}
     }
     Ok(())
 }
@@ -547,11 +539,11 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
         value::Uint64(i) => Ok(Some(i.to_string())),
         value::Float32(f) => match f.classify() {
             ::std::num::FpCategory::Zero => Ok(None),
-            _ => Ok(Some(format!("{}u32", f.to_bits().to_string()))),
+            _ => Ok(Some(format!("{}u32", f.to_bits()))),
         },
         value::Float64(f) => match f.classify() {
             ::std::num::FpCategory::Zero => Ok(None),
-            _ => Ok(Some(format!("{}u64", f.to_bits().to_string()))),
+            _ => Ok(Some(format!("{}u64", f.to_bits()))),
         },
         _ => Err(Error::failed(
             "Non-primitive value found where primitive was expected.".to_string(),
@@ -627,7 +619,7 @@ pub fn getter_text(
             } else {
                 Leaf::Builder("'a")
             };
-            let member = camel_to_snake_case(&*format!("{}", module_string));
+            let member = camel_to_snake_case(&format!("{}", module_string));
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(
                 typ: &str,
@@ -697,18 +689,18 @@ pub fn getter_text(
                         Line(format!("self.{}.get_bool_field({})", member, offset))
                     }
                 }
-                (type_::Int8(()), value::Int8(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Int16(()), value::Int16(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Int32(()), value::Int32(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Int64(()), value::Int64(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Uint8(()), value::Uint8(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Uint16(()), value::Uint16(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Uint32(()), value::Uint32(i)) => primitive_case(&*typ, member, offset, i, 0),
-                (type_::Uint64(()), value::Uint64(i)) => primitive_case(&*typ, member, offset, i, 0),
+                (type_::Int8(()), value::Int8(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Int16(()), value::Int16(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Int32(()), value::Int32(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Int64(()), value::Int64(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Uint8(()), value::Uint8(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Uint16(()), value::Uint16(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Uint32(()), value::Uint32(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Uint64(()), value::Uint64(i)) => primitive_case(&typ, member, offset, i, 0),
                 (type_::Float32(()), value::Float32(f)) =>
-                    primitive_case(&*typ, member, offset, f.to_bits(), 0),
+                    primitive_case(&typ, member, offset, f.to_bits(), 0),
                 (type_::Float64(()), value::Float64(f)) =>
-                    primitive_case(&*typ, member, offset, f.to_bits(), 0),
+                    primitive_case(&typ, member, offset, f.to_bits(), 0),
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
                         Line(format!("::capnp::traits::FromU16::from_u16(self.{}.get_data_field::<u16>({}))",
@@ -753,12 +745,10 @@ pub fn getter_text(
                 (type_::AnyPointer(_), value::AnyPointer(_)) => {
                     if !raw_type.is_parameter()? {
                         Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module_string, member, offset))
+                    } else if is_reader {
+                        Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
                     } else {
-                        if is_reader {
-                            Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
-                        } else {
-                            Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
-                        }
+                        Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
                     }
                 }
                 _ => return Err(Error::failed(format!("default value was of wrong type"))),
@@ -892,7 +882,7 @@ fn generate_setter(
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
             let typ = reg_field.get_type()?;
-            match typ.which().ok().expect("unrecognized type") {
+            match typ.which().expect("unrecognized type") {
                 type_::Void(()) => {
                     setter_param = "_value".to_string();
                     (Some("()".to_string()), None)
@@ -1069,36 +1059,29 @@ fn generate_setter(
             }
         }
     };
-
-    match maybe_reader_type {
-        Some(ref reader_type) => {
-            let return_type = if return_result {
-                "-> ::capnp::Result<()>"
-            } else {
-                ""
-            };
-            result.push(Line("#[inline]".to_string()));
-            result.push(Line(format!(
-                "pub fn set_{}(&mut self, {}: {}) {} {{",
-                styled_name, setter_param, reader_type, return_type
-            )));
-            result.push(Indent(Box::new(Branch(setter_interior))));
-            result.push(Line("}".to_string()));
-        }
-        None => {}
+    if let Some(ref reader_type) = maybe_reader_type {
+        let return_type = if return_result {
+            "-> ::capnp::Result<()>"
+        } else {
+            ""
+        };
+        result.push(Line("#[inline]".to_string()));
+        result.push(Line(format!(
+            "pub fn set_{}(&mut self, {}: {}) {} {{",
+            styled_name, setter_param, reader_type, return_type
+        )));
+        result.push(Indent(Box::new(Branch(setter_interior))));
+        result.push(Line("}".to_string()));
     }
-    match maybe_builder_type {
-        Some(builder_type) => {
-            result.push(Line("#[inline]".to_string()));
-            let args = initter_params.join(", ");
-            result.push(Line(format!(
-                "pub fn init_{}(self, {}) -> {} {{",
-                styled_name, args, builder_type
-            )));
-            result.push(Indent(Box::new(Branch(initter_interior))));
-            result.push(Line("}".to_string()));
-        }
-        None => {}
+    if let Some(builder_type) = maybe_builder_type {
+        result.push(Line("#[inline]".to_string()));
+        let args = initter_params.join(", ");
+        result.push(Line(format!(
+            "pub fn init_{}(self, {}) -> {} {{",
+            styled_name, args, builder_type
+        )));
+        result.push(Indent(Box::new(Branch(initter_interior))));
+        result.push(Line("}".to_string()));
     }
     Ok(Branch(result))
 }
@@ -1153,16 +1136,16 @@ fn used_params_of_type(
             let brand = i.get_brand()?;
             used_params_of_brand(gen, node_id, brand, used_params)?;
         }
-        type_::AnyPointer(ap) => match ap.which()? {
-            type_::any_pointer::Parameter(def) => {
+
+        type_::AnyPointer(ap) => {
+            if let type_::any_pointer::Parameter(def) = ap.which()? {
                 let the_struct = &gen.node_map[&def.get_scope_id()];
                 let parameters = the_struct.get_parameters()?;
                 let parameter = parameters.get(u32::from(def.get_parameter_index()));
                 let parameter_name = parameter.get_name()?;
                 used_params.insert(parameter_name.to_string());
             }
-            _ => (),
-        },
+        }
         _ => (),
     }
     Ok(())
@@ -1331,7 +1314,7 @@ fn generate_union(
                     .expanded_list
                     .iter()
                     .filter(|s: &&String| used_params.contains(*s))
-                    .map(|s| s.clone())
+                    .cloned()
                     .collect::<Vec<String>>()
                     .join(",")
             )
@@ -1495,7 +1478,7 @@ fn get_ty_params_of_brand(
         let node = gen.node_map[&scope_id];
         let p = node.get_parameters()?.get(u32::from(parameter_index));
         result.push_str(p.get_name()?);
-        result.push_str(",");
+        result.push(',');
     }
 
     Ok(result)
@@ -1616,7 +1599,7 @@ fn generate_node(
             } else {
                 output.push(Line(format!("pub mod {} {{", node_name)));
             }
-            let bracketed_params = if params.params == "" {
+            let bracketed_params = if params.params.is_empty() {
                 "".to_string()
             } else {
                 format!("<{}>", params.params)
@@ -1687,13 +1670,10 @@ fn generate_node(
                     false,
                 )?);
 
-                match field.which() {
-                    Ok(field::Group(group)) => {
-                        let id = group.get_type_id();
-                        let text = generate_node(gen, id, gen.get_last_name(id)?, None)?;
-                        nested_output.push(text);
-                    }
-                    _ => {}
+                if let Ok(field::Group(group)) = field.which() {
+                    let id = group.get_type_id();
+                    let text = generate_node(gen, id, gen.get_last_name(id)?, None)?;
+                    nested_output.push(text);
                 }
             }
 
@@ -2003,9 +1983,10 @@ fn generate_node(
                     "impl ::capnp::traits::HasTypeId for {} {{",
                     last_name
                 )),
-                Indent(Box::new(Line(
-                    format!("const TYPE_ID: u64 = {}u64;", format_u64(node_id)).to_string(),
-                ))),
+                Indent(Box::new(Line(format!(
+                    "const TYPE_ID: u64 = {}u64;",
+                    format_u64(node_id)
+                )))),
                 Line("}".to_string()),
             ]));
         }
@@ -2023,7 +2004,7 @@ fn generate_node(
             let mut dispatch_arms = Vec::new();
             let mut private_mod_interior = Vec::new();
 
-            let bracketed_params = if params.params == "" {
+            let bracketed_params = if params.params.is_empty() {
                 "".to_string()
             } else {
                 format!("<{}>", params.params)
@@ -2046,7 +2027,7 @@ fn generate_node(
                 let (param_scopes, params_ty_params) = if param_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Params", name));
-                    nested_output.push(generate_node(gen, param_id, &*local_name, Some(node_id))?);
+                    nested_output.push(generate_node(gen, param_id, &local_name, Some(node_id))?);
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
@@ -2069,7 +2050,7 @@ fn generate_node(
                 let (result_scopes, results_ty_params) = if result_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Results", name));
-                    nested_output.push(generate_node(gen, result_id, &*local_name, Some(node_id))?);
+                    nested_output.push(generate_node(gen, result_id, &local_name, Some(node_id))?);
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
