@@ -499,26 +499,20 @@ fn populate_scope_map(
         }
     }
 
-    match node_reader.which() {
-        Ok(schema_capnp::node::Struct(struct_reader)) => {
-            let fields = struct_reader.get_fields()?;
-            for field in fields.iter() {
-                match field.which() {
-                    Ok(schema_capnp::field::Group(group)) => {
-                        populate_scope_map(
-                            node_map,
-                            scope_map,
-                            scope_names.clone(),
-                            get_field_name(field)?.to_string(),
-                            NameKind::Module,
-                            group.get_type_id(),
-                        )?;
-                    }
-                    _ => {}
-                }
+    if let Ok(schema_capnp::node::Struct(struct_reader)) = node_reader.which() {
+        let fields = struct_reader.get_fields()?;
+        for field in fields.iter() {
+            if let Ok(schema_capnp::field::Group(group)) = field.which() {
+                populate_scope_map(
+                    node_map,
+                    scope_map,
+                    scope_names.clone(),
+                    get_field_name(field)?.to_string(),
+                    NameKind::Module,
+                    group.get_type_id(),
+                )?;
             }
         }
-        _ => {}
     }
     Ok(())
 }
@@ -1069,36 +1063,29 @@ fn generate_setter(
             }
         }
     };
-
-    match maybe_reader_type {
-        Some(ref reader_type) => {
-            let return_type = if return_result {
-                "-> ::capnp::Result<()>"
-            } else {
-                ""
-            };
-            result.push(Line("#[inline]".to_string()));
-            result.push(Line(format!(
-                "pub fn set_{}(&mut self, {}: {}) {} {{",
-                styled_name, setter_param, reader_type, return_type
-            )));
-            result.push(Indent(Box::new(Branch(setter_interior))));
-            result.push(Line("}".to_string()));
-        }
-        None => {}
+    if let Some(ref reader_type) = maybe_reader_type {
+        let return_type = if return_result {
+            "-> ::capnp::Result<()>"
+        } else {
+            ""
+        };
+        result.push(Line("#[inline]".to_string()));
+        result.push(Line(format!(
+            "pub fn set_{}(&mut self, {}: {}) {} {{",
+            styled_name, setter_param, reader_type, return_type
+        )));
+        result.push(Indent(Box::new(Branch(setter_interior))));
+        result.push(Line("}".to_string()));
     }
-    match maybe_builder_type {
-        Some(builder_type) => {
-            result.push(Line("#[inline]".to_string()));
-            let args = initter_params.join(", ");
-            result.push(Line(format!(
-                "pub fn init_{}(self, {}) -> {} {{",
-                styled_name, args, builder_type
-            )));
-            result.push(Indent(Box::new(Branch(initter_interior))));
-            result.push(Line("}".to_string()));
-        }
-        None => {}
+    if let Some(builder_type) = maybe_builder_type {
+        result.push(Line("#[inline]".to_string()));
+        let args = initter_params.join(", ");
+        result.push(Line(format!(
+            "pub fn init_{}(self, {}) -> {} {{",
+            styled_name, args, builder_type
+        )));
+        result.push(Indent(Box::new(Branch(initter_interior))));
+        result.push(Line("}".to_string()));
     }
     Ok(Branch(result))
 }
@@ -1153,16 +1140,16 @@ fn used_params_of_type(
             let brand = i.get_brand()?;
             used_params_of_brand(gen, node_id, brand, used_params)?;
         }
-        type_::AnyPointer(ap) => match ap.which()? {
-            type_::any_pointer::Parameter(def) => {
+
+        type_::AnyPointer(ap) => {
+            if let type_::any_pointer::Parameter(def) = ap.which()? {
                 let the_struct = &gen.node_map[&def.get_scope_id()];
                 let parameters = the_struct.get_parameters()?;
                 let parameter = parameters.get(u32::from(def.get_parameter_index()));
                 let parameter_name = parameter.get_name()?;
                 used_params.insert(parameter_name.to_string());
             }
-            _ => (),
-        },
+        }
         _ => (),
     }
     Ok(())
@@ -1687,13 +1674,10 @@ fn generate_node(
                     false,
                 )?);
 
-                match field.which() {
-                    Ok(field::Group(group)) => {
-                        let id = group.get_type_id();
-                        let text = generate_node(gen, id, gen.get_last_name(id)?, None)?;
-                        nested_output.push(text);
-                    }
-                    _ => {}
+                if let Ok(field::Group(group)) = field.which() {
+                    let id = group.get_type_id();
+                    let text = generate_node(gen, id, gen.get_last_name(id)?, None)?;
+                    nested_output.push(text);
                 }
             }
 

@@ -409,9 +409,8 @@ pub fn do_branding(
         }
         accumulator.push(arguments);
         current_node_id = current_node.get_scope_id();
-        match (current_node_id, parent_scope_id) {
-            (0, Some(id)) => current_node_id = id,
-            _ => (),
+        if let (0, Some(id)) = (current_node_id, parent_scope_id) {
+            current_node_id = id
         }
         parent_scope_id = None; // Only consider on the first time around.
     }
@@ -460,9 +459,8 @@ pub fn get_type_parameters(
 
         accumulator.push(params);
         current_node_id = current_node.get_scope_id();
-        match (current_node_id, parent_scope_id) {
-            (0, Some(id)) => current_node_id = id,
-            _ => (),
+        if let (0, Some(id)) = (current_node_id, parent_scope_id) {
+            current_node_id = id
         }
         parent_scope_id = None; // Only consider on the first time around.
     }
