@@ -67,19 +67,15 @@ pub struct Word {
     raw_content: [u8; 8],
 }
 
-///
-/// Constructs a word with the given bytes.
-///
-pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8) -> Word {
-    Word {
-        raw_content: [b0, b1, b2, b3, b4, b5, b6, b7],
-    }
-}
-
 impl Word {
+    /// Constructs a word with the given bytes.
+    pub const fn new(raw_content: [u8; 8]) -> Self {
+        Self { raw_content }
+    }
+
     /// Allocates a vec of `length` words, all set to zero.
     pub fn allocate_zeroed_vec(length: usize) -> Vec<Word> {
-        vec![word(0, 0, 0, 0, 0, 0, 0, 0); length]
+        vec![Self::new([0; 8]); length]
     }
 
     pub fn words_to_bytes(words: &[Word]) -> &[u8] {
@@ -94,16 +90,7 @@ impl Word {
 #[cfg(any(feature = "quickcheck", test))]
 impl quickcheck::Arbitrary for Word {
     fn arbitrary(g: &mut quickcheck::Gen) -> Word {
-        crate::word(
-            quickcheck::Arbitrary::arbitrary(g),
-            quickcheck::Arbitrary::arbitrary(g),
-            quickcheck::Arbitrary::arbitrary(g),
-            quickcheck::Arbitrary::arbitrary(g),
-            quickcheck::Arbitrary::arbitrary(g),
-            quickcheck::Arbitrary::arbitrary(g),
-            quickcheck::Arbitrary::arbitrary(g),
-            quickcheck::Arbitrary::arbitrary(g),
-        )
+        Self::new([quickcheck::Arbitrary::arbitrary(g); 8])
     }
 }
 

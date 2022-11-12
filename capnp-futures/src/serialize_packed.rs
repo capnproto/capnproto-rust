@@ -673,8 +673,8 @@ pub mod test {
             1,
             1,
             vec![vec![
-                capnp::word(8, 14, 90, 7, 21, 13, 59, 17),
-                capnp::word(0, 31, 21, 73, 0, 54, 61, 12)
+                capnp::Word::new([8, 14, 90, 7, 21, 13, 59, 17]),
+                capnp::Word::new([0, 31, 21, 73, 0, 54, 61, 12])
             ]]
         )
         .is_failure());
