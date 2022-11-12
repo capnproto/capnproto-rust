@@ -329,9 +329,7 @@ pub enum FormattedText {
 
 fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
     match *ft {
-        Indent(ref ft) => {
-            return to_lines(ft, indent + 1);
-        }
+        Indent(ref ft) => to_lines(ft, indent + 1),
         Branch(ref fts) => {
             let mut result = Vec::new();
             for ft in fts.iter() {
@@ -339,14 +337,14 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
                     result.push(line.clone()); // TODO there's probably a better way to do this.
                 }
             }
-            return result;
+            result
         }
         Line(ref s) => {
             let mut s1: String = " ".repeat(indent * 2);
             s1.push_str(s);
-            return vec![s1.to_string()];
+            vec![s1.to_string()]
         }
-        BlankLine => return vec!["".to_string()],
+        BlankLine => vec!["".to_string()],
     }
 }
 
