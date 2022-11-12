@@ -234,13 +234,13 @@ impl<VatId> RpcSystem<VatId> {
             }
         };
         let connection_state = RpcSystem::get_connection_state(
-            self.connection_state.clone(),
+            &self.connection_state,
             self.bootstrap_cap.clone(),
             connection,
             self.handle.clone(),
         );
 
-        let hook = rpc::ConnectionState::bootstrap(connection_state.clone());
+        let hook = rpc::ConnectionState::bootstrap(&connection_state);
         T::new(hook)
     }
 
@@ -251,7 +251,7 @@ impl<VatId> RpcSystem<VatId> {
         let handle = self.handle.clone();
         Promise::from_future(self.network.accept().map_ok(move |connection| {
             RpcSystem::get_connection_state(
-                connection_state_ref,
+                &connection_state_ref,
                 bootstrap_cap,
                 connection,
                 handle,
@@ -264,7 +264,7 @@ impl<VatId> RpcSystem<VatId> {
     // spawning any background tasks onto `handle`. Returns the resulting value
     // held in `connection_state_ref`.
     fn get_connection_state(
-        connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
+        connection_state_ref: &Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
         bootstrap_cap: Box<dyn ClientHook>,
         connection: Box<dyn crate::Connection<VatId>>,
         mut handle: crate::task_set::TaskSetHandle<Error>,
