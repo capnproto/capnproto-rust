@@ -354,7 +354,7 @@ fn stringify(ft: &FormattedText) -> String {
     result.to_string()
 }
 
-const RUST_KEYWORDS: [&'static str; 53] = [
+const RUST_KEYWORDS: [&str; 53] = [
     "abstract", "alignof", "as", "be", "become", "box", "break", "const", "continue", "crate",
     "do", "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl", "in", "let",
     "loop", "macro", "match", "mod", "move", "mut", "offsetof", "once", "override", "priv", "proc",
