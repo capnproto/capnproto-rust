@@ -103,7 +103,7 @@ impl CodeGenerationCommand {
                 ::std::fs::create_dir_all(parent).map_err(convert_io_err)?;
             }
 
-            let root_name = path_to_stem_string(&filepath)?.replace("-", "_");
+            let root_name = path_to_stem_string(&filepath)?.replace('-', "_");
             filepath.set_file_name(&format!("{}_capnp.rs", root_name));
 
             let lines = Branch(vec![
@@ -199,7 +199,7 @@ impl<'a> GeneratorContext<'a> {
                 let importpath = ::std::path::Path::new(import.get_name()?);
                 let root_name: String = format!(
                     "{}_capnp",
-                    path_to_stem_string(importpath)?.replace("-", "_")
+                    path_to_stem_string(importpath)?.replace('-', "_")
                 );
                 populate_scope_map(
                     &gen.node_map,
@@ -212,7 +212,7 @@ impl<'a> GeneratorContext<'a> {
             }
 
             let root_name = path_to_stem_string(requested_file.get_filename()?)?;
-            let root_mod = format!("{}_capnp", root_name.replace("-", "_"));
+            let root_mod = format!("{}_capnp", root_name.replace('-', "_"));
             populate_scope_map(
                 &gen.node_map,
                 &mut gen.scope_map,
@@ -352,7 +352,7 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
 
 fn stringify(ft: &FormattedText) -> String {
     let mut result = to_lines(ft, 0).join("\n");
-    result.push_str("\n");
+    result.push('\n');
     result.to_string()
 }
 
@@ -1482,7 +1482,7 @@ fn get_ty_params_of_brand(
         let node = gen.node_map[&scope_id];
         let p = node.get_parameters()?.get(u32::from(parameter_index));
         result.push_str(p.get_name()?);
-        result.push_str(",");
+        result.push(',');
     }
 
     Ok(result)
