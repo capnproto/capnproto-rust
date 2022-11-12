@@ -38,14 +38,14 @@ pub enum Leaf {
 
 impl ::std::fmt::Display for Leaf {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        let display_string = match self {
-            &Leaf::Reader(lt) => format!("Reader<{}>", lt),
-            &Leaf::Builder(lt) => format!("Builder<{}>", lt),
-            &Leaf::Owned => "Owned".to_string(),
-            &Leaf::Client => "Client".to_string(),
-            &Leaf::Server => "Server".to_string(),
-            &Leaf::ServerDispatch => "ServerDispatch".to_string(),
-            &Leaf::Pipeline => "Pipeline".to_string(),
+        let display_string = match *self {
+            Leaf::Reader(lt) => format!("Reader<{}>", lt),
+            Leaf::Builder(lt) => format!("Builder<{}>", lt),
+            Leaf::Owned => "Owned".to_string(),
+            Leaf::Client => "Client".to_string(),
+            Leaf::Server => "Server".to_string(),
+            Leaf::ServerDispatch => "ServerDispatch".to_string(),
+            Leaf::Pipeline => "Pipeline".to_string(),
         };
         ::std::fmt::Display::fmt(&display_string, fmt)
     }
@@ -53,14 +53,14 @@ impl ::std::fmt::Display for Leaf {
 
 impl Leaf {
     fn bare_name(&self) -> &'static str {
-        match self {
-            &Leaf::Reader(_) => "Reader",
-            &Leaf::Builder(_) => "Builder",
-            &Leaf::Owned => "Owned",
-            &Leaf::Client => "Client",
-            &Leaf::Server => "Server",
-            &Leaf::ServerDispatch => "ServerDispatch",
-            &Leaf::Pipeline => "Pipeline",
+        match *self {
+            Leaf::Reader(_) => "Reader",
+            Leaf::Builder(_) => "Builder",
+            Leaf::Owned => "Owned",
+            Leaf::Client => "Client",
+            Leaf::Server => "Server",
+            Leaf::ServerDispatch => "ServerDispatch",
+            Leaf::Pipeline => "Pipeline",
         }
     }
 
