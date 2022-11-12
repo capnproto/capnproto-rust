@@ -892,7 +892,7 @@ fn generate_setter(
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
             let typ = reg_field.get_type()?;
-            match typ.which().ok().expect("unrecognized type") {
+            match typ.which().expect("unrecognized type") {
                 type_::Void(()) => {
                     setter_param = "_value".to_string();
                     (Some("()".to_string()), None)
