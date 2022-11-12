@@ -273,7 +273,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             }
             type_::Enum(en) => {
                 let scope = &gen.scope_map[&en.get_type_id()];
-                Ok(scope.join("::").to_string())
+                Ok(scope.join("::"))
             }
             type_::AnyPointer(pointer) => match pointer.which()? {
                 type_::any_pointer::Parameter(def) => {

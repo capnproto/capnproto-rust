@@ -1987,9 +1987,10 @@ fn generate_node(
                     "impl ::capnp::traits::HasTypeId for {} {{",
                     last_name
                 )),
-                Indent(Box::new(Line(
-                    format!("const TYPE_ID: u64 = {}u64;", format_u64(node_id)).to_string(),
-                ))),
+                Indent(Box::new(Line(format!(
+                    "const TYPE_ID: u64 = {}u64;",
+                    format_u64(node_id)
+                )))),
                 Line("}".to_string()),
             ]));
         }
