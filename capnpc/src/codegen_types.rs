@@ -435,7 +435,7 @@ pub fn do_branding(
     Ok(format!(
         "{mod}::{leaf}{maybe_colons}{arguments}",
         mod = the_mod,
-        leaf = leaf.bare_name().to_string(),
+        leaf = leaf.bare_name(),
         maybe_colons = if leaf == Leaf::ServerDispatch { "::" } else { "" }, // HACK
         arguments = arguments))
 }

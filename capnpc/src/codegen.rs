@@ -541,11 +541,11 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
         value::Uint64(i) => Ok(Some(i.to_string())),
         value::Float32(f) => match f.classify() {
             ::std::num::FpCategory::Zero => Ok(None),
-            _ => Ok(Some(format!("{}u32", f.to_bits().to_string()))),
+            _ => Ok(Some(format!("{}u32", f.to_bits()))),
         },
         value::Float64(f) => match f.classify() {
             ::std::num::FpCategory::Zero => Ok(None),
-            _ => Ok(Some(format!("{}u64", f.to_bits().to_string()))),
+            _ => Ok(Some(format!("{}u64", f.to_bits()))),
         },
         _ => Err(Error::failed(
             "Non-primitive value found where primitive was expected.".to_string(),
