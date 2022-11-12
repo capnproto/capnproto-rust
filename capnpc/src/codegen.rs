@@ -1318,7 +1318,7 @@ fn generate_union(
                     .expanded_list
                     .iter()
                     .filter(|s: &&String| used_params.contains(*s))
-                    .map(|s| s.clone())
+                    .cloned()
                     .collect::<Vec<String>>()
                     .join(",")
             )
