@@ -339,8 +339,8 @@ where
                     //# consecutive zero words (not including the first
                     //# one).
 
-                    let mut in_word: *const [u8; 8] = in_ptr as *const [u8; 8];
-                    let mut limit: *const [u8; 8] = in_end as *const [u8; 8];
+                    let mut in_word: *const [u8; 8] = in_ptr.cast();
+                    let mut limit: *const [u8; 8] = in_end.cast();
                     if ptr_sub(limit, in_word) > 255 {
                         limit = in_word.offset(255);
                     }

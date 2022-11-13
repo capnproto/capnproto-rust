@@ -3885,7 +3885,7 @@ impl<'a> ListReader<'a> {
                 Ok(true)
             }
             element_size => {
-                if self.ptr != read_head.get() as *const _ {
+                if self.ptr != read_head.get().cast() {
                     return Ok(false);
                 }
                 let bit_size =
@@ -3915,7 +3915,7 @@ impl<'a> ListReader<'a> {
                     byte_read_head = unsafe { byte_read_head.offset(1_isize) };
                 }
 
-                while byte_read_head != read_head_end as *const u8 {
+                while byte_read_head != read_head_end.cast() {
                     if unsafe { *byte_read_head } != 0 {
                         return Ok(false);
                     }
@@ -3993,8 +3993,11 @@ impl<'a> ListBuilder<'a> {
     pub fn get_struct_element(self, index: ElementCount32) -> StructBuilder<'a> {
         let index_byte = ((u64::from(index) * u64::from(self.step)) / BITS_PER_BYTE as u64) as u32;
         let struct_data = unsafe { self.ptr.offset(index_byte as isize) };
-        let struct_pointers =
-            unsafe { struct_data.add((self.struct_data_size as usize) / BITS_PER_BYTE) as *mut _ };
+        let struct_pointers = unsafe {
+            struct_data
+                .add((self.struct_data_size as usize) / BITS_PER_BYTE)
+                .cast()
+        };
         StructBuilder {
             arena: self.arena,
             segment_id: self.segment_id,
@@ -4058,7 +4061,7 @@ impl<T: Primitive> PrimitiveElement for T {
         let offset = (u64::from(index) * u64::from(list_reader.step) / BITS_PER_BYTE as u64) as u32;
         unsafe {
             let ptr: *const u8 = list_reader.ptr.offset(offset as isize);
-            <Self as Primitive>::get(&*(ptr as *const <Self as Primitive>::Raw))
+            <Self as Primitive>::get(&*(ptr.cast()))
         }
     }
 
@@ -4068,7 +4071,7 @@ impl<T: Primitive> PrimitiveElement for T {
             (u64::from(index) * u64::from(list_builder.step) / BITS_PER_BYTE as u64) as u32;
         unsafe {
             let ptr: *mut <Self as Primitive>::Raw =
-                list_builder.ptr.offset(offset as isize) as *mut _;
+                list_builder.ptr.offset(offset as isize).cast();
             <Self as Primitive>::get(&*ptr)
         }
     }
@@ -4079,7 +4082,7 @@ impl<T: Primitive> PrimitiveElement for T {
             (u64::from(index) * u64::from(list_builder.step) / BITS_PER_BYTE as u64) as u32;
         unsafe {
             let ptr: *mut <Self as Primitive>::Raw =
-                list_builder.ptr.offset(offset as isize) as *mut _;
+                list_builder.ptr.offset(offset as isize).cast();
             <Self as Primitive>::set(&mut *ptr, value);
         }
     }
