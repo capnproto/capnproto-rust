@@ -67,6 +67,13 @@ pub struct Word {
     raw_content: [u8; 8],
 }
 
+/// Constructs a word with the given bytes.
+#[deprecated]
+#[allow(clippy::too_many_arguments)]
+pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8) -> Word {
+    Word::new([b0, b1, b2, b3, b4, b5, b6, b7])
+}
+
 impl Word {
     /// Constructs a word with the given bytes.
     pub const fn new(raw_content: [u8; 8]) -> Self {
