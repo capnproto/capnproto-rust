@@ -333,7 +333,7 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
         Branch(ref fts) => {
             let mut result = Vec::new();
             for ft in fts.iter() {
-                for line in to_lines(ft, indent).iter() {
+                for line in &to_lines(ft, indent) {
                     result.push(line.clone()); // TODO there's probably a better way to do this.
                 }
             }
@@ -1694,7 +1694,7 @@ fn generate_node(
                 let mut reexports = String::new();
                 reexports.push_str("pub use self::Which::{");
                 let mut whichs = Vec::new();
-                for f in union_fields.iter() {
+                for f in &union_fields {
                     whichs.push(capitalize_first_letter(get_field_name(*f)?));
                 }
                 reexports.push_str(&whichs.join(","));
@@ -2133,7 +2133,7 @@ fn generate_node(
 
                 let mut extends = Vec::new();
                 find_super_interfaces(interface, &mut extends, gen)?;
-                for interface in extends.iter() {
+                for interface in &extends {
                     let type_id = interface.get_id();
                     let brand = interface.get_brand()?;
                     let the_mod = gen.scope_map[&type_id].join("::");
