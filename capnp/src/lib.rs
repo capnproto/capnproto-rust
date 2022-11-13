@@ -83,11 +83,11 @@ impl Word {
     }
 
     pub fn words_to_bytes(words: &[Word]) -> &[u8] {
-        unsafe { core::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8) }
+        unsafe { core::slice::from_raw_parts(words.as_ptr().cast(), words.len() * 8) }
     }
 
     pub fn words_to_bytes_mut(words: &mut [Word]) -> &mut [u8] {
-        unsafe { core::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8) }
+        unsafe { core::slice::from_raw_parts_mut(words.as_mut_ptr().cast(), words.len() * 8) }
     }
 }
 

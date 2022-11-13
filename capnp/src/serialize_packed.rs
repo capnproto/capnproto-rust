@@ -348,10 +348,9 @@ where
                         in_word = in_word.offset(1);
                     }
 
-                    *buf.get_unchecked_mut(buf_idx) =
-                        ptr_sub(in_word, in_ptr as *const [u8; 8]) as u8;
+                    *buf.get_unchecked_mut(buf_idx) = ptr_sub(in_word, in_ptr.cast()) as u8;
                     buf_idx += 1;
-                    in_ptr = in_word as *const u8;
+                    in_ptr = in_word.cast();
                 } else if tag == 0xff {
                     //# An all-nonzero word is followed by a count of
                     //# consecutive uncompressed words, followed by the

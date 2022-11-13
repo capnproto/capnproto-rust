@@ -24,9 +24,7 @@
 use crate::private::layout::PointerReader;
 
 fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {
-    verify(PointerReader::get_root_unchecked(
-        words.as_ptr() as *const u8
-    ));
+    verify(PointerReader::get_root_unchecked(words.as_ptr().cast()));
 
     #[cfg(feature = "unaligned")]
     {
