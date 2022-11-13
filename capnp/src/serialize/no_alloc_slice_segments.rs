@@ -468,21 +468,21 @@ mod tests {
     fn test_no_alloc_buffer_segments_message_invalid() {
         let mut buf = vec![];
 
-        buf.extend([0, 2, 0, 0].iter().cloned()); // 513 segments
-        buf.extend([0; 513 * 8].iter().cloned());
+        buf.extend([0, 2, 0, 0]); // 513 segments
+        buf.extend([0; 513 * 8]);
         assert!(NoAllocSliceSegments::try_new(&mut &buf[..], ReaderOptions::new()).is_err());
         buf.clear();
 
-        buf.extend([0, 0, 0, 0].iter().cloned()); // 1 segments
+        buf.extend([0, 0, 0, 0]); // 1 segments
         assert!(NoAllocSliceSegments::try_new(&mut &buf[..], ReaderOptions::new()).is_err());
         buf.clear();
 
-        buf.extend([0, 0, 0, 0].iter().cloned()); // 1 segments
-        buf.extend([0; 3].iter().cloned());
+        buf.extend([0, 0, 0, 0]); // 1 segments
+        buf.extend([0; 3]);
         assert!(NoAllocSliceSegments::try_new(&mut &buf[..], ReaderOptions::new()).is_err());
         buf.clear();
 
-        buf.extend([255, 255, 255, 255].iter().cloned()); // 0 segments
+        buf.extend([255, 255, 255, 255]); // 0 segments
         assert!(NoAllocSliceSegments::try_new(&mut &buf[..], ReaderOptions::new()).is_err());
         buf.clear();
     }
