@@ -2202,7 +2202,7 @@ mod wire_helpers {
                         data: ptr,
                         pointers: ptr
                             .offset((*src).struct_data_size() as isize * BYTES_PER_WORD as isize)
-                            as *const _,
+                            .cast(),
                         data_size: u32::from((*src).struct_data_size()) * BITS_PER_WORD as u32,
                         pointer_count: (*src).struct_ptr_count(),
                         nesting_limit: nesting_limit - 1,
@@ -2398,7 +2398,9 @@ mod wire_helpers {
             segment_id,
             cap_table,
             data: ptr,
-            pointers: ptr.offset(data_size_words as isize * BYTES_PER_WORD as isize) as *const _,
+            pointers: ptr
+                .offset(data_size_words as isize * BYTES_PER_WORD as isize)
+                .cast(),
             data_size: u32::from(data_size_words) * BITS_PER_WORD as BitCount32,
             pointer_count: (*reff).struct_ptr_count(),
             nesting_limit: nesting_limit - 1,
@@ -2448,7 +2450,7 @@ mod wire_helpers {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
                 return Ok(ListReader::new_default());
             }
-            reff = default_value as *const _;
+            reff = default_value.cast();
             arena = &super::NULL_ARENA;
             segment_id = 0;
         }
@@ -2665,7 +2667,7 @@ mod wire_helpers {
             ));
         }
 
-        let str_ptr = ptr as *const u8;
+        let str_ptr = ptr.cast();
 
         if (*str_ptr.offset((size - 1) as isize)) != 0u8 {
             return Err(Error::failed(
@@ -2857,7 +2859,7 @@ impl<'a> PointerReader<'a> {
         wire_helpers::bounds_check(
             arena,
             segment_id,
-            location as *const _,
+            location.cast(),
             POINTER_SIZE_IN_WORDS,
             WirePointerKind::Struct,
         )?;
@@ -2866,7 +2868,7 @@ impl<'a> PointerReader<'a> {
             arena,
             segment_id,
             cap_table: CapTableReader::Plain(ptr::null()),
-            pointer: location as *const _,
+            pointer: location.cast(),
             nesting_limit,
         })
     }
@@ -2940,7 +2942,7 @@ impl<'a> PointerReader<'a> {
     ) -> Result<ListReader<'a>> {
         let default_value: *const u8 = match default {
             None => core::ptr::null(),
-            Some(d) => d.as_ptr() as *const u8,
+            Some(d) => d.as_ptr().cast(),
         };
         let reff = if self.pointer.is_null() {
             zero_pointer()
