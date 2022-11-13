@@ -2718,7 +2718,7 @@ mod wire_helpers {
             WirePointerKind::List,
         )?;
 
-        Ok(data::reader_from_raw_parts(ptr as *const _, size))
+        Ok(data::reader_from_raw_parts(ptr.cast(), size))
     }
 }
 
@@ -2883,7 +2883,7 @@ impl<'a> PointerReader<'a> {
             arena: &NULL_ARENA,
             segment_id: 0,
             cap_table: CapTableReader::Plain(ptr::null()),
-            pointer: location as *const _,
+            pointer: location.cast(),
             nesting_limit: 0x7fffffff,
         }
     }
@@ -3050,7 +3050,7 @@ impl<'a> PointerReader<'a> {
                 let mut ptr_trunc = false;
                 let st = self.get_struct(None)?;
                 if st.get_data_section_size() == 0 && st.get_pointer_section_size() == 0 {
-                    Ok(self.pointer as *const _ == st.get_location())
+                    Ok(self.pointer.cast() == st.get_location())
                 } else {
                     let result =
                         st.is_canonical(read_head, read_head, &mut data_trunc, &mut ptr_trunc)?;
@@ -3080,7 +3080,7 @@ impl<'a> PointerBuilder<'a> {
             arena,
             cap_table: CapTableBuilder::Plain(ptr::null_mut()),
             segment_id,
-            pointer: location as *mut _,
+            pointer: location.cast(),
         }
     }
 
@@ -3124,7 +3124,7 @@ impl<'a> PointerBuilder<'a> {
     ) -> Result<ListBuilder<'a>> {
         let default_value: *const u8 = match default {
             None => core::ptr::null(),
-            Some(d) => d.as_ptr() as *const u8,
+            Some(d) => d.as_ptr().cast(),
         };
         unsafe {
             wire_helpers::get_writable_list_pointer(
@@ -3389,7 +3389,7 @@ impl<'a> StructReader<'a> {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            ptr: self.pointers as *const _,
+            ptr: self.pointers.cast(),
             element_count: u32::from(self.pointer_count),
             element_size: ElementSize::Pointer,
             step: BITS_PER_WORD as BitCount32,
@@ -3577,7 +3577,7 @@ impl<'a> StructBuilder<'a> {
 
     #[inline]
     pub fn set_data_field<T: Primitive>(&self, offset: ElementCount, value: T) {
-        let ptr: *mut <T as Primitive>::Raw = self.data as *mut _;
+        let ptr: *mut <T as Primitive>::Raw = self.data.cast();
         unsafe { <T as Primitive>::set(&mut *ptr.add(offset), value) }
     }
 
