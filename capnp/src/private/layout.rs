@@ -3700,7 +3700,7 @@ impl<'a> StructBuilder<'a> {
                 wire_helpers::zero_object(
                     self.arena,
                     self.segment_id,
-                    self.pointers.offset(i) as *mut _,
+                    self.pointers.offset(i).cast(),
                 );
             }
             ptr::write_bytes(self.pointers, 0u8, self.pointer_count as usize);
@@ -3792,8 +3792,11 @@ impl<'a> ListReader<'a> {
 
         let struct_data: *const u8 = unsafe { self.ptr.offset(index_byte as isize) };
 
-        let struct_pointers: *const WirePointer =
-            unsafe { struct_data.add(self.struct_data_size as usize / BITS_PER_BYTE) as *const _ };
+        let struct_pointers: *const WirePointer = unsafe {
+            struct_data
+                .add(self.struct_data_size as usize / BITS_PER_BYTE)
+                .cast()
+        };
 
         StructReader {
             arena: self.arena,
@@ -3814,7 +3817,7 @@ impl<'a> ListReader<'a> {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe { self.ptr.offset(offset as isize) } as *const _,
+            pointer: unsafe { self.ptr.offset(offset as isize) }.cast(),
             nesting_limit: self.nesting_limit,
         }
     }
@@ -3869,7 +3872,7 @@ impl<'a> ListReader<'a> {
                 Ok(list_data_trunc && list_ptr_trunc)
             }
             ElementSize::Pointer => {
-                if self.ptr as *const _ != read_head.get() {
+                if self.ptr.cast() != read_head.get() {
                     return Ok(false);
                 }
                 read_head.set(unsafe {
@@ -3896,7 +3899,7 @@ impl<'a> ListReader<'a> {
                 }
 
                 let byte_size = bit_size / BITS_PER_BYTE as u64;
-                let mut byte_read_head: *const u8 = read_head.get() as *const u8;
+                let mut byte_read_head: *const u8 = read_head.get().cast();
                 byte_read_head = unsafe { byte_read_head.offset(byte_size as isize) };
                 let read_head_end = unsafe {
                     read_head
@@ -4020,7 +4023,7 @@ impl<'a> ListBuilder<'a> {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe { self.ptr.offset(offset as isize) } as *mut _,
+            pointer: unsafe { self.ptr.offset(offset as isize) }.cast(),
         }
     }
 
