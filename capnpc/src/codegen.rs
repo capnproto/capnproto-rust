@@ -2021,7 +2021,6 @@ fn generate_node(
             for (ordinal, method) in methods.into_iter().enumerate() {
                 let name = method.get_name()?;
 
-                method.get_code_order();
                 let param_id = method.get_param_struct_type();
                 let param_node = &gen.node_map[&param_id];
                 let (param_scopes, params_ty_params) = if param_node.get_scope_id() == 0 {
