@@ -507,7 +507,7 @@ mod wire_helpers {
             let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
             bounds_check(arena, far_segment_id, ptr, pad_words, WirePointerKind::Far)?;
 
-            let pad: *const WirePointer = ptr as *const _;
+            let pad: *const WirePointer = ptr.cast();
 
             if !(*reff).is_double_far() {
                 Ok((
@@ -761,7 +761,7 @@ mod wire_helpers {
                             WirePointerKind::List,
                         )?;
 
-                        let element_tag: *const WirePointer = ptr as *const _;
+                        let element_tag: *const WirePointer = ptr.cast();
                         let count = (*element_tag).inline_composite_list_element_count();
 
                         if (*element_tag).kind() != WirePointerKind::Struct {
@@ -1374,7 +1374,7 @@ mod wire_helpers {
             // need to validate that it is a valid upgrade from what we expected.
 
             // Read the tag to get the actual element count.
-            let tag: *const WirePointer = ptr as *const _;
+            let tag: *const WirePointer = ptr.cast();
 
             if (*tag).kind() != WirePointerKind::Struct {
                 return Err(Error::failed(
@@ -1499,7 +1499,7 @@ mod wire_helpers {
         if old_size == InlineComposite {
             // Existing list is InlineComposite, but we need to verify that the sizes match.
 
-            let old_tag: *const WirePointer = old_ptr as *const _;
+            let old_tag: *const WirePointer = old_ptr.cast();
             old_ptr = old_ptr.add(BYTES_PER_WORD);
             if (*old_tag).kind() != WirePointerKind::Struct {
                 return Err(Error::failed(
@@ -2221,7 +2221,7 @@ mod wire_helpers {
 
                 if element_size == InlineComposite {
                     let word_count = (*src).list_inline_composite_word_count();
-                    let tag: *const WirePointer = ptr as *const _;
+                    let tag: *const WirePointer = ptr.cast();
                     ptr = ptr.add(BYTES_PER_WORD);
 
                     bounds_check(
@@ -2265,7 +2265,7 @@ mod wire_helpers {
                             arena: src_arena,
                             segment_id: src_segment_id,
                             cap_table: src_cap_table,
-                            ptr: ptr as *const _,
+                            ptr: ptr.cast(),
                             element_count,
                             element_size,
                             step: words_per_element * BITS_PER_WORD as u32,
@@ -2307,7 +2307,7 @@ mod wire_helpers {
                             arena: src_arena,
                             segment_id: src_segment_id,
                             cap_table: src_cap_table,
-                            ptr: ptr as *const _,
+                            ptr: ptr.cast(),
                             element_count,
                             element_size,
                             step,
@@ -2543,7 +2543,7 @@ mod wire_helpers {
                     arena,
                     segment_id,
                     cap_table,
-                    ptr: ptr as *const _,
+                    ptr: ptr.cast(),
                     element_count: size,
                     element_size,
                     step: words_per_element * BITS_PER_WORD as u32,
@@ -2606,7 +2606,7 @@ mod wire_helpers {
                     arena,
                     segment_id,
                     cap_table,
-                    ptr: ptr as *const _,
+                    ptr: ptr.cast(),
                     element_count,
                     element_size,
                     step,
@@ -2629,7 +2629,7 @@ mod wire_helpers {
             match default {
                 None => return Ok(""),
                 Some(d) => {
-                    reff = d.as_ptr() as *const WirePointer;
+                    reff = d.as_ptr().cast();
                     arena = &super::NULL_ARENA;
                     segment_id = 0;
                 }
@@ -3417,7 +3417,7 @@ impl<'a> StructReader<'a> {
         // been created with an old version of the protocol that did
         // not contain the field.
         if (offset + 1) * bits_per_element::<T>() <= self.data_size as usize {
-            let dwv: *const <T as Primitive>::Raw = self.data as *const _;
+            let dwv: *const <T as Primitive>::Raw = self.data.cast();
             unsafe { <T as Primitive>::get(&*dwv.add(offset)) }
         } else {
             T::zero()
@@ -3593,7 +3593,7 @@ impl<'a> StructBuilder<'a> {
 
     #[inline]
     pub fn get_data_field<T: Primitive>(&self, offset: ElementCount) -> T {
-        let ptr: *const <T as Primitive>::Raw = self.data as *const _;
+        let ptr: *const <T as Primitive>::Raw = self.data.cast();
         unsafe { <T as Primitive>::get(&*ptr.add(offset)) }
     }
 
@@ -3830,7 +3830,7 @@ impl<'a> ListReader<'a> {
         match self.element_size {
             ElementSize::InlineComposite => {
                 read_head.set(unsafe { read_head.get().add(BYTES_PER_WORD) }); // tag word
-                if self.ptr as *const _ != read_head.get() {
+                if self.ptr.cast() != read_head.get() {
                     return Ok(false);
                 }
                 if self.struct_data_size % BITS_PER_WORD as u32 != 0 {
@@ -3966,7 +3966,7 @@ impl<'a> ListBuilder<'a> {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
             cap_table: self.cap_table.into_reader(),
-            ptr: self.ptr as *const _,
+            ptr: self.ptr.cast(),
             element_count: self.element_count,
             element_size: self.element_size,
             step: self.step,

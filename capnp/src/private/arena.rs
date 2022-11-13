@@ -217,7 +217,7 @@ where
             // No such borrow will be possible while `self` is still immutably borrowed from this method,
             // so returning this slice is safe.
             let slice = unsafe {
-                slice::from_raw_parts(seg.ptr as *const _, seg.allocated as usize * BYTES_PER_WORD)
+                slice::from_raw_parts(seg.ptr.cast(), seg.allocated as usize * BYTES_PER_WORD)
             };
             OutputSegments::SingleSegment([slice])
         } else {
@@ -225,10 +225,7 @@ where
             for seg in &reff.segments {
                 // See safety argument in above branch.
                 let slice = unsafe {
-                    slice::from_raw_parts(
-                        seg.ptr as *const _,
-                        seg.allocated as usize * BYTES_PER_WORD,
-                    )
+                    slice::from_raw_parts(seg.ptr.cast(), seg.allocated as usize * BYTES_PER_WORD)
                 };
                 v.push(slice);
             }
