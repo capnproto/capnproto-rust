@@ -602,9 +602,7 @@ pub mod test {
             [
                 0, 0, 0, 0, // 1 segments
                 0, 0, 0, 0,
-            ] // 0 length
-            .iter()
-            .cloned(),
+            ], // 0 length
         );
         let segment_lengths_builder =
             read_segment_table(&mut &buf[..], message::ReaderOptions::new())
@@ -618,9 +616,7 @@ pub mod test {
             [
                 0, 0, 0, 0, // 1 segments
                 1, 0, 0, 0,
-            ] // 1 length
-            .iter()
-            .cloned(),
+            ], // 1 length
         );
         let segment_lengths_builder =
             read_segment_table(&mut &buf[..], message::ReaderOptions::new())
@@ -636,9 +632,7 @@ pub mod test {
                 1, 0, 0, 0, // 1 length
                 1, 0, 0, 0, // 1 length
                 0, 0, 0, 0,
-            ] // padding
-            .iter()
-            .cloned(),
+            ], // padding
         );
         let segment_lengths_builder =
             read_segment_table(&mut &buf[..], message::ReaderOptions::new())
@@ -657,9 +651,7 @@ pub mod test {
                 1, 0, 0, 0, // 1 length
                 1, 0, 0, 0, // 1 length
                 0, 1, 0, 0,
-            ] // 256 length
-            .iter()
-            .cloned(),
+            ], // 256 length
         );
         let segment_lengths_builder =
             read_segment_table(&mut &buf[..], message::ReaderOptions::new())
@@ -680,9 +672,7 @@ pub mod test {
                 1, 0, 0, 0, // 1 length
                 99, 0, 0, 0, // 99 length
                 0, 0, 0, 0,
-            ] // padding
-            .iter()
-            .cloned(),
+            ], // padding
         );
         let segment_lengths_builder =
             read_segment_table(&mut &buf[..], message::ReaderOptions::new())
@@ -725,9 +715,7 @@ pub mod test {
             [
                 0, 0, 0, 0, // 1 segments
                 1, 0, 0, 0,
-            ] // 1 length
-            .iter()
-            .cloned(),
+            ], // 1 length
         );
         let segment_lengths_builder = read_segment_table(
             &mut MaxRead {
@@ -746,21 +734,21 @@ pub mod test {
     fn test_read_invalid_segment_table() {
         let mut buf = vec![];
 
-        buf.extend([0, 2, 0, 0].iter().cloned()); // 513 segments
-        buf.extend([0; 513 * 4].iter().cloned());
+        buf.extend([0, 2, 0, 0]); // 513 segments
+        buf.extend([0; 513 * 4]);
         assert!(read_segment_table(&mut &buf[..], message::ReaderOptions::new()).is_err());
         buf.clear();
 
-        buf.extend([0, 0, 0, 0].iter().cloned()); // 1 segments
+        buf.extend([0, 0, 0, 0]); // 1 segments
         assert!(read_segment_table(&mut &buf[..], message::ReaderOptions::new()).is_err());
         buf.clear();
 
-        buf.extend([0, 0, 0, 0].iter().cloned()); // 1 segments
-        buf.extend([0; 3].iter().cloned());
+        buf.extend([0, 0, 0, 0]); // 1 segments
+        buf.extend([0; 3]);
         assert!(read_segment_table(&mut &buf[..], message::ReaderOptions::new()).is_err());
         buf.clear();
 
-        buf.extend([255, 255, 255, 255].iter().cloned()); // 0 segments
+        buf.extend([255, 255, 255, 255]); // 0 segments
         assert!(read_segment_table(&mut &buf[..], message::ReaderOptions::new()).is_err());
         buf.clear();
     }
