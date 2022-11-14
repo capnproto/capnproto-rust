@@ -125,8 +125,8 @@ impl core::ops::AddAssign for MessageSize {
 
 impl MessageSize {
     #[deprecated(since = "0.15.1", note = "use += (AddAssign::add_assign()) instead")]
-    pub fn plus_eq(&mut self, other : MessageSize) {
-        self += other;
+    pub fn plus_eq(&mut self, other: MessageSize) {
+        *self += other;
     }
 }
 
