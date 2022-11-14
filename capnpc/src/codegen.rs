@@ -33,6 +33,7 @@ use crate::pointer_constants::generate_pointer_constant;
 use crate::schema_capnp;
 
 /// An invocation of the capnpc-rust code generation plugin.
+#[derive(Default)]
 pub struct CodeGenerationCommand {
     output_directory: PathBuf,
     default_parent_module: Vec<String>,
@@ -41,12 +42,8 @@ pub struct CodeGenerationCommand {
 
 impl CodeGenerationCommand {
     /// Creates a new code generation command with default options.
-    pub fn new() -> CodeGenerationCommand {
-        CodeGenerationCommand {
-            output_directory: PathBuf::new(),
-            default_parent_module: Vec::new(),
-            raw_code_generator_request_path: None,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Sets the output directory.

@@ -612,13 +612,19 @@ pub enum AllocationStrategy {
 pub const SUGGESTED_FIRST_SEGMENT_WORDS: u32 = 1024;
 pub const SUGGESTED_ALLOCATION_STRATEGY: AllocationStrategy = AllocationStrategy::GrowHeuristically;
 
-impl HeapAllocator {
-    pub fn new() -> HeapAllocator {
-        HeapAllocator {
+impl Default for HeapAllocator {
+    fn default() -> Self {
+        Self {
             next_size: SUGGESTED_FIRST_SEGMENT_WORDS,
             allocation_strategy: SUGGESTED_ALLOCATION_STRATEGY,
             max_segment_words: 1 << 29,
         }
+    }
+}
+
+impl HeapAllocator {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Sets the size of the initial segment in words, where 1 word = 8 bytes.
