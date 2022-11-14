@@ -123,6 +123,13 @@ impl core::ops::AddAssign for MessageSize {
     }
 }
 
+impl MessageSize {
+    #[deprecated(since = "0.15.1", note = "use += (AddAssign::add_assign()) instead")]
+    pub fn plus_eq(&mut self, other: MessageSize) {
+        *self += other;
+    }
+}
+
 /// An enum value or union discriminant that was not found among those defined in a schema.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct NotInSchema(pub u16);
