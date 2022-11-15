@@ -25,6 +25,7 @@ use crate::codegen::{FormattedText, GeneratorContext};
 use crate::codegen_types::{Leaf, RustTypeInfo};
 use crate::schema_capnp::type_;
 
+#[derive(Clone, Copy)]
 pub struct WordArrayDeclarationOptions {
     pub public: bool,
     pub omit_first_word: bool,

@@ -417,7 +417,7 @@ fn get_parent_module(annotation: schema_capnp::annotation::Reader) -> capnp::Res
         )))
     }
 }
-
+#[derive(Clone, Copy)]
 enum NameKind {
     // convert camel case to snake case, and avoid Rust keywords
     Module,
@@ -620,7 +620,7 @@ pub fn getter_text(
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(
                 typ: &str,
-                member: String,
+                member: &str,
                 offset: usize,
                 default: T,
                 zero: T,
@@ -686,18 +686,18 @@ pub fn getter_text(
                         Line(format!("self.{}.get_bool_field({})", member, offset))
                     }
                 }
-                (type_::Int8(()), value::Int8(i)) => primitive_case(&typ, member, offset, i, 0),
-                (type_::Int16(()), value::Int16(i)) => primitive_case(&typ, member, offset, i, 0),
-                (type_::Int32(()), value::Int32(i)) => primitive_case(&typ, member, offset, i, 0),
-                (type_::Int64(()), value::Int64(i)) => primitive_case(&typ, member, offset, i, 0),
-                (type_::Uint8(()), value::Uint8(i)) => primitive_case(&typ, member, offset, i, 0),
-                (type_::Uint16(()), value::Uint16(i)) => primitive_case(&typ, member, offset, i, 0),
-                (type_::Uint32(()), value::Uint32(i)) => primitive_case(&typ, member, offset, i, 0),
-                (type_::Uint64(()), value::Uint64(i)) => primitive_case(&typ, member, offset, i, 0),
+                (type_::Int8(()), value::Int8(i)) => primitive_case(&typ, &member, offset, i, 0),
+                (type_::Int16(()), value::Int16(i)) => primitive_case(&typ, &member, offset, i, 0),
+                (type_::Int32(()), value::Int32(i)) => primitive_case(&typ, &member, offset, i, 0),
+                (type_::Int64(()), value::Int64(i)) => primitive_case(&typ, &member, offset, i, 0),
+                (type_::Uint8(()), value::Uint8(i)) => primitive_case(&typ, &member, offset, i, 0),
+                (type_::Uint16(()), value::Uint16(i)) => primitive_case(&typ, &member, offset, i, 0),
+                (type_::Uint32(()), value::Uint32(i)) => primitive_case(&typ, &member, offset, i, 0),
+                (type_::Uint64(()), value::Uint64(i)) => primitive_case(&typ, &member, offset, i, 0),
                 (type_::Float32(()), value::Float32(f)) =>
-                    primitive_case(&typ, member, offset, f.to_bits(), 0),
+                    primitive_case(&typ, &member, offset, f.to_bits(), 0),
                 (type_::Float64(()), value::Float64(f)) =>
-                    primitive_case(&typ, member, offset, f.to_bits(), 0),
+                    primitive_case(&typ, &member, offset, f.to_bits(), 0),
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
                         Line(format!("::capnp::traits::FromU16::from_u16(self.{}.get_data_field::<u16>({}))",
@@ -2037,7 +2037,7 @@ fn generate_node(
                     param_id,
                     method.get_param_brand()?,
                     Leaf::Owned,
-                    param_scopes.join("::"),
+                    &param_scopes.join("::"),
                     Some(node_id),
                 )?;
 
@@ -2060,7 +2060,7 @@ fn generate_node(
                     result_id,
                     method.get_result_brand()?,
                     Leaf::Owned,
-                    result_scopes.join("::"),
+                    &result_scopes.join("::"),
                     Some(node_id),
                 )?;
 
@@ -2138,13 +2138,13 @@ fn generate_node(
                         "0x{:x} => {}::dispatch_call_internal(&mut self.server, method_id, params, results),",
                         type_id,
                         do_branding(
-                            gen, type_id, brand, Leaf::ServerDispatch, the_mod.clone(), None)?)));
+                            gen, type_id, brand, Leaf::ServerDispatch, &the_mod, None)?)));
                     base_traits.push(do_branding(
                         gen,
                         type_id,
                         brand,
                         Leaf::Server,
-                        the_mod,
+                        &the_mod,
                         None,
                     )?);
                 }

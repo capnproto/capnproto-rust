@@ -205,7 +205,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 st.get_type_id(),
                 st.get_brand()?,
                 module,
-                gen.scope_map[&st.get_type_id()].join("::"),
+                &gen.scope_map[&st.get_type_id()].join("::"),
                 None,
             ),
             type_::Interface(interface) => do_branding(
@@ -213,7 +213,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 interface.get_type_id(),
                 interface.get_brand()?,
                 module,
-                gen.scope_map[&interface.get_type_id()].join("::"),
+                &gen.scope_map[&interface.get_type_id()].join("::"),
                 None,
             ),
             type_::List(ot1) => {
@@ -361,7 +361,7 @@ pub fn do_branding(
     node_id: u64,
     brand: brand::Reader,
     leaf: Leaf,
-    the_mod: String,
+    the_mod: &str,
     mut parent_scope_id: Option<u64>,
 ) -> Result<String, Error> {
     let scopes = brand.get_scopes()?;

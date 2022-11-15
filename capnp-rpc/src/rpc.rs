@@ -630,7 +630,7 @@ impl<VatId> ConnectionState<VatId> {
         }
     }
 
-    pub fn bootstrap(state: Rc<ConnectionState<VatId>>) -> Box<dyn ClientHook> {
+    pub fn bootstrap(state: &Rc<ConnectionState<VatId>>) -> Box<dyn ClientHook> {
         let question_id = state.questions.borrow_mut().push(Question::new());
 
         let (fulfiller, promise) = oneshot::channel();
@@ -664,7 +664,7 @@ impl<VatId> ConnectionState<VatId> {
             Err(_) => panic!(),
         }
 
-        let pipeline = Pipeline::new(state, question_ref, Some(Promise::from_future(promise)));
+        let pipeline = Pipeline::new(&state, question_ref, Some(Promise::from_future(promise)));
         pipeline.get_pipelined_cap_move(Vec::new())
     }
 
@@ -686,7 +686,7 @@ impl<VatId> ConnectionState<VatId> {
         Promise::from_future(async move {
             match promise.await? {
                 Some(m) => {
-                    ConnectionState::handle_message(weak_state.clone(), m)?;
+                    ConnectionState::handle_message(&weak_state, m)?;
                     weak_state
                         .upgrade()
                         .expect("message loop outlived connection state?")
@@ -704,8 +704,8 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn send_unimplemented(
-        connection_state: Rc<ConnectionState<VatId>>,
-        message: Box<dyn crate::IncomingMessage>,
+        connection_state: &Rc<ConnectionState<VatId>>,
+        message: &Box<dyn crate::IncomingMessage>,
     ) -> capnp::Result<()> {
         let mut out_message = connection_state.new_outgoing_message(50)?; // XXX size hint
         {
@@ -717,7 +717,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_unimplemented(
-        connection_state: Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<ConnectionState<VatId>>,
         message: message::Reader,
     ) -> capnp::Result<()> {
         match message.which()? {
@@ -752,7 +752,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_bootstrap(
-        connection_state: Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<ConnectionState<VatId>>,
         bootstrap: bootstrap::Reader,
     ) -> capnp::Result<()> {
         use ::capnp::traits::ImbueMut;
@@ -803,7 +803,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_finish(
-        connection_state: Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<ConnectionState<VatId>>,
         finish: finish::Reader,
     ) -> capnp::Result<()> {
         let mut exports_to_release = Vec::new();
@@ -850,7 +850,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_disembargo(
-        connection_state: Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<ConnectionState<VatId>>,
         disembargo: disembargo::Reader,
     ) -> capnp::Result<()> {
         let context = disembargo.get_context();
@@ -923,7 +923,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_message(
-        weak_state: Weak<ConnectionState<VatId>>,
+        weak_state: &Weak<ConnectionState<VatId>>,
         message: Box<dyn crate::IncomingMessage>,
     ) -> ::capnp::Result<()> {
         let connection_state = match weak_state.upgrade() {
@@ -938,11 +938,11 @@ impl<VatId> ConnectionState<VatId> {
         let reader = message.get_body()?.get_as::<message::Reader>()?;
         match reader.which() {
             Ok(message::Unimplemented(message)) => {
-                Self::handle_unimplemented(connection_state, message?)?
+                Self::handle_unimplemented(&connection_state, message?)?
             }
             Ok(message::Abort(abort)) => return Err(remote_exception_to_error(abort?)),
             Ok(message::Bootstrap(bootstrap)) => {
-                Self::handle_bootstrap(connection_state, bootstrap?)?
+                Self::handle_bootstrap(&connection_state, bootstrap?)?
             }
             Ok(message::Call(call)) => {
                 let call = call?;
@@ -963,10 +963,7 @@ impl<VatId> ConnectionState<VatId> {
                         call.get_interface_id(),
                         call.get_method_id(),
                         call.get_question_id(),
-                        ConnectionState::receive_caps(
-                            connection_state.clone(),
-                            payload.get_cap_table()?,
-                        )?,
+                        ConnectionState::receive_caps(&connection_state, payload.get_cap_table()?)?,
                         redirect_results,
                     )
                 };
@@ -1074,7 +1071,7 @@ impl<VatId> ConnectionState<VatId> {
                             Some(ref question_ref) => match ret.which()? {
                                 return_::Results(results) => {
                                     let cap_table = ConnectionState::receive_caps(
-                                        connection_state.clone(),
+                                        &connection_state,
                                         results?.get_cap_table()?,
                                     )?;
 
@@ -1121,7 +1118,10 @@ impl<VatId> ConnectionState<VatId> {
                                 }
                                 return_::AcceptFromThirdParty(_) => {
                                     drop(questions);
-                                    ConnectionState::send_unimplemented(connection_state, message)?;
+                                    ConnectionState::send_unimplemented(
+                                        &connection_state,
+                                        &message,
+                                    )?;
                                 }
                             },
                             None => {
@@ -1147,20 +1147,18 @@ impl<VatId> ConnectionState<VatId> {
                     }
                 }
             }
-            Ok(message::Finish(finish)) => Self::handle_finish(connection_state, finish?)?,
+            Ok(message::Finish(finish)) => Self::handle_finish(&connection_state, finish?)?,
             Ok(message::Resolve(resolve)) => {
                 let resolve = resolve?;
                 let replacement_or_error = match resolve.which()? {
-                    resolve::Cap(c) => {
-                        match ConnectionState::receive_cap(connection_state.clone(), c?)? {
-                            Some(cap) => Ok(cap),
-                            None => {
-                                return Err(Error::failed(format!(
-                                    "'Resolve' contained 'CapDescriptor.none'."
-                                )));
-                            }
+                    resolve::Cap(c) => match ConnectionState::receive_cap(&connection_state, c?)? {
+                        Some(cap) => Ok(cap),
+                        None => {
+                            return Err(Error::failed(format!(
+                                "'Resolve' contained 'CapDescriptor.none'."
+                            )));
                         }
-                    }
+                    },
                     resolve::Exception(e) => {
                         // We can't set `replacement` to a new broken cap here because this will
                         // confuse PromiseClient::Resolve() into thinking that the remote
@@ -1197,7 +1195,7 @@ impl<VatId> ConnectionState<VatId> {
                 connection_state.release_export(release.get_id(), release.get_reference_count())?;
             }
             Ok(message::Disembargo(disembargo)) => {
-                Self::handle_disembargo(connection_state, disembargo?)?
+                Self::handle_disembargo(&connection_state, disembargo?)?
             }
             Ok(message::Provide(_))
             | Ok(message::Accept(_))
@@ -1205,7 +1203,7 @@ impl<VatId> ConnectionState<VatId> {
             | Ok(message::ObsoleteSave(_))
             | Ok(message::ObsoleteDelete(_))
             | Err(::capnp::NotInSchema(_)) => {
-                ConnectionState::send_unimplemented(connection_state, message)?;
+                ConnectionState::send_unimplemented(&connection_state, &message)?;
             }
         }
         Ok(())
@@ -1514,7 +1512,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn import(
-        state: Rc<ConnectionState<VatId>>,
+        state: &Rc<ConnectionState<VatId>>,
         import_id: ImportId,
         is_promise: bool,
     ) -> Box<dyn ClientHook> {
@@ -1593,16 +1591,16 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn receive_cap(
-        state: Rc<ConnectionState<VatId>>,
+        state: &Rc<ConnectionState<VatId>>,
         descriptor: cap_descriptor::Reader,
     ) -> ::capnp::Result<Option<Box<dyn ClientHook>>> {
         match descriptor.which()? {
             cap_descriptor::None(()) => Ok(None),
             cap_descriptor::SenderHosted(sender_hosted) => {
-                Ok(Some(ConnectionState::import(state, sender_hosted, false)))
+                Ok(Some(ConnectionState::import(&state, sender_hosted, false)))
             }
             cap_descriptor::SenderPromise(sender_promise) => {
-                Ok(Some(ConnectionState::import(state, sender_promise, true)))
+                Ok(Some(ConnectionState::import(&state, sender_promise, true)))
             }
             cap_descriptor::ReceiverHosted(receiver_hosted) => {
                 if let Some(ref mut exp) = state.exports.borrow_mut().find(receiver_hosted) {
@@ -1641,15 +1639,12 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn receive_caps(
-        state: Rc<ConnectionState<VatId>>,
+        state: &Rc<ConnectionState<VatId>>,
         cap_table: ::capnp::struct_list::Reader<cap_descriptor::Owned>,
     ) -> ::capnp::Result<Vec<Option<Box<dyn ClientHook>>>> {
         let mut result = Vec::new();
         for idx in 0..cap_table.len() {
-            result.push(ConnectionState::receive_cap(
-                state.clone(),
-                cap_table.get(idx),
-            )?);
+            result.push(ConnectionState::receive_cap(&state, cap_table.get(idx))?);
         }
         Ok(result)
     }
@@ -1850,9 +1845,9 @@ where
     }
 
     fn send_internal(
-        connection_state: Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<ConnectionState<VatId>>,
         mut message: Box<dyn crate::OutgoingMessage>,
-        cap_table: Vec<Option<Box<dyn ClientHook>>>,
+        cap_table: &[Option<Box<dyn ClientHook>>],
         is_tail_call: bool,
     ) -> (
         Rc<RefCell<QuestionRef<VatId>>>,
@@ -1954,13 +1949,13 @@ impl<VatId> RequestHook for Request<VatId> {
             }
             None => {
                 let (question_ref, promise) =
-                    Request::send_internal(connection_state.clone(), message, cap_table, false);
+                    Request::send_internal(&connection_state, message, &cap_table, false);
                 let forked_promise1 = promise.shared();
                 let forked_promise2 = forked_promise1.clone();
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(
-                    connection_state,
+                    &connection_state,
                     question_ref.clone(),
                     Some(Promise::from_future(forked_promise1)),
                 );
@@ -2004,7 +1999,7 @@ impl<VatId> RequestHook for Request<VatId> {
             Some(_redirect) => {
                 return None;
             }
-            None => Request::send_internal(connection_state.clone(), message, cap_table, true),
+            None => Request::send_internal(&connection_state, message, &cap_table, true),
         };
 
         let promise = promise.map_ok(|_response| {
@@ -2102,7 +2097,7 @@ where
 
 impl<VatId> Pipeline<VatId> {
     fn new(
-        connection_state: Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<ConnectionState<VatId>>,
         question_ref: Rc<RefCell<QuestionRef<VatId>>>,
         redirect_later: Option<Promise<Response<VatId>, ::capnp::Error>>,
     ) -> Pipeline<VatId> {
