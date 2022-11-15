@@ -53,7 +53,7 @@ pub trait FromPointerReader<'a>: Sized {
     ) -> Result<Self>;
 }
 
-/// A trait to encode relationships readers and builders.
+/// A trait to encode relationships between readers and builders.
 ///
 /// If `Foo` is a Cap'n Proto struct and `Bar` is a Rust-native struct, then
 /// `foo::Reader<'a>` is to `foo::Owned` as `&'a Bar` is to `Bar`, and
