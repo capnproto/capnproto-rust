@@ -3764,6 +3764,10 @@ impl<'a> ListReader<'a> {
         self.element_count
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub(crate) fn get_step_size_in_bits(&self) -> u32 {
         self.step
     }
@@ -3987,6 +3991,10 @@ impl<'a> ListBuilder<'a> {
     #[inline]
     pub fn len(&self) -> ElementCount32 {
         self.element_count
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     #[inline]

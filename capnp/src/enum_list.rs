@@ -53,6 +53,10 @@ impl<'a, T: FromU16> Reader<'a, T> {
         self.reader.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn iter(self) -> ListIter<Reader<'a, T>, ::core::result::Result<T, NotInSchema>> {
         let l = self.len();
         ListIter::new(self, l)
@@ -115,6 +119,10 @@ pub struct Builder<'a, T> {
 impl<'a, T: ToU16 + FromU16> Builder<'a, T> {
     pub fn len(&self) -> u32 {
         self.builder.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn into_reader(self) -> Reader<'a, T> {
