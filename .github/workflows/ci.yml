@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install Rust
       run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
 
@@ -67,7 +67,7 @@ jobs:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install Rust
       run: rustup update ${{ env.minrust }} --no-self-update && rustup default ${{ env.minrust }}
