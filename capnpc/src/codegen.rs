@@ -1925,10 +1925,10 @@ fn generate_node(
                                         ]))),
                             Line("}".to_string())]))),
                     Line("}".to_string()),
-                    Line(format!("impl ::capnp::traits::ToU16 for {last_name} {{")),
+                    Line(format!("impl From<{last_name}> for u16 {{")),
                     Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
-                        Box::new(Line("fn to_u16(self) -> u16 { self as u16 }".to_string()))),
+                        Box::new(Line(format!("fn from(x: {last_name}) -> u16 {{ x as u16 }}")))),
                     Line("}".to_string()))));
 
             output.push(Branch(vec![

@@ -24,7 +24,7 @@
 use crate::private::layout::{
     ListBuilder, ListReader, PointerBuilder, PointerReader, PrimitiveElement, TwoBytes,
 };
-use crate::traits::{FromPointerBuilder, FromPointerReader, FromU16, IndexMove, ListIter, ToU16};
+use crate::traits::{FromPointerBuilder, FromPointerReader, FromU16, IndexMove, ListIter};
 use crate::{NotInSchema, Result};
 
 use core::marker::PhantomData;
@@ -116,7 +116,7 @@ pub struct Builder<'a, T> {
     builder: ListBuilder<'a>,
 }
 
-impl<'a, T: ToU16 + FromU16> Builder<'a, T> {
+impl<'a, T: Into<u16> + FromU16> Builder<'a, T> {
     pub fn len(&self) -> u32 {
         self.builder.len()
     }
@@ -134,7 +134,7 @@ impl<'a, T: ToU16 + FromU16> Builder<'a, T> {
 
     pub fn set(&mut self, index: u32, value: T) {
         assert!(index < self.len());
-        PrimitiveElement::set(&self.builder, index, value.to_u16());
+        PrimitiveElement::set(&self.builder, index, value.into());
     }
 }
 
@@ -156,7 +156,7 @@ impl<'a, T: FromU16> FromPointerBuilder<'a> for Builder<'a, T> {
     }
 }
 
-impl<'a, T: ToU16 + FromU16> Builder<'a, T> {
+impl<'a, T: Into<u16> + FromU16> Builder<'a, T> {
     /// Gets the `T` at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {

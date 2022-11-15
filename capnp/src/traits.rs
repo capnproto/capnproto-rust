@@ -110,10 +110,6 @@ pub trait HasTypeId {
     }
 }
 
-pub trait ToU16 {
-    fn to_u16(self) -> u16;
-}
-
 pub trait FromU16: Sized {
     fn from_u16(value: u16) -> ::core::result::Result<Self, crate::NotInSchema>;
 }

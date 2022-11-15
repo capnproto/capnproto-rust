@@ -3955,9 +3955,9 @@ pub mod exception {
       }
     }
   }
-  impl ::capnp::traits::ToU16 for Type {
+  impl From<Type> for u16 {
     #[inline]
-    fn to_u16(self) -> u16 { self as u16 }
+    fn from(x: Type) -> u16 { x as u16 }
   }
   impl ::capnp::traits::HasTypeId for Type {
     const TYPE_ID: u64 = 0xb28c_96e2_3f4c_bd58u64;

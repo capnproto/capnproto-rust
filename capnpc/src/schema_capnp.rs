@@ -6007,9 +6007,9 @@ impl ::capnp::traits::FromU16 for ElementSize {
     }
   }
 }
-impl ::capnp::traits::ToU16 for ElementSize {
+impl From<ElementSize> for u16 {
   #[inline]
-  fn to_u16(self) -> u16 { self as u16 }
+  fn from(x: ElementSize) -> u16 { x as u16 }
 }
 impl ::capnp::traits::HasTypeId for ElementSize {
   const TYPE_ID: u64 = 0xd195_8f7d_ba52_1926u64;
