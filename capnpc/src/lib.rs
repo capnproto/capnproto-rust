@@ -103,6 +103,7 @@ fn run_command(
 }
 
 /// A builder object for schema compiler commands.
+#[derive(Default)]
 pub struct CompilerCommand {
     files: Vec<PathBuf>,
     src_prefixes: Vec<PathBuf>,
@@ -116,17 +117,8 @@ pub struct CompilerCommand {
 
 impl CompilerCommand {
     /// Creates a new, empty command.
-    pub fn new() -> CompilerCommand {
-        CompilerCommand {
-            files: Vec::new(),
-            src_prefixes: Vec::new(),
-            import_paths: Vec::new(),
-            no_standard_import: false,
-            executable_path: None,
-            output_path: None,
-            default_parent_module: Vec::new(),
-            raw_code_generator_request_path: None,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Adds a file to be compiled.
