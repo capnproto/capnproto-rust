@@ -170,7 +170,6 @@ pub mod test {
         pool.spawner()
             .spawn_local(async move {
                 sender.write_all(&buf2).await.unwrap();
-                ()
             })
             .unwrap();
 

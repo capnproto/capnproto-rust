@@ -47,6 +47,10 @@ impl<'a> Reader<'a> {
         self.reader.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn iter(self) -> ListIter<Reader<'a>, Result<crate::data::Reader<'a>>> {
         let l = self.len();
         ListIter::new(self, l)
@@ -106,6 +110,10 @@ impl<'a> Builder<'a> {
 
     pub fn len(&self) -> u32 {
         self.builder.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn into_reader(self) -> Reader<'a> {

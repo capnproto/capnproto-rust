@@ -240,6 +240,10 @@ where
         self.inner.borrow().segments.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn into_allocator(self) -> A {
         let mut inner = self.inner.into_inner();
         inner.deallocate_all();

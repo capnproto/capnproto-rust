@@ -158,6 +158,10 @@ pub trait ReaderSegments {
         }
         unreachable!()
     }
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<S> ReaderSegments for &S
@@ -407,7 +411,7 @@ where
     }
 
     fn get_root_internal(&mut self) -> any_pointer::Builder<'_> {
-        if self.arena.len() == 0 {
+        if self.arena.is_empty() {
             self.arena
                 .allocate_segment(1)
                 .expect("allocate root pointer");
@@ -433,7 +437,7 @@ where
     }
 
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
-        if self.arena.len() == 0 {
+        if self.arena.is_empty() {
             any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {
             let (segment_start, _segment_len) = self.arena.get_segment(0)?;
@@ -458,7 +462,7 @@ where
     /// on this `Builder`, then a subsequent call to `get_segments_for_output()` should return
     /// a single segment, containing the full canonicalized message.
     pub fn set_root_canonical<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
-        if self.arena.len() == 0 {
+        if self.arena.is_empty() {
             self.arena
                 .allocate_segment(1)
                 .expect("allocate root pointer");

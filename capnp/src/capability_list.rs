@@ -74,6 +74,10 @@ where
         self.reader.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn iter(self) -> ListIter<Reader<'a, T>, Result<T>> {
         ListIter::new(self, self.len())
     }
@@ -158,6 +162,10 @@ where
 {
     pub fn len(&self) -> u32 {
         self.builder.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn into_reader(self) -> Reader<'a, T> {
