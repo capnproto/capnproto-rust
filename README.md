@@ -5,8 +5,7 @@ Rust library for fetching the official Cap-n-Proto compiler (capnp) for a partic
 `capnp_import` builds a set of paths to files or folders using the capnp tool, which it downloads or builds if it is missing, and aggregates the resulting import files into a helper include file. Usage:
 
     // Inside build.rs
-    let capnp_version = "0.10.2";
-    capnp_import::process(capnp_version, &["schema"]).expect("Capnp generation failed!");
+    capnp_import::process(&["schema"]).expect("Capnp generation failed!");
 
     // Inside main.rs
     use std::env;
