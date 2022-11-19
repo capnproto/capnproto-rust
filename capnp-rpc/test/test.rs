@@ -35,6 +35,7 @@ pub mod test_capnp {
 
 pub mod impls;
 pub mod test_util;
+pub mod reconnect_test;
 
 fn canceled_to_error(_e: futures::channel::oneshot::Canceled) -> Error {
     Error::failed("oneshot was canceled".to_string())
