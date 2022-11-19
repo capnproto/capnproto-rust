@@ -4,7 +4,6 @@ use std::{
     env,
     fmt::Display,
     fs,
-    io::Cursor,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -69,77 +68,14 @@ fn main() -> anyhow::Result<()> {
         println!("Couldn't find a local capnp: {}", e);
         println!("building...");
 
-        if cfg!(target_os = "linux") {
-            // build capnproto with cmake on linux targets
-
-            // fail with an error message: if the capnproto submodule just doesn't exist,
-            // ask if the user correctly cloned the repo.
-            if PathBuf::from("./capnproto")
-                .as_path()
-                .read_dir()
-                .iter()
-                .count()
-                == 0
-            {
-                bail!(
-                    "capnproto is empty - did you forget to initialize submodules before building?"
-                );
-            }
-
-            // is dst consistent? might need to write this down somewhere if it isn't
-            let mut dst = cmake::Config::new("capnproto");
-
-            if which::which("ninja").is_ok() {
-                dst.generator("Ninja");
-            }
-
-            // it would be nice to be able to use mold
-
-            let dst = dst.define("BUILD_TESTING", "OFF").build();
-
-            assert_eq!(out_dir, dst);
-
-            // place the capnproto binary in $OUT_DIR, next to where binary_decision.rs
-            // is intended to go
-            capnp_path = Some(CapnprotoAcquired::Locally(RelativePathBuf::from(
-                "bin/capnp",
-            )));
-        } else if cfg!(target_os = "windows") {
-            // download the release zip into $OUT_DIR
-            let capnp_url =
-                format!("https://capnproto.org/capnproto-c++-win32-{CAPNP_VERSION}.zip");
-
-            let response = reqwest::blocking::get(capnp_url)?;
-
-            if response.status() != reqwest::StatusCode::OK {
-                bail!(
-                    "Error downloading release archive: {} {}",
-                    response.status(),
-                    response.text().unwrap_or_default()
-                );
-            }
-            println!("Download successful.");
-
-            // extract the release zip into $OUT_DIR
-            fs::create_dir_all(&out_dir)?;
-            let cursor = Cursor::new(response.bytes()?);
-            zip_extract::extract(cursor, &out_dir, false)?;
-
-            // place the capnproto binary in $OUT_DIR, next to where binary_decision.rs
-            // is intended to go
-            capnp_path = Some(CapnprotoAcquired::Locally(RelativePathBuf::from(format!(
-                "capnproto-tools-win32-{CAPNP_VERSION}/capnp.exe"
-            ))));
-        } else {
-            panic!("Sorry, your operating system is unsupported for building keystone.");
-        }
+        // when capnproto accepts our PR, windows can fetch bin artifacts from it.
+        // until then, we must build capnproto ourselves.
+        capnp_path = Some(build_with_cmake(&out_dir)?);
     }
 
-    // export the location of the finalized binary to a place that the lib.rs
-    // can find it
+    // export the location of the finalized binary to a place that the lib.rs can find it
     // this might cause problems later, but we'd need artefact deps that allow arbitrary
     // non-rust artefacts to fix it
-
     fs::write(
         out_dir.join("binary_decision.rs"),
         format!("const CAPNP_BIN_PATH: &str = \"{}\";", capnp_path.unwrap()),
@@ -151,4 +87,46 @@ fn main() -> anyhow::Result<()> {
 fn get_version(executable: &Path) -> anyhow::Result<String> {
     let version = String::from_utf8(Command::new(executable).arg("--version").output()?.stdout)?;
     Ok(version)
+}
+
+// build capnproto with cmake, configured for windows and linux envs
+fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
+    // fail with an error message: if the capnproto submodule just doesn't exist,
+    // ask if the user correctly cloned the repo.
+    if PathBuf::from("./capnproto")
+        .as_path()
+        .read_dir()
+        .iter()
+        .count()
+        == 0
+    {
+        bail!("capnproto is empty - did you forget to initialize submodules before building?");
+    }
+
+    // is dst consistent? might need to write this down somewhere if it isn't
+    let mut dst = cmake::Config::new("capnproto");
+
+    if which::which("ninja").is_ok() {
+        dst.generator("Ninja");
+    }
+
+    // it would be nice to be able to use mold
+
+    let dst = dst.define("BUILD_TESTING", "OFF").build();
+
+    assert_eq!(*out_dir, dst);
+
+    // place the capnproto binary in $OUT_DIR, next to where binary_decision.rs
+    // is intended to go
+    if cfg!(target_os = "windows") {
+        Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
+            "bin/capnp",
+        )))
+    } else if cfg!(target_os = "linux") {
+        Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
+            "bin/capnp.exe",
+        )))
+    } else {
+        panic!("Sorry, your operating system is unsupported for building keystone.");
+    }
 }
