@@ -103,3 +103,23 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Cap'n Proto
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get install -y capnproto libcapnp-dev
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2022-10-18
+          override: true
+          components: clippy
+      - uses: giraffate/clippy-action@v1
+        with:
+          clippy_flags: --all --all-targets
+          filter_mode: nofilter
