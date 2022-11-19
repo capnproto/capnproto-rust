@@ -1904,8 +1904,8 @@ fn generate_node(
                 Line(format!("impl{} ::capnp::capability::FromTypelessPipeline for Pipeline{} {{", bracketed_params, bracketed_params)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline{} {{", bracketed_params)),
-                        Indent(Box::new(Line(format!("Pipeline {{ _typeless: typeless, {} }}", params.phantom_data_value)))),
+                        Line("fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {".to_string()),
+                        Indent(Box::new(Line(format!("Self {{ _typeless: typeless, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 Line(format!("impl{0} Pipeline{0} {1} {{", bracketed_params,
@@ -1936,8 +1936,8 @@ fn generate_node(
                 let enumerant = capitalize_first_letter(get_enumerant_name(enumerant)?);
                 members.push(Line(format!("{} = {},", enumerant, ii)));
                 match_branches.push(Line(format!(
-                    "{} => ::core::result::Result::Ok({}::{}),",
-                    ii, last_name, enumerant
+                    "{} => ::core::result::Result::Ok(Self::{}),",
+                    ii, enumerant
                 )));
             }
             match_branches.push(Line(
@@ -1958,9 +1958,9 @@ fn generate_node(
                     Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
                         Box::new(Branch(vec![
-                            Line(format!(
-                                "fn from_u16(value: u16) -> ::core::result::Result<{}, ::capnp::NotInSchema> {{",
-                                last_name)),
+                            Line(
+                                "fn from_u16(value: u16) -> ::core::result::Result<Self, ::capnp::NotInSchema> {".to_string()
+                                ),
                             Indent(
                                 Box::new(Branch(vec![
                                     Line("match value {".to_string()),
@@ -2253,7 +2253,7 @@ fn generate_node(
             mod_interior.push(
                 Branch(vec!(
                     Line(format!("impl {0} Clone for Client{0} {{", bracketed_params)),
-                    Indent(Box::new(Line(format!("fn clone(&self) -> Client{} {{", bracketed_params)))),
+                    Indent(Box::new(Line("fn clone(&self) -> Self {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client: ::capnp::capability::Client::new(self.client.hook.add_ref()), {} }}", params.phantom_data_value)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));

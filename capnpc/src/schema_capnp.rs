@@ -372,8 +372,8 @@ pub mod node {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -513,8 +513,8 @@ pub mod node {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -657,8 +657,8 @@ pub mod node {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -825,8 +825,8 @@ pub mod node {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -956,8 +956,8 @@ pub mod node {
 
       pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
       impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-          Pipeline { _typeless: typeless,  }
+        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+          Self { _typeless: typeless,  }
         }
       }
       impl Pipeline  {
@@ -1161,8 +1161,8 @@ pub mod node {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -1293,8 +1293,8 @@ pub mod node {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -1449,8 +1449,8 @@ pub mod node {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -1605,8 +1605,8 @@ pub mod node {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -1887,8 +1887,8 @@ pub mod node {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -2134,8 +2134,8 @@ pub mod field {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -2323,8 +2323,8 @@ pub mod field {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -2449,8 +2449,8 @@ pub mod field {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -2600,8 +2600,8 @@ pub mod field {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -2775,8 +2775,8 @@ pub mod enumerant {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -2919,8 +2919,8 @@ pub mod superclass {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -3186,8 +3186,8 @@ pub mod method {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -3597,8 +3597,8 @@ pub mod type_ {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -3751,8 +3751,8 @@ pub mod type_ {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -3898,8 +3898,8 @@ pub mod type_ {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -4045,8 +4045,8 @@ pub mod type_ {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -4192,8 +4192,8 @@ pub mod type_ {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -4366,8 +4366,8 @@ pub mod type_ {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -4550,8 +4550,8 @@ pub mod type_ {
 
       pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
       impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-          Pipeline { _typeless: typeless,  }
+        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+          Self { _typeless: typeless,  }
         }
       }
       impl Pipeline  {
@@ -4690,8 +4690,8 @@ pub mod type_ {
 
       pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
       impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-          Pipeline { _typeless: typeless,  }
+        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+          Self { _typeless: typeless,  }
         }
       }
       impl Pipeline  {
@@ -4810,8 +4810,8 @@ pub mod type_ {
 
       pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
       impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-          Pipeline { _typeless: typeless,  }
+        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+          Self { _typeless: typeless,  }
         }
       }
       impl Pipeline  {
@@ -4944,8 +4944,8 @@ pub mod brand {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -5121,8 +5121,8 @@ pub mod brand {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -5293,8 +5293,8 @@ pub mod brand {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -5771,8 +5771,8 @@ pub mod value {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -5962,8 +5962,8 @@ pub mod annotation {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -5993,16 +5993,16 @@ pub enum ElementSize {
 }
 impl ::capnp::traits::FromU16 for ElementSize {
   #[inline]
-  fn from_u16(value: u16) -> ::core::result::Result<ElementSize, ::capnp::NotInSchema> {
+  fn from_u16(value: u16) -> ::core::result::Result<Self, ::capnp::NotInSchema> {
     match value {
-      0 => ::core::result::Result::Ok(ElementSize::Empty),
-      1 => ::core::result::Result::Ok(ElementSize::Bit),
-      2 => ::core::result::Result::Ok(ElementSize::Byte),
-      3 => ::core::result::Result::Ok(ElementSize::TwoBytes),
-      4 => ::core::result::Result::Ok(ElementSize::FourBytes),
-      5 => ::core::result::Result::Ok(ElementSize::EightBytes),
-      6 => ::core::result::Result::Ok(ElementSize::Pointer),
-      7 => ::core::result::Result::Ok(ElementSize::InlineComposite),
+      0 => ::core::result::Result::Ok(Self::Empty),
+      1 => ::core::result::Result::Ok(Self::Bit),
+      2 => ::core::result::Result::Ok(Self::Byte),
+      3 => ::core::result::Result::Ok(Self::TwoBytes),
+      4 => ::core::result::Result::Ok(Self::FourBytes),
+      5 => ::core::result::Result::Ok(Self::EightBytes),
+      6 => ::core::result::Result::Ok(Self::Pointer),
+      7 => ::core::result::Result::Ok(Self::InlineComposite),
       n => ::core::result::Result::Err(::capnp::NotInSchema(n)),
     }
   }
@@ -6148,8 +6148,8 @@ pub mod capnp_version {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -6352,8 +6352,8 @@ pub mod code_generator_request {
 
   pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
   impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-      Pipeline { _typeless: typeless,  }
+    fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+      Self { _typeless: typeless,  }
     }
   }
   impl Pipeline  {
@@ -6522,8 +6522,8 @@ pub mod code_generator_request {
 
     pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
     impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-        Pipeline { _typeless: typeless,  }
+      fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+        Self { _typeless: typeless,  }
       }
     }
     impl Pipeline  {
@@ -6665,8 +6665,8 @@ pub mod code_generator_request {
 
       pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }
       impl ::capnp::capability::FromTypelessPipeline for Pipeline {
-        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline {
-          Pipeline { _typeless: typeless,  }
+        fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self {
+          Self { _typeless: typeless,  }
         }
       }
       impl Pipeline  {

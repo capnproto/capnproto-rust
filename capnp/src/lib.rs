@@ -78,22 +78,22 @@ pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8
 
 impl Word {
     /// Allocates a vec of `length` words, all set to zero.
-    pub fn allocate_zeroed_vec(length: usize) -> Vec<Word> {
+    pub fn allocate_zeroed_vec(length: usize) -> Vec<Self> {
         vec![word(0, 0, 0, 0, 0, 0, 0, 0); length]
     }
 
-    pub fn words_to_bytes(words: &[Word]) -> &[u8] {
+    pub fn words_to_bytes(words: &[Self]) -> &[u8] {
         unsafe { core::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8) }
     }
 
-    pub fn words_to_bytes_mut(words: &mut [Word]) -> &mut [u8] {
+    pub fn words_to_bytes_mut(words: &mut [Self]) -> &mut [u8] {
         unsafe { core::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8) }
     }
 }
 
 #[cfg(any(feature = "quickcheck", test))]
 impl quickcheck::Arbitrary for Word {
-    fn arbitrary(g: &mut quickcheck::Gen) -> Word {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
         crate::word(
             quickcheck::Arbitrary::arbitrary(g),
             quickcheck::Arbitrary::arbitrary(g),
@@ -125,7 +125,7 @@ impl core::ops::AddAssign for MessageSize {
 
 impl MessageSize {
     #[deprecated(since = "0.15.1", note = "use += (AddAssign::add_assign()) instead")]
-    pub fn plus_eq(&mut self, other: MessageSize) {
+    pub fn plus_eq(&mut self, other: Self) {
         *self += other;
     }
 }
@@ -194,26 +194,26 @@ pub enum ErrorKind {
 }
 
 impl Error {
-    pub fn failed(description: String) -> Error {
-        Error {
+    pub fn failed(description: String) -> Self {
+        Self {
             description,
             kind: ErrorKind::Failed,
         }
     }
-    pub fn overloaded(description: String) -> Error {
-        Error {
+    pub fn overloaded(description: String) -> Self {
+        Self {
             description,
             kind: ErrorKind::Overloaded,
         }
     }
-    pub fn disconnected(description: String) -> Error {
-        Error {
+    pub fn disconnected(description: String) -> Self {
+        Self {
             description,
             kind: ErrorKind::Disconnected,
         }
     }
-    pub fn unimplemented(description: String) -> Error {
-        Error {
+    pub fn unimplemented(description: String) -> Self {
+        Self {
             description,
             kind: ErrorKind::Unimplemented,
         }
@@ -222,7 +222,7 @@ impl Error {
 
 #[cfg(feature = "std")]
 impl core::convert::From<::std::io::Error> for Error {
-    fn from(err: ::std::io::Error) -> Error {
+    fn from(err: ::std::io::Error) -> Self {
         use std::io;
         let kind = match err.kind() {
             io::ErrorKind::TimedOut => ErrorKind::Overloaded,
@@ -233,7 +233,7 @@ impl core::convert::From<::std::io::Error> for Error {
             | io::ErrorKind::NotConnected => ErrorKind::Disconnected,
             _ => ErrorKind::Failed,
         };
-        Error {
+        Self {
             description: format!("{}", err),
             kind,
         }
@@ -241,20 +241,20 @@ impl core::convert::From<::std::io::Error> for Error {
 }
 
 impl core::convert::From<alloc::string::FromUtf8Error> for Error {
-    fn from(err: alloc::string::FromUtf8Error) -> Error {
-        Error::failed(format!("{}", err))
+    fn from(err: alloc::string::FromUtf8Error) -> Self {
+        Self::failed(format!("{}", err))
     }
 }
 
 impl core::convert::From<alloc::str::Utf8Error> for Error {
-    fn from(err: alloc::str::Utf8Error) -> Error {
-        Error::failed(format!("{}", err))
+    fn from(err: alloc::str::Utf8Error) -> Self {
+        Self::failed(format!("{}", err))
     }
 }
 
 impl core::convert::From<NotInSchema> for Error {
-    fn from(e: NotInSchema) -> Error {
-        Error::failed(format!(
+    fn from(e: NotInSchema) -> Self {
+        Self::failed(format!(
             "Enum value or union discriminant {} was not present in schema.",
             e.0
         ))

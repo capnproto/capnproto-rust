@@ -130,8 +130,8 @@ pub struct ListIter<T, U> {
 }
 
 impl<T, U> ListIter<T, U> {
-    pub fn new(list: T, size: u32) -> ListIter<T, U> {
-        ListIter {
+    pub fn new(list: T, size: u32) -> Self {
+        Self {
             list,
             index: 0,
             size,

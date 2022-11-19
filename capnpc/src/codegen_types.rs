@@ -39,13 +39,13 @@ pub enum Leaf {
 impl ::std::fmt::Display for Leaf {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
         let display_string = match *self {
-            Leaf::Reader(lt) => format!("Reader<{}>", lt),
-            Leaf::Builder(lt) => format!("Builder<{}>", lt),
-            Leaf::Owned => "Owned".to_string(),
-            Leaf::Client => "Client".to_string(),
-            Leaf::Server => "Server".to_string(),
-            Leaf::ServerDispatch => "ServerDispatch".to_string(),
-            Leaf::Pipeline => "Pipeline".to_string(),
+            Self::Reader(lt) => format!("Reader<{}>", lt),
+            Self::Builder(lt) => format!("Builder<{}>", lt),
+            Self::Owned => "Owned".to_string(),
+            Self::Client => "Client".to_string(),
+            Self::Server => "Server".to_string(),
+            Self::ServerDispatch => "ServerDispatch".to_string(),
+            Self::Pipeline => "Pipeline".to_string(),
         };
         ::std::fmt::Display::fmt(&display_string, fmt)
     }
@@ -54,24 +54,24 @@ impl ::std::fmt::Display for Leaf {
 impl Leaf {
     fn bare_name(&self) -> &'static str {
         match *self {
-            Leaf::Reader(_) => "Reader",
-            Leaf::Builder(_) => "Builder",
-            Leaf::Owned => "Owned",
-            Leaf::Client => "Client",
-            Leaf::Server => "Server",
-            Leaf::ServerDispatch => "ServerDispatch",
-            Leaf::Pipeline => "Pipeline",
+            Self::Reader(_) => "Reader",
+            Self::Builder(_) => "Builder",
+            Self::Owned => "Owned",
+            Self::Client => "Client",
+            Self::Server => "Server",
+            Self::ServerDispatch => "ServerDispatch",
+            Self::Pipeline => "Pipeline",
         }
     }
 
     fn _have_lifetime(&self) -> bool {
         match self {
-            &Leaf::Reader(_) | &Leaf::Builder(_) => true,
-            &Leaf::Owned
-            | &Leaf::Client
-            | &Leaf::Server
-            | &Leaf::ServerDispatch
-            | &Leaf::Pipeline => false,
+            &Self::Reader(_) | &Self::Builder(_) => true,
+            &Self::Owned
+            | &Self::Client
+            | &Self::Server
+            | &Self::ServerDispatch
+            | &Self::Pipeline => false,
         }
     }
 }

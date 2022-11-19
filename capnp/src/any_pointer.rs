@@ -208,27 +208,27 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(hook: Box<dyn PipelineHook>) -> Pipeline {
-        Pipeline {
+    pub fn new(hook: Box<dyn PipelineHook>) -> Self {
+        Self {
             hook,
             ops: Vec::new(),
         }
     }
 
-    pub fn noop(&self) -> Pipeline {
-        Pipeline {
+    pub fn noop(&self) -> Self {
+        Self {
             hook: self.hook.add_ref(),
             ops: self.ops.clone(),
         }
     }
 
-    pub fn get_pointer_field(&self, pointer_index: u16) -> Pipeline {
+    pub fn get_pointer_field(&self, pointer_index: u16) -> Self {
         let mut new_ops = Vec::with_capacity(self.ops.len() + 1);
         for op in &self.ops {
             new_ops.push(*op)
         }
         new_ops.push(PipelineOp::GetPointerField(pointer_index));
-        Pipeline {
+        Self {
             hook: self.hook.add_ref(),
             ops: new_ops,
         }
@@ -240,7 +240,7 @@ impl Pipeline {
 }
 
 impl crate::capability::FromTypelessPipeline for Pipeline {
-    fn new(typeless: Pipeline) -> Pipeline {
+    fn new(typeless: Pipeline) -> Self {
         typeless
     }
 }

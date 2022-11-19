@@ -52,23 +52,23 @@ enum PromiseInner<T, E> {
 impl<T, E> Unpin for PromiseInner<T, E> {}
 
 impl<T, E> Promise<T, E> {
-    pub fn ok(value: T) -> Promise<T, E> {
-        Promise {
+    pub fn ok(value: T) -> Self {
+        Self {
             inner: PromiseInner::Immediate(Ok(value)),
         }
     }
 
-    pub fn err(error: E) -> Promise<T, E> {
-        Promise {
+    pub fn err(error: E) -> Self {
+        Self {
             inner: PromiseInner::Immediate(Err(error)),
         }
     }
 
-    pub fn from_future<F>(f: F) -> Promise<T, E>
+    pub fn from_future<F>(f: F) -> Self
     where
         F: Future<Output = core::result::Result<T, E>> + 'static,
     {
-        Promise {
+        Self {
             inner: PromiseInner::Deferred(Box::pin(f)),
         }
     }
@@ -135,8 +135,8 @@ impl<Results> Response<Results>
 where
     Results: Pipelined + Owned,
 {
-    pub fn new(hook: Box<dyn ResponseHook>) -> Response<Results> {
-        Response {
+    pub fn new(hook: Box<dyn ResponseHook>) -> Self {
+        Self {
             marker: PhantomData,
             hook,
         }
@@ -156,8 +156,8 @@ impl<Params, Results> Request<Params, Results>
 where
     Params: Owned,
 {
-    pub fn new(hook: Box<dyn RequestHook>) -> Request<Params, Results> {
-        Request {
+    pub fn new(hook: Box<dyn RequestHook>) -> Self {
+        Self {
             hook,
             marker: PhantomData,
         }
@@ -201,8 +201,8 @@ pub struct Params<T> {
 }
 
 impl<T> Params<T> {
-    pub fn new(hook: Box<dyn ParamsHook>) -> Params<T> {
-        Params {
+    pub fn new(hook: Box<dyn ParamsHook>) -> Self {
+        Self {
             marker: PhantomData,
             hook,
         }
@@ -225,8 +225,8 @@ impl<T> Results<T>
 where
     T: Owned,
 {
-    pub fn new(hook: Box<dyn ResultsHook>) -> Results<T> {
-        Results {
+    pub fn new(hook: Box<dyn ResultsHook>) -> Self {
+        Self {
             marker: PhantomData,
             hook,
         }
@@ -273,8 +273,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(hook: Box<dyn ClientHook>) -> Client {
-        Client { hook }
+    pub fn new(hook: Box<dyn ClientHook>) -> Self {
+        Self { hook }
     }
 
     pub fn new_call<Params, Results>(

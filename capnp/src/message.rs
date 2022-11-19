@@ -117,22 +117,22 @@ pub const DEFAULT_READER_OPTIONS: ReaderOptions = ReaderOptions {
 };
 
 impl Default for ReaderOptions {
-    fn default() -> ReaderOptions {
+    fn default() -> Self {
         DEFAULT_READER_OPTIONS
     }
 }
 
 impl ReaderOptions {
-    pub fn new() -> ReaderOptions {
+    pub fn new() -> Self {
         DEFAULT_READER_OPTIONS
     }
 
-    pub fn nesting_limit(&mut self, value: i32) -> &mut ReaderOptions {
+    pub fn nesting_limit(&mut self, value: i32) -> &mut Self {
         self.nesting_limit = value;
         self
     }
 
-    pub fn traversal_limit_in_words(&mut self, value: Option<usize>) -> &mut ReaderOptions {
+    pub fn traversal_limit_in_words(&mut self, value: Option<usize>) -> &mut Self {
         self.traversal_limit_in_words = value;
         self
     }
@@ -221,7 +221,7 @@ where
     S: ReaderSegments,
 {
     pub fn new(segments: S, options: ReaderOptions) -> Self {
-        Reader {
+        Self {
             arena: ReaderArenaImpl::new(segments, options),
         }
     }
@@ -311,7 +311,7 @@ where
     T: Owned,
 {
     pub fn new(message: Reader<S>) -> Self {
-        TypedReader {
+        Self {
             marker: ::core::marker::PhantomData,
             message,
         }
@@ -331,8 +331,8 @@ where
     S: ReaderSegments,
     T: Owned,
 {
-    fn from(message: Reader<S>) -> TypedReader<S, T> {
-        TypedReader::new(message)
+    fn from(message: Reader<S>) -> Self {
+        Self::new(message)
     }
 }
 
@@ -341,7 +341,7 @@ where
     A: Allocator,
     T: Owned,
 {
-    fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
+    fn from(message: Builder<A>) -> Self {
         let reader = message.into_reader();
         reader.into_typed()
     }
@@ -352,7 +352,7 @@ where
     A: Allocator,
     T: Owned,
 {
-    fn from(builder: TypedBuilder<T, A>) -> TypedReader<Builder<A>, T> {
+    fn from(builder: TypedBuilder<T, A>) -> Self {
         builder.into_reader()
     }
 }
@@ -405,7 +405,7 @@ where
     A: Allocator,
 {
     pub fn new(allocator: A) -> Self {
-        Builder {
+        Self {
             arena: BuilderArenaImpl::new(allocator),
         }
     }
@@ -419,7 +419,7 @@ where
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
         let location: *mut u8 = seg_start;
-        let Builder { ref mut arena } = *self;
+        let Self { ref mut arena } = *self;
 
         any_pointer::Builder::new(layout::PointerBuilder::get_root(arena, 0, location))
     }
@@ -479,7 +479,7 @@ where
         self.arena.get_segments_for_output()
     }
 
-    pub fn into_reader(self) -> Reader<Builder<A>> {
+    pub fn into_reader(self) -> Reader<Self> {
         Reader::new(
             self,
             ReaderOptions {
@@ -531,7 +531,7 @@ where
     T: Owned,
 {
     pub fn new_default() -> Self {
-        TypedBuilder::new(Builder::new_default())
+        Self::new(Builder::new_default())
     }
 }
 
@@ -632,20 +632,20 @@ impl HeapAllocator {
     }
 
     /// Sets the size of the initial segment in words, where 1 word = 8 bytes.
-    pub fn first_segment_words(mut self, value: u32) -> HeapAllocator {
+    pub fn first_segment_words(mut self, value: u32) -> Self {
         assert!(value <= self.max_segment_words);
         self.next_size = value;
         self
     }
 
     /// Sets the allocation strategy for segments after the first one.
-    pub fn allocation_strategy(mut self, value: AllocationStrategy) -> HeapAllocator {
+    pub fn allocation_strategy(mut self, value: AllocationStrategy) -> Self {
         self.allocation_strategy = value;
         self
     }
 
     /// Sets the maximum number of words allowed in a single allocation.
-    pub fn max_segment_words(mut self, value: u32) -> HeapAllocator {
+    pub fn max_segment_words(mut self, value: u32) -> Self {
         assert!(self.next_size <= value);
         self.max_segment_words = value;
         self
@@ -711,8 +711,8 @@ fn test_allocate_max() {
 impl Builder<HeapAllocator> {
     /// Constructs a new `message::Builder<HeapAllocator>` whose first segment has length
     /// `SUGGESTED_FIRST_SEGMENT_WORDS`.
-    pub fn new_default() -> Builder<HeapAllocator> {
-        Builder::new(HeapAllocator::new())
+    pub fn new_default() -> Self {
+        Self::new(HeapAllocator::new())
     }
 }
 

@@ -54,7 +54,6 @@
 //! ```ignore
 //!   capnp compile -orust:$OUT_DIR --src-prefix=schema schema/foo.capnp schema/bar.capnp
 //! ```
-//!
 
 /// Code generated from
 /// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
@@ -122,7 +121,7 @@ impl CompilerCommand {
     }
 
     /// Adds a file to be compiled.
-    pub fn file<P>(&mut self, path: P) -> &mut CompilerCommand
+    pub fn file<P>(&mut self, path: P) -> &mut Self
     where
         P: AsRef<Path>,
     {
@@ -132,7 +131,7 @@ impl CompilerCommand {
 
     /// Adds a --src-prefix flag. For all files specified for compilation that start
     /// with `prefix`, removes the prefix when computing output filenames.
-    pub fn src_prefix<P>(&mut self, prefix: P) -> &mut CompilerCommand
+    pub fn src_prefix<P>(&mut self, prefix: P) -> &mut Self
     where
         P: AsRef<Path>,
     {
@@ -142,7 +141,7 @@ impl CompilerCommand {
 
     /// Adds an --import_path flag. Adds `dir` to the list of directories searched
     /// for absolute imports.
-    pub fn import_path<P>(&mut self, dir: P) -> &mut CompilerCommand
+    pub fn import_path<P>(&mut self, dir: P) -> &mut Self
     where
         P: AsRef<Path>,
     {
@@ -152,13 +151,13 @@ impl CompilerCommand {
 
     /// Adds the --no-standard-import flag, indicating that the default import paths of
     /// /usr/include and /usr/local/include should not bet included.
-    pub fn no_standard_import(&mut self) -> &mut CompilerCommand {
+    pub fn no_standard_import(&mut self) -> &mut Self {
         self.no_standard_import = true;
         self
     }
 
     /// Sets the output directory of generated code. Default is OUT_DIR
-    pub fn output_path<P>(&mut self, path: P) -> &mut CompilerCommand
+    pub fn output_path<P>(&mut self, path: P) -> &mut Self
     where
         P: AsRef<Path>,
     {
@@ -168,7 +167,7 @@ impl CompilerCommand {
 
     /// Specify the executable which is used for the 'capnp' tool. When this method is not called, the command looks for a name 'capnp'
     /// on the system (e.g. in working directory or in PATH environment variable).
-    pub fn capnp_executable<P>(&mut self, path: P) -> &mut CompilerCommand
+    pub fn capnp_executable<P>(&mut self, path: P) -> &mut Self
     where
         P: AsRef<Path>,
     {
@@ -194,17 +193,14 @@ impl CompilerCommand {
     /// This option can be overridden by the `parentModule` annotation defined in `rust.capnp`.
     ///
     /// If this option is unset, the default is the crate root.
-    pub fn default_parent_module(
-        &mut self,
-        default_parent_module: Vec<String>,
-    ) -> &mut CompilerCommand {
+    pub fn default_parent_module(&mut self, default_parent_module: Vec<String>) -> &mut Self {
         self.default_parent_module = default_parent_module;
         self
     }
 
     /// If set, the generator will also write a file containing the raw code generator request to the
     /// specified path.
-    pub fn raw_code_generator_request_path<P>(&mut self, path: P) -> &mut CompilerCommand
+    pub fn raw_code_generator_request_path<P>(&mut self, path: P) -> &mut Self
     where
         P: AsRef<Path>,
     {
