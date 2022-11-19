@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use relative_path::RelativePathBuf;
 use std::{
     env,
@@ -91,18 +91,6 @@ fn get_version(executable: &Path) -> anyhow::Result<String> {
 
 // build capnproto with cmake, configured for windows and linux envs
 fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
-    // fail with an error message: if the capnproto submodule just doesn't exist,
-    // ask if the user correctly cloned the repo.
-    if PathBuf::from("./capnproto")
-        .as_path()
-        .read_dir()
-        .iter()
-        .count()
-        == 0
-    {
-        bail!("capnproto is empty - did you forget to initialize submodules before building?");
-    }
-
     // is dst consistent? might need to write this down somewhere if it isn't
     let mut dst = cmake::Config::new("capnproto");
 
@@ -112,6 +100,10 @@ fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
 
     // it would be nice to be able to use mold
 
+    if cfg!(target_os = "windows") {
+        dst.cxxflag("/EHsc");
+    }
+
     let dst = dst.define("BUILD_TESTING", "OFF").build();
 
     assert_eq!(*out_dir, dst);
@@ -120,13 +112,13 @@ fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
     // is intended to go
     if cfg!(target_os = "windows") {
         Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
-            "bin/capnp",
+            "bin/capnp.exe",
         )))
     } else if cfg!(target_os = "linux") {
         Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
-            "bin/capnp.exe",
+            "bin/capnp",
         )))
     } else {
-        panic!("Sorry, your operating system is unsupported for building keystone.");
+        panic!("Sorry, capnp_import does not support your operating system.");
     }
 }
