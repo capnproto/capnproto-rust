@@ -26,10 +26,6 @@ use crate::Result;
 
 use core::marker::PhantomData;
 
-pub trait FromStructReader<'a> {
-    fn new(reader: StructReader<'a>) -> Self;
-}
-
 pub trait HasStructSize {
     const STRUCT_SIZE: StructSize;
 }
@@ -69,7 +65,7 @@ pub trait Owned {
 }
 
 pub trait OwnedStruct {
-    type Reader<'a>: FromStructReader<'a> + SetPointerBuilder + IntoInternalStructReader<'a>;
+    type Reader<'a>: From<StructReader<'a>> + SetPointerBuilder + IntoInternalStructReader<'a>;
     type Builder<'a>: FromStructBuilder<'a> + HasStructSize;
 }
 

@@ -601,7 +601,7 @@ pub fn getter_text(
             }
 
             let getter_code = if is_reader {
-                Line("::capnp::traits::FromStructReader::new(self.reader)".to_string())
+                Line("self.reader.into()".to_string())
             } else {
                 Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())
             };
@@ -1773,12 +1773,12 @@ fn generate_node(
                             params.params, params.where_clause)),
                         Indent(Box::new(Branch(vec!(Line("const TYPE_ID: u64 = _private::TYPE_ID;".to_string()))))),
                     Line("}".to_string()))),
-                Line(format!("impl <'a,{0}> ::capnp::traits::FromStructReader<'a> for Reader<'a,{0}> {1} {{",
+                Line(format!("impl <'a,{0}> From<::capnp::private::layout::StructReader<'a>> for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Self {".to_string()),
-                        Indent(Box::new(Line(format!("Self {{ reader, {} }}", params.phantom_data_value)))),
+                        Line("fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self {".to_string()),
+                        Indent(Box::new(Line(format!("Reader {{ reader, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1787,7 +1787,7 @@ fn generate_node(
                 Indent(
                     Box::new(Branch(vec!(
                         Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
-                        Indent(Box::new(Line("::core::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(default)?))".to_string()))),
+                        Indent(Box::new(Line("::core::result::Result::Ok(reader.get_struct(default)?.into())".to_string()))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1873,13 +1873,13 @@ fn generate_node(
                 Indent(
                     Box::new(Branch(vec![
                         Line(format!("pub fn into_reader(self) -> Reader<'a,{}> {{", params.params)),
-                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
+                        Indent(Box::new(Line("self.builder.into_reader().into()".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow(&mut self) -> Builder<'_,{}> {{", params.params)),
                         Indent(Box::new(Line("Builder { .. *self }".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow_as_reader(&self) -> Reader<'_,{}> {{", params.params)),
-                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
+                        Indent(Box::new(Line("self.builder.into_reader().into()".to_string()))),
                         Line("}".to_string()),
 
                         BlankLine,
