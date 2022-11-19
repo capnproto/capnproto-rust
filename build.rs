@@ -87,8 +87,16 @@ fn main() -> anyhow::Result<()> {
             }
 
             // is dst consistent? might need to write this down somewhere if it isn't
-            let dst = cmake::build("capnproto");
-            capnp_path = dst.join("bin/capnp");
+            let mut dst = cmake::Config::new("capnproto");
+
+            if which::which("ninja").is_ok() {
+                dst.generator("Ninja");
+            }
+
+            // it would be nice to be able to use mold
+
+            let dst = dst.define("BUILD_TESTING", "OFF").build();
+
             assert_eq!(out_dir, dst);
 
             // place the capnproto binary in $OUT_DIR, next to where binary_decision.rs
