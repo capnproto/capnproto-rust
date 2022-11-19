@@ -18,6 +18,7 @@ anyhow = "1.*"
 capnpc = "0.14"
 
 [build-dependencies]
+relative-path = "1.7.2"
 anyhow = "1.*"
 cmake = { version = "0.1" }
 which = "4.3.0"

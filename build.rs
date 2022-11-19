@@ -1,6 +1,9 @@
 use anyhow::{anyhow, bail, Context};
+use relative_path::RelativePathBuf;
 use std::{
-    env, fs,
+    env,
+    fmt::Display,
+    fs,
     io::Cursor,
     path::{Path, PathBuf},
     process::Command,
@@ -9,17 +12,33 @@ use std::{
 // update this whenever you change the submodule pointer
 const CAPNP_VERSION: &str = "0.10.2";
 
+enum CapnprotoAcquired {
+    Locally(relative_path::RelativePathBuf),
+    OnSystem(PathBuf),
+}
+
+impl Display for CapnprotoAcquired {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CapnprotoAcquired::Locally(e) => write!(f, "{}", e),
+            CapnprotoAcquired::OnSystem(e) => write!(f, "{}", e.display()),
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
-    // we're making the assumption that the executable doesn't move.
+    // we're making the assumption that the executable is always accessible.
     // if we can't make this assumption, we can just include_bytes!() it and then unpack it at runtime.
 
-    // we depend on the absolute path of the /target directory, so we need to reload
-    // if the project is ever moved.
-    println!("cargo:rerun-if-env-changed=PWD");
+    println!("cargo:rerun-if-changed=capnproto");
+
+    let out_dir = PathBuf::from(
+        env::var("OUT_DIR").context("Cargo did not set $OUT_DIR. this should be impossible.")?,
+    );
 
     // updated with the final path of the capnp binary if it's ever found, to be recorded
     // and consumed by capnp_import!()
-    let mut capnp_path = PathBuf::new();
+    let mut capnp_path: Option<CapnprotoAcquired> = None;
 
     // only build if it can't be detected in the $PATH
     // check if there is a capnp binary in the path that meets the version requirement
@@ -32,7 +51,7 @@ fn main() -> anyhow::Result<()> {
         println!("found capnp '{version}'");
 
         if version.trim() == format!("Cap'n Proto version {}", CAPNP_VERSION) {
-            capnp_path = bin.clone();
+            capnp_path = Some(CapnprotoAcquired::OnSystem(bin.clone()));
             Ok(bin)
         } else {
             println!("cargo:warning=System version of capnp found ({}) does not meet version requirement {CAPNP_VERSION}.", &version);
@@ -70,6 +89,13 @@ fn main() -> anyhow::Result<()> {
             // is dst consistent? might need to write this down somewhere if it isn't
             let dst = cmake::build("capnproto");
             capnp_path = dst.join("bin/capnp");
+            assert_eq!(out_dir, dst);
+
+            // place the capnproto binary in $OUT_DIR, next to where binary_decision.rs
+            // is intended to go
+            capnp_path = Some(CapnprotoAcquired::Locally(RelativePathBuf::from(
+                "bin/capnp",
+            )));
         } else if cfg!(target_os = "windows") {
             // download the release zip into $OUT_DIR
             let capnp_url =
@@ -86,18 +112,16 @@ fn main() -> anyhow::Result<()> {
             }
             println!("Download successful.");
 
-            let capnp_dir =
-                PathBuf::from(env::var("OUT_DIR").context("Cargo did not set $OUT_DIR.")?);
-
             // extract the release zip into $OUT_DIR
-            fs::create_dir_all(&capnp_dir)?;
+            fs::create_dir_all(&out_dir)?;
             let cursor = Cursor::new(response.bytes()?);
-            zip_extract::extract(cursor, &capnp_dir, false)?;
+            zip_extract::extract(cursor, &out_dir, false)?;
 
-            // find where capnp.exe is
-            let capnp_exe =
-                capnp_dir.join(format!("capnproto-tools-win32-{CAPNP_VERSION}/capnp.exe"));
-            capnp_path = capnp_exe;
+            // place the capnproto binary in $OUT_DIR, next to where binary_decision.rs
+            // is intended to go
+            capnp_path = Some(CapnprotoAcquired::Locally(RelativePathBuf::from(format!(
+                "capnproto-tools-win32-{CAPNP_VERSION}/capnp.exe"
+            ))));
         } else {
             panic!("Sorry, your operating system is unsupported for building keystone.");
         }
@@ -108,11 +132,9 @@ fn main() -> anyhow::Result<()> {
     // this might cause problems later, but we'd need artefact deps that allow arbitrary
     // non-rust artefacts to fix it
 
-    let out_dir = PathBuf::from(env::var("OUT_DIR").context("Cargo did not set $OUT_DIR.")?);
-
     fs::write(
         out_dir.join("binary_decision.rs"),
-        format!("const CAPNP_BIN_PATH: &str = \"{}\";", capnp_path.display()),
+        format!("const CAPNP_BIN_PATH: &str = \"{}\";", capnp_path.unwrap()),
     )?;
 
     Ok(())

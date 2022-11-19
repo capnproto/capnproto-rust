@@ -40,7 +40,6 @@ fn append_path(cmd: &mut capnpc::CompilerCommand, strpath: &str) -> anyhow::Resu
             .as_str();
         }
     } else {
-        println!("cargo:rerun-if-changed={:?}", path);
         cmd.file(path);
         let section = format!(
             "
