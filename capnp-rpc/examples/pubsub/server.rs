@@ -83,7 +83,7 @@ impl PublisherImpl {
                 next_id: 0,
                 subscribers: subscribers.clone(),
             },
-            subscribers.clone(),
+            subscribers,
         )
     }
 }
