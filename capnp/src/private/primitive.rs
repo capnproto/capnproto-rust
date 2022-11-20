@@ -31,7 +31,7 @@ macro_rules! primitive_impl(
 macro_rules! primitive_impl(
     ($typ:ty, $n:expr) => (
         impl Primitive for $typ {
-            type Raw = $typ;
+            type Raw = Self;
 
             #[inline]
             fn get(raw: &Self::Raw) -> Self {

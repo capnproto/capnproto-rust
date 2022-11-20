@@ -135,7 +135,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
     ///
     /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
     /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
-    pub fn new(buffer: T, options: message::ReaderOptions) -> Result<BufferSegments<T>> {
+    pub fn new(buffer: T, options: message::ReaderOptions) -> Result<Self> {
         let mut segment_bytes = &*buffer;
 
         let segment_table = match read_segment_table(&mut segment_bytes, options)? {
@@ -146,7 +146,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
 
         assert!(segment_table.total_words() * 8 <= buffer.len());
         let segment_indices = segment_table.to_segment_indices();
-        Ok(BufferSegments {
+        Ok(Self {
             buffer,
             segment_table_bytes_len,
             segment_indices,

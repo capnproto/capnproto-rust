@@ -72,7 +72,7 @@ where
 {
     pub fn new(segments: S, options: message::ReaderOptions) -> Self {
         let limiter = ReadLimiter::new(options.traversal_limit_in_words);
-        ReaderArenaImpl {
+        Self {
             segments,
             read_limiter: limiter,
             nesting_limit: options.nesting_limit,
@@ -195,7 +195,7 @@ where
     A: Allocator,
 {
     pub fn new(allocator: A) -> Self {
-        BuilderArenaImpl {
+        Self {
             inner: RefCell::new(BuilderArenaImplInner {
                 allocator: Some(allocator),
                 segments: Vec::new(),

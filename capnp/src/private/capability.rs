@@ -86,7 +86,7 @@ pub trait ClientHook {
 }
 
 impl Clone for Box<dyn ClientHook> {
-    fn clone(&self) -> Box<dyn ClientHook> {
+    fn clone(&self) -> Self {
         self.add_ref()
     }
 }
@@ -142,7 +142,7 @@ pub trait PipelineHook {
 }
 
 impl Clone for Box<dyn PipelineHook> {
-    fn clone(&self) -> Box<dyn PipelineHook> {
+    fn clone(&self) -> Self {
         self.add_ref()
     }
 }

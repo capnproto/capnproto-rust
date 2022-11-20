@@ -85,13 +85,13 @@ mod unsync {
     }
 
     impl ReadLimiter {
-        pub fn new(limit: Option<usize>) -> ReadLimiter {
+        pub fn new(limit: Option<usize>) -> Self {
             match limit {
-                Some(value) => ReadLimiter {
+                Some(value) => Self {
                     limit: Cell::new(value),
                     error_on_limit_exceeded: true,
                 },
-                None => ReadLimiter {
+                None => Self {
                     limit: Cell::new(usize::MAX),
                     error_on_limit_exceeded: false,
                 },

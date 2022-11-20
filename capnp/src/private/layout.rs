@@ -54,16 +54,16 @@ pub enum ElementSize {
 }
 
 impl ElementSize {
-    fn from(val: u8) -> ElementSize {
+    fn from(val: u8) -> Self {
         match val {
-            0 => ElementSize::Void,
-            1 => ElementSize::Bit,
-            2 => ElementSize::Byte,
-            3 => ElementSize::TwoBytes,
-            4 => ElementSize::FourBytes,
-            5 => ElementSize::EightBytes,
-            6 => ElementSize::Pointer,
-            7 => ElementSize::InlineComposite,
+            0 => Self::Void,
+            1 => Self::Bit,
+            2 => Self::Byte,
+            3 => Self::TwoBytes,
+            4 => Self::FourBytes,
+            5 => Self::EightBytes,
+            6 => Self::Pointer,
+            7 => Self::InlineComposite,
             _ => panic!("illegal element size: {}", val),
         }
     }
@@ -118,12 +118,12 @@ pub enum PointerType {
 }
 
 impl WirePointerKind {
-    fn from(val: u8) -> WirePointerKind {
+    fn from(val: u8) -> Self {
         match val {
-            0 => WirePointerKind::Struct,
-            1 => WirePointerKind::List,
-            2 => WirePointerKind::Far,
-            3 => WirePointerKind::Other,
+            0 => Self::Struct,
+            1 => Self::List,
+            2 => Self::Far,
+            3 => Self::Other,
             _ => panic!("illegal element size: {}", val),
         }
     }
@@ -2742,7 +2742,7 @@ pub enum CapTableReader {
 impl CapTableReader {
     pub fn extract_cap(&self, index: usize) -> Option<Box<dyn ClientHook>> {
         match *self {
-            CapTableReader::Plain(hooks) => {
+            Self::Plain(hooks) => {
                 if hooks.is_null() {
                     return None;
                 }
@@ -2771,13 +2771,13 @@ pub enum CapTableBuilder {
 impl CapTableBuilder {
     pub fn into_reader(self) -> CapTableReader {
         match self {
-            CapTableBuilder::Plain(hooks) => CapTableReader::Plain(hooks),
+            Self::Plain(hooks) => CapTableReader::Plain(hooks),
         }
     }
 
     pub fn extract_cap(&self, index: usize) -> Option<Box<dyn ClientHook>> {
         match *self {
-            CapTableBuilder::Plain(hooks) => {
+            Self::Plain(hooks) => {
                 if hooks.is_null() {
                     return None;
                 }
@@ -2796,7 +2796,7 @@ impl CapTableBuilder {
 
     pub fn inject_cap(&mut self, cap: Box<dyn ClientHook>) -> usize {
         match *self {
-            CapTableBuilder::Plain(hooks) => {
+            Self::Plain(hooks) => {
                 if hooks.is_null() {
                     panic!(
                         "Called inject_cap() on a null capability table. You need \
@@ -2812,7 +2812,7 @@ impl CapTableBuilder {
 
     pub fn drop_cap(&mut self, index: usize) {
         match *self {
-            CapTableBuilder::Plain(hooks) => {
+            Self::Plain(hooks) => {
                 if hooks.is_null() {
                     panic!(
                         "Called drop_cap() on a null capability table. You need \
