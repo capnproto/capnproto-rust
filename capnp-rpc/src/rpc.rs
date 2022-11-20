@@ -1488,7 +1488,6 @@ impl<VatId> ConnectionState<VatId> {
                     .0
                     .upgrade()
                     .expect("dangling ref to import client?")
-                    .clone()
             } else {
                 let import_client = ImportClient::new(&connection_state, import_id);
                 v.import_client = Some((
@@ -1914,7 +1913,7 @@ impl<VatId> RequestHook for Request<VatId> {
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(
                     &connection_state,
-                    question_ref.clone(),
+                    question_ref,
                     Some(Promise::from_future(forked_promise1)),
                 );
 
@@ -2083,7 +2082,7 @@ impl<VatId> Pipeline<VatId> {
                     }));
 
                 state.borrow_mut().resolve_self_promise = resolve_self_promise;
-                state.borrow_mut().redirect_later = Some(RefCell::new(fork.clone()));
+                state.borrow_mut().redirect_later = Some(RefCell::new(fork));
             }
             None => {}
         }
@@ -3089,7 +3088,7 @@ impl<VatId> ClientHook for Client<VatId> {
         });
 
         match maybe_request {
-            Err(e) => Promise::err(e.clone()),
+            Err(e) => Promise::err(e),
             Ok(request) => {
                 let ::capnp::capability::RemotePromise { promise, .. } = request.send();
 
