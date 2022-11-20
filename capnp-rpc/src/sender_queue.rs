@@ -136,7 +136,7 @@ where
             ..
         } = *self.inner.borrow_mut();
         *next_id = 0;
-        let map = ::std::mem::replace(map, BTreeMap::new());
+        let map = ::std::mem::take(map);
         Drain {
             iter: map.into_iter(),
         }
