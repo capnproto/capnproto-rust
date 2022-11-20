@@ -2457,14 +2457,12 @@ fn generate_node(
                     }
                 }
 
-                (type_::Text(()), value::Text(t)) => Line(format!(
-                    "pub const {}: &'static str = {:?};",
-                    styled_name, t?
-                )),
-                (type_::Data(()), value::Data(d)) => Line(format!(
-                    "pub const {}: &'static [u8] = &{:?};",
-                    styled_name, d?
-                )),
+                (type_::Text(()), value::Text(t)) => {
+                    Line(format!("pub const {}: &str = {:?};", styled_name, t?))
+                }
+                (type_::Data(()), value::Data(d)) => {
+                    Line(format!("pub const {}: &[u8] = &{:?};", styled_name, d?))
+                }
 
                 (type_::List(_), value::List(v)) => {
                     generate_pointer_constant(gen, &styled_name, typ, v)?
