@@ -377,7 +377,7 @@ pub unsafe trait Allocator {
     /// `word_size` is the length of the segment in words, as returned from `allocate_segment()`.
     /// `words_used` is always less than or equal to `word_size`, and indicates how many
     /// words (contiguous from the start of the segment) were possibly written with non-zero values.
-    fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32);
+    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32);
 }
 
 /// A container used to build a message.
@@ -674,7 +674,7 @@ unsafe impl Allocator for HeapAllocator {
         (ptr, size)
     }
 
-    fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, _words_used: u32) {
+    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, _words_used: u32) {
         unsafe {
             alloc::alloc::dealloc(
                 ptr,
@@ -703,9 +703,11 @@ fn test_allocate_max() {
     assert_eq!(s2, allocator.max_segment_words);
     assert_eq!(s3, allocator.max_segment_words);
 
-    allocator.deallocate_segment(a1, s1, 0);
-    allocator.deallocate_segment(a2, s2, 0);
-    allocator.deallocate_segment(a3, s3, 0);
+    unsafe {
+        allocator.deallocate_segment(a1, s1, 0);
+        allocator.deallocate_segment(a2, s2, 0);
+        allocator.deallocate_segment(a3, s3, 0);
+    }
 }
 
 impl Builder<HeapAllocator> {
@@ -793,7 +795,7 @@ unsafe impl<'a> Allocator for ScratchSpaceHeapAllocator<'a> {
         }
     }
 
-    fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32) {
+    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32) {
         if ptr == self.scratch_space.as_mut_ptr() {
             // Rezero the slice to allow reuse of the allocator. We only need to write
             // words that we know might contain nonzero values.
@@ -816,7 +818,7 @@ where
         (*self).allocate_segment(minimum_size)
     }
 
-    fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32) {
+    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32) {
         (*self).deallocate_segment(ptr, word_size, words_used)
     }
 }
