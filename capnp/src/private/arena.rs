@@ -36,7 +36,7 @@ pub trait ReaderArena {
     // return pointer to start of segment, and number of words in that segment
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
 
-    fn check_offset(
+    unsafe fn check_offset(
         &self,
         segment_id: u32,
         start: *const u8,
@@ -107,7 +107,7 @@ where
         }
     }
 
-    fn check_offset(
+    unsafe fn check_offset(
         &self,
         segment_id: u32,
         start: *const u8,
@@ -261,7 +261,7 @@ where
         Ok((seg.ptr, seg.allocated))
     }
 
-    fn check_offset(
+    unsafe fn check_offset(
         &self,
         _segment_id: u32,
         start: *const u8,
@@ -334,7 +334,9 @@ where
     fn deallocate_all(&mut self) {
         if let Some(ref mut a) = self.allocator {
             for seg in &self.segments {
-                a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
+                unsafe {
+                    a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
+                }
             }
         }
     }
@@ -382,7 +384,7 @@ impl ReaderArena for NullArena {
         Err(Error::failed(String::from("tried to read from null arena")))
     }
 
-    fn check_offset(
+    unsafe fn check_offset(
         &self,
         _segment_id: u32,
         start: *const u8,

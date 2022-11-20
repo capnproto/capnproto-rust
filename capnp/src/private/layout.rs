@@ -172,7 +172,7 @@ impl WirePointer {
     ) -> Result<*const u8> {
         let this_addr: *const u8 = self as *const _ as *const _;
         let offset = 1 + ((self.offset_and_kind.get() as i32) >> 2);
-        arena.check_offset(segment_id, this_addr, offset)
+        unsafe { arena.check_offset(segment_id, this_addr, offset) }
     }
 
     #[inline]
@@ -3057,9 +3057,10 @@ impl<'a> PointerReader<'a> {
                     Ok(result && data_trunc && ptr_trunc)
                 }
             }
-            PointerType::List => self
-                .get_list_any_size(ptr::null())?
-                .is_canonical(read_head, self.pointer),
+            PointerType::List => unsafe {
+                self.get_list_any_size(ptr::null())?
+                    .is_canonical(read_head, self.pointer)
+            },
             PointerType::Capability => Ok(false),
         }
     }
@@ -3823,7 +3824,7 @@ impl<'a> ListReader<'a> {
         }
     }
 
-    pub fn is_canonical(
+    pub unsafe fn is_canonical(
         &self,
         read_head: &Cell<*const u8>,
         reff: *const WirePointer,
