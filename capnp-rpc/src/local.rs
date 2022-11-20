@@ -30,7 +30,6 @@ use futures::channel::oneshot;
 use futures::TryFutureExt;
 
 use std::cell::RefCell;
-use std::mem;
 use std::rc::Rc;
 
 pub trait ResultsDoneHook {
@@ -103,7 +102,7 @@ impl Drop for Results {
         if let (Some(message), Some(fulfiller)) =
             (self.message.take(), self.results_done_fulfiller.take())
         {
-            let cap_table = mem::replace(&mut self.cap_table, Vec::new());
+            let cap_table = ::std::mem::take(&mut self.cap_table);
             let _ = fulfiller.send(Box::new(ResultsDone::new(message, cap_table)));
         } else {
             unreachable!()

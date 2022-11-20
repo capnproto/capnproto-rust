@@ -806,7 +806,7 @@ impl<VatId> ConnectionState<VatId> {
                 answer.received_finish.set(true);
 
                 if finish.get_release_result_caps() {
-                    exports_to_release = mem::replace(&mut answer.result_exports, Vec::new());
+                    exports_to_release = ::std::mem::take(&mut answer.result_exports);
                 }
 
                 // If the pipeline has not been cloned, the following two lines cancel the call.
