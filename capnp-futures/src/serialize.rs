@@ -231,8 +231,8 @@ where
                     .copy_from_slice(&((segments[idx].len() / 8) as u32).to_le_bytes());
             }
             if segment_count == 2 {
-                for idx in 4..8 {
-                    buf[idx] = 0
+                for value in buf.iter_mut().skip(4).take(4) {
+                    *value = 0;
                 }
             }
             write.write_all(&buf).await?;
@@ -258,8 +258,8 @@ async fn write_segments<W>(mut write: W, segments: &[&[u8]]) -> Result<()>
 where
     W: AsyncWrite + Unpin,
 {
-    for i in 0..segments.len() {
-        write.write_all(segments[i]).await?;
+    for segment in segments {
+        write.write_all(segment).await?;
     }
     Ok(())
 }
