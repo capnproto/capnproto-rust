@@ -475,11 +475,11 @@ fn try_main() -> ::capnp::Result<()> {
         }
     };
 
-    let mode = Mode::parse(&*args[2])?;
+    let mode = Mode::parse(&args[2])?;
 
     match &*args[4] {
-        "none" => do_testcase2(&*args[1], mode, &*args[3], NoCompression, iters),
-        "packed" => do_testcase2(&*args[1], mode, &*args[3], Packed, iters),
+        "none" => do_testcase2(&args[1], mode, &args[3], NoCompression, iters),
+        "packed" => do_testcase2(&args[1], mode, &args[3], Packed, iters),
         s => Err(::capnp::Error::failed(format!(
             "unrecognized compression: {}",
             s
