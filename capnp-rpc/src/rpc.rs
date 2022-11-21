@@ -33,11 +33,12 @@ use futures::channel::oneshot;
 use futures::{future, Future, FutureExt, TryFutureExt};
 
 use std::cell::{Cell, RefCell};
+use std::cmp::Reverse;
 use std::collections::binary_heap::BinaryHeap;
 use std::collections::hash_map::HashMap;
+use std::mem;
 use std::rc::{Rc, Weak};
 use std::vec::Vec;
-use std::{cmp, mem};
 
 use crate::attach::Attach;
 use crate::local::ResultsDoneHook;
@@ -65,34 +66,11 @@ impl<T> ImportTable<T> {
     }
 }
 
-#[derive(PartialEq, Eq)]
-struct ReverseU32 {
-    val: u32,
-}
-
-impl cmp::Ord for ReverseU32 {
-    fn cmp(&self, other: &ReverseU32) -> cmp::Ordering {
-        if self.val > other.val {
-            cmp::Ordering::Less
-        } else if self.val < other.val {
-            cmp::Ordering::Greater
-        } else {
-            cmp::Ordering::Equal
-        }
-    }
-}
-
-impl cmp::PartialOrd for ReverseU32 {
-    fn partial_cmp(&self, other: &ReverseU32) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 struct ExportTable<T> {
     slots: Vec<Option<T>>,
 
     // prioritize lower values
-    free_ids: BinaryHeap<ReverseU32>,
+    free_ids: BinaryHeap<Reverse<u32>>,
 }
 
 struct ExportTableIter<'a, T>
@@ -130,12 +108,12 @@ impl<T> ExportTable<T> {
 
     pub fn erase(&mut self, id: u32) {
         self.slots[id as usize] = None;
-        self.free_ids.push(ReverseU32 { val: id });
+        self.free_ids.push(Reverse(id));
     }
 
     pub fn push(&mut self, val: T) -> u32 {
         match self.free_ids.pop() {
-            Some(ReverseU32 { val: id }) => {
+            Some(Reverse(id)) => {
                 self.slots[id as usize] = Some(val);
                 id
             }
