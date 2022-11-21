@@ -642,7 +642,7 @@ impl<VatId> ConnectionState<VatId> {
             Err(_) => panic!(),
         }
 
-        let pipeline = Pipeline::new(&state, question_ref, Some(Promise::from_future(promise)));
+        let pipeline = Pipeline::new(state, question_ref, Some(Promise::from_future(promise)));
         pipeline.get_pipelined_cap_move(Vec::new())
     }
 
@@ -760,7 +760,7 @@ impl<VatId> ConnectionState<VatId> {
             }
             assert_eq!(cap_table.len(), 1);
 
-            ConnectionState::write_descriptors(&connection_state, &cap_table, payload)
+            ConnectionState::write_descriptors(connection_state, &cap_table, payload)
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
@@ -1561,10 +1561,10 @@ impl<VatId> ConnectionState<VatId> {
         match descriptor.which()? {
             cap_descriptor::None(()) => Ok(None),
             cap_descriptor::SenderHosted(sender_hosted) => {
-                Ok(Some(ConnectionState::import(&state, sender_hosted, false)))
+                Ok(Some(ConnectionState::import(state, sender_hosted, false)))
             }
             cap_descriptor::SenderPromise(sender_promise) => {
-                Ok(Some(ConnectionState::import(&state, sender_promise, true)))
+                Ok(Some(ConnectionState::import(state, sender_promise, true)))
             }
             cap_descriptor::ReceiverHosted(receiver_hosted) => {
                 if let Some(ref mut exp) = state.exports.borrow_mut().find(receiver_hosted) {
@@ -1602,7 +1602,7 @@ impl<VatId> ConnectionState<VatId> {
     ) -> ::capnp::Result<Vec<Option<Box<dyn ClientHook>>>> {
         let mut result = Vec::new();
         for idx in 0..cap_table.len() {
-            result.push(ConnectionState::receive_cap(&state, cap_table.get(idx))?);
+            result.push(ConnectionState::receive_cap(state, cap_table.get(idx))?);
         }
         Ok(result)
     }
@@ -1813,8 +1813,8 @@ where
     ) {
         // Build the cap table.
         let exports = ConnectionState::write_descriptors(
-            &connection_state,
-            &cap_table,
+            connection_state,
+            cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
         );
 
