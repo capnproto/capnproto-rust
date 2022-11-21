@@ -80,8 +80,8 @@ fn evaluate_impl(
                 let mut request = func.call_request();
                 {
                     let mut params = request.get().init_params(param_values.len() as u32);
-                    for ii in 0..param_values.len() {
-                        params.set(ii as u32, param_values[ii]);
+                    for (ii, value) in param_values.iter().enumerate() {
+                        params.set(ii as u32, *value);
                     }
                 }
                 Ok(request.send().promise.await?.get()?.get_value())

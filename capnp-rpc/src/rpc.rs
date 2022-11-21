@@ -1451,8 +1451,8 @@ impl<VatId> ConnectionState<VatId> {
     ) -> Vec<ExportId> {
         let mut cap_table_builder = payload.init_cap_table(cap_table.len() as u32);
         let mut exports = Vec::new();
-        for idx in 0..cap_table.len() {
-            match cap_table[idx] {
+        for (idx, value) in cap_table.iter().enumerate() {
+            match value {
                 Some(ref cap) => {
                     match Self::write_descriptor(
                         state,
