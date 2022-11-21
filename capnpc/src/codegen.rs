@@ -617,7 +617,7 @@ pub fn getter_text(
             } else {
                 Leaf::Builder("'a")
             };
-            let member = camel_to_snake_case(&module_string.to_string());
+            let member = camel_to_snake_case(module_string);
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(
                 typ: &str,
@@ -986,7 +986,7 @@ fn generate_setter(
                         "self.builder.set_data_field::<u16>({}, value as u16)",
                         offset
                     )));
-                    (Some(the_mod.to_string()), None)
+                    (Some(the_mod), None)
                 }
                 type_::Struct(_) => {
                     return_result = true;
