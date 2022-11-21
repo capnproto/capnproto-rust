@@ -101,6 +101,10 @@ where
         unimplemented!()
     }
 
+    pub fn is_empty(&mut self) -> bool {
+        self.len() == 0
+    }
+
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
     /// any new calls to `send()` will return a future that immediately resolves to an error.
     /// If the passed-in `result` is an error, then the `WriteQueue` will resolve to that error.
