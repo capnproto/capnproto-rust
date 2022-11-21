@@ -985,7 +985,6 @@ mod tests {
     #[test]
     fn test_constants() {
         use crate::test_capnp::{test_constants, TestEnum};
-        assert_eq!(test_constants::VOID_CONST, ());
         assert_eq!(test_constants::BOOL_CONST, true);
         assert_eq!(test_constants::INT8_CONST, -123);
         assert_eq!(test_constants::INT16_CONST, -12345);
