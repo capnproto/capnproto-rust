@@ -544,7 +544,7 @@ impl Handle {
     fn new(count: &Rc<Cell<i64>>) -> Handle {
         let count = count.clone();
         count.set(count.get() + 1);
-        Handle { count: count }
+        Handle { count }
     }
 }
 

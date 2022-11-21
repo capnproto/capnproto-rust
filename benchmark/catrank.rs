@@ -108,10 +108,7 @@ impl crate::TestCase for CatRank {
             if snippet.contains(" dog ") {
                 score /= 10000.0;
             }
-            scored_results.push(ScoredResult {
-                score: score,
-                result: result,
-            });
+            scored_results.push(ScoredResult { score, result });
         }
 
         // sort in decreasing order
