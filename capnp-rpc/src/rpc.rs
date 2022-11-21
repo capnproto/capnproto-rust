@@ -1068,62 +1068,61 @@ impl<VatId> ConnectionState<VatId> {
                     Some(ref mut question) => {
                         question.is_awaiting_return = false;
                         match question.self_ref {
-                            Some(ref question_ref) => match ret.which()? {
-                                return_::Results(results) => {
-                                    let cap_table = ConnectionState::receive_caps(
-                                        &connection_state,
-                                        results?.get_cap_table()?,
-                                    )?;
+                            Some(ref question_ref) => {
+                                match ret.which()? {
+                                    return_::Results(results) => {
+                                        let cap_table = ConnectionState::receive_caps(
+                                            &connection_state,
+                                            results?.get_cap_table()?,
+                                        )?;
 
-                                    let question_ref =
-                                        question_ref.upgrade().expect("dangling question ref?");
-                                    let response = Response::new(
-                                        connection_state.clone(),
-                                        question_ref.clone(),
-                                        message,
-                                        cap_table,
-                                    );
-                                    question_ref.borrow_mut().fulfill(Promise::ok(response));
-                                }
-                                return_::Exception(e) => {
-                                    let tmp =
-                                        question_ref.upgrade().expect("dangling question ref?");
-                                    tmp.borrow_mut().reject(remote_exception_to_error(e?));
-                                }
-                                return_::Canceled(_) => {
-                                    unimplemented!()
-                                }
-                                return_::ResultsSentElsewhere(_) => {
-                                    unimplemented!()
-                                }
-                                return_::TakeFromOtherQuestion(id) => {
-                                    if let Some(ref mut answer) =
-                                        connection_state.answers.borrow_mut().slots.get_mut(&id)
-                                    {
-                                        if let Some(res) = answer.redirected_results.take() {
-                                            let tmp = question_ref
-                                                .upgrade()
-                                                .expect("dangling question ref?");
-                                            tmp.borrow_mut().fulfill(res);
+                                        let question_ref =
+                                            question_ref.upgrade().expect("dangling question ref?");
+                                        let response = Response::new(
+                                            connection_state.clone(),
+                                            question_ref.clone(),
+                                            message,
+                                            cap_table,
+                                        );
+                                        question_ref.borrow_mut().fulfill(Promise::ok(response));
+                                    }
+                                    return_::Exception(e) => {
+                                        let tmp =
+                                            question_ref.upgrade().expect("dangling question ref?");
+                                        tmp.borrow_mut().reject(remote_exception_to_error(e?));
+                                    }
+                                    return_::Canceled(_) => {
+                                        unimplemented!()
+                                    }
+                                    return_::ResultsSentElsewhere(_) => {
+                                        unimplemented!()
+                                    }
+                                    return_::TakeFromOtherQuestion(id) => {
+                                        if let Some(ref mut answer) =
+                                            connection_state.answers.borrow_mut().slots.get_mut(&id)
+                                        {
+                                            if let Some(res) = answer.redirected_results.take() {
+                                                let tmp = question_ref
+                                                    .upgrade()
+                                                    .expect("dangling question ref?");
+                                                tmp.borrow_mut().fulfill(res);
+                                            } else {
+                                                return Err(Error::failed("return.takeFromOtherQuestion referenced a call that \
+                                                     did not use sendResultsTo.yourself.".to_string()));
+                                            }
                                         } else {
-                                            return Err(Error::failed(format!(
-                                                    "return.takeFromOtherQuestion referenced a call that \
-                                                     did not use sendResultsTo.yourself.")));
+                                            return Err(Error::failed("return.takeFromOtherQuestion had invalid answer ID.".to_string()));
                                         }
-                                    } else {
-                                        return Err(Error::failed(format!(
-                                            "return.takeFromOtherQuestion had invalid answer ID."
-                                        )));
+                                    }
+                                    return_::AcceptFromThirdParty(_) => {
+                                        drop(questions);
+                                        ConnectionState::send_unimplemented(
+                                            &connection_state,
+                                            &message,
+                                        )?;
                                     }
                                 }
-                                return_::AcceptFromThirdParty(_) => {
-                                    drop(questions);
-                                    ConnectionState::send_unimplemented(
-                                        &connection_state,
-                                        &message,
-                                    )?;
-                                }
-                            },
+                            }
                             None => {
                                 match ret.which()? {
                                     return_::TakeFromOtherQuestion(_) => {
@@ -1154,9 +1153,9 @@ impl<VatId> ConnectionState<VatId> {
                     resolve::Cap(c) => match ConnectionState::receive_cap(&connection_state, c?)? {
                         Some(cap) => Ok(cap),
                         None => {
-                            return Err(Error::failed(format!(
-                                "'Resolve' contained 'CapDescriptor.none'."
-                            )));
+                            return Err(Error::failed(
+                                "'Resolve' contained 'CapDescriptor.none'.".to_string(),
+                            ));
                         }
                     },
                     resolve::Exception(e) => {
@@ -1183,9 +1182,9 @@ impl<VatId> ConnectionState<VatId> {
                             }
                         }
                         None => {
-                            return Err(Error::failed(format!(
-                                "Got 'Resolve' for a non-promise import."
-                            )));
+                            return Err(Error::failed(
+                                "Got 'Resolve' for a non-promise import.".to_string(),
+                            ));
                         }
                     }
                 }

@@ -376,16 +376,17 @@ fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp:
         let name = t?;
         for c in name.chars() {
             if !(c == '_' || c.is_alphanumeric()) {
-                return Err(capnp::Error::failed(format!(
+                return Err(capnp::Error::failed(
                     "rust.name annotation value must only contain alphanumeric characters and '_'"
-                )));
+                        .to_string(),
+                ));
             }
         }
         Ok(name)
     } else {
-        Err(capnp::Error::failed(format!(
-            "expected rust.name annotation value to be of type Text"
-        )))
+        Err(capnp::Error::failed(
+            "expected rust.name annotation value to be of type Text".to_string(),
+        ))
     }
 }
 
@@ -412,9 +413,9 @@ fn get_parent_module(annotation: schema_capnp::annotation::Reader) -> capnp::Res
         let module = t?;
         Ok(module.split("::").map(|x| x.to_string()).collect())
     } else {
-        Err(capnp::Error::failed(format!(
-            "expected rust.parentModule annotation value to be of type Text"
-        )))
+        Err(capnp::Error::failed(
+            "expected rust.parentModule annotation value to be of type Text".to_string(),
+        ))
     }
 }
 #[derive(Clone, Copy)]
@@ -525,7 +526,7 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
         | value::Uint32(0)
         | value::Uint64(0) => Ok(None),
 
-        value::Bool(true) => Ok(Some(format!("true"))),
+        value::Bool(true) => Ok(Some("true".to_string())),
         value::Int8(i) => Ok(Some(i.to_string())),
         value::Int16(i) => Ok(Some(i.to_string())),
         value::Int32(i) => Ok(Some(i.to_string())),
@@ -616,7 +617,7 @@ pub fn getter_text(
             } else {
                 Leaf::Builder("'a")
             };
-            let member = camel_to_snake_case(&format!("{}", module_string));
+            let member = camel_to_snake_case(&module_string.to_string());
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(
                 typ: &str,
@@ -748,7 +749,7 @@ pub fn getter_text(
                         Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}), ::core::option::Option::None)", member, offset))
                     }
                 }
-                _ => return Err(Error::failed(format!("default value was of wrong type"))),
+                _ => return Err(Error::failed("default value was of wrong type".to_string())),
             };
             Ok((result_type, getter_code, default_decl))
         }
@@ -814,9 +815,9 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
             }
             Ok(Branch(result))
         }
-        _ => Err(Error::failed(format!(
-            "zero_fields_of_groupd() expected a struct"
-        ))),
+        _ => Err(Error::failed(
+            "zero_fields_of_groupd() expected a struct".to_string(),
+        )),
     }
 }
 
@@ -867,9 +868,9 @@ fn generate_setter(
 
             initter_interior.push(zero_fields_of_group(gen, group.get_type_id())?);
 
-            initter_interior.push(Line(format!(
-                "::capnp::traits::FromStructBuilder::new(self.builder)"
-            )));
+            initter_interior.push(Line(
+                "::capnp::traits::FromStructBuilder::new(self.builder)".to_string(),
+            ));
 
             (
                 None,
@@ -985,7 +986,7 @@ fn generate_setter(
                         "self.builder.set_data_field::<u16>({}, value as u16)",
                         offset
                     )));
-                    (Some(format!("{}", the_mod)), None)
+                    (Some(the_mod.to_string()), None)
                 }
                 type_::Struct(_) => {
                     return_result = true;
@@ -1052,7 +1053,7 @@ fn generate_setter(
                         (None, Some("::capnp::any_pointer::Builder<'a>".to_string()))
                     }
                 }
-                _ => return Err(Error::failed(format!("unrecognized type"))),
+                _ => return Err(Error::failed("unrecognized type".to_string())),
             }
         }
     };
@@ -2170,11 +2171,11 @@ fn generate_node(
                     Indent(Box::new(Line(format!("fn new(hook: Box<dyn (::capnp::private::capability::ClientHook)>) -> Client{} {{", bracketed_params)))),
                     Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client: ::capnp::capability::Client::new(hook), {} }}", params.phantom_data_value)))))),
                     Indent(Box::new(Line("}".to_string()))),
-                    Indent(Box::new(Line(format!("fn into_client_hook(self) -> Box<dyn (::capnp::private::capability::ClientHook)> {{")))),
-                    Indent(Box::new(Indent(Box::new(Line(format!("self.client.hook")))))),
+                    Indent(Box::new(Line("fn into_client_hook(self) -> Box<dyn (::capnp::private::capability::ClientHook)> {".to_string()))),
+                    Indent(Box::new(Indent(Box::new(Line("self.client.hook".to_string()))))),
                     Indent(Box::new(Line("}".to_string()))),
-                    Indent(Box::new(Line(format!("fn as_client_hook(&self) -> &dyn (::capnp::private::capability::ClientHook) {{")))),
-                    Indent(Box::new(Indent(Box::new(Line(format!("&*self.client.hook")))))),
+                    Indent(Box::new(Line("fn as_client_hook(&self) -> &dyn (::capnp::private::capability::ClientHook) {".to_string()))),
+                    Indent(Box::new(Indent(Box::new(Line("&*self.client.hook".to_string()))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
@@ -2204,7 +2205,7 @@ fn generate_node(
                 Indent(
                     Box::new(Branch(vec![
                         Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Client<{}>> {{",params.params)),
-                        Indent(Box::new(Line(format!("::core::result::Result::Ok(::capnp::capability::FromClientHook::new(reader.get_capability()?))")))),
+                        Indent(Box::new(Line("::core::result::Result::Ok(::capnp::capability::FromClientHook::new(reader.get_capability()?))".to_string()))),
                         Line("}".to_string())]))),
                 Line("}".to_string()))));
 
@@ -2473,14 +2474,14 @@ fn generate_node(
                 }
 
                 (type_::Interface(_t), value::Interface(())) => {
-                    return Err(Error::unimplemented(format!("interface constants")));
+                    return Err(Error::unimplemented("interface constants".to_string()));
                 }
                 (type_::AnyPointer(_), value::AnyPointer(_pr)) => {
-                    return Err(Error::unimplemented(format!("anypointer constants")));
+                    return Err(Error::unimplemented("anypointer constants".to_string()));
                 }
 
                 _ => {
-                    return Err(Error::failed(format!("type does not match value")));
+                    return Err(Error::failed("type does not match value".to_string()));
                 }
             };
 

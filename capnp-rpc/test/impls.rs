@@ -142,10 +142,10 @@ impl test_interface::Server for TestInterface {
         self.increment_call_count();
         let params = pry!(params.get());
         if params.get_i() != 123 {
-            return Promise::err(Error::failed(format!("expected i to equal 123")));
+            return Promise::err(Error::failed("expected i to equal 123".to_string()));
         }
         if !params.get_j() {
-            return Promise::err(Error::failed(format!("expected j to be true")));
+            return Promise::err(Error::failed("expected j to be true".to_string()));
         }
         {
             let mut results = results.get();
@@ -184,10 +184,10 @@ impl test_interface::Server for TestExtends {
     ) -> Promise<(), Error> {
         let params = pry!(params.get());
         if params.get_i() != 321 {
-            return Promise::err(Error::failed(format!("expected i to equal 321")));
+            return Promise::err(Error::failed("expected i to equal 321".to_string()));
         }
         if params.get_j() {
-            return Promise::err(Error::failed(format!("expected j to be false")));
+            return Promise::err(Error::failed("expected j to be false".to_string()));
         }
         {
             let mut results = results.get();
