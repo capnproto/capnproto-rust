@@ -689,11 +689,11 @@ pub fn getter_text(
                     primitive_case(&typ, &member, offset, f.to_bits(), 0),
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
-                        Line(format!("::capnp::traits::FromU16::from_u16(self.{member}.get_data_field::<u16>({offset}))"))
+                        Line(format!("::core::convert::TryInto::try_into(self.{member}.get_data_field::<u16>({offset}))"))
                     } else {
                         Line(
                             format!(
-                                "::capnp::traits::FromU16::from_u16(self.{member}.get_data_field_mask::<u16>({offset}, {d}))"))
+                                "::core::convert::TryInto::try_into(self.{member}.get_data_field_mask::<u16>({offset}, {d}))"))
                     }
                 }
 
@@ -1926,28 +1926,33 @@ fn generate_node(
                 Line("}".to_string()),
             ]));
 
-            output.push(
-                Branch(vec!(
-                    Line(format!("impl ::capnp::traits::FromU16 for {last_name} {{")),
-                    Indent(Box::new(Line("#[inline]".to_string()))),
-                    Indent(
-                        Box::new(Branch(vec![
-                            Line(
-                                "fn from_u16(value: u16) -> ::core::result::Result<Self, ::capnp::NotInSchema> {".to_string()
-                                ),
-                            Indent(
-                                Box::new(Branch(vec![
-                                    Line("match value {".to_string()),
-                                    Indent(Box::new(Branch(match_branches))),
-                                    Line("}".to_string())
-                                        ]))),
-                            Line("}".to_string())]))),
+            output.push(Branch(vec![
+                Line(format!(
+                    "impl ::core::convert::TryFrom<u16> for {last_name} {{"
+                )),
+                Indent(Box::new(Line(
+                    "type Error = ::capnp::NotInSchema;".to_string(),
+                ))),
+                Indent(Box::new(Branch(vec![
+                    Line(
+                        "fn try_from(value: u16) -> ::core::result::Result<Self, Self::Error> {"
+                            .to_string(),
+                    ),
+                    Indent(Box::new(Branch(vec![
+                        Line("match value {".to_string()),
+                        Indent(Box::new(Branch(match_branches))),
+                        Line("}".to_string()),
+                    ]))),
                     Line("}".to_string()),
-                    Line(format!("impl From<{last_name}> for u16 {{")),
-                    Indent(Box::new(Line("#[inline]".to_string()))),
-                    Indent(
-                        Box::new(Line(format!("fn from(x: {last_name}) -> u16 {{ x as u16 }}")))),
-                    Line("}".to_string()))));
+                ]))),
+                Line("}".to_string()),
+                Line(format!("impl From<{last_name}> for u16 {{")),
+                Indent(Box::new(Line("#[inline]".to_string()))),
+                Indent(Box::new(Line(format!(
+                    "fn from(x: {last_name}) -> u16 {{ x as u16 }}"
+                )))),
+                Line("}".to_string()),
+            ]));
 
             output.push(Branch(vec![
                 Line(format!(

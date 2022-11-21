@@ -24,7 +24,7 @@
 use crate::private::layout::{
     ListBuilder, ListReader, PointerBuilder, PointerReader, PrimitiveElement, TwoBytes,
 };
-use crate::traits::{FromPointerBuilder, FromPointerReader, FromU16, IndexMove, ListIter};
+use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
 use crate::{NotInSchema, Result};
 
 use core::marker::PhantomData;
@@ -36,7 +36,7 @@ pub struct Owned<T> {
 
 impl<T> crate::traits::Owned for Owned<T>
 where
-    T: FromU16,
+    T: TryFrom<u16, Error = NotInSchema>,
 {
     type Reader<'a> = Reader<'a, T>;
     type Builder<'a> = Builder<'a, T>;
@@ -48,7 +48,7 @@ pub struct Reader<'a, T> {
     reader: ListReader<'a>,
 }
 
-impl<'a, T: FromU16> Reader<'a, T> {
+impl<'a, T: TryFrom<u16, Error = NotInSchema>> Reader<'a, T> {
     pub fn len(&self) -> u32 {
         self.reader.len()
     }
@@ -63,7 +63,7 @@ impl<'a, T: FromU16> Reader<'a, T> {
     }
 }
 
-impl<'a, T: FromU16> FromPointerReader<'a> for Reader<'a, T> {
+impl<'a, T: TryFrom<u16, Error = NotInSchema>> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(
         reader: &PointerReader<'a>,
         default: Option<&'a [crate::Word]>,
@@ -75,19 +75,21 @@ impl<'a, T: FromU16> FromPointerReader<'a> for Reader<'a, T> {
     }
 }
 
-impl<'a, T: FromU16> IndexMove<u32, ::core::result::Result<T, NotInSchema>> for Reader<'a, T> {
+impl<'a, T: TryFrom<u16, Error = NotInSchema>>
+    IndexMove<u32, ::core::result::Result<T, NotInSchema>> for Reader<'a, T>
+{
     fn index_move(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         self.get(index)
     }
 }
 
-impl<'a, T: FromU16> Reader<'a, T> {
+impl<'a, T: TryFrom<u16, Error = NotInSchema>> Reader<'a, T> {
     /// Gets the `T` at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         assert!(index < self.len());
         let result: u16 = PrimitiveElement::get(&self.reader, index);
-        FromU16::from_u16(result)
+        result.try_into()
     }
 
     /// Gets the `T` at position `index`. Returns `None` if `index`
@@ -95,7 +97,7 @@ impl<'a, T: FromU16> Reader<'a, T> {
     pub fn try_get(&self, index: u32) -> Option<::core::result::Result<T, NotInSchema>> {
         if index < self.len() {
             let result: u16 = PrimitiveElement::get(&self.reader, index);
-            Some(FromU16::from_u16(result))
+            Some(result.try_into())
         } else {
             None
         }
@@ -116,7 +118,7 @@ pub struct Builder<'a, T> {
     builder: ListBuilder<'a>,
 }
 
-impl<'a, T: Into<u16> + FromU16> Builder<'a, T> {
+impl<'a, T: Into<u16> + TryFrom<u16, Error = NotInSchema>> Builder<'a, T> {
     pub fn len(&self) -> u32 {
         self.builder.len()
     }
@@ -138,7 +140,7 @@ impl<'a, T: Into<u16> + FromU16> Builder<'a, T> {
     }
 }
 
-impl<'a, T: FromU16> FromPointerBuilder<'a> for Builder<'a, T> {
+impl<'a, T: TryFrom<u16, Error = NotInSchema>> FromPointerBuilder<'a> for Builder<'a, T> {
     fn init_pointer(builder: PointerBuilder<'a>, size: u32) -> Builder<'a, T> {
         Builder {
             builder: builder.init_list(TwoBytes, size),
@@ -156,13 +158,13 @@ impl<'a, T: FromU16> FromPointerBuilder<'a> for Builder<'a, T> {
     }
 }
 
-impl<'a, T: Into<u16> + FromU16> Builder<'a, T> {
+impl<'a, T: Into<u16> + TryFrom<u16, Error = NotInSchema>> Builder<'a, T> {
     /// Gets the `T` at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         assert!(index < self.len());
         let result: u16 = PrimitiveElement::get_from_builder(&self.builder, index);
-        FromU16::from_u16(result)
+        result.try_into()
     }
 
     /// Gets the `T` at position `index`. Returns `None` if `index`
@@ -170,7 +172,7 @@ impl<'a, T: Into<u16> + FromU16> Builder<'a, T> {
     pub fn try_get(&self, index: u32) -> Option<::core::result::Result<T, NotInSchema>> {
         if index < self.len() {
             let result: u16 = PrimitiveElement::get_from_builder(&self.builder, index);
-            Some(FromU16::from_u16(result))
+            Some(result.try_into())
         } else {
             None
         }
@@ -194,7 +196,7 @@ impl<'a, T> crate::traits::SetPointerBuilder for Reader<'a, T> {
     }
 }
 
-impl<'a, T: FromU16> ::core::iter::IntoIterator for Reader<'a, T> {
+impl<'a, T: TryFrom<u16, Error = NotInSchema>> ::core::iter::IntoIterator for Reader<'a, T> {
     type Item = ::core::result::Result<T, NotInSchema>;
     type IntoIter = ListIter<Reader<'a, T>, Self::Item>;
 

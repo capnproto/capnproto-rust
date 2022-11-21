@@ -107,10 +107,6 @@ pub trait HasTypeId {
     const TYPE_ID: u64;
 }
 
-pub trait FromU16: Sized {
-    fn from_u16(value: u16) -> ::core::result::Result<Self, crate::NotInSchema>;
-}
-
 pub trait IndexMove<I, T> {
     fn index_move(&self, index: I) -> T;
 }

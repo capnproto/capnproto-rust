@@ -86,7 +86,8 @@ pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
     car.set_model(MODELS[rng.next_less_than(MODELS.len() as u32) as usize]);
 
     car.set_color(
-        ::capnp::traits::FromU16::from_u16(rng.next_less_than(Color::Silver as u32 + 1) as u16)
+        (rng.next_less_than(Color::Silver as u32 + 1) as u16)
+            .try_into()
             .unwrap(),
     );
     car.set_seats(2 + rng.next_less_than(6) as u8);

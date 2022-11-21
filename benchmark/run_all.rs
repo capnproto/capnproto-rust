@@ -112,7 +112,7 @@ pub fn main() {
     match try_main() {
         Ok(()) => (),
         Err(e) => {
-            panic!("error: {:?}", e);
+            panic!("error: {e:?}");
         }
     }
 }
