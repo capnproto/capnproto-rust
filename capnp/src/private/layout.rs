@@ -2750,10 +2750,7 @@ impl CapTableReader {
                 if index >= hooks.len() {
                     None
                 } else {
-                    match hooks[index] {
-                        None => None,
-                        Some(ref hook) => Some(hook.add_ref()),
-                    }
+                    hooks[index].as_ref().map(|hook| hook.add_ref())
                 }
             }
         }
@@ -2785,10 +2782,7 @@ impl CapTableBuilder {
                 if index >= hooks.len() {
                     None
                 } else {
-                    match hooks[index] {
-                        None => None,
-                        Some(ref hook) => Some(hook.add_ref()),
-                    }
+                    hooks[index].as_ref().map(|hook| hook.add_ref())
                 }
             }
         }

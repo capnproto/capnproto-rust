@@ -287,18 +287,18 @@ pub enum OutputSegments<'a> {
 impl<'a> core::ops::Deref for OutputSegments<'a> {
     type Target = [&'a [u8]];
     fn deref(&self) -> &[&'a [u8]] {
-        match *self {
-            OutputSegments::SingleSegment(ref s) => s,
-            OutputSegments::MultiSegment(ref v) => v,
+        match self {
+            OutputSegments::SingleSegment(s) => s,
+            OutputSegments::MultiSegment(v) => v,
         }
     }
 }
 
 impl<'s> message::ReaderSegments for OutputSegments<'s> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
-        match *self {
-            OutputSegments::SingleSegment(ref s) => s.get(id as usize).copied(),
-            OutputSegments::MultiSegment(ref v) => v.get(id as usize).copied(),
+        match self {
+            OutputSegments::SingleSegment(s) => s.get(id as usize).copied(),
+            OutputSegments::MultiSegment(v) => v.get(id as usize).copied(),
         }
     }
 }

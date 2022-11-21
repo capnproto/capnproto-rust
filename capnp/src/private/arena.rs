@@ -289,8 +289,8 @@ where
 {
     /// Allocates a new segment with capacity for at least `minimum_size` words.
     fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
-        let seg = match self.allocator {
-            Some(ref mut a) => a.allocate_segment(minimum_size),
+        let seg = match &mut self.allocator {
+            Some(a) => a.allocate_segment(minimum_size),
             None => unreachable!(),
         };
         self.segments.push(BuilderSegment {
@@ -332,7 +332,7 @@ where
     }
 
     fn deallocate_all(&mut self) {
-        if let Some(ref mut a) = self.allocator {
+        if let Some(a) = &mut self.allocator {
             for seg in &self.segments {
                 a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
             }

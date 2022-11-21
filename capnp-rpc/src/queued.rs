@@ -143,7 +143,7 @@ impl PipelineHook for Pipeline {
     }
 
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<dyn ClientHook> {
-        if let Some(ref p) = self.inner.borrow().redirect {
+        if let Some(p) = &self.inner.borrow().redirect {
             return p.get_pipelined_cap_move(ops);
         }
 
@@ -258,7 +258,7 @@ impl ClientHook for Client {
         params: Box<dyn ParamsHook>,
         results: Box<dyn ResultsHook>,
     ) -> Promise<(), Error> {
-        if let Some(ref client) = self.inner.borrow().redirect {
+        if let Some(client) = &self.inner.borrow().redirect {
             return client.call(interface_id, method_id, params, results);
         }
 
@@ -288,20 +288,20 @@ impl ClientHook for Client {
     }
 
     fn get_resolved(&self) -> Option<Box<dyn ClientHook>> {
-        match self.inner.borrow().redirect {
-            Some(ref inner) => Some(inner.clone()),
+        match &self.inner.borrow().redirect {
+            Some(inner) => Some(inner.clone()),
             None => None,
         }
     }
 
     fn when_more_resolved(&self) -> Option<Promise<Box<dyn ClientHook>, Error>> {
-        if let Some(ref client) = self.inner.borrow().redirect {
+        if let Some(client) = &self.inner.borrow().redirect {
             return Some(Promise::ok(client.add_ref()));
         }
 
         let promise = self.inner.borrow_mut().client_resolution_queue.push(());
-        match self.inner.borrow().promise_to_drive {
-            Some(ref p) => Some(Promise::from_future(
+        match &self.inner.borrow().promise_to_drive {
+            Some(p) => Some(Promise::from_future(
                 futures::future::try_join(p.clone(), promise).map_ok(|v| v.1),
             )),
             None => Some(Promise::from_future(promise)),
