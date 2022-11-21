@@ -106,7 +106,7 @@ impl Serialize for NoCompression {
         W: io::Write,
         A: message::Allocator,
     {
-        serialize::write_message(write, message).map_err(|e| e.into())
+        serialize::write_message(write, message)
     }
 }
 
@@ -133,7 +133,7 @@ impl Serialize for Packed {
         W: io::Write,
         A: message::Allocator,
     {
-        serialize_packed::write_message(write, message).map_err(|e| e.into())
+        serialize_packed::write_message(write, message)
     }
 }
 
