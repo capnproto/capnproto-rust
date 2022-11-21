@@ -3052,7 +3052,7 @@ impl<VatId> ClientHook for Client<VatId> {
         let maybe_request = params.get().and_then(|p| {
             let mut request = p
                 .target_size()
-                .and_then(|s| Ok(self.new_call(interface_id, method_id, Some(s))))?;
+                .map(|s| self.new_call(interface_id, method_id, Some(s)))?;
             request.get().set_as(p)?;
             Ok(request)
         });
