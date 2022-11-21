@@ -52,7 +52,7 @@ impl FastRand {
         self.y = self.z;
         self.z = self.w;
         self.w = self.w ^ (self.w >> 19) ^ tmp ^ (tmp >> 8);
-        return self.w;
+        self.w
     }
 
     #[inline]
@@ -80,7 +80,7 @@ pub fn div(a: i32, b: i32) -> i32 {
     if a == i32::MIN && b == -1 {
         return i32::MAX;
     }
-    return a / b;
+    a / b
 }
 
 #[inline]
@@ -91,7 +91,7 @@ pub fn modulus(a: i32, b: i32) -> i32 {
     if a == i32::MIN && b == -1 {
         return i32::MAX;
     }
-    return a % b;
+    a % b
 }
 
 pub const WORDS: [&str; 13] = [
