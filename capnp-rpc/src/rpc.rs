@@ -127,10 +127,7 @@ impl<T> ExportTable<T> {
     pub fn find(&mut self, id: u32) -> Option<&mut T> {
         let idx = id as usize;
         if idx < self.slots.len() {
-            match self.slots[idx] {
-                Some(ref mut v) => Some(v),
-                None => None,
-            }
+            self.slots[idx].as_mut()
         } else {
             None
         }
