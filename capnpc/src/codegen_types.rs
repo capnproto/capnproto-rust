@@ -328,7 +328,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             type_::Struct(st) => {
                 let brand = st.get_brand()?;
                 let scopes = brand.get_scopes()?;
-                Ok(scopes.len() > 0)
+                Ok(!scopes.is_empty())
             }
             _ => Ok(false),
         }

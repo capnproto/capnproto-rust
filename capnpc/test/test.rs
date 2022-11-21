@@ -1977,7 +1977,7 @@ mod tests {
         let reader =
             serialize::read_message(raw_code_gen_request.as_slice(), ReaderOptions::new()).unwrap();
         let generator_context = capnpc::codegen::GeneratorContext::new(&reader).unwrap();
-        assert!(generator_context.node_map.len() > 0);
-        assert!(generator_context.scope_map.len() > 0);
+        assert!(!generator_context.node_map.is_empty());
+        assert!(!generator_context.scope_map.is_empty());
     }
 }
