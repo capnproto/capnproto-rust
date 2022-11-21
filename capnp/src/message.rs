@@ -419,7 +419,7 @@ where
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
         let location: *mut u8 = seg_start;
-        let Self { ref mut arena } = *self;
+        let Self { arena } = self;
 
         any_pointer::Builder::new(layout::PointerBuilder::get_root(arena, 0, location))
     }

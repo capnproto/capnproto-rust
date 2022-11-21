@@ -174,10 +174,7 @@ impl<'a> Scratch<'a> for UseScratch {
     type Allocator = message::ScratchSpaceHeapAllocator<'a>;
 
     fn get_allocators(&'a mut self) -> (Self::Allocator, Self::Allocator) {
-        let UseScratch {
-            ref mut buffer1,
-            ref mut buffer2,
-        } = self;
+        let UseScratch { buffer1, buffer2 } = self;
         (
             message::ScratchSpaceHeapAllocator::new(capnp::Word::words_to_bytes_mut(buffer1)),
             message::ScratchSpaceHeapAllocator::new(capnp::Word::words_to_bytes_mut(buffer2)),

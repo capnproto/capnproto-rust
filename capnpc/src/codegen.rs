@@ -128,7 +128,7 @@ impl CodeGenerationCommand {
             // It would be simpler to use the ? operator instead of a pattern match, but then the error message
             // would not include `filepath`.
             match ::std::fs::File::create(&filepath) {
-                Ok(ref mut writer) => {
+                Ok(mut writer) => {
                     writer.write_all(text.as_bytes()).map_err(convert_io_err)?;
                 }
                 Err(e) => {
@@ -325,9 +325,9 @@ pub enum FormattedText {
 }
 
 fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
-    match *ft {
-        Indent(ref ft) => to_lines(ft, indent + 1),
-        Branch(ref fts) => {
+    match ft {
+        Indent(ft) => to_lines(ft, indent + 1),
+        Branch(fts) => {
             let mut result = Vec::new();
             for ft in fts.iter() {
                 for line in &to_lines(ft, indent) {
@@ -336,7 +336,7 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
             }
             result
         }
-        Line(ref s) => {
+        Line(s) => {
             let mut s1: String = " ".repeat(indent * 2);
             s1.push_str(s);
             vec![s1.to_string()]
@@ -1057,7 +1057,7 @@ fn generate_setter(
             }
         }
     };
-    if let Some(ref reader_type) = maybe_reader_type {
+    if let Some(reader_type) = &maybe_reader_type {
         let return_type = if return_result {
             "-> ::capnp::Result<()>"
         } else {
