@@ -1676,7 +1676,7 @@ where
                 DisconnectorState::Disconnecting
             }
             DisconnectorState::Disconnecting => {
-                if let Some(_) = *(self.connection_state.borrow()) {
+                if self.connection_state.borrow().is_some() {
                     DisconnectorState::Disconnecting
                 } else {
                     DisconnectorState::Disconnected
