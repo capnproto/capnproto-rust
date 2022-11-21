@@ -94,7 +94,7 @@ pub fn modulus(a: i32, b: i32) -> i32 {
     return a % b;
 }
 
-pub const WORDS: [&'static str; 13] = [
+pub const WORDS: [&str; 13] = [
     "foo ", "bar ", "baz ", "qux ", "quux ", "corge ", "grault ", "garply ", "waldo ", "fred ",
     "plugh ", "xyzzy ", "thud ",
 ];

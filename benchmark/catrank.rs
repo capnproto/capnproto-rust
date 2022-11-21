@@ -28,7 +28,7 @@ pub struct ScoredResult<'a> {
     result: search_result::Reader<'a>,
 }
 
-const URL_PREFIX: &'static str = "http://example.com";
+const URL_PREFIX: &str = "http://example.com";
 
 pub struct CatRank;
 
