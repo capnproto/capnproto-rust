@@ -9,9 +9,9 @@ pub enum Side {
   Server = 0,
   Client = 1,
 }
-impl ::capnp::traits::FromU16 for Side {
-  #[inline]
-  fn from_u16(value: u16) -> ::core::result::Result<Self, ::capnp::NotInSchema> {
+impl ::core::convert::TryFrom<u16> for Side {
+  type Error = ::capnp::NotInSchema;
+  fn try_from(value: u16) -> ::core::result::Result<Self, Self::Error> {
     match value {
       0 => ::core::result::Result::Ok(Self::Server),
       1 => ::core::result::Result::Ok(Self::Client),
@@ -74,7 +74,7 @@ pub mod vat_id {
     }
     #[inline]
     pub fn get_side(self) -> ::core::result::Result<crate::rpc_twoparty_capnp::Side,::capnp::NotInSchema> {
-      ::capnp::traits::FromU16::from_u16(self.reader.get_data_field::<u16>(0))
+      ::core::convert::TryInto::try_into(self.reader.get_data_field::<u16>(0))
     }
   }
 
@@ -126,7 +126,7 @@ pub mod vat_id {
     }
     #[inline]
     pub fn get_side(self) -> ::core::result::Result<crate::rpc_twoparty_capnp::Side,::capnp::NotInSchema> {
-      ::capnp::traits::FromU16::from_u16(self.builder.get_data_field::<u16>(0))
+      ::core::convert::TryInto::try_into(self.builder.get_data_field::<u16>(0))
     }
     #[inline]
     pub fn set_side(&mut self, value: crate::rpc_twoparty_capnp::Side)  {

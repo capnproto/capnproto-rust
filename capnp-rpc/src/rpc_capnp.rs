@@ -3807,7 +3807,7 @@ pub mod exception {
     }
     #[inline]
     pub fn get_type(self) -> ::core::result::Result<crate::rpc_capnp::exception::Type,::capnp::NotInSchema> {
-      ::capnp::traits::FromU16::from_u16(self.reader.get_data_field::<u16>(2))
+      ::core::convert::TryInto::try_into(self.reader.get_data_field::<u16>(2))
     }
     #[inline]
     pub fn get_trace(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
@@ -3899,7 +3899,7 @@ pub mod exception {
     }
     #[inline]
     pub fn get_type(self) -> ::core::result::Result<crate::rpc_capnp::exception::Type,::capnp::NotInSchema> {
-      ::capnp::traits::FromU16::from_u16(self.builder.get_data_field::<u16>(2))
+      ::core::convert::TryInto::try_into(self.builder.get_data_field::<u16>(2))
     }
     #[inline]
     pub fn set_type(&mut self, value: crate::rpc_capnp::exception::Type)  {
@@ -3943,9 +3943,9 @@ pub mod exception {
     Disconnected = 2,
     Unimplemented = 3,
   }
-  impl ::capnp::traits::FromU16 for Type {
-    #[inline]
-    fn from_u16(value: u16) -> ::core::result::Result<Self, ::capnp::NotInSchema> {
+  impl ::core::convert::TryFrom<u16> for Type {
+    type Error = ::capnp::NotInSchema;
+    fn try_from(value: u16) -> ::core::result::Result<Self, Self::Error> {
       match value {
         0 => ::core::result::Result::Ok(Self::Failed),
         1 => ::core::result::Result::Ok(Self::Overloaded),

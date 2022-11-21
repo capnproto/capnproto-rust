@@ -23,7 +23,11 @@ use crate::common::*;
 use crate::eval_capnp::{evaluation_result, expression, Operation};
 
 fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth: u32) -> i32 {
-    exp.set_op(::capnp::traits::FromU16::from_u16(rng.next_less_than( Operation::Modulus as u32 + 1) as u16).unwrap());
+    exp.set_op(
+        (rng.next_less_than(Operation::Modulus as u32 + 1) as u16)
+            .try_into()
+            .unwrap(),
+    );
 
     let left: i32 = if rng.next_less_than(8) < depth {
         let tmp = (rng.next_less_than(128) + 1) as i32;

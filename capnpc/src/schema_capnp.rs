@@ -1023,7 +1023,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_preferred_list_encoding(self) -> ::core::result::Result<crate::schema_capnp::ElementSize,::capnp::NotInSchema> {
-        ::capnp::traits::FromU16::from_u16(self.reader.get_data_field::<u16>(13))
+        ::core::convert::TryInto::try_into(self.reader.get_data_field::<u16>(13))
       }
       #[inline]
       pub fn get_is_group(self) -> bool {
@@ -1111,7 +1111,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_preferred_list_encoding(self) -> ::core::result::Result<crate::schema_capnp::ElementSize,::capnp::NotInSchema> {
-        ::capnp::traits::FromU16::from_u16(self.builder.get_data_field::<u16>(13))
+        ::core::convert::TryInto::try_into(self.builder.get_data_field::<u16>(13))
       }
       #[inline]
       pub fn set_preferred_list_encoding(&mut self, value: crate::schema_capnp::ElementSize)  {
@@ -5991,9 +5991,9 @@ pub enum ElementSize {
   Pointer = 6,
   InlineComposite = 7,
 }
-impl ::capnp::traits::FromU16 for ElementSize {
-  #[inline]
-  fn from_u16(value: u16) -> ::core::result::Result<Self, ::capnp::NotInSchema> {
+impl ::core::convert::TryFrom<u16> for ElementSize {
+  type Error = ::capnp::NotInSchema;
+  fn try_from(value: u16) -> ::core::result::Result<Self, Self::Error> {
     match value {
       0 => ::core::result::Result::Ok(Self::Empty),
       1 => ::core::result::Result::Ok(Self::Bit),
