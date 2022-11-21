@@ -572,11 +572,8 @@ impl TestCapDestructor {
 
 impl Drop for TestCapDestructor {
     fn drop(&mut self) {
-        match self.fulfiller.take() {
-            Some(f) => {
-                let _ = f.send(());
-            }
-            None => (),
+        if let Some(f) = self.fulfiller.take() {
+            let _ = f.send(());
         }
     }
 }
