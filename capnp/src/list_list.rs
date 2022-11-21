@@ -129,12 +129,12 @@ where
     }
 }
 
-impl<'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T>
+impl<'a, T> From<Reader<'a, T>> for ListReader<'a>
 where
     T: crate::traits::Owned,
 {
-    fn into_internal_list_reader(self) -> ListReader<'a> {
-        self.reader
+    fn from(value: Reader<'a, T>) -> Self {
+        value.reader
     }
 }
 
@@ -234,13 +234,12 @@ where
 
     pub fn set<'b>(&self, index: u32, value: T::Reader<'a>) -> Result<()>
     where
-        T::Reader<'a>: crate::traits::IntoInternalListReader<'b>,
+        T::Reader<'a>: Into<ListReader<'b>>,
     {
-        use crate::traits::IntoInternalListReader;
         assert!(index < self.len());
         self.builder
             .get_pointer_element(index)
-            .set_list(&value.into_internal_list_reader(), false)
+            .set_list(&value.into(), false)
     }
 }
 

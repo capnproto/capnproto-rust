@@ -93,9 +93,9 @@ impl<'a> Reader<'a> {
     }
 }
 
-impl<'a> crate::traits::IntoInternalListReader<'a> for Reader<'a> {
-    fn into_internal_list_reader(self) -> ListReader<'a> {
-        self.reader
+impl<'a> From<Reader<'a>> for ListReader<'a> {
+    fn from(value: Reader<'a>) -> Self {
+        value.reader
     }
 }
 

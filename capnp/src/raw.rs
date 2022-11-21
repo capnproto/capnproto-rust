@@ -20,7 +20,7 @@
 
 //! Functions providing low level access to encoded data.
 
-use crate::traits::{IntoInternalListReader, IntoInternalStructReader};
+use crate::{private::layout::ListReader, traits::IntoInternalStructReader};
 
 /// Gets a slice view of the data section of a struct.
 pub fn get_struct_data_section<'a, T>(value: T) -> &'a [u8]
@@ -47,23 +47,23 @@ where
 /// Gets the size of the elements in a list.
 pub fn get_list_element_size<'a, T>(value: T) -> crate::private::layout::ElementSize
 where
-    T: IntoInternalListReader<'a>,
+    T: Into<ListReader<'a>>,
 {
-    value.into_internal_list_reader().get_element_size()
+    value.into().get_element_size()
 }
 
 /// Gets the number of bits between successive elements in a list.
 pub fn get_list_step_size_in_bits<'a, T>(value: T) -> u32
 where
-    T: IntoInternalListReader<'a>,
+    T: Into<ListReader<'a>>,
 {
-    value.into_internal_list_reader().get_step_size_in_bits()
+    value.into().get_step_size_in_bits()
 }
 
 /// Gets a slice view of a list, excluding any tag word.
 pub fn get_list_bytes<'a, T>(value: T) -> &'a [u8]
 where
-    T: IntoInternalListReader<'a>,
+    T: Into<ListReader<'a>>,
 {
-    value.into_internal_list_reader().into_raw_bytes()
+    value.into().into_raw_bytes()
 }
