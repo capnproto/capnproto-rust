@@ -234,7 +234,7 @@ where
 
             {
                 let mut writer: &mut [u8] = &mut request_bytes;
-                compression.write_message(&mut writer, &mut message_req)?;
+                compression.write_message(&mut writer, &message_req)?;
             }
 
             let mut request_bytes1: &[u8] = &request_bytes;
@@ -247,7 +247,7 @@ where
 
         {
             let mut writer: &mut [u8] = &mut response_bytes;
-            compression.write_message(&mut writer, &mut message_res)?;
+            compression.write_message(&mut writer, &message_res)?;
         }
 
         let mut response_bytes1: &[u8] = &response_bytes;
@@ -289,7 +289,7 @@ where
             testcase.handle_request(request_reader, response)?;
         }
 
-        compression.write_message(&mut out_buffered, &mut message_res)?;
+        compression.write_message(&mut out_buffered, &message_res)?;
         out_buffered.flush()?;
     }
     Ok(())
@@ -320,7 +320,7 @@ where
             let request = message_req.init_root();
             testcase.setup_request(&mut rng, request)
         };
-        compression.write_message(&mut out_buffered, &mut message_req)?;
+        compression.write_message(&mut out_buffered, &message_req)?;
         out_buffered.flush()?;
 
         let message_reader = compression.read_message(&mut in_buffered, Default::default())?;
