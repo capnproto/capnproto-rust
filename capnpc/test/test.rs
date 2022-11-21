@@ -1849,8 +1849,8 @@ mod tests {
 
         let mut iter = structs.iter();
         assert_eq!(3, iter.nth(3).unwrap().get_u_int32_field());
-        assert_eq!(4, iter.nth(0).unwrap().get_u_int32_field());
-        assert_eq!(5, iter.nth(0).unwrap().get_u_int32_field());
+        assert_eq!(4, iter.next().unwrap().get_u_int32_field());
+        assert_eq!(5, iter.next().unwrap().get_u_int32_field());
 
         let mut c = 2;
         for s in structs.iter().skip(2) {
