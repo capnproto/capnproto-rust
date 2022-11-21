@@ -155,9 +155,6 @@ where
 {
     type Item = (In, oneshot::Sender<Out>);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.iter.next() {
-            None => None,
-            Some((_k, v)) => Some(v),
-        }
+        self.iter.next().map(|(_k, v)| v)
     }
 }
