@@ -64,12 +64,9 @@ where
     Out: 'static,
 {
     fn drop(&mut self) {
-        match self.inner.upgrade() {
-            Some(inner) => {
-                let Inner { ref mut map, .. } = *inner.borrow_mut();
-                map.remove(&self.id);
-            }
-            None => (),
+        if let Some(inner) = self.inner.upgrade() {
+            let Inner { ref mut map, .. } = *inner.borrow_mut();
+            map.remove(&self.id);
         }
     }
 }
