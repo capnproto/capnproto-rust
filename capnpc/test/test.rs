@@ -1329,9 +1329,7 @@ mod tests {
             // Data word.
             capnp::word(1, 0, 0, 0, 0x42, 0, 0, 0),
             // text pointer. offset zero. 1-byte elements. 8 total elements.
-            capnp::word(
-                'h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8, '.' as u8, '\n' as u8, 0,
-            ),
+            capnp::word(b'h', b'e', b'l', b'l', b'o', b'.', b'\n', 0),
         ];
 
         let segment_array = &[
