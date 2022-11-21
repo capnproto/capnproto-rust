@@ -161,12 +161,18 @@ pub struct UseScratch {
     buffer2: Vec<capnp::Word>,
 }
 
-impl UseScratch {
-    pub fn new() -> Self {
+impl Default for UseScratch {
+    fn default() -> Self {
         Self {
             buffer1: capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE),
             buffer2: capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE),
         }
+    }
+}
+
+impl UseScratch {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
