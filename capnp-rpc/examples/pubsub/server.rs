@@ -54,10 +54,7 @@ struct SubscriptionImpl {
 
 impl SubscriptionImpl {
     fn new(id: u64, subscribers: Rc<RefCell<SubscriberMap>>) -> Self {
-        Self {
-            id: id,
-            subscribers: subscribers,
-        }
+        Self { id, subscribers }
     }
 }
 

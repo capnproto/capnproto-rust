@@ -36,7 +36,7 @@ struct ValueImpl {
 
 impl ValueImpl {
     fn new(value: f64) -> Self {
-        Self { value: value }
+        Self { value }
     }
 }
 
@@ -98,7 +98,7 @@ struct FunctionImpl {
 impl FunctionImpl {
     fn new(param_count: u32, body: calculator::expression::Reader) -> ::capnp::Result<Self> {
         let mut result = Self {
-            param_count: param_count,
+            param_count,
             body: ::capnp_rpc::ImbuedMessageBuilder::new(::capnp::message::HeapAllocator::new()),
         };
         result.body.set_root(body)?;
@@ -196,7 +196,7 @@ impl calculator::Server for CalculatorImpl {
         let op = pry!(pry!(params.get()).get_op());
         results
             .get()
-            .set_func(capnp_rpc::new_client(OperatorImpl { op: op }));
+            .set_func(capnp_rpc::new_client(OperatorImpl { op }));
         Promise::ok(())
     }
 }
