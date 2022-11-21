@@ -115,15 +115,14 @@ impl bootstrap::Server for Bootstrap {
     }
 }
 
+#[derive(Default)]
 pub struct TestInterface {
     call_count: Rc<Cell<u64>>,
 }
 
 impl TestInterface {
-    pub fn new() -> TestInterface {
-        TestInterface {
-            call_count: Rc::new(Cell::new(0)),
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
     pub fn get_call_count(&self) -> Rc<Cell<u64>> {
         self.call_count.clone()
@@ -282,13 +281,14 @@ impl test_pipeline::Server for TestPipeline {
     }
 }
 
+#[derive(Default)]
 pub struct TestCallOrder {
     count: u32,
 }
 
 impl TestCallOrder {
-    pub fn new() -> TestCallOrder {
-        TestCallOrder { count: 0 }
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -304,6 +304,7 @@ impl test_call_order::Server for TestCallOrder {
     }
 }
 
+#[derive(Default)]
 pub struct TestMoreStuff {
     call_count: u32,
     handle_count: Rc<Cell<i64>>,
@@ -311,12 +312,8 @@ pub struct TestMoreStuff {
 }
 
 impl TestMoreStuff {
-    pub fn new() -> TestMoreStuff {
-        TestMoreStuff {
-            call_count: 0,
-            handle_count: Rc::new(Cell::new(0)),
-            client_to_hold: None,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
     /*
     pub fn get_call_count(&self) -> Rc<Cell<u64>> {
@@ -604,16 +601,18 @@ impl test_interface::Server for TestCapDestructor {
     }
 }
 
+#[derive(Default)]
 pub struct CssHandle {}
 
 impl CssHandle {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
 
 impl test_capability_server_set::handle::Server for CssHandle {}
 
+#[derive(Default)]
 pub struct TestCapabilityServerSet {
     set: Rc<
         RefCell<
@@ -624,9 +623,7 @@ pub struct TestCapabilityServerSet {
 
 impl TestCapabilityServerSet {
     pub fn new() -> Self {
-        Self {
-            set: Rc::new(RefCell::new(capnp_rpc::CapabilityServerSet::new())),
-        }
+        Self::default()
     }
 }
 

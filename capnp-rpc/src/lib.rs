@@ -330,14 +330,23 @@ where
     caps: std::collections::HashMap<usize, Rc<RefCell<C::Dispatch>>>,
 }
 
+impl<S, C> Default for CapabilityServerSet<S, C>
+where
+    C: capnp::capability::FromServer<S>,
+{
+    fn default() -> Self {
+        Self {
+            caps: std::default::Default::default(),
+        }
+    }
+}
+
 impl<S, C> CapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
 {
     pub fn new() -> Self {
-        Self {
-            caps: std::default::Default::default(),
-        }
+        Self::default()
     }
 
     /// Adds a new capability to the set and returns a client backed by it.

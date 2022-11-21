@@ -29,14 +29,20 @@ pub struct FastRand {
     w: u32,
 }
 
-impl FastRand {
-    pub fn new() -> FastRand {
-        FastRand {
+impl Default for FastRand {
+    fn default() -> Self {
+        Self {
             x: 0x1d2acd47,
             y: 0x58ca3e14,
             z: 0xf563f232,
             w: 0x0bc76199,
         }
+    }
+}
+
+impl FastRand {
+    pub fn new() -> FastRand {
+        Self::default()
     }
 
     #[inline]
