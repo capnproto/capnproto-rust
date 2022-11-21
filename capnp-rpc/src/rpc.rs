@@ -984,7 +984,7 @@ impl<VatId> ConnectionState<VatId> {
                     };
 
                 {
-                    let ref mut slots = connection_state.answers.borrow_mut().slots;
+                    let slots = &mut connection_state.answers.borrow_mut().slots;
                     let answer = slots.entry(question_id).or_insert(answer);
                     if answer.active {
                         return Err(Error::failed("questionId is already in use".to_string()));
@@ -1021,7 +1021,7 @@ impl<VatId> ConnectionState<VatId> {
                 pipeline.drive(fork.clone());
 
                 {
-                    let ref mut slots = connection_state.answers.borrow_mut().slots;
+                    let slots = &mut connection_state.answers.borrow_mut().slots;
                     match slots.get_mut(&question_id) {
                         Some(ref mut answer) => {
                             answer.pipeline = Some(Box::new(pipeline));
@@ -1146,7 +1146,7 @@ impl<VatId> ConnectionState<VatId> {
                 };
 
                 // If the import is in the table, fulfill it.
-                let ref mut slots = connection_state.imports.borrow_mut().slots;
+                let slots = &mut connection_state.imports.borrow_mut().slots;
                 if let Some(ref mut import) = slots.get_mut(&resolve.get_promise_id()) {
                     match import.promise_client_to_resolve.take() {
                         Some(weak_promise_client) => {
@@ -2901,7 +2901,7 @@ impl<VatId> Drop for PromiseClient<VatId> {
             // contain a pointer back to it.  Remove that pointer.  Note that we have to verify that
             // the import still exists and the pointer still points back to this object because this
             // object may actually outlive the import.
-            let ref mut slots = self.connection_state.imports.borrow_mut().slots;
+            let slots = &mut self.connection_state.imports.borrow_mut().slots;
             if let Some(ref mut import) = slots.get_mut(&id) {
                 let mut drop_it = false;
                 if let Some(ref c) = import.app_client {
