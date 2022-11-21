@@ -158,7 +158,7 @@ fn disconnector_disconnects() {
     spawn(
         &mut spawner,
         server_rpc_system.map(|x| {
-            let _ = tx.send(()).expect("sending on tx");
+            tx.send(()).expect("sending on tx");
             x
         }),
     );
