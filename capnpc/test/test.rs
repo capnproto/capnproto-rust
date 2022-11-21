@@ -21,6 +21,7 @@
 
 // Enable this lint to catch violations in the generated code.
 #![warn(elided_lifetimes_in_paths)]
+#![allow(clippy::bool_assert_comparison)]
 
 pub mod test_capnp {
     include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));

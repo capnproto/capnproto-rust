@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 #![cfg(test)]
+#![allow(clippy::bool_assert_comparison)]
 
 use capnp::capability::{FromClientHook, Promise};
 use capnp::Error;
