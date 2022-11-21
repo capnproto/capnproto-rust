@@ -967,9 +967,7 @@ impl<VatId> ConnectionState<VatId> {
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
                     if redirect_results {
                         let (f, p) = oneshot::channel::<Result<Response<VatId>, Error>>();
-                        let p = p
-                            .map_err(crate::canceled_to_error)
-                            .and_then(|x| future::ready(x));
+                        let p = p.map_err(crate::canceled_to_error).and_then(future::ready);
                         (Some(Promise::from_future(p)), Some(f))
                     } else {
                         (None, None)
@@ -2773,7 +2771,7 @@ impl<VatId> PromiseClient<VatId> {
             let (fulfiller, promise) = oneshot::channel::<Result<(), Error>>();
             let promise = promise
                 .map_err(crate::canceled_to_error)
-                .and_then(|v| future::ready(v));
+                .and_then(future::ready);
             let embargo = Embargo::new(fulfiller);
             let embargo_id = connection_state.embargoes.borrow_mut().push(embargo);
 
