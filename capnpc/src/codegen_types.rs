@@ -113,7 +113,7 @@ impl<'a> RustNodeInfo for node::Reader<'a> {
             let params = get_type_parameters(gen, self.get_id(), parent_node_id);
             let type_parameters = params
                 .iter()
-                .map(|param| format!("{}", param))
+                .map(|param| param.to_string())
                 .collect::<Vec<String>>()
                 .join(",");
             let where_clause = "where ".to_string()

@@ -449,5 +449,5 @@ where
 }
 
 fn canceled_to_error(_e: futures::channel::oneshot::Canceled) -> Error {
-    Error::failed(format!("oneshot was canceled"))
+    Error::failed("oneshot was canceled".to_string())
 }

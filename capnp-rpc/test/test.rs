@@ -36,7 +36,7 @@ pub mod impls;
 pub mod test_util;
 
 fn canceled_to_error(_e: futures::channel::oneshot::Canceled) -> Error {
-    Error::failed(format!("oneshot was canceled"))
+    Error::failed("oneshot was canceled".to_string())
 }
 
 #[test]
@@ -340,9 +340,9 @@ fn pipelining_return_null() {
                     )))
                 }
             }
-            Ok(_) => Err(Error::failed(format!(
-                "Should have gotten null capability error."
-            ))),
+            Ok(_) => Err(Error::failed(
+                "Should have gotten null capability error.".to_string(),
+            )),
         }
     });
 }
