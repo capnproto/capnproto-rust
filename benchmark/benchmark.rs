@@ -162,8 +162,8 @@ pub struct UseScratch {
 }
 
 impl UseScratch {
-    pub fn new() -> UseScratch {
-        UseScratch {
+    pub fn new() -> Self {
+        Self {
             buffer1: capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE),
             buffer2: capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE),
         }
@@ -174,7 +174,7 @@ impl<'a> Scratch<'a> for UseScratch {
     type Allocator = message::ScratchSpaceHeapAllocator<'a>;
 
     fn get_allocators(&'a mut self) -> (Self::Allocator, Self::Allocator) {
-        let UseScratch { buffer1, buffer2 } = self;
+        let Self { buffer1, buffer2 } = self;
         (
             message::ScratchSpaceHeapAllocator::new(capnp::Word::words_to_bytes_mut(buffer1)),
             message::ScratchSpaceHeapAllocator::new(capnp::Word::words_to_bytes_mut(buffer2)),
@@ -374,13 +374,13 @@ pub enum Mode {
 }
 
 impl Mode {
-    pub fn parse(s: &str) -> ::capnp::Result<Mode> {
+    pub fn parse(s: &str) -> ::capnp::Result<Self> {
         match s {
-            "object" => Ok(Mode::Object),
-            "bytes" => Ok(Mode::Bytes),
-            "client" => Ok(Mode::Client),
-            "server" => Ok(Mode::Server),
-            "pipe" => Ok(Mode::Pipe),
+            "object" => Ok(Self::Object),
+            "bytes" => Ok(Self::Bytes),
+            "client" => Ok(Self::Client),
+            "server" => Ok(Self::Server),
+            "pipe" => Ok(Self::Pipe),
             s => Err(::capnp::Error::failed(format!("unrecognized mode: {}", s))),
         }
     }

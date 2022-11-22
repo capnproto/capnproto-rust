@@ -40,8 +40,8 @@ struct SubscriberMap {
 }
 
 impl SubscriberMap {
-    fn new() -> SubscriberMap {
-        SubscriberMap {
+    fn new() -> Self {
+        Self {
             subscribers: HashMap::new(),
         }
     }
@@ -53,8 +53,8 @@ struct SubscriptionImpl {
 }
 
 impl SubscriptionImpl {
-    fn new(id: u64, subscribers: Rc<RefCell<SubscriberMap>>) -> SubscriptionImpl {
-        SubscriptionImpl {
+    fn new(id: u64, subscribers: Rc<RefCell<SubscriberMap>>) -> Self {
+        Self {
             id: id,
             subscribers: subscribers,
         }
@@ -76,10 +76,10 @@ struct PublisherImpl {
 }
 
 impl PublisherImpl {
-    pub fn new() -> (PublisherImpl, Rc<RefCell<SubscriberMap>>) {
+    pub fn new() -> (Self, Rc<RefCell<SubscriberMap>>) {
         let subscribers = Rc::new(RefCell::new(SubscriberMap::new()));
         (
-            PublisherImpl {
+            Self {
                 next_id: 0,
                 subscribers: subscribers.clone(),
             },

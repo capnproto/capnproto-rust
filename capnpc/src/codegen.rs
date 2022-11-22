@@ -1720,10 +1720,10 @@ fn generate_node(
                     Indent(
                         Box::new(
                             Branch(vec!(
-                                Line(format!("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Builder<'a,{}> {{", params.params)),
+                                Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self {".to_string()),
                                 Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE))".to_string()))),
                                 Line("}".to_string()),
-                                Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Builder<'a,{}>> {{", params.params)),
+                                Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
                                 Indent(Box::new(Line("::core::result::Result::Ok(::capnp::traits::FromStructBuilder::new(builder.get_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE, default)?))".to_string()))),
                                 Line("}".to_string()))))),
                     Line("}".to_string()),
@@ -1777,8 +1777,8 @@ fn generate_node(
                             params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,{}> {{", params.params)),
-                        Indent(Box::new(Line(format!("Reader {{ reader, {} }}", params.phantom_data_value)))),
+                        Line("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Self {".to_string()),
+                        Indent(Box::new(Line(format!("Self {{ reader, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1786,7 +1786,7 @@ fn generate_node(
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Reader<'a,{}>> {{",params.params)),
+                        Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
                         Indent(Box::new(Line("::core::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(default)?))".to_string()))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
@@ -1813,7 +1813,7 @@ fn generate_node(
                 Indent(
                     Box::new(Branch(vec![
                         Line(format!("pub fn reborrow(&self) -> Reader<'_,{}> {{",params.params)),
-                        Indent(Box::new(Line("Reader { .. *self }".to_string()))),
+                        Indent(Box::new(Line("Self { .. *self }".to_string()))),
                         Line("}".to_string()),
                         BlankLine,
                         Line("pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {".to_string()),
@@ -1847,8 +1847,8 @@ fn generate_node(
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a, {}> {{", params.params)),
-                        Indent(Box::new(Line(format!("Builder {{ builder, {} }}", params.phantom_data_value)))),
+                        Line("fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self {".to_string()),
+                        Indent(Box::new(Line(format!("Self {{ builder, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1866,7 +1866,7 @@ fn generate_node(
                 Line(format!(
                     "impl <'a,{0}> ::capnp::traits::SetPointerBuilder for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
-                Indent(Box::new(Line(format!("fn set_pointer_builder<'b>(pointer: ::capnp::private::layout::PointerBuilder<'b>, value: Reader<'a,{}>, canonicalize: bool) -> ::capnp::Result<()> {{ pointer.set_struct(&value.reader, canonicalize) }}", params.params)))),
+                Indent(Box::new(Line("fn set_pointer_builder<'b>(pointer: ::capnp::private::layout::PointerBuilder<'b>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }".to_string()))),
                 Line("}".to_string()),
                 BlankLine,
                 Line(format!("impl <'a,{0}> Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
@@ -2168,8 +2168,8 @@ fn generate_node(
             mod_interior.push(
                 Branch(vec!(
                     Line(format!("impl {} ::capnp::capability::FromClientHook for Client{} {{", bracketed_params, bracketed_params)),
-                    Indent(Box::new(Line(format!("fn new(hook: Box<dyn (::capnp::private::capability::ClientHook)>) -> Client{} {{", bracketed_params)))),
-                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client: ::capnp::capability::Client::new(hook), {} }}", params.phantom_data_value)))))),
+                    Indent(Box::new(Line("fn new(hook: Box<dyn (::capnp::private::capability::ClientHook)>) -> Self {".to_string()))),
+                    Indent(Box::new(Indent(Box::new(Line(format!("Self {{ client: ::capnp::capability::Client::new(hook), {} }}", params.phantom_data_value)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Indent(Box::new(Line("fn into_client_hook(self) -> Box<dyn (::capnp::private::capability::ClientHook)> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("self.client.hook".to_string()))))),
@@ -2204,7 +2204,7 @@ fn generate_node(
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Client<{}>> {{",params.params)),
+                        Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
                         Indent(Box::new(Line("::core::result::Result::Ok(::capnp::capability::FromClientHook::new(reader.get_capability()?))".to_string()))),
                         Line("}".to_string())]))),
                 Line("}".to_string()))));
@@ -2215,10 +2215,10 @@ fn generate_node(
                 Indent(
                     Box::new(
                         Branch(vec![
-                            Line(format!("fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Client<{}> {{", params.params)),
+                            Line("fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self {".to_string()),
                             Indent(Box::new(Line("unimplemented!()".to_string()))),
                             Line("}".to_string()),
-                            Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Client<{}>> {{", params.params)),
+                            Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
                             Indent(Box::new(Line("::core::result::Result::Ok(::capnp::capability::FromClientHook::new(builder.get_capability()?))".to_string()))),
                             Line("}".to_string())]))),
                 Line("}".to_string()),
@@ -2231,8 +2231,7 @@ fn generate_node(
                 Indent(
                     Box::new(
                         Branch(vec![
-                            Line(format!("fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, from: Client<{}>, _canonicalize: bool) -> ::capnp::Result<()> {{",
-                                         params.params)),
+                            Line("fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, from: Self, _canonicalize: bool) -> ::capnp::Result<()> {".to_string()),
                             Indent(Box::new(Line(
                                 "pointer.set_capability(from.client.hook);".to_string()))),
                             Indent(Box::new(Line(
@@ -2255,7 +2254,7 @@ fn generate_node(
                 Branch(vec!(
                     Line(format!("impl {0} Clone for Client{0} {{", bracketed_params)),
                     Indent(Box::new(Line("fn clone(&self) -> Self {".to_string()))),
-                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client: ::capnp::capability::Client::new(self.client.hook.add_ref()), {} }}", params.phantom_data_value)))))),
+                    Indent(Box::new(Indent(Box::new(Line(format!("Self {{ client: ::capnp::capability::Client::new(self.client.hook.add_ref()), {} }}", params.phantom_data_value)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
@@ -2334,7 +2333,7 @@ fn generate_node(
                     Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::Promise<(), ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match interface_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(
-                        Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<_T, {}>::dispatch_call_internal(&mut self.server, method_id, params, results),",params.params)))))))),
+                        Box::new(Line("_private::TYPE_ID => Self::dispatch_call_internal(&mut self.server, method_id, params, results),".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(base_dispatch_arms))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"Method not implemented.\".to_string())) }".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),

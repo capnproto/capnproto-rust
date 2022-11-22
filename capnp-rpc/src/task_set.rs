@@ -49,10 +49,8 @@ impl<E> Future for TaskInProgress<E> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         match *self {
-            TaskInProgress::Terminate(ref mut r) => {
-                Poll::Ready(TaskDone::Terminate(r.take().unwrap()))
-            }
-            TaskInProgress::Task(ref mut f) => match f.as_mut().poll(cx) {
+            Self::Terminate(ref mut r) => Poll::Ready(TaskDone::Terminate(r.take().unwrap())),
+            Self::Task(ref mut f) => match f.as_mut().poll(cx) {
                 Poll::Pending => Poll::Pending,
                 Poll::Ready(()) => Poll::Ready(TaskDone::Continue),
             },
@@ -71,14 +69,14 @@ impl<E> TaskSet<E>
 where
     E: 'static,
 {
-    pub fn new(reaper: Box<dyn TaskReaper<E>>) -> (TaskSetHandle<E>, TaskSet<E>)
+    pub fn new(reaper: Box<dyn TaskReaper<E>>) -> (TaskSetHandle<E>, Self)
     where
         E: 'static,
         E: ::std::fmt::Debug,
     {
         let (sender, receiver) = mpsc::unbounded();
 
-        let set = TaskSet {
+        let set = Self {
             enqueued: Some(receiver),
             in_progress: FuturesUnordered::new(),
             reaper: Rc::new(RefCell::new(reaper)),
@@ -132,7 +130,7 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         let mut enqueued_stream_complete = false;
-        if let TaskSet {
+        if let Self {
             enqueued: Some(ref mut enqueued),
             ref mut in_progress,
             ref reaper,

@@ -79,8 +79,8 @@ where
     In: 'static,
     Out: 'static,
 {
-    pub fn new() -> SenderQueue<In, Out> {
-        SenderQueue {
+    pub fn new() -> Self {
+        Self {
             inner: Rc::new(RefCell::new(Inner {
                 next_id: 0,
                 map: BTreeMap::new(),

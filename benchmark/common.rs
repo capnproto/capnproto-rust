@@ -30,8 +30,8 @@ pub struct FastRand {
 }
 
 impl FastRand {
-    pub fn new() -> FastRand {
-        FastRand {
+    pub fn new() -> Self {
+        Self {
             x: 0x1d2acd47,
             y: 0x58ca3e14,
             z: 0xf563f232,

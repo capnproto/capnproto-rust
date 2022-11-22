@@ -45,8 +45,8 @@ impl<M> Clone for Sender<M>
 where
     M: AsOutputSegments,
 {
-    fn clone(&self) -> Sender<M> {
-        Sender {
+    fn clone(&self) -> Self {
+        Self {
             sender: self.sender.clone(),
         }
     }

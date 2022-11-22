@@ -85,7 +85,7 @@ where
         cx: &mut std::task::Context<'_>,
         outbuf: &mut [u8],
     ) -> Poll<std::result::Result<usize, std::io::Error>> {
-        let PackedRead {
+        let Self {
             stage,
             inner,
             buf,
@@ -316,7 +316,7 @@ where
         mut inbuf: &[u8],
     ) -> Poll<std::result::Result<usize, std::io::Error>> {
         let mut inbuf_bytes_consumed: usize = 0;
-        let PackedWrite {
+        let Self {
             stage,
             inner,
             buf,

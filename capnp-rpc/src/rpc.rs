@@ -59,8 +59,8 @@ pub struct ImportTable<T> {
 }
 
 impl<T> ImportTable<T> {
-    pub fn new() -> ImportTable<T> {
-        ImportTable {
+    pub fn new() -> Self {
+        Self {
             slots: HashMap::new(),
         }
     }
@@ -99,8 +99,8 @@ where
 }
 
 impl<T> ExportTable<T> {
-    pub fn new() -> ExportTable<T> {
-        ExportTable {
+    pub fn new() -> Self {
+        Self {
             slots: Vec::new(),
             free_ids: BinaryHeap::new(),
         }
@@ -158,8 +158,8 @@ where
 }
 
 impl<VatId> Question<VatId> {
-    fn new() -> Question<VatId> {
-        Question {
+    fn new() -> Self {
+        Self {
             is_awaiting_return: true,
             param_exports: Vec::new(),
             is_tail_call: false,
@@ -184,8 +184,8 @@ impl<VatId> QuestionRef<VatId> {
         state: Rc<ConnectionState<VatId>>,
         id: QuestionId,
         fulfiller: oneshot::Sender<Promise<Response<VatId>, Error>>,
-    ) -> QuestionRef<VatId> {
-        QuestionRef {
+    ) -> Self {
+        Self {
             connection_state: state,
             id,
             fulfiller: Some(fulfiller),
@@ -267,8 +267,8 @@ where
 }
 
 impl<VatId> Answer<VatId> {
-    fn new() -> Answer<VatId> {
-        Answer {
+    fn new() -> Self {
+        Self {
             active: false,
             return_has_been_sent: false,
             pipeline: None,
@@ -290,8 +290,8 @@ pub struct Export {
 }
 
 impl Export {
-    fn new(client_hook: Box<dyn ClientHook>) -> Export {
-        Export {
+    fn new(client_hook: Box<dyn ClientHook>) -> Self {
+        Self {
             refcount: 1,
             client_hook,
             resolve_op: Promise::err(Error::failed("no resolve op".to_string())),
@@ -316,8 +316,8 @@ where
 }
 
 impl<VatId> Import<VatId> {
-    fn new() -> Import<VatId> {
-        Import {
+    fn new() -> Self {
+        Self {
             import_client: None,
             app_client: None,
             promise_client_to_resolve: None,
@@ -330,8 +330,8 @@ struct Embargo {
 }
 
 impl Embargo {
-    fn new(fulfiller: oneshot::Sender<Result<(), Error>>) -> Embargo {
-        Embargo {
+    fn new(fulfiller: oneshot::Sender<Result<(), Error>>) -> Self {
+        Self {
             fulfiller: Some(fulfiller),
         }
     }
@@ -391,8 +391,8 @@ where
 }
 
 impl<VatId> ConnectionErrorHandler<VatId> {
-    fn new(weak_state: Weak<ConnectionState<VatId>>) -> ConnectionErrorHandler<VatId> {
-        ConnectionErrorHandler { weak_state }
+    fn new(weak_state: Weak<ConnectionState<VatId>>) -> Self {
+        Self { weak_state }
     }
 }
 
@@ -430,8 +430,8 @@ impl<VatId> ConnectionState<VatId> {
         bootstrap_cap: Box<dyn ClientHook>,
         connection: Box<dyn crate::Connection<VatId>>,
         disconnect_fulfiller: oneshot::Sender<Promise<(), Error>>,
-    ) -> (TaskSet<Error>, Rc<ConnectionState<VatId>>) {
-        let state = Rc::new(ConnectionState {
+    ) -> (TaskSet<Error>, Rc<Self>) {
+        let state = Rc::new(Self {
             bootstrap_cap,
             exports: RefCell::new(ExportTable::new()),
             questions: RefCell::new(ExportTable::new()),
@@ -447,7 +447,7 @@ impl<VatId> ConnectionState<VatId> {
         let (mut handle, tasks) =
             TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))));
 
-        handle.add(ConnectionState::message_loop(Rc::downgrade(&state)));
+        handle.add(Self::message_loop(Rc::downgrade(&state)));
         *state.tasks.borrow_mut() = Some(handle);
         (tasks, state)
     }
@@ -605,7 +605,7 @@ impl<VatId> ConnectionState<VatId> {
         }
     }
 
-    pub fn bootstrap(state: &Rc<ConnectionState<VatId>>) -> Box<dyn ClientHook> {
+    pub fn bootstrap(state: &Rc<Self>) -> Box<dyn ClientHook> {
         let question_id = state.questions.borrow_mut().push(Question::new());
 
         let (fulfiller, promise) = oneshot::channel();
@@ -643,7 +643,7 @@ impl<VatId> ConnectionState<VatId> {
         pipeline.get_pipelined_cap_move(Vec::new())
     }
 
-    fn message_loop(weak_state: Weak<ConnectionState<VatId>>) -> Promise<(), capnp::Error> {
+    fn message_loop(weak_state: Weak<Self>) -> Promise<(), capnp::Error> {
         let state = match weak_state.upgrade() {
             None => {
                 return Promise::err(Error::disconnected(
@@ -661,11 +661,11 @@ impl<VatId> ConnectionState<VatId> {
         Promise::from_future(async move {
             match promise.await? {
                 Some(m) => {
-                    ConnectionState::handle_message(&weak_state, m)?;
+                    Self::handle_message(&weak_state, m)?;
                     weak_state
                         .upgrade()
                         .expect("message loop outlived connection state?")
-                        .add_task(ConnectionState::message_loop(weak_state));
+                        .add_task(Self::message_loop(weak_state));
                 }
                 None => {
                     weak_state
@@ -679,7 +679,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn send_unimplemented(
-        connection_state: &Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<Self>,
         message: &Box<dyn crate::IncomingMessage>,
     ) -> capnp::Result<()> {
         let mut out_message = connection_state.new_outgoing_message(50)?; // XXX size hint
@@ -692,7 +692,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_unimplemented(
-        connection_state: &Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<Self>,
         message: message::Reader,
     ) -> capnp::Result<()> {
         match message.which()? {
@@ -727,7 +727,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_bootstrap(
-        connection_state: &Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<Self>,
         bootstrap: bootstrap::Reader,
     ) -> capnp::Result<()> {
         use ::capnp::traits::ImbueMut;
@@ -757,7 +757,7 @@ impl<VatId> ConnectionState<VatId> {
             }
             assert_eq!(cap_table.len(), 1);
 
-            ConnectionState::write_descriptors(&connection_state, &cap_table, payload)
+            Self::write_descriptors(&connection_state, &cap_table, payload)
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
@@ -777,10 +777,7 @@ impl<VatId> ConnectionState<VatId> {
         Ok(())
     }
 
-    fn handle_finish(
-        connection_state: &Rc<ConnectionState<VatId>>,
-        finish: finish::Reader,
-    ) -> capnp::Result<()> {
+    fn handle_finish(connection_state: &Rc<Self>, finish: finish::Reader) -> capnp::Result<()> {
         let mut exports_to_release = Vec::new();
         let answer_id = finish.get_question_id();
 
@@ -825,7 +822,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_disembargo(
-        connection_state: &Rc<ConnectionState<VatId>>,
+        connection_state: &Rc<Self>,
         disembargo: disembargo::Reader,
     ) -> capnp::Result<()> {
         let context = disembargo.get_context();
@@ -896,7 +893,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn handle_message(
-        weak_state: &Weak<ConnectionState<VatId>>,
+        weak_state: &Weak<Self>,
         message: Box<dyn crate::IncomingMessage>,
     ) -> ::capnp::Result<()> {
         let connection_state = match weak_state.upgrade() {
@@ -936,7 +933,7 @@ impl<VatId> ConnectionState<VatId> {
                         call.get_interface_id(),
                         call.get_method_id(),
                         call.get_question_id(),
-                        ConnectionState::receive_caps(&connection_state, payload.get_cap_table()?)?,
+                        Self::receive_caps(&connection_state, payload.get_cap_table()?)?,
                         redirect_results,
                     )
                 };
@@ -1044,7 +1041,7 @@ impl<VatId> ConnectionState<VatId> {
                             Some(ref question_ref) => {
                                 match ret.which()? {
                                     return_::Results(results) => {
-                                        let cap_table = ConnectionState::receive_caps(
+                                        let cap_table = Self::receive_caps(
                                             &connection_state,
                                             results?.get_cap_table()?,
                                         )?;
@@ -1089,10 +1086,7 @@ impl<VatId> ConnectionState<VatId> {
                                     }
                                     return_::AcceptFromThirdParty(_) => {
                                         drop(questions);
-                                        ConnectionState::send_unimplemented(
-                                            &connection_state,
-                                            &message,
-                                        )?;
+                                        Self::send_unimplemented(&connection_state, &message)?;
                                     }
                                 }
                             }
@@ -1123,7 +1117,7 @@ impl<VatId> ConnectionState<VatId> {
             Ok(message::Resolve(resolve)) => {
                 let resolve = resolve?;
                 let replacement_or_error = match resolve.which()? {
-                    resolve::Cap(c) => match ConnectionState::receive_cap(&connection_state, c?)? {
+                    resolve::Cap(c) => match Self::receive_cap(&connection_state, c?)? {
                         Some(cap) => Ok(cap),
                         None => {
                             return Err(Error::failed(
@@ -1175,7 +1169,7 @@ impl<VatId> ConnectionState<VatId> {
             | Ok(message::ObsoleteSave(_))
             | Ok(message::ObsoleteDelete(_))
             | Err(::capnp::NotInSchema(_)) => {
-                ConnectionState::send_unimplemented(&connection_state, &message)?;
+                Self::send_unimplemented(&connection_state, &message)?;
             }
         }
         Ok(())
@@ -1322,7 +1316,7 @@ impl<VatId> ConnectionState<VatId> {
     /// to eventually resolve to the ClientHook produced by `promise`.  This method waits for that
     /// resolve to happen and then sends the appropriate `Resolve` message to the peer.
     fn resolve_exported_promise(
-        state: &Rc<ConnectionState<VatId>>,
+        state: &Rc<Self>,
         export_id: ExportId,
         promise: Promise<Box<dyn ClientHook>, Error>,
     ) -> Promise<(), Error> {
@@ -1371,7 +1365,7 @@ impl<VatId> ConnectionState<VatId> {
                         let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
                         resolve.set_promise_id(export_id);
-                        let _export = ConnectionState::write_descriptor(
+                        let _export = Self::write_descriptor(
                             &connection_state,
                             &resolution,
                             resolve.init_cap(),
@@ -1397,7 +1391,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn write_descriptor(
-        state: &Rc<ConnectionState<VatId>>,
+        state: &Rc<Self>,
         cap: &Box<dyn ClientHook>,
         mut descriptor: cap_descriptor::Builder,
     ) -> ::capnp::Result<Option<ExportId>> {
@@ -1436,9 +1430,8 @@ impl<VatId> ConnectionState<VatId> {
                     Some(wrapped) => {
                         // This is a promise.  Arrange for the `Resolve` message to be sent later.
                         if let Some(exp) = state.exports.borrow_mut().find(export_id) {
-                            exp.resolve_op = ConnectionState::resolve_exported_promise(
-                                state, export_id, wrapped,
-                            );
+                            exp.resolve_op =
+                                Self::resolve_exported_promise(state, export_id, wrapped);
                         }
                         descriptor.set_sender_promise(export_id);
                     }
@@ -1452,7 +1445,7 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn write_descriptors(
-        state: &Rc<ConnectionState<VatId>>,
+        state: &Rc<Self>,
         cap_table: &[Option<Box<dyn ClientHook>>],
         payload: payload::Builder,
     ) -> Vec<ExportId> {
@@ -1461,7 +1454,7 @@ impl<VatId> ConnectionState<VatId> {
         for idx in 0..cap_table.len() {
             match cap_table[idx] {
                 Some(ref cap) => {
-                    match ConnectionState::write_descriptor(
+                    match Self::write_descriptor(
                         state,
                         cap,
                         cap_table_builder.reborrow().get(idx as u32),
@@ -1482,11 +1475,7 @@ impl<VatId> ConnectionState<VatId> {
         exports
     }
 
-    fn import(
-        state: &Rc<ConnectionState<VatId>>,
-        import_id: ImportId,
-        is_promise: bool,
-    ) -> Box<dyn ClientHook> {
+    fn import(state: &Rc<Self>, import_id: ImportId, is_promise: bool) -> Box<dyn ClientHook> {
         let connection_state = state.clone();
 
         let import_client = {
@@ -1562,16 +1551,16 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn receive_cap(
-        state: &Rc<ConnectionState<VatId>>,
+        state: &Rc<Self>,
         descriptor: cap_descriptor::Reader,
     ) -> ::capnp::Result<Option<Box<dyn ClientHook>>> {
         match descriptor.which()? {
             cap_descriptor::None(()) => Ok(None),
             cap_descriptor::SenderHosted(sender_hosted) => {
-                Ok(Some(ConnectionState::import(&state, sender_hosted, false)))
+                Ok(Some(Self::import(&state, sender_hosted, false)))
             }
             cap_descriptor::SenderPromise(sender_promise) => {
-                Ok(Some(ConnectionState::import(&state, sender_promise, true)))
+                Ok(Some(Self::import(&state, sender_promise, true)))
             }
             cap_descriptor::ReceiverHosted(receiver_hosted) => {
                 if let Some(exp) = state.exports.borrow_mut().find(receiver_hosted) {
@@ -1610,12 +1599,12 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn receive_caps(
-        state: &Rc<ConnectionState<VatId>>,
+        state: &Rc<Self>,
         cap_table: ::capnp::struct_list::Reader<cap_descriptor::Owned>,
     ) -> ::capnp::Result<Vec<Option<Box<dyn ClientHook>>>> {
         let mut result = Vec::new();
         for idx in 0..cap_table.len() {
-            result.push(ConnectionState::receive_cap(&state, cap_table.get(idx))?);
+            result.push(Self::receive_cap(&state, cap_table.get(idx))?);
         }
         Ok(result)
     }
@@ -1637,14 +1626,12 @@ where
 }
 
 impl<VatId> Disconnector<VatId> {
-    pub fn new(
-        connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>,
-    ) -> Disconnector<VatId> {
+    pub fn new(connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>) -> Self {
         let state = match *(connection_state.borrow()) {
             Some(_) => DisconnectorState::Connected,
             None => DisconnectorState::Disconnected,
         };
-        Disconnector {
+        Self {
             connection_state,
             state,
         }
@@ -1721,8 +1708,8 @@ impl<VatId> Response<VatId> {
         question_ref: Rc<RefCell<QuestionRef<VatId>>>,
         message: Box<dyn crate::IncomingMessage>,
         cap_table_array: Vec<Option<Box<dyn ClientHook>>>,
-    ) -> Response<VatId> {
-        Response {
+    ) -> Self {
+        Self {
             variant: Rc::new(ResponseVariant::Rpc(ResponseState {
                 _connection_state: connection_state,
                 message,
@@ -1731,16 +1718,16 @@ impl<VatId> Response<VatId> {
             })),
         }
     }
-    fn redirected(results_done: Box<dyn ResultsDoneHook>) -> Response<VatId> {
-        Response {
+    fn redirected(results_done: Box<dyn ResultsDoneHook>) -> Self {
+        Self {
             variant: Rc::new(ResponseVariant::LocallyRedirected(results_done)),
         }
     }
 }
 
 impl<VatId> Clone for Response<VatId> {
-    fn clone(&self) -> Response<VatId> {
-        Response {
+    fn clone(&self) -> Self {
+        Self {
             variant: self.variant.clone(),
         }
     }
@@ -1800,9 +1787,9 @@ where
         connection_state: Rc<ConnectionState<VatId>>,
         _size_hint: Option<::capnp::MessageSize>,
         target: Client<VatId>,
-    ) -> ::capnp::Result<Request<VatId>> {
+    ) -> ::capnp::Result<Self> {
         let message = connection_state.new_outgoing_message(100)?;
-        Ok(Request {
+        Ok(Self {
             connection_state,
             target,
             message,
@@ -1886,7 +1873,7 @@ impl<VatId> RequestHook for Request<VatId> {
     }
     fn send(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
-        let Request {
+        let Self {
             connection_state,
             target,
             mut message,
@@ -1920,7 +1907,7 @@ impl<VatId> RequestHook for Request<VatId> {
             }
             None => {
                 let (question_ref, promise) =
-                    Request::send_internal(&connection_state, message, &cap_table, false);
+                    Self::send_internal(&connection_state, message, &cap_table, false);
                 let forked_promise1 = promise.shared();
                 let forked_promise2 = forked_promise1.clone();
 
@@ -1949,7 +1936,7 @@ impl<VatId> RequestHook for Request<VatId> {
     }
     fn tail_send(self: Box<Self>) -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)> {
         let tmp = *self;
-        let Request {
+        let Self {
             connection_state,
             target,
             mut message,
@@ -1970,7 +1957,7 @@ impl<VatId> RequestHook for Request<VatId> {
             Some(_redirect) => {
                 return None;
             }
-            None => Request::send_internal(&connection_state, message, &cap_table, true),
+            None => Self::send_internal(&connection_state, message, &cap_table, true),
         };
 
         let promise = promise.map_ok(|_response| {
@@ -2024,10 +2011,7 @@ impl<VatId> PipelineState<VatId>
 where
     VatId: 'static,
 {
-    fn resolve(
-        state: &Rc<RefCell<PipelineState<VatId>>>,
-        response: Result<Response<VatId>, Error>,
-    ) {
+    fn resolve(state: &Rc<RefCell<Self>>, response: Result<Response<VatId>, Error>) {
         let to_resolve = {
             let tmp = state.borrow();
             let r = tmp.promise_clients_to_resolve.borrow_mut().drain();
@@ -2071,7 +2055,7 @@ impl<VatId> Pipeline<VatId> {
         connection_state: &Rc<ConnectionState<VatId>>,
         question_ref: Rc<RefCell<QuestionRef<VatId>>>,
         redirect_later: Option<Promise<Response<VatId>, ::capnp::Error>>,
-    ) -> Pipeline<VatId> {
+    ) -> Self {
         let state = Rc::new(RefCell::new(PipelineState {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state.clone(),
@@ -2103,7 +2087,7 @@ impl<VatId> Pipeline<VatId> {
             }
             None => {}
         }
-        Pipeline { state }
+        Self { state }
     }
 
     fn when_resolved(&self) -> Promise<(), Error> {
@@ -2113,7 +2097,7 @@ impl<VatId> Pipeline<VatId> {
     fn never_done(
         connection_state: Rc<ConnectionState<VatId>>,
         question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-    ) -> Pipeline<VatId> {
+    ) -> Self {
         let state = Rc::new(RefCell::new(PipelineState {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state,
@@ -2123,13 +2107,13 @@ impl<VatId> Pipeline<VatId> {
             resolution_waiters: crate::sender_queue::SenderQueue::new(),
         }));
 
-        Pipeline { state }
+        Self { state }
     }
 }
 
 impl<VatId> PipelineHook for Pipeline<VatId> {
     fn add_ref(&self) -> Box<dyn PipelineHook> {
-        Box::new(Pipeline {
+        Box::new(Self {
             state: self.state.clone(),
         })
     }
@@ -2188,8 +2172,8 @@ impl Params {
     fn new(
         request: Box<dyn crate::IncomingMessage>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
-    ) -> Params {
-        Params { request, cap_table }
+    ) -> Self {
+        Self { request, cap_table }
     }
 }
 
@@ -2284,8 +2268,8 @@ where
         redirect_results: bool,
         fulfiller: oneshot::Sender<ResultsInner<VatId>>,
         finish_received: Rc<Cell<bool>>,
-    ) -> Results<VatId> {
-        Results {
+    ) -> Self {
+        Self {
             inner: Some(ResultsInner {
                 variant: None,
                 connection_state: connection_state.clone(),
@@ -2435,9 +2419,8 @@ impl ResultsDone {
                     Some(ResultsVariant::Rpc(mut message, cap_table)) => {
                         match (finish_received.get(), call_status) {
                             (true, _) => {
-                                let hook =
-                                    Box::new(ResultsDone::rpc(Rc::new(message.take()), cap_table))
-                                        as Box<dyn ResultsDoneHook>;
+                                let hook = Box::new(Self::rpc(Rc::new(message.take()), cap_table))
+                                    as Box<dyn ResultsDoneHook>;
                                 pipeline_sender
                                     .complete(Box::new(local::Pipeline::new(hook.clone())));
 
@@ -2485,8 +2468,8 @@ impl ResultsDone {
 
                                 let (_promise, m) = message.send();
                                 connection_state.answer_has_sent_return(answer_id, exports);
-                                let hook = Box::new(ResultsDone::rpc(m, cap_table))
-                                    as Box<dyn ResultsDoneHook>;
+                                let hook =
+                                    Box::new(Self::rpc(m, cap_table)) as Box<dyn ResultsDoneHook>;
                                 pipeline_sender
                                     .complete(Box::new(local::Pipeline::new(hook.clone())));
                                 Ok(hook)
@@ -2519,7 +2502,7 @@ impl ResultsDone {
                         }
                     }
                     Some(ResultsVariant::LocallyRedirected(results_done, cap_table)) => {
-                        let hook = Box::new(ResultsDone::redirected(results_done, cap_table))
+                        let hook = Box::new(Self::redirected(results_done, cap_table))
                             as Box<dyn ResultsDoneHook>;
                         pipeline_sender
                             .complete(Box::new(crate::local::Pipeline::new(hook.clone())));
@@ -2533,8 +2516,8 @@ impl ResultsDone {
     fn rpc(
         message: Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
-    ) -> ResultsDone {
-        ResultsDone {
+    ) -> Self {
+        Self {
             inner: Rc::new(ResultsDoneVariant::Rpc(message, cap_table)),
         }
     }
@@ -2542,8 +2525,8 @@ impl ResultsDone {
     fn redirected(
         message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
-    ) -> ResultsDone {
-        ResultsDone {
+    ) -> Self {
+        Self {
             inner: Rc::new(ResultsDoneVariant::LocallyRedirected(message, cap_table)),
         }
     }
@@ -2551,7 +2534,7 @@ impl ResultsDone {
 
 impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook> {
-        Box::new(ResultsDone {
+        Box::new(Self {
             inner: self.inner.clone(),
         })
     }
@@ -2704,8 +2687,8 @@ where
     fn new(
         connection_state: &Rc<ConnectionState<VatId>>,
         import_id: ImportId,
-    ) -> Rc<RefCell<ImportClient<VatId>>> {
-        Rc::new(RefCell::new(ImportClient {
+    ) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
             connection_state: connection_state.clone(),
             import_id,
             remote_ref_count: 0,
@@ -2718,9 +2701,9 @@ where
 }
 
 impl<VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<ImportClient<VatId>>>) -> Client<VatId> {
+    fn from(client: Rc<RefCell<ImportClient<VatId>>>) -> Self {
         let connection_state = client.borrow().connection_state.clone();
-        Client::new(&connection_state, ClientVariant::Import(client))
+        Self::new(&connection_state, ClientVariant::Import(client))
     }
 }
 
@@ -2742,8 +2725,8 @@ where
         connection_state: &Rc<ConnectionState<VatId>>,
         question_ref: Rc<RefCell<QuestionRef<VatId>>>,
         ops: Vec<PipelineOp>,
-    ) -> Rc<RefCell<PipelineClient<VatId>>> {
-        Rc::new(RefCell::new(PipelineClient {
+    ) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
             connection_state: connection_state.clone(),
             question_ref,
             ops,
@@ -2752,9 +2735,9 @@ where
 }
 
 impl<VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<PipelineClient<VatId>>>) -> Client<VatId> {
+    fn from(client: Rc<RefCell<PipelineClient<VatId>>>) -> Self {
         let connection_state = client.borrow().connection_state.clone();
-        Client::new(&connection_state, ClientVariant::Pipeline(client))
+        Self::new(&connection_state, ClientVariant::Pipeline(client))
     }
 }
 
@@ -2788,8 +2771,8 @@ impl<VatId> PromiseClient<VatId> {
         connection_state: &Rc<ConnectionState<VatId>>,
         initial: Box<dyn ClientHook>,
         import_id: Option<ImportId>,
-    ) -> Rc<RefCell<PromiseClient<VatId>>> {
-        Rc::new(RefCell::new(PromiseClient {
+    ) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
             connection_state: connection_state.clone(),
             is_resolved: false,
             cap: initial,
@@ -2910,18 +2893,15 @@ impl<VatId> Drop for PromiseClient<VatId> {
 }
 
 impl<VatId> From<Rc<RefCell<PromiseClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<PromiseClient<VatId>>>) -> Client<VatId> {
+    fn from(client: Rc<RefCell<PromiseClient<VatId>>>) -> Self {
         let connection_state = client.borrow().connection_state.clone();
-        Client::new(&connection_state, ClientVariant::Promise(client))
+        Self::new(&connection_state, ClientVariant::Promise(client))
     }
 }
 
 impl<VatId> Client<VatId> {
-    fn new(
-        connection_state: &Rc<ConnectionState<VatId>>,
-        variant: ClientVariant<VatId>,
-    ) -> Client<VatId> {
-        let client = Client {
+    fn new(connection_state: &Rc<ConnectionState<VatId>>, variant: ClientVariant<VatId>) -> Self {
+        let client = Self {
             connection_state: connection_state.clone(),
             variant,
         };
@@ -2955,7 +2935,7 @@ impl<VatId> Client<VatId> {
         }
     }
 
-    fn from_ptr(ptr: usize, connection_state: &ConnectionState<VatId>) -> Option<Client<VatId>> {
+    fn from_ptr(ptr: usize, connection_state: &ConnectionState<VatId>) -> Option<Self> {
         match connection_state.client_downcast_map.borrow().get(&ptr) {
             Some(c) => c.upgrade(),
             None => None,
@@ -3045,7 +3025,7 @@ impl<VatId> Client<VatId> {
 }
 
 impl<VatId> Clone for Client<VatId> {
-    fn clone(&self) -> Client<VatId> {
+    fn clone(&self) -> Self {
         let variant = match &self.variant {
             ClientVariant::Import(import_client) => ClientVariant::Import(import_client.clone()),
             ClientVariant::Pipeline(pipeline_client) => {
@@ -3058,7 +3038,7 @@ impl<VatId> Clone for Client<VatId> {
                 unimplemented!()
             }
         };
-        Client {
+        Self {
             connection_state: self.connection_state.clone(),
             variant,
         }
@@ -3202,14 +3182,14 @@ struct SingleCapPipeline {
 }
 
 impl SingleCapPipeline {
-    fn new(cap: Box<dyn ClientHook>) -> SingleCapPipeline {
-        SingleCapPipeline { cap }
+    fn new(cap: Box<dyn ClientHook>) -> Self {
+        Self { cap }
     }
 }
 
 impl PipelineHook for SingleCapPipeline {
     fn add_ref(&self) -> Box<dyn PipelineHook> {
-        Box::new(SingleCapPipeline {
+        Box::new(Self {
             cap: self.cap.clone(),
         })
     }

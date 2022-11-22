@@ -552,8 +552,8 @@ pub mod test {
     where
         R: Read,
     {
-        pub(crate) fn new(read: R, blocking_period: usize) -> BlockingRead<R> {
-            BlockingRead {
+        pub(crate) fn new(read: R, blocking_period: usize) -> Self {
+            Self {
                 read,
                 blocking_period,
                 idx: 0,
@@ -605,8 +605,8 @@ pub mod test {
     where
         W: Write,
     {
-        pub(crate) fn new(writer: W, blocking_period: usize) -> BlockingWrite<W> {
-            BlockingWrite {
+        pub(crate) fn new(writer: W, blocking_period: usize) -> Self {
+            Self {
                 writer,
                 blocking_period,
                 idx: 0,

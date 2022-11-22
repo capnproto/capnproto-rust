@@ -4100,7 +4100,7 @@ impl<T: Primitive> PrimitiveElement for T {
 
 impl PrimitiveElement for bool {
     #[inline]
-    fn get(list: &ListReader, index: ElementCount32) -> bool {
+    fn get(list: &ListReader, index: ElementCount32) -> Self {
         let bindex = u64::from(index) * u64::from(list.step);
         unsafe {
             let b: *const u8 = list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize);
@@ -4108,13 +4108,13 @@ impl PrimitiveElement for bool {
         }
     }
     #[inline]
-    fn get_from_builder(list: &ListBuilder, index: ElementCount32) -> bool {
+    fn get_from_builder(list: &ListBuilder, index: ElementCount32) -> Self {
         let bindex = u64::from(index) * u64::from(list.step);
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
         unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE as u64))) != 0 }
     }
     #[inline]
-    fn set(list: &ListBuilder, index: ElementCount32, value: bool) {
+    fn set(list: &ListBuilder, index: ElementCount32, value: Self) {
         let bindex = u64::from(index) * u64::from(list.step);
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
 
