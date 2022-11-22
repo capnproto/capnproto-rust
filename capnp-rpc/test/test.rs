@@ -286,6 +286,10 @@ fn basic_pipelining() {
 
         let promise = request.send();
 
+        // This is just here to check that code generation for pipelines
+        // inside of groups works correctly.
+        let _ = promise.pipeline.get_out_box().get_foo().get_cap_in_group();
+
         let mut pipeline_request = promise.pipeline.get_out_box().get_cap().foo_request();
         pipeline_request.get().set_i(321);
         let pipeline_promise = pipeline_request.send();

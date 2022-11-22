@@ -102,6 +102,10 @@ interface TestPipeline {
 
   struct Box {
     cap @0 :TestInterface;
+
+    foo :group {
+       capInGroup @1 :TestInterface;
+    }
   }
 }
 
