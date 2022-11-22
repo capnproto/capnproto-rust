@@ -603,7 +603,7 @@ pub fn getter_text(
             let getter_code = if is_reader {
                 Line("::capnp::traits::FromStructReader::new(self.reader)".to_string())
             } else {
-                Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())
+                Line("self.builder.into()".to_string())
             };
 
             Ok((result_type, getter_code, None))
@@ -868,9 +868,7 @@ fn generate_setter(
 
             initter_interior.push(zero_fields_of_group(gen, group.get_type_id())?);
 
-            initter_interior.push(Line(
-                "::capnp::traits::FromStructBuilder::new(self.builder)".to_string(),
-            ));
+            initter_interior.push(Line("self.builder.into()".to_string()));
 
             (
                 None,
@@ -1721,10 +1719,10 @@ fn generate_node(
                         Box::new(
                             Branch(vec!(
                                 Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self {".to_string()),
-                                Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE))".to_string()))),
+                                Indent(Box::new(Line("builder.init_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE).into()".to_string()))),
                                 Line("}".to_string()),
                                 Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
-                                Indent(Box::new(Line("::core::result::Result::Ok(::capnp::traits::FromStructBuilder::new(builder.get_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE, default)?))".to_string()))),
+                                Indent(Box::new(Line("::core::result::Result::Ok(builder.get_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE, default)?.into())".to_string()))),
                                 Line("}".to_string()))))),
                     Line("}".to_string()),
                     BlankLine]);
@@ -1843,11 +1841,11 @@ fn generate_node(
                         Line("const TYPE_ID: u64 = _private::TYPE_ID;".to_string()))))),
                     Line("}".to_string()))),
                 Line(format!(
-                    "impl <'a,{0}> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,{0}> {1} {{",
+                    "impl <'a,{0}> From<::capnp::private::layout::StructBuilder<'a>> for Builder<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line("fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self {".to_string()),
+                        Line("fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self {".to_string()),
                         Indent(Box::new(Line(format!("Self {{ builder, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
