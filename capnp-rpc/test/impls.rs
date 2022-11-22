@@ -120,8 +120,8 @@ pub struct TestInterface {
 }
 
 impl TestInterface {
-    pub fn new() -> TestInterface {
-        TestInterface {
+    pub fn new() -> Self {
+        Self {
             call_count: Rc::new(Cell::new(0)),
         }
     }
@@ -287,8 +287,8 @@ pub struct TestCallOrder {
 }
 
 impl TestCallOrder {
-    pub fn new() -> TestCallOrder {
-        TestCallOrder { count: 0 }
+    pub fn new() -> Self {
+        Self { count: 0 }
     }
 }
 
@@ -311,8 +311,8 @@ pub struct TestMoreStuff {
 }
 
 impl TestMoreStuff {
-    pub fn new() -> TestMoreStuff {
-        TestMoreStuff {
+    pub fn new() -> Self {
+        Self {
             call_count: 0,
             handle_count: Rc::new(Cell::new(0)),
             client_to_hold: None,
@@ -541,10 +541,10 @@ struct Handle {
 }
 
 impl Handle {
-    fn new(count: &Rc<Cell<i64>>) -> Handle {
+    fn new(count: &Rc<Cell<i64>>) -> Self {
         let count = count.clone();
         count.set(count.get() + 1);
-        Handle { count: count }
+        Self { count: count }
     }
 }
 
@@ -562,8 +562,8 @@ pub struct TestCapDestructor {
 }
 
 impl TestCapDestructor {
-    pub fn new(fulfiller: ::futures::channel::oneshot::Sender<()>) -> TestCapDestructor {
-        TestCapDestructor {
+    pub fn new(fulfiller: ::futures::channel::oneshot::Sender<()>) -> Self {
+        Self {
             fulfiller: Some(fulfiller),
             imp: TestInterface::new(),
         }

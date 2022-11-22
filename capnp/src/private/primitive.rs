@@ -63,27 +63,27 @@ primitive_impl!(f64, 8);
 
 #[cfg(not(feature = "unaligned"))]
 impl Primitive for f32 {
-    type Raw = f32;
+    type Raw = Self;
 
     fn get(raw: &Self::Raw) -> Self {
-        f32::from_bits(raw.to_bits().to_le())
+        Self::from_bits(raw.to_bits().to_le())
     }
 
     fn set(raw: &mut Self::Raw, value: Self) {
-        *raw = f32::from_bits(value.to_bits().to_le())
+        *raw = Self::from_bits(value.to_bits().to_le())
     }
 }
 
 #[cfg(not(feature = "unaligned"))]
 impl Primitive for f64 {
-    type Raw = f64;
+    type Raw = Self;
 
     fn get(raw: &Self::Raw) -> Self {
-        f64::from_bits(raw.to_bits().to_le())
+        Self::from_bits(raw.to_bits().to_le())
     }
 
     fn set(raw: &mut Self::Raw, value: Self) {
-        *raw = f64::from_bits(value.to_bits().to_le())
+        *raw = Self::from_bits(value.to_bits().to_le())
     }
 }
 

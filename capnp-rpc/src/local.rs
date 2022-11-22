@@ -39,7 +39,7 @@ pub trait ResultsDoneHook {
 }
 
 impl Clone for Box<dyn ResultsDoneHook> {
-    fn clone(&self) -> Box<dyn ResultsDoneHook> {
+    fn clone(&self) -> Self {
         self.add_ref()
     }
 }
@@ -49,8 +49,8 @@ pub struct Response {
 }
 
 impl Response {
-    fn new(results: Box<dyn ResultsDoneHook>) -> Response {
-        Response { results }
+    fn new(results: Box<dyn ResultsDoneHook>) -> Self {
+        Self { results }
     }
 }
 
@@ -69,8 +69,8 @@ impl Params {
     fn new(
         request: message::Builder<message::HeapAllocator>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
-    ) -> Params {
-        Params { request, cap_table }
+    ) -> Self {
+        Self { request, cap_table }
     }
 }
 
@@ -89,8 +89,8 @@ struct Results {
 }
 
 impl Results {
-    fn new(fulfiller: oneshot::Sender<Box<dyn ResultsDoneHook>>) -> Results {
-        Results {
+    fn new(fulfiller: oneshot::Sender<Box<dyn ResultsDoneHook>>) -> Self {
+        Self {
             message: Some(::capnp::message::Builder::new_default()),
             cap_table: Vec::new(),
             results_done_fulfiller: Some(fulfiller),
@@ -114,7 +114,7 @@ impl Drop for Results {
 impl ResultsHook for Results {
     fn get(&mut self) -> ::capnp::Result<any_pointer::Builder> {
         match *self {
-            Results {
+            Self {
                 message: Some(ref mut message),
                 ref mut cap_table,
                 ..
@@ -156,8 +156,8 @@ impl ResultsDone {
     fn new(
         message: message::Builder<message::HeapAllocator>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
-    ) -> ResultsDone {
-        ResultsDone {
+    ) -> Self {
+        Self {
             inner: Rc::new(ResultsDoneInner { message, cap_table }),
         }
     }
@@ -165,7 +165,7 @@ impl ResultsDone {
 
 impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook> {
-        Box::new(ResultsDone {
+        Box::new(Self {
             inner: self.inner.clone(),
         })
     }
@@ -190,8 +190,8 @@ impl Request {
         method_id: u16,
         _size_hint: Option<::capnp::MessageSize>,
         client: Box<dyn ClientHook>,
-    ) -> Request {
-        Request {
+    ) -> Self {
+        Self {
             message: message::Builder::new_default(),
             cap_table: Vec::new(),
             interface_id,
@@ -212,7 +212,7 @@ impl RequestHook for Request {
     }
     fn send(self: Box<Self>) -> capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
-        let Request {
+        let Self {
             message,
             cap_table,
             interface_id,
@@ -265,16 +265,16 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(results: Box<dyn ResultsDoneHook>) -> Pipeline {
-        Pipeline {
+    pub fn new(results: Box<dyn ResultsDoneHook>) -> Self {
+        Self {
             inner: Rc::new(RefCell::new(PipelineInner { results })),
         }
     }
 }
 
 impl Clone for Pipeline {
-    fn clone(&self) -> Pipeline {
-        Pipeline {
+    fn clone(&self) -> Self {
+        Self {
             inner: self.inner.clone(),
         }
     }
@@ -310,14 +310,14 @@ impl<S> Client<S>
 where
     S: capability::Server,
 {
-    pub fn new(server: S) -> Client<S> {
-        Client {
+    pub fn new(server: S) -> Self {
+        Self {
             inner: Rc::new(RefCell::new(server)),
         }
     }
 
-    pub fn from_rc(inner: Rc<RefCell<S>>) -> Client<S> {
-        Client { inner }
+    pub fn from_rc(inner: Rc<RefCell<S>>) -> Self {
+        Self { inner }
     }
 }
 
@@ -325,8 +325,8 @@ impl<S> Clone for Client<S>
 where
     S: capability::Server,
 {
-    fn clone(&self) -> Client<S> {
-        Client {
+    fn clone(&self) -> Self {
+        Self {
             inner: self.inner.clone(),
         }
     }

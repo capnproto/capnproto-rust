@@ -48,15 +48,15 @@ int_mask!(u64);
 impl Mask for f32 {
     type T = u32;
     #[inline]
-    fn mask(value: f32, mask: u32) -> f32 {
-        f32::from_bits(value.to_bits() ^ mask)
+    fn mask(value: Self, mask: u32) -> Self {
+        Self::from_bits(value.to_bits() ^ mask)
     }
 }
 
 impl Mask for f64 {
     type T = u64;
     #[inline]
-    fn mask(value: f64, mask: u64) -> f64 {
-        f64::from_bits(value.to_bits() ^ mask)
+    fn mask(value: Self, mask: u64) -> Self {
+        Self::from_bits(value.to_bits() ^ mask)
     }
 }

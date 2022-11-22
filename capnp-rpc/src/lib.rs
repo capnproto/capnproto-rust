@@ -183,7 +183,7 @@ impl<VatId> RpcSystem<VatId> {
     pub fn new(
         mut network: Box<dyn crate::VatNetwork<VatId>>,
         bootstrap: Option<::capnp::capability::Client>,
-    ) -> RpcSystem<VatId> {
+    ) -> Self {
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
             None => broken::new_cap(Error::failed("no bootstrap capability".to_string())),
@@ -208,7 +208,7 @@ impl<VatId> RpcSystem<VatId> {
             Promise::ok(())
         }));
 
-        let mut result = RpcSystem {
+        let mut result = Self {
             network,
             bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
@@ -233,7 +233,7 @@ impl<VatId> RpcSystem<VatId> {
                 return T::new(self.bootstrap_cap.clone());
             }
         };
-        let connection_state = RpcSystem::get_connection_state(
+        let connection_state = Self::get_connection_state(
             &self.connection_state,
             self.bootstrap_cap.clone(),
             connection,
@@ -250,12 +250,7 @@ impl<VatId> RpcSystem<VatId> {
         let bootstrap_cap = self.bootstrap_cap.clone();
         let handle = self.handle.clone();
         Promise::from_future(self.network.accept().map_ok(move |connection| {
-            RpcSystem::get_connection_state(
-                &connection_state_ref,
-                bootstrap_cap,
-                connection,
-                handle,
-            );
+            Self::get_connection_state(&connection_state_ref, bootstrap_cap, connection, handle);
         }))
     }
 
@@ -421,7 +416,7 @@ where
     A: ::capnp::message::Allocator,
 {
     pub fn new(allocator: A) -> Self {
-        ImbuedMessageBuilder {
+        Self {
             builder: ::capnp::message::Builder::new(allocator),
             cap_table: Vec::new(),
         }

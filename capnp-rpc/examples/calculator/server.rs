@@ -35,8 +35,8 @@ struct ValueImpl {
 }
 
 impl ValueImpl {
-    fn new(value: f64) -> ValueImpl {
-        ValueImpl { value: value }
+    fn new(value: f64) -> Self {
+        Self { value: value }
     }
 }
 
@@ -96,11 +96,8 @@ struct FunctionImpl {
 }
 
 impl FunctionImpl {
-    fn new(
-        param_count: u32,
-        body: calculator::expression::Reader,
-    ) -> ::capnp::Result<FunctionImpl> {
-        let mut result = FunctionImpl {
+    fn new(param_count: u32, body: calculator::expression::Reader) -> ::capnp::Result<Self> {
+        let mut result = Self {
             param_count: param_count,
             body: ::capnp_rpc::ImbuedMessageBuilder::new(::capnp::message::HeapAllocator::new()),
         };

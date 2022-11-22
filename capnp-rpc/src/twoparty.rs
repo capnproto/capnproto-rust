@@ -36,10 +36,8 @@ struct IncomingMessage {
 }
 
 impl IncomingMessage {
-    pub fn new(
-        message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>,
-    ) -> IncomingMessage {
-        IncomingMessage { message }
+    pub fn new(message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>) -> Self {
+        Self { message }
     }
 }
 
@@ -70,7 +68,7 @@ impl crate::OutgoingMessage for OutgoingMessage {
         Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     ) {
         let tmp = *self;
-        let OutgoingMessage {
+        let Self {
             message,
             mut sender,
         } = tmp;
@@ -128,8 +126,8 @@ where
         side: crate::rpc_twoparty_capnp::Side,
         receive_options: ReaderOptions,
         on_disconnect_fulfiller: oneshot::Sender<()>,
-    ) -> Connection<T> {
-        Connection {
+    ) -> Self {
+        Self {
             inner: Rc::new(RefCell::new(ConnectionInner {
                 input_stream: Rc::new(RefCell::new(Some(input_stream))),
                 sender,
@@ -226,7 +224,7 @@ where
         output_stream: U,
         side: crate::rpc_twoparty_capnp::Side,
         receive_options: ReaderOptions,
-    ) -> VatNetwork<T>
+    ) -> Self
     where
         U: AsyncWrite + 'static + Unpin,
     {
@@ -252,7 +250,7 @@ where
 
         let connection = Connection::new(input_stream, sender, side, receive_options, fulfiller);
         let weak_inner = Rc::downgrade(&connection.inner);
-        VatNetwork {
+        Self {
             connection: Some(connection),
             weak_connection_inner: weak_inner,
             execution_driver,
