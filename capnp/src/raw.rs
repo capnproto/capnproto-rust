@@ -20,28 +20,22 @@
 
 //! Functions providing low level access to encoded data.
 
-use crate::traits::{IntoInternalListReader, IntoInternalStructReader};
+use crate::{private::layout::StructReader, traits::IntoInternalListReader};
 
 /// Gets a slice view of the data section of a struct.
 pub fn get_struct_data_section<'a, T>(value: T) -> &'a [u8]
 where
-    T: IntoInternalStructReader<'a>,
+    T: Into<StructReader<'a>>,
 {
-    value
-        .into_internal_struct_reader()
-        .get_data_section_as_blob()
+    value.into().get_data_section_as_blob()
 }
 
 /// Gets the pointer section as a list.
 pub fn get_struct_pointer_section<'a, T>(value: T) -> crate::any_pointer_list::Reader<'a>
 where
-    T: IntoInternalStructReader<'a>,
+    T: Into<StructReader<'a>>,
 {
-    crate::any_pointer_list::Reader::new(
-        value
-            .into_internal_struct_reader()
-            .get_pointer_section_as_list(),
-    )
+    crate::any_pointer_list::Reader::new(value.into().get_pointer_section_as_list())
 }
 
 /// Gets the size of the elements in a list.
