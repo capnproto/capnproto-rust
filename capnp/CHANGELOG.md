@@ -1,3 +1,6 @@
+## v0.13.7
+- Remove list pointer munging.
+
 ## v0.13.6
 - Add blanket impl Allocator for &mut A where A: Allocator, allowing easier reuse of ScratchSpaceHeapAllocator.
 
