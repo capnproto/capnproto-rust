@@ -1,3 +1,6 @@
+## v0.14.11
+- Remove list pointer munging.
+
 ## v0.14.10
 - Handle case when `alloc::alloc_zeroed()` returns null.
 
