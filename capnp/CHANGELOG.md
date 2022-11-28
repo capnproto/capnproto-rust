@@ -1,3 +1,6 @@
+## v0.15.2
+- Remove list pointer munging.
+
 ## v0.15.1
 - Add `rust-version` field in Cargo.toml, for better error messages when somone uses and old rustc.
 - Add `is_empty()` methods.
