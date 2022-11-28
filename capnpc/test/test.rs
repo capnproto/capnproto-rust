@@ -788,11 +788,43 @@ mod tests {
         {
             let mut old_version = message.init_root::<test_old_version::Builder>();
             old_version.set_old1(123);
+            let mut names = old_version.init_old4(2);
+            names.set(0, "alice");
+            names.set(1, "bob");
         }
         {
             let mut new_version = message.get_root::<test_new_version::Builder>().unwrap();
             new_version.reborrow().get_new2().unwrap();
-            assert_eq!(new_version.get_new3().unwrap().get_int8_field(), -123);
+            assert_eq!(new_version.reborrow().get_new3().unwrap().get_int8_field(), -123);
+
+            let mut names = new_version.get_old4().unwrap();
+            assert_eq!(names.len(), 2);
+            assert_eq!(names.reborrow().get(0).get_text_field().unwrap().as_ref(), "alice");
+            assert_eq!(names.get(1).get_text_field().unwrap().as_ref(), "bob");
+
+        }
+    }
+
+    #[test]
+    fn upgraded_struct_read_as_old() {
+        use crate::test_capnp::{test_new_version, test_old_version};
+
+        let mut message = message::Builder::new_default();
+        {
+            let mut new_version = message.init_root::<test_new_version::Builder<'_>>();
+            new_version.set_old1(123);
+            let mut names = new_version.init_old4(2);
+            names.reborrow().get(0).set_text_field("alice");
+            names.get(1).set_text_field("bob");
+        }
+        {
+            let old_version =
+                message.get_root_as_reader::<test_old_version::Reader<'_>>().unwrap();
+            assert_eq!(old_version.get_old1(), 123);
+            let names = old_version.get_old4().unwrap();
+            assert_eq!(names.len(), 2);
+            assert_eq!(names.get(0).unwrap(), "alice");
+            assert_eq!(names.get(1).unwrap(), "bob");
         }
     }
 
@@ -908,6 +940,49 @@ mod tests {
             assert_eq!(&segments[0][8..40], &[0; 32][..]);
         }
 
+    }
+
+    #[test]
+    fn upgrade_pointer_list() {
+        use crate::test_capnp::test_any_pointer;
+
+        let segment0_outer: &[capnp::Word] = &[
+            capnp::word(0, 0, 0, 0, 0, 0, 0x1, 0),     // struct, 1 pointer
+            capnp::word(0x1, 0, 0, 0, 0x27, 0, 0, 0),  // list. inline composite. 4 words.
+            capnp::word(0x4, 0, 0, 0, 0x3, 0, 0x1, 0), // one element, 3 data words, 1 pointer.
+            capnp::word(0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd), // data
+            capnp::word(0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd), // data
+            capnp::word(0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd), // data
+            capnp::word(0, 0, 0, 0, 0, 0, 0, 0),       // null struct pointer
+            // bad bytes that we don't want to escape
+            capnp::word(0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb),
+            capnp::word(0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb),
+            // bug can cause this word to be read as the list element struct pointer
+            capnp::word(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+        ];
+
+        let segment0 = &segment0_outer[..7]; // everything except the trailing 3 words
+
+        {
+            let mut message_builder = capnp::message::Builder::new_default();
+
+            let segment_array = &[capnp::Word::words_to_bytes(segment0)];
+            let message_reader = message::Reader::new(
+                message::SegmentArray::new(segment_array),
+                ReaderOptions::new(),
+            );
+            let root_reader: test_any_pointer::Reader<'_> = message_reader.get_root().unwrap();
+            let list_reader: capnp::list_list::Reader<'_, capnp::primitive_list::Owned<i32>> =
+                root_reader.get_any_pointer_field().get_as().unwrap();
+
+            {
+                let root_builder: test_any_pointer::Builder<'_> = message_builder.init_root();
+                let any_builder = root_builder.get_any_pointer_field();
+                any_builder.set_as(list_reader).unwrap();
+            }
+            let out_seg = message_builder.get_segments_for_output()[0];
+            assert_eq!(out_seg, capnp::Word::words_to_bytes(segment0));
+        }
     }
 
     #[test]
