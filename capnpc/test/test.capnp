@@ -403,6 +403,7 @@ struct TestOldVersion {
   old1 @0 :Int64;
   old2 @1 :Text;
   old3 @2 :TestOldVersion;
+  old4 @3 :List(Text);
 }
 
 struct TestNewVersion {
@@ -410,9 +411,16 @@ struct TestNewVersion {
   old1 @0 :Int64;
   old2 @1 :Text;
   old3 @2 :TestNewVersion;
-  new1 @3 :Int64 = 987;
-  new2 @4 :Text = "baz";
-  new3 @5 :TestDefaults;
+
+  struct UpgradedFromText {
+     textField @0 :Text;
+     int32Field @1 :Int32;
+     dataField @2 :Data;
+  }
+  old4 @3 :List(UpgradedFromText);
+  new1 @4 :Int64 = 987;
+  new2 @5 :Text = "baz";
+  new3 @6 :TestDefaults;
 }
 
 struct TestOldUnionVersion {
