@@ -2152,10 +2152,6 @@ mod wire_helpers {
                         }
                     }
                     Some(Pointer) => {
-                        // We expected a list of pointers but got a list of structs. Assuming the
-                        // first field in the struct is the pointer we were looking for, we want to
-                        // munge the pointer to point at the first element's pointer section.
-                        ptr = ptr.offset(data_size as isize * BYTES_PER_WORD as isize);
                         if ptr_count <= 0 {
                             return Err(Error::failed(
                                 "Expected a pointer list, but got a list of data-only structs".to_string()));
@@ -3230,12 +3226,14 @@ impl <'a> ListReader<'a> {
 
     #[inline]
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerReader<'a> {
-        let offset = (index as u64 * self.step as u64 / BITS_PER_BYTE as u64) as u32;
+        let offset = (self.struct_data_size as u64 / BITS_PER_BYTE as u64
+            + u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64)
+            as isize;
         PointerReader {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe { self.ptr.offset(offset as isize) } as *const _,
+            pointer: unsafe { self.ptr.offset(offset) } as *const _,
             nesting_limit: self.nesting_limit
         }
     }
