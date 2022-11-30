@@ -1090,13 +1090,18 @@ mod tests {
         {
             let mut new_version = message.get_root::<test_new_version::Builder<'_>>().unwrap();
             new_version.reborrow().get_new2().unwrap();
-            assert_eq!(new_version.reborrow().get_new3().unwrap().get_int8_field(), -123);
+            assert_eq!(
+                new_version.reborrow().get_new3().unwrap().get_int8_field(),
+                -123
+            );
 
             let mut names = new_version.get_old4().unwrap();
             assert_eq!(names.len(), 2);
-            assert_eq!(names.reborrow().get(0).get_text_field().unwrap().as_ref(), "alice");
+            assert_eq!(
+                names.reborrow().get(0).get_text_field().unwrap().as_ref(),
+                "alice"
+            );
             assert_eq!(names.get(1).get_text_field().unwrap().as_ref(), "bob");
-
         }
     }
 
@@ -1113,8 +1118,9 @@ mod tests {
             names.get(1).set_text_field("bob");
         }
         {
-            let old_version =
-                message.get_root_as_reader::<test_old_version::Reader<'_>>().unwrap();
+            let old_version = message
+                .get_root_as_reader::<test_old_version::Reader<'_>>()
+                .unwrap();
             assert_eq!(old_version.get_old1(), 123);
             let names = old_version.get_old4().unwrap();
             assert_eq!(names.len(), 2);
