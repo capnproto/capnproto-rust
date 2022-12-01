@@ -4,7 +4,8 @@
 
 [documentation](https://docs.capnproto-rust.org/capnp/)
 
-[blog](https://dwrensha.github.io/capnproto-rust)
+For the latest news,
+see the [capnproto-rust blog](https://dwrensha.github.io/capnproto-rust).
 
 ## Introduction
 
