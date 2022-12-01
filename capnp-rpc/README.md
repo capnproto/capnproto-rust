@@ -2,7 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/capnp-rpc.svg)](https://crates.io/crates/capnp-rpc)
 
-[documentation](https://docs.capnproto-rust.org/capnp_rpc/)
+[documentation](https://docs.rs/capnp-rpc/)
 
 This is a [level one](https://capnproto.org/rpc.html#protocol-features)
 implementation of the Cap'n Proto remote procedure call protocol.
