@@ -1,6 +1,6 @@
 #![no_main]
 
-use capnp::{serialize, message};
+use capnp::{message, serialize};
 use libfuzzer_sys::fuzz_target;
 
 fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
@@ -12,7 +12,10 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
     let canonical_words = message.canonicalize()?;
 
     if let Ok(true) = maybe_is_canonical {
-        assert_eq!(&orig_data[8..bytes_consumed], capnp::Word::words_to_bytes(&canonical_words[..]));
+        assert_eq!(
+            &orig_data[8..bytes_consumed],
+            capnp::Word::words_to_bytes(&canonical_words[..])
+        );
     }
 
     let segments = &[capnp::Word::words_to_bytes(&canonical_words[..])];
