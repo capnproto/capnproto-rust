@@ -6,7 +6,7 @@ authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 license = "MIT"
 description = "Cap'n Proto code generation"
 repository = "https://github.com/capnproto/capnproto-rust"
-documentation = "http://docs.capnproto-rust.org/capnpc"
+documentation = "https://docs.rs/capnpc/"
 edition = "2021"
 
 readme = "README.md"
