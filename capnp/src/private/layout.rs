@@ -64,7 +64,7 @@ impl ElementSize {
             5 => Self::EightBytes,
             6 => Self::Pointer,
             7 => Self::InlineComposite,
-            _ => panic!("illegal element size: {}", val),
+            _ => panic!("illegal element size: {val}"),
         }
     }
 }
@@ -124,7 +124,7 @@ impl WirePointerKind {
             1 => Self::List,
             2 => Self::Far,
             3 => Self::Other,
-            _ => panic!("illegal element size: {}", val),
+            _ => panic!("illegal element size: {val}"),
         }
     }
 }
@@ -2427,8 +2427,7 @@ mod wire_helpers {
             match cap_table.extract_cap(n) {
                 Some(client_hook) => Ok(client_hook),
                 None => Err(Error::failed(format!(
-                    "Message contains invalid capability pointer. Index: {}",
-                    n
+                    "Message contains invalid capability pointer. Index: {n}"
                 ))),
             }
         }

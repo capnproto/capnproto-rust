@@ -47,8 +47,7 @@ impl<'b> NoAllocSliceSegments<'b> {
 
         if segments_count >= SEGMENTS_COUNT_LIMIT {
             return Err(Error::failed(format!(
-                "Too many segments: {}",
-                segments_count
+                "Too many segments: {segments_count}"
             )));
         }
 
@@ -75,9 +74,8 @@ impl<'b> NoAllocSliceSegments<'b> {
             let total_segments_length_words = total_segments_length_bytes / 8;
             if total_segments_length_words > limit {
                 return Err(Error::failed(format!(
-                    "Message has {} words, which is too large. To increase the limit on the \
-                             receiving end, see capnp::message::ReaderOptions.",
-                    total_segments_length_words
+                    "Message has {total_segments_length_words} words, which is too large. To increase the limit on the \
+                             receiving end, see capnp::message::ReaderOptions."
                 )));
             }
         }
