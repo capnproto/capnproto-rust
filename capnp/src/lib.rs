@@ -234,7 +234,7 @@ impl core::convert::From<::std::io::Error> for Error {
             _ => ErrorKind::Failed,
         };
         Self {
-            description: format!("{}", err),
+            description: format!("{err}"),
             kind,
         }
     }
@@ -242,13 +242,13 @@ impl core::convert::From<::std::io::Error> for Error {
 
 impl core::convert::From<alloc::string::FromUtf8Error> for Error {
     fn from(err: alloc::string::FromUtf8Error) -> Self {
-        Self::failed(format!("{}", err))
+        Self::failed(format!("{err}"))
     }
 }
 
 impl core::convert::From<alloc::str::Utf8Error> for Error {
     fn from(err: alloc::str::Utf8Error) -> Self {
-        Self::failed(format!("{}", err))
+        Self::failed(format!("{err}"))
     }
 }
 

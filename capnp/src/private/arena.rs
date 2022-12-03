@@ -103,7 +103,7 @@ where
 
                 Ok((seg.as_ptr(), (seg.len() / BYTES_PER_WORD) as u32))
             }
-            None => Err(Error::failed(format!("Invalid segment id: {}", id))),
+            None => Err(Error::failed(format!("Invalid segment id: {id}"))),
         }
     }
 
