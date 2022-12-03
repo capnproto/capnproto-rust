@@ -443,10 +443,7 @@ fn populate_scope_map(
     node_id: u64,
 ) -> ::capnp::Result<()> {
     // unused nodes in imported files might be omitted from the node map
-    let node_reader = match node_map.get(&node_id) {
-        Some(node) => node,
-        None => return Ok(()),
-    };
+    let Some(node_reader) = node_map.get(&node_id) else { return Ok(()) };
 
     for annotation in node_reader.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
@@ -1164,10 +1161,7 @@ fn used_params_of_brand(
     let brand_scopes = brand_scopes; // freeze
     let mut current_node_id = node_id;
     loop {
-        let current_node = match gen.node_map.get(&current_node_id) {
-            None => break,
-            Some(node) => node,
-        };
+        let Some(current_node) = gen.node_map.get(&current_node_id) else { break };
         let params = current_node.get_parameters()?;
         match brand_scopes.get(&current_node_id) {
             None => (),

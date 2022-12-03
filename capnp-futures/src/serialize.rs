@@ -53,9 +53,8 @@ pub async fn try_read_message<R>(
 where
     R: AsyncRead + Unpin,
 {
-    let segment_lengths_builder = match read_segment_table(&mut reader, options).await? {
-        Some(s) => s,
-        None => return Ok(None),
+    let Some(segment_lengths_builder) = read_segment_table(&mut reader, options).await? else {
+        return Ok(None)
     };
     Ok(Some(
         read_segments(
