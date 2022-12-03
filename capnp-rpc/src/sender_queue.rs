@@ -64,12 +64,9 @@ where
     Out: 'static,
 {
     fn drop(&mut self) {
-        match self.inner.upgrade() {
-            Some(inner) => {
-                let Inner { ref mut map, .. } = *inner.borrow_mut();
-                map.remove(&self.id);
-            }
-            None => (),
+        if let Some(inner) = self.inner.upgrade() {
+            let Inner { ref mut map, .. } = *inner.borrow_mut();
+            map.remove(&self.id);
         }
     }
 }
@@ -136,7 +133,7 @@ where
             ..
         } = *self.inner.borrow_mut();
         *next_id = 0;
-        let map = ::std::mem::replace(map, BTreeMap::new());
+        let map = ::std::mem::take(map);
         Drain {
             iter: map.into_iter(),
         }
@@ -158,9 +155,6 @@ where
 {
     type Item = (In, oneshot::Sender<Out>);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.iter.next() {
-            None => None,
-            Some((_k, v)) => Some(v),
-        }
+        self.iter.next().map(|(_k, v)| v)
     }
 }

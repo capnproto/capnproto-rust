@@ -40,7 +40,7 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         let result = Pin::new(&mut self.original_future).poll(cx);
-        if let Poll::Ready(_) = result {
+        if result.is_ready() {
             self.value.take();
         }
         result

@@ -21,6 +21,7 @@
 
 // Enable this lint to catch violations in the generated code.
 #![warn(elided_lifetimes_in_paths)]
+#![allow(clippy::bool_assert_comparison)]
 
 pub mod test_capnp {
     include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
@@ -984,7 +985,6 @@ mod tests {
     #[test]
     fn test_constants() {
         use crate::test_capnp::{test_constants, TestEnum};
-        assert_eq!(test_constants::VOID_CONST, ());
         assert_eq!(test_constants::BOOL_CONST, true);
         assert_eq!(test_constants::INT8_CONST, -123);
         assert_eq!(test_constants::INT16_CONST, -12345);
@@ -1410,9 +1410,7 @@ mod tests {
             // Data word.
             capnp::word(1, 0, 0, 0, 0x42, 0, 0, 0),
             // text pointer. offset zero. 1-byte elements. 8 total elements.
-            capnp::word(
-                'h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8, '.' as u8, '\n' as u8, 0,
-            ),
+            capnp::word(b'h', b'e', b'l', b'l', b'o', b'.', b'\n', 0),
         ];
 
         let segment_array = &[
@@ -1932,8 +1930,8 @@ mod tests {
 
         let mut iter = structs.iter();
         assert_eq!(3, iter.nth(3).unwrap().get_u_int32_field());
-        assert_eq!(4, iter.nth(0).unwrap().get_u_int32_field());
-        assert_eq!(5, iter.nth(0).unwrap().get_u_int32_field());
+        assert_eq!(4, iter.next().unwrap().get_u_int32_field());
+        assert_eq!(5, iter.next().unwrap().get_u_int32_field());
 
         let mut c = 2;
         for s in structs.iter().skip(2) {
@@ -2059,7 +2057,7 @@ mod tests {
         let reader =
             serialize::read_message(raw_code_gen_request.as_slice(), ReaderOptions::new()).unwrap();
         let generator_context = capnpc::codegen::GeneratorContext::new(&reader).unwrap();
-        assert!(generator_context.node_map.len() > 0);
-        assert!(generator_context.scope_map.len() > 0);
+        assert!(!generator_context.node_map.is_empty());
+        assert!(!generator_context.scope_map.is_empty());
     }
 }

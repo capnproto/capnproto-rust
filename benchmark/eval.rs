@@ -42,11 +42,11 @@ fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth: u32)
     };
 
     match exp.get_op().unwrap() {
-        Operation::Add => return left + right,
-        Operation::Subtract => return left - right,
-        Operation::Multiply => return left * right,
-        Operation::Divide => return div(left, right),
-        Operation::Modulus => return modulus(left, right),
+        Operation::Add => left + right,
+        Operation::Subtract => left - right,
+        Operation::Multiply => left * right,
+        Operation::Divide => div(left, right),
+        Operation::Modulus => modulus(left, right),
     }
 }
 

@@ -78,8 +78,8 @@ macro_rules! car_value_impl(
 car_value_impl!(Reader);
 car_value_impl!(Builder);
 
-const MAKES: [&'static str; 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
-const MODELS: [&'static str; 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
+const MAKES: [&str; 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
+const MODELS: [&str; 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
 pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
     car.set_make(MAKES[rng.next_less_than(MAKES.len() as u32) as usize]);

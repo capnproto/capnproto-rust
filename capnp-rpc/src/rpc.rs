@@ -639,7 +639,7 @@ impl<VatId> ConnectionState<VatId> {
             Err(_) => panic!(),
         }
 
-        let pipeline = Pipeline::new(&state, question_ref, Some(Promise::from_future(promise)));
+        let pipeline = Pipeline::new(state, question_ref, Some(Promise::from_future(promise)));
         pipeline.get_pipelined_cap_move(Vec::new())
     }
 
@@ -757,7 +757,7 @@ impl<VatId> ConnectionState<VatId> {
             }
             assert_eq!(cap_table.len(), 1);
 
-            Self::write_descriptors(&connection_state, &cap_table, payload)
+            Self::write_descriptors(connection_state, &cap_table, payload)
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
@@ -800,7 +800,7 @@ impl<VatId> ConnectionState<VatId> {
                 answer.received_finish.set(true);
 
                 if finish.get_release_result_caps() {
-                    exports_to_release = mem::replace(&mut answer.result_exports, Vec::new());
+                    exports_to_release = ::std::mem::take(&mut answer.result_exports);
                 }
 
                 // If the pipeline has not been cloned, the following two lines cancel the call.
@@ -967,16 +967,14 @@ impl<VatId> ConnectionState<VatId> {
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
                     if redirect_results {
                         let (f, p) = oneshot::channel::<Result<Response<VatId>, Error>>();
-                        let p = p
-                            .map_err(crate::canceled_to_error)
-                            .and_then(|x| future::ready(x));
+                        let p = p.map_err(crate::canceled_to_error).and_then(future::ready);
                         (Some(Promise::from_future(p)), Some(f))
                     } else {
                         (None, None)
                     };
 
                 {
-                    let ref mut slots = connection_state.answers.borrow_mut().slots;
+                    let slots = &mut connection_state.answers.borrow_mut().slots;
                     let answer = slots.entry(question_id).or_insert(answer);
                     if answer.active {
                         return Err(Error::failed("questionId is already in use".to_string()));
@@ -999,12 +997,11 @@ impl<VatId> ConnectionState<VatId> {
                         })
                     })
                     .then(move |v| {
-                        match redirected_results_done_fulfiller {
-                            Some(f) => match &v {
+                        if let Some(f) = redirected_results_done_fulfiller {
+                            match v {
                                 Ok(r) => drop(f.send(Ok(Response::redirected(r.clone())))),
                                 Err(e) => drop(f.send(Err(e.clone()))),
-                            },
-                            None => (),
+                            }
                         }
                         Promise::ok(())
                     });
@@ -1013,7 +1010,7 @@ impl<VatId> ConnectionState<VatId> {
                 pipeline.drive(fork.clone());
 
                 {
-                    let ref mut slots = connection_state.answers.borrow_mut().slots;
+                    let slots = &mut connection_state.answers.borrow_mut().slots;
                     match slots.get_mut(&question_id) {
                         Some(answer) => {
                             answer.pipeline = Some(Box::new(pipeline));
@@ -1091,11 +1088,8 @@ impl<VatId> ConnectionState<VatId> {
                                 }
                             }
                             None => {
-                                match ret.which()? {
-                                    return_::TakeFromOtherQuestion(_) => {
-                                        unimplemented!()
-                                    }
-                                    _ => {}
+                                if let return_::TakeFromOtherQuestion(_) = ret.which()? {
+                                    unimplemented!()
                                 }
                                 // Looks like this question was canceled earlier, so `Finish`
                                 // was already sent, with `releaseResultCaps` set true so that
@@ -1135,17 +1129,12 @@ impl<VatId> ConnectionState<VatId> {
                 };
 
                 // If the import is in the table, fulfill it.
-                let ref mut slots = connection_state.imports.borrow_mut().slots;
+                let slots = &mut connection_state.imports.borrow_mut().slots;
                 if let Some(import) = slots.get_mut(&resolve.get_promise_id()) {
                     match import.promise_client_to_resolve.take() {
                         Some(weak_promise_client) => {
-                            match weak_promise_client.upgrade() {
-                                Some(promise_client) => {
-                                    promise_client.borrow_mut().resolve(replacement_or_error);
-                                }
-                                None => {
-                                    // ?
-                                }
+                            if let Some(promise_client) = weak_promise_client.upgrade() {
+                                promise_client.borrow_mut().resolve(replacement_or_error);
                             }
                         }
                         None => {
@@ -1451,20 +1440,17 @@ impl<VatId> ConnectionState<VatId> {
     ) -> Vec<ExportId> {
         let mut cap_table_builder = payload.init_cap_table(cap_table.len() as u32);
         let mut exports = Vec::new();
-        for idx in 0..cap_table.len() {
-            match cap_table[idx] {
+        for (idx, value) in cap_table.iter().enumerate() {
+            match value {
                 Some(ref cap) => {
-                    match Self::write_descriptor(
+                    if let Some(export_id) = Self::write_descriptor(
                         state,
                         cap,
                         cap_table_builder.reborrow().get(idx as u32),
                     )
                     .unwrap()
                     {
-                        Some(export_id) => {
-                            exports.push(export_id);
-                        }
-                        None => {}
+                        exports.push(export_id);
                     }
                 }
                 None => {
@@ -1488,7 +1474,6 @@ impl<VatId> ConnectionState<VatId> {
                     .0
                     .upgrade()
                     .expect("dangling ref to import client?")
-                    .clone()
             } else {
                 let import_client = ImportClient::new(&connection_state, import_id);
                 v.import_client = Some((
@@ -1557,10 +1542,10 @@ impl<VatId> ConnectionState<VatId> {
         match descriptor.which()? {
             cap_descriptor::None(()) => Ok(None),
             cap_descriptor::SenderHosted(sender_hosted) => {
-                Ok(Some(Self::import(&state, sender_hosted, false)))
+                Ok(Some(Self::import(state, sender_hosted, false)))
             }
             cap_descriptor::SenderPromise(sender_promise) => {
-                Ok(Some(Self::import(&state, sender_promise, true)))
+                Ok(Some(Self::import(state, sender_promise, true)))
             }
             cap_descriptor::ReceiverHosted(receiver_hosted) => {
                 if let Some(exp) = state.exports.borrow_mut().find(receiver_hosted) {
@@ -1574,19 +1559,13 @@ impl<VatId> ConnectionState<VatId> {
             cap_descriptor::ReceiverAnswer(receiver_answer) => {
                 let promised_answer = receiver_answer?;
                 let question_id = promised_answer.get_question_id();
-                match state.answers.borrow().slots.get(&question_id) {
-                    Some(answer) => {
-                        if answer.active {
-                            match answer.pipeline {
-                                Some(ref pipeline) => {
-                                    let ops = to_pipeline_ops(promised_answer.get_transform()?)?;
-                                    return Ok(Some(pipeline.get_pipelined_cap(&ops)));
-                                }
-                                None => (),
-                            }
+                if let Some(answer) = state.answers.borrow().slots.get(&question_id) {
+                    if answer.active {
+                        if let Some(ref pipeline) = answer.pipeline {
+                            let ops = to_pipeline_ops(promised_answer.get_transform()?)?;
+                            return Ok(Some(pipeline.get_pipelined_cap(&ops)));
                         }
                     }
-                    None => (),
                 }
                 Ok(Some(broken::new_cap(Error::failed(
                     "invalid 'receiver answer'".to_string(),
@@ -1604,7 +1583,7 @@ impl<VatId> ConnectionState<VatId> {
     ) -> ::capnp::Result<Vec<Option<Box<dyn ClientHook>>>> {
         let mut result = Vec::new();
         for idx in 0..cap_table.len() {
-            result.push(Self::receive_cap(&state, cap_table.get(idx))?);
+            result.push(Self::receive_cap(state, cap_table.get(idx))?);
         }
         Ok(result)
     }
@@ -1658,7 +1637,7 @@ where
                 DisconnectorState::Disconnecting
             }
             DisconnectorState::Disconnecting => {
-                if let Some(_) = *(self.connection_state.borrow()) {
+                if self.connection_state.borrow().is_some() {
                     DisconnectorState::Disconnecting
                 } else {
                     DisconnectorState::Disconnected
@@ -1813,8 +1792,8 @@ where
     ) {
         // Build the cap table.
         let exports = ConnectionState::write_descriptors(
-            &connection_state,
-            &cap_table,
+            connection_state,
+            cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
         );
 
@@ -1914,7 +1893,7 @@ impl<VatId> RequestHook for Request<VatId> {
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(
                     &connection_state,
-                    question_ref.clone(),
+                    question_ref,
                     Some(Promise::from_future(forked_promise1)),
                 );
 
@@ -2064,28 +2043,23 @@ impl<VatId> Pipeline<VatId> {
             promise_clients_to_resolve: RefCell::new(crate::sender_queue::SenderQueue::new()),
             resolution_waiters: crate::sender_queue::SenderQueue::new(),
         }));
-        match redirect_later {
-            Some(redirect_later_promise) => {
-                let fork = redirect_later_promise.shared();
-                let this = Rc::downgrade(&state);
-                let resolve_self_promise =
-                    connection_state.eagerly_evaluate(fork.clone().then(move |response| {
-                        let state = match this.upgrade() {
-                            Some(s) => s,
-                            None => {
-                                return Promise::err(Error::failed(
-                                    "dangling reference to this".into(),
-                                ))
-                            }
-                        };
-                        PipelineState::resolve(&state, response);
-                        Promise::ok(())
-                    }));
+        if let Some(redirect_later_promise) = redirect_later {
+            let fork = redirect_later_promise.shared();
+            let this = Rc::downgrade(&state);
+            let resolve_self_promise =
+                connection_state.eagerly_evaluate(fork.clone().then(move |response| {
+                    let state = match this.upgrade() {
+                        Some(s) => s,
+                        None => {
+                            return Promise::err(Error::failed("dangling reference to this".into()))
+                        }
+                    };
+                    PipelineState::resolve(&state, response);
+                    Promise::ok(())
+                }));
 
-                state.borrow_mut().resolve_self_promise = resolve_self_promise;
-                state.borrow_mut().redirect_later = Some(RefCell::new(fork.clone()));
-            }
-            None => {}
+            state.borrow_mut().resolve_self_promise = resolve_self_promise;
+            state.borrow_mut().redirect_later = Some(RefCell::new(fork));
         }
         Self { state }
     }
@@ -2425,20 +2399,19 @@ impl ResultsDone {
                                     .complete(Box::new(local::Pipeline::new(hook.clone())));
 
                                 // Send a Canceled return.
-                                match connection_state.connection.borrow_mut().as_mut() {
-                                    Ok(connection) => {
-                                        let mut message = connection.new_outgoing_message(50); // XXX size hint
-                                        {
-                                            let root: message::Builder =
-                                                message.get_body()?.get_as()?;
-                                            let mut ret = root.init_return();
-                                            ret.set_answer_id(answer_id);
-                                            ret.set_release_param_caps(false);
-                                            ret.set_canceled(());
-                                        }
-                                        let _ = message.send();
+                                if let Ok(connection) =
+                                    connection_state.connection.borrow_mut().as_mut()
+                                {
+                                    let mut message = connection.new_outgoing_message(50); // XXX size hint
+                                    {
+                                        let root: message::Builder =
+                                            message.get_body()?.get_as()?;
+                                        let mut ret = root.init_return();
+                                        ret.set_answer_id(answer_id);
+                                        ret.set_release_param_caps(false);
+                                        ret.set_canceled(());
                                     }
-                                    Err(_) => (),
+                                    let _ = message.send();
                                 }
 
                                 connection_state.answer_has_sent_return(answer_id, Vec::new());
@@ -2476,21 +2449,20 @@ impl ResultsDone {
                             }
                             (false, Err(e)) => {
                                 // Send an error return.
-                                match connection_state.connection.borrow_mut().as_mut() {
-                                    Ok(connection) => {
-                                        let mut message = connection.new_outgoing_message(50); // XXX size hint
-                                        {
-                                            let root: message::Builder =
-                                                message.get_body()?.get_as()?;
-                                            let mut ret = root.init_return();
-                                            ret.set_answer_id(answer_id);
-                                            ret.set_release_param_caps(false);
-                                            let mut exc = ret.init_exception();
-                                            from_error(&e, exc.reborrow());
-                                        }
-                                        let _ = message.send();
+                                if let Ok(connection) =
+                                    connection_state.connection.borrow_mut().as_mut()
+                                {
+                                    let mut message = connection.new_outgoing_message(50); // XXX size hint
+                                    {
+                                        let root: message::Builder =
+                                            message.get_body()?.get_as()?;
+                                        let mut ret = root.init_return();
+                                        ret.set_answer_id(answer_id);
+                                        ret.set_release_param_caps(false);
+                                        let mut exc = ret.init_exception();
+                                        from_error(&e, exc.reborrow());
                                     }
-                                    Err(_) => (),
+                                    let _ = message.send();
                                 }
                                 connection_state.answer_has_sent_return(answer_id, Vec::new());
 
@@ -2664,18 +2636,15 @@ impl<VatId> Drop for ImportClient<VatId> {
 
         // Send a message releasing our remote references.
         let mut tmp = connection_state.connection.borrow_mut();
-        match (self.remote_ref_count > 0, tmp.as_mut()) {
-            (true, Ok(c)) => {
-                let mut message = c.new_outgoing_message(50); // XXX size hint
-                {
-                    let root: message::Builder = message.get_body().unwrap().init_as();
-                    let mut release = root.init_release();
-                    release.set_id(self.import_id);
-                    release.set_reference_count(self.remote_ref_count);
-                }
-                let _ = message.send();
+        if let (true, Ok(c)) = (self.remote_ref_count > 0, tmp.as_mut()) {
+            let mut message = c.new_outgoing_message(50); // XXX size hint
+            {
+                let root: message::Builder = message.get_body().unwrap().init_as();
+                let mut release = root.init_release();
+                release.set_id(self.import_id);
+                release.set_reference_count(self.remote_ref_count);
             }
-            _ => (),
+            let _ = message.send();
         }
     }
 }
@@ -2802,7 +2771,7 @@ impl<VatId> PromiseClient<VatId> {
             let (fulfiller, promise) = oneshot::channel::<Result<(), Error>>();
             let promise = promise
                 .map_err(crate::canceled_to_error)
-                .and_then(|v| future::ready(v));
+                .and_then(future::ready);
             let embargo = Embargo::new(fulfiller);
             let embargo_id = connection_state.embargoes.borrow_mut().push(embargo);
 
@@ -2867,7 +2836,7 @@ impl<VatId> Drop for PromiseClient<VatId> {
             // contain a pointer back to it.  Remove that pointer.  Note that we have to verify that
             // the import still exists and the pointer still points back to this object because this
             // object may actually outlive the import.
-            let ref mut slots = self.connection_state.imports.borrow_mut().slots;
+            let slots = &mut self.connection_state.imports.borrow_mut().slots;
             if let Some(import) = slots.get_mut(&id) {
                 let mut drop_it = false;
                 if let Some(c) = &import.app_client {
@@ -2958,14 +2927,13 @@ impl<VatId> Client<VatId> {
                 let mut transform =
                     builder.init_transform(pipeline_client.borrow().ops.len() as u32);
                 for idx in 0..pipeline_client.borrow().ops.len() {
-                    match pipeline_client.borrow().ops[idx] {
-                        ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) => {
-                            transform
-                                .reborrow()
-                                .get(idx as u32)
-                                .set_get_pointer_field(ordinal);
-                        }
-                        _ => {}
+                    if let ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) =
+                        pipeline_client.borrow().ops[idx]
+                    {
+                        transform
+                            .reborrow()
+                            .get(idx as u32)
+                            .set_get_pointer_field(ordinal);
                     }
                 }
                 None
@@ -2994,14 +2962,13 @@ impl<VatId> Client<VatId> {
                 let mut transform =
                     promised_answer.init_transform(pipeline_client.borrow().ops.len() as u32);
                 for idx in 0..pipeline_client.borrow().ops.len() {
-                    match pipeline_client.borrow().ops[idx] {
-                        ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) => {
-                            transform
-                                .reborrow()
-                                .get(idx as u32)
-                                .set_get_pointer_field(ordinal);
-                        }
-                        _ => {}
+                    if let ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) =
+                        pipeline_client.borrow().ops[idx]
+                    {
+                        transform
+                            .reborrow()
+                            .get(idx as u32)
+                            .set_get_pointer_field(ordinal);
                     }
                 }
 
@@ -3083,13 +3050,13 @@ impl<VatId> ClientHook for Client<VatId> {
         let maybe_request = params.get().and_then(|p| {
             let mut request = p
                 .target_size()
-                .and_then(|s| Ok(self.new_call(interface_id, method_id, Some(s))))?;
+                .map(|s| self.new_call(interface_id, method_id, Some(s)))?;
             request.get().set_as(p)?;
             Ok(request)
         });
 
         match maybe_request {
-            Err(e) => Promise::err(e.clone()),
+            Err(e) => Promise::err(e),
             Ok(request) => {
                 let ::capnp::capability::RemotePromise { promise, .. } = request.send();
 
