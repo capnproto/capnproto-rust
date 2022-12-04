@@ -373,10 +373,7 @@ pub fn do_branding(
     let mut current_node_id = node_id;
     let mut accumulator: Vec<Vec<String>> = Vec::new();
     loop {
-        let current_node = match gen.node_map.get(&current_node_id) {
-            None => break,
-            Some(node) => node,
-        };
+        let Some(current_node) = gen.node_map.get(&current_node_id) else { break };
         let params = current_node.get_parameters()?;
         let mut arguments: Vec<String> = Vec::new();
         match brand_scopes.get(&current_node_id) {
@@ -448,9 +445,8 @@ pub fn get_type_parameters(
     let mut current_node_id = node_id;
     let mut accumulator: Vec<Vec<String>> = Vec::new();
     loop {
-        let current_node = match gen.node_map.get(&current_node_id) {
-            None => break,
-            Some(node) => node,
+        let Some(current_node) = gen.node_map.get(&current_node_id) else {
+            break
         };
         let mut params = Vec::new();
         for param in current_node.get_parameters().unwrap().iter() {

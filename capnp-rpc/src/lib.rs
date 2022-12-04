@@ -227,11 +227,8 @@ impl<VatId> RpcSystem<VatId> {
     where
         T: ::capnp::capability::FromClientHook,
     {
-        let connection = match self.network.connect(vat_id) {
-            Some(connection) => connection,
-            None => {
-                return T::new(self.bootstrap_cap.clone());
-            }
+        let Some(connection) = self.network.connect(vat_id) else {
+            return T::new(self.bootstrap_cap.clone());
         };
         let connection_state = Self::get_connection_state(
             &self.connection_state,

@@ -468,14 +468,11 @@ fn try_main() -> ::capnp::Result<()> {
         args[0]
     );
 
-    let iters = match args[5].parse::<u64>() {
-        Ok(n) => n,
-        Err(_) => {
-            return Err(::capnp::Error::failed(format!(
-                "Could not parse a u64 from: {}",
-                args[5]
-            )))
-        }
+    let Ok(iters) = args[5].parse::<u64>() else {
+        return Err(::capnp::Error::failed(format!(
+            "Could not parse a u64 from: {}",
+            args[5]
+        )))
     };
 
     let mode = Mode::parse(&args[2])?;
