@@ -56,7 +56,8 @@ Address Sanitizer error.
 ## Technical Explanation
 
 The bug arises from an interaction between a core feature of Cap'n Proto
-(type-agnostic copying) and an optimization (list pointer munging)
+(type-agnostic copying) and an optimization
+(list pointer [munging](https://github.com/capnproto/capnproto/blob/fd508f325ed65f9d6cdf10a0f4511aa53b5659fc/c%2B%2B/src/capnp/layout.c%2B%2B#L2363-L2366))
 which failed to correctly take that feature into account.
 
 ### Cap'n Proto core feature: type-agnostic copying
