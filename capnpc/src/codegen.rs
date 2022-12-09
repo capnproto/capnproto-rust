@@ -1860,7 +1860,7 @@ fn generate_node(
                 Line(format!(
                     "impl <'a,{0}> ::capnp::traits::SetPointerBuilder for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
-                Indent(Box::new(Line("fn set_pointer_builder<'b>(pointer: ::capnp::private::layout::PointerBuilder<'b>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }".to_string()))),
+                Indent(Box::new(Line("fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }".to_string()))),
                 Line("}".to_string()),
                 BlankLine,
                 Line(format!("impl <'a,{0}> Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
