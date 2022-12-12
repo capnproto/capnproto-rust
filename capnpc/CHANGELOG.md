@@ -1,3 +1,6 @@
+### v0.15.2
+- Apply clippy lifetime elision suggestion in set_pointer_builder() in generated code.
+
 ### v0.15.1
 - Lots of style fixes and linting, including for generated code.
 
