@@ -146,15 +146,9 @@ where
 fn parse_segment_table_first(buf: &[u8]) -> Result<(usize, usize)> {
     let segment_count = u32::from_le_bytes(buf[0..4].try_into().unwrap()).wrapping_add(1);
     if segment_count >= 512 {
-        return Err(Error::failed(format!(
-            "Too many segments: {}",
-            segment_count
-        )));
+        return Err(Error::failed(format!("Too many segments: {segment_count}")));
     } else if segment_count == 0 {
-        return Err(Error::failed(format!(
-            "Too few segments: {}",
-            segment_count
-        )));
+        return Err(Error::failed(format!("Too few segments: {segment_count}")));
     }
 
     let first_segment_len = u32::from_le_bytes(buf[4..8].try_into().unwrap());
