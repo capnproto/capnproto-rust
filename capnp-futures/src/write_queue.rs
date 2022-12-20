@@ -33,12 +33,13 @@ where
     Message(M, oneshot::Sender<M>),
     Done(Result<(), Error>, oneshot::Sender<()>),
 }
-/// A handle that allows message to be sent to a write queue`.
+/// A handle that allows messages to be sent to a write queue.
 pub struct Sender<M>
 where
     M: AsOutputSegments,
 {
     sender: futures::channel::mpsc::UnboundedSender<Item<M>>,
+    in_flight: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
 
 impl<M> Clone for Sender<M>
@@ -48,11 +49,12 @@ where
     fn clone(&self) -> Self {
         Self {
             sender: self.sender.clone(),
+            in_flight: self.in_flight.clone(),
         }
     }
 }
 
-/// Creates a new WriteQueue that wraps the given writer.
+/// Creates a new write queue that wraps the given `AsyncWrite`.
 pub fn write_queue<W, M>(mut writer: W) -> (Sender<M>, impl Future<Output = Result<(), Error>>)
 where
     W: AsyncWrite + Unpin,
@@ -60,13 +62,20 @@ where
 {
     let (tx, mut rx) = futures::channel::mpsc::unbounded();
 
-    let sender = Sender { sender: tx };
+    let in_flight = std::sync::Arc::new(std::sync::atomic::AtomicI32::new(0));
+
+    let sender = Sender {
+        sender: tx,
+        in_flight: in_flight.clone(),
+    };
 
     let queue = async move {
         while let Some(item) = rx.next().await {
             match item {
                 Item::Message(m, returner) => {
-                    crate::serialize::write_message(&mut writer, &m).await?;
+                    let result = crate::serialize::write_message(&mut writer, &m).await;
+                    in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                    result?;
                     writer.flush().await?;
                     let _ = returner.send(m);
                 }
@@ -96,12 +105,14 @@ where
         oneshot.map_err(|oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into()))
     }
 
-    /// Returns the number of messages queued to be written, not including any in-progress write.
-    pub fn len(&mut self) -> usize {
-        unimplemented!()
+    /// Returns the number of messages queued to be written.
+    pub fn len(&self) -> usize {
+        let result = self.in_flight.load(std::sync::atomic::Ordering::SeqCst);
+        assert!(result >= 0);
+        result as usize
     }
 
-    pub fn is_empty(&mut self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
