@@ -365,7 +365,7 @@ where
             Ok(())
         }
         Err(e) => {
-            println!("could not start process: {}", e);
+            println!("could not start process: {e}");
             Ok(())
         }
     }
@@ -387,7 +387,7 @@ impl Mode {
             "client" => Ok(Self::Client),
             "server" => Ok(Self::Server),
             "pipe" => Ok(Self::Pipe),
-            s => Err(::capnp::Error::failed(format!("unrecognized mode: {}", s))),
+            s => Err(::capnp::Error::failed(format!("unrecognized mode: {s}"))),
         }
     }
 }
@@ -433,8 +433,7 @@ where
         "catrank" => do_testcase(catrank::CatRank, mode, scratch, compression, iters),
         "eval" => do_testcase(eval::Eval, mode, scratch, compression, iters),
         s => Err(::capnp::Error::failed(format!(
-            "unrecognized test case: {}",
-            s
+            "unrecognized test case: {s}"
         ))),
     }
 }
@@ -453,8 +452,7 @@ where
         "no-reuse" => do_testcase1(case, mode, NoScratch, compression, iters),
         "reuse" => do_testcase1(case, mode, UseScratch::new(), compression, iters),
         s => Err(::capnp::Error::failed(format!(
-            "unrecognized reuse option: {}",
-            s
+            "unrecognized reuse option: {s}"
         ))),
     }
 }
@@ -481,8 +479,7 @@ fn try_main() -> ::capnp::Result<()> {
         "none" => do_testcase2(&args[1], mode, &args[3], NoCompression, iters),
         "packed" => do_testcase2(&args[1], mode, &args[3], Packed, iters),
         s => Err(::capnp::Error::failed(format!(
-            "unrecognized compression: {}",
-            s
+            "unrecognized compression: {s}"
         ))),
     }
 }

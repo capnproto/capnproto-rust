@@ -179,7 +179,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         }
                                     }
                                     Err(e) => {
-                                        println!("Got error: {:?}. Dropping subscriber.", e);
+                                        println!("Got error: {e:?}. Dropping subscriber.");
                                         subscribers2.borrow_mut().subscribers.remove(&idx);
                                     }
                                 },

@@ -275,7 +275,7 @@ impl<VatId> RpcSystem<VatId> {
                     *connection_state_ref1.borrow_mut() = None;
                     match shutdown_promise {
                         Ok(s) => s,
-                        Err(e) => Promise::err(Error::failed(format!("{}", e))),
+                        Err(e) => Promise::err(Error::failed(format!("{e}"))),
                     }
                 }));
                 rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller)
@@ -405,7 +405,7 @@ where
 struct SystemTaskReaper;
 impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
-        println!("ERROR: {}", error);
+        println!("ERROR: {error}");
     }
 }
 

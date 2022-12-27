@@ -35,9 +35,9 @@ fn run_one(
         .arg(mode)
         .arg(scratch)
         .arg(compression)
-        .arg(format!("{}", iteration_count));
+        .arg(format!("{iteration_count}"));
 
-    println!("{} {} {}", mode, compression, scratch);
+    println!("{mode} {compression} {scratch}");
     let start_time = time::Instant::now();
     let result_status = command.spawn().unwrap().wait().unwrap();
     let elapsed = start_time.elapsed();
@@ -91,7 +91,7 @@ fn try_main() -> ::capnp::Result<()> {
 
     let executable = &*args[1];
 
-    println!("running carsales with {} iterations", carsales_iters);
+    println!("running carsales with {carsales_iters} iterations");
     run_case(
         executable,
         "carsales",
@@ -99,10 +99,10 @@ fn try_main() -> ::capnp::Result<()> {
         carsales_iters,
     );
 
-    println!("running catrank with {} iterations", catrank_iters);
+    println!("running catrank with {catrank_iters} iterations");
     run_case(executable, "catrank", &["no-reuse"], catrank_iters);
 
-    println!("running eval with {} iterations", eval_iters);
+    println!("running eval with {eval_iters} iterations");
     run_case(executable, "eval", &["no-reuse"], eval_iters);
 
     Ok(())

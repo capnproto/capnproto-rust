@@ -66,7 +66,7 @@ fn evaluate_impl(
         ),
         calculator::expression::Parameter(p) => match params {
             Some(params) if p < params.len() => Promise::ok(params.get(p)),
-            _ => Promise::err(Error::failed(format!("bad parameter: {}", p))),
+            _ => Promise::err(Error::failed(format!("bad parameter: {p}"))),
         },
         calculator::expression::Call(call) => {
             let func = pry!(call.get_function());
@@ -232,7 +232,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
 
                 let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
-                tokio::task::spawn_local(rpc_system.map_err(|e| println!("error: {:?}", e)));
+                tokio::task::spawn_local(rpc_system.map_err(|e| println!("error: {e:?}")));
             }
         })
         .await

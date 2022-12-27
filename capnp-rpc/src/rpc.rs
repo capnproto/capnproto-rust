@@ -378,7 +378,7 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
         _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
     };
     Error {
-        description: format!("remote exception: {}", reason),
+        description: format!("remote exception: {reason}"),
         kind,
     }
 }
@@ -783,15 +783,13 @@ impl<VatId> ConnectionState<VatId> {
         match answers_slots.get_mut(&answer_id) {
             None => {
                 return Err(Error::failed(format!(
-                    "Invalid question ID {} in Finish message.",
-                    answer_id
+                    "Invalid question ID {answer_id} in Finish message."
                 )));
             }
             Some(answer) => {
                 if !answer.active {
                     return Err(Error::failed(format!(
-                        "'Finish' for invalid question ID {}.",
-                        answer_id
+                        "'Finish' for invalid question ID {answer_id}."
                     )));
                 }
                 answer.received_finish.set(true);
@@ -939,8 +937,7 @@ impl<VatId> ConnectionState<VatId> {
                     .contains_key(&question_id)
                 {
                     return Err(Error::failed(format!(
-                        "Received a new call on in-use question id {}",
-                        question_id
+                        "Received a new call on in-use question id {question_id}"
                     )));
                 }
 
@@ -1095,8 +1092,7 @@ impl<VatId> ConnectionState<VatId> {
                     }
                     None => {
                         return Err(Error::failed(format!(
-                            "Invalid question ID in Return message: {}",
-                            question_id
+                            "Invalid question ID in Return message: {question_id}"
                         )));
                     }
                 }
