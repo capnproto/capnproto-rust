@@ -612,7 +612,7 @@ pub fn getter_text(
             } else {
                 Leaf::Builder("'a")
             };
-            let member = camel_to_snake_case(&module_string.to_string());
+            let member = camel_to_snake_case(module_string);
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(
                 typ: &str,
