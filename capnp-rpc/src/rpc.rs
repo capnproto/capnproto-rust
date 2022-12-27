@@ -1221,7 +1221,7 @@ impl<VatId> ConnectionState<VatId> {
         match target.which()? {
             message_target::ImportedCap(export_id) => {
                 match self.exports.borrow().slots.get(export_id as usize) {
-                    Some(&Some(ref exp)) => Ok(exp.client_hook.clone()),
+                    Some(Some(exp)) => Ok(exp.client_hook.clone()),
                     _ => Err(Error::failed(
                         "Message target is not a current export ID.".to_string(),
                     )),
