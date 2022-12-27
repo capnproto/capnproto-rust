@@ -1142,11 +1142,13 @@ impl<VatId> ConnectionState<VatId> {
             Ok(message::Disembargo(disembargo)) => {
                 Self::handle_disembargo(&connection_state, disembargo?)?
             }
-            Ok(message::Provide(_))
-            | Ok(message::Accept(_))
-            | Ok(message::Join(_))
-            | Ok(message::ObsoleteSave(_))
-            | Ok(message::ObsoleteDelete(_))
+            Ok(
+                message::Provide(_)
+                | message::Accept(_)
+                | message::Join(_)
+                | message::ObsoleteSave(_)
+                | message::ObsoleteDelete(_),
+            )
             | Err(::capnp::NotInSchema(_)) => {
                 Self::send_unimplemented(&connection_state, &message)?;
             }

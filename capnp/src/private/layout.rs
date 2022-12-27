@@ -2510,13 +2510,13 @@ mod wire_helpers {
 
                 // Check whether the size is compatible.
                 match expected_element_size {
-                    None | Some(Void) | Some(InlineComposite) => (),
+                    None | Some(Void | InlineComposite) => (),
                     Some(Bit) => {
                         return Err(Error::failed(
                             "Found struct list where bit list was expected.".to_string(),
                         ));
                     }
-                    Some(Byte) | Some(TwoBytes) | Some(FourBytes) | Some(EightBytes) => {
+                    Some(Byte | TwoBytes | FourBytes | EightBytes) => {
                         if data_size == 0 {
                             return Err(Error::failed(
                                 "Expected a primitive list, but got a list of pointer-only structs"

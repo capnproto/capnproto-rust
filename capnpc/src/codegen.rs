@@ -1222,11 +1222,13 @@ fn generate_union(
                 let fty = reg_field.get_type()?;
                 used_params_of_type(gen, fty, &mut used_params)?;
                 match fty.which() {
-                    Ok(type_::Text(()))
-                    | Ok(type_::Data(()))
-                    | Ok(type_::List(_))
-                    | Ok(type_::Struct(_))
-                    | Ok(type_::AnyPointer(_)) => {
+                    Ok(
+                        type_::Text(())
+                        | type_::Data(())
+                        | type_::List(_)
+                        | type_::Struct(_)
+                        | type_::AnyPointer(_),
+                    ) => {
                         ty_args.push(ty);
                         new_ty_param(&mut ty_params)
                     }
