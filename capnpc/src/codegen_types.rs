@@ -39,8 +39,8 @@ pub enum Leaf {
 impl ::std::fmt::Display for Leaf {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
         let display_string = match *self {
-            Self::Reader(lt) => format!("Reader<{}>", lt),
-            Self::Builder(lt) => format!("Builder<{}>", lt),
+            Self::Reader(lt) => format!("Reader<{lt}>"),
+            Self::Builder(lt) => format!("Builder<{lt}>"),
             Self::Owned => "Owned".to_string(),
             Self::Client => "Client".to_string(),
             Self::Server => "Server".to_string(),
@@ -119,28 +119,25 @@ impl<'a> RustNodeInfo for node::Reader<'a> {
             let where_clause = "where ".to_string()
                 + &*(params
                     .iter()
-                    .map(|param| format!("{}: ::capnp::traits::Owned", param))
+                    .map(|param| format!("{param}: ::capnp::traits::Owned"))
                     .collect::<Vec<String>>()
                     .join(", ")
                     + " ");
             let where_clause_with_static = "where ".to_string()
                 + &*(params
                     .iter()
-                    .map(|param| format!("{}:'static + ::capnp::traits::Owned", param))
+                    .map(|param| format!("{param}:'static + ::capnp::traits::Owned"))
                     .collect::<Vec<String>>()
                     .join(", ")
                     + " ");
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}: ::capnp::traits::Pipelined, <{} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline", param, param)
+                format!("{param}: ::capnp::traits::Pipelined, <{param} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline")
             }).collect::<Vec<String>>().join(", ") + " ");
             let phantom_data_type = if params.len() == 1 {
                 // omit parens to avoid linter error
-                format!("_phantom: ::core::marker::PhantomData<{}>", type_parameters)
+                format!("_phantom: ::core::marker::PhantomData<{type_parameters}>")
             } else {
-                format!(
-                    "_phantom: ::core::marker::PhantomData<({})>",
-                    type_parameters
-                )
+                format!("_phantom: ::core::marker::PhantomData<({type_parameters})>")
             };
             let phantom_data_value = "_phantom: ::core::marker::PhantomData,".to_string();
 
@@ -182,7 +179,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
         let lifetime_comma = if local_lifetime.is_empty() {
             "".to_string()
         } else {
-            format!("{},", local_lifetime)
+            format!("{local_lifetime},")
         };
 
         match self.which()? {
@@ -198,8 +195,8 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             type_::Uint64(()) => Ok("u64".to_string()),
             type_::Float32(()) => Ok("f32".to_string()),
             type_::Float64(()) => Ok("f64".to_string()),
-            type_::Text(()) => Ok(format!("::capnp::text::{}", module)),
-            type_::Data(()) => Ok(format!("::capnp::data::{}", module)),
+            type_::Text(()) => Ok(format!("::capnp::text::{module}")),
+            type_::Data(()) => Ok(format!("::capnp::data::{module}")),
             type_::Struct(st) => do_branding(
                 gen,
                 st.get_type_id(),
@@ -246,8 +243,8 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                             inner
                         ))
                     }
-                    type_::Text(()) => Ok(format!("::capnp::text_list::{}", module)),
-                    type_::Data(()) => Ok(format!("::capnp::data_list::{}", module)),
+                    type_::Text(()) => Ok(format!("::capnp::text_list::{module}")),
+                    type_::Data(()) => Ok(format!("::capnp::data_list::{module}")),
                     type_::Interface(_) => {
                         let inner = element_type.type_string(gen, Leaf::Client)?;
                         Ok(format!(
@@ -284,16 +281,13 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     match module {
                         Leaf::Owned => Ok(parameter_name.to_string()),
                         Leaf::Reader(lifetime) => Ok(format!(
-                            "<{} as ::capnp::traits::Owned>::Reader<{}>",
-                            parameter_name, lifetime
+                            "<{parameter_name} as ::capnp::traits::Owned>::Reader<{lifetime}>"
                         )),
                         Leaf::Builder(lifetime) => Ok(format!(
-                            "<{} as ::capnp::traits::Owned>::Builder<{}>",
-                            parameter_name, lifetime
+                            "<{parameter_name} as ::capnp::traits::Owned>::Builder<{lifetime}>"
                         )),
                         Leaf::Pipeline => Ok(format!(
-                            "<{} as ::capnp::traits::Pipelined>::Pipeline",
-                            parameter_name
+                            "<{parameter_name} as ::capnp::traits::Pipelined>::Pipeline"
                         )),
                         _ => Err(Error::unimplemented(
                             "unimplemented any_pointer leaf".to_string(),
@@ -302,12 +296,12 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 }
                 _ => match module {
                     Leaf::Reader(lifetime) => {
-                        Ok(format!("::capnp::any_pointer::Reader<{}>", lifetime))
+                        Ok(format!("::capnp::any_pointer::Reader<{lifetime}>"))
                     }
                     Leaf::Builder(lifetime) => {
-                        Ok(format!("::capnp::any_pointer::Builder<{}>", lifetime))
+                        Ok(format!("::capnp::any_pointer::Builder<{lifetime}>"))
                     }
-                    _ => Ok(format!("::capnp::any_pointer::{}", module)),
+                    _ => Ok(format!("::capnp::any_pointer::{module}")),
                 },
             },
         }

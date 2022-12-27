@@ -378,7 +378,7 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
         _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
     };
     Error {
-        description: format!("remote exception: {}", reason),
+        description: format!("remote exception: {reason}"),
         kind,
     }
 }
@@ -783,15 +783,13 @@ impl<VatId> ConnectionState<VatId> {
         match answers_slots.get_mut(&answer_id) {
             None => {
                 return Err(Error::failed(format!(
-                    "Invalid question ID {} in Finish message.",
-                    answer_id
+                    "Invalid question ID {answer_id} in Finish message."
                 )));
             }
             Some(answer) => {
                 if !answer.active {
                     return Err(Error::failed(format!(
-                        "'Finish' for invalid question ID {}.",
-                        answer_id
+                        "'Finish' for invalid question ID {answer_id}."
                     )));
                 }
                 answer.received_finish.set(true);
@@ -939,8 +937,7 @@ impl<VatId> ConnectionState<VatId> {
                     .contains_key(&question_id)
                 {
                     return Err(Error::failed(format!(
-                        "Received a new call on in-use question id {}",
-                        question_id
+                        "Received a new call on in-use question id {question_id}"
                     )));
                 }
 
@@ -994,7 +991,7 @@ impl<VatId> ConnectionState<VatId> {
                         if let Some(f) = redirected_results_done_fulfiller {
                             match v {
                                 Ok(r) => drop(f.send(Ok(Response::redirected(r.clone())))),
-                                Err(e) => drop(f.send(Err(e.clone()))),
+                                Err(e) => drop(f.send(Err(e))),
                             }
                         }
                         Promise::ok(())
@@ -1095,8 +1092,7 @@ impl<VatId> ConnectionState<VatId> {
                     }
                     None => {
                         return Err(Error::failed(format!(
-                            "Invalid question ID in Return message: {}",
-                            question_id
+                            "Invalid question ID in Return message: {question_id}"
                         )));
                     }
                 }
@@ -1146,11 +1142,13 @@ impl<VatId> ConnectionState<VatId> {
             Ok(message::Disembargo(disembargo)) => {
                 Self::handle_disembargo(&connection_state, disembargo?)?
             }
-            Ok(message::Provide(_))
-            | Ok(message::Accept(_))
-            | Ok(message::Join(_))
-            | Ok(message::ObsoleteSave(_))
-            | Ok(message::ObsoleteDelete(_))
+            Ok(
+                message::Provide(_)
+                | message::Accept(_)
+                | message::Join(_)
+                | message::ObsoleteSave(_)
+                | message::ObsoleteDelete(_),
+            )
             | Err(::capnp::NotInSchema(_)) => {
                 Self::send_unimplemented(&connection_state, &message)?;
             }
@@ -1225,7 +1223,7 @@ impl<VatId> ConnectionState<VatId> {
         match target.which()? {
             message_target::ImportedCap(export_id) => {
                 match self.exports.borrow().slots.get(export_id as usize) {
-                    Some(&Some(ref exp)) => Ok(exp.client_hook.clone()),
+                    Some(Some(exp)) => Ok(exp.client_hook.clone()),
                     _ => Err(Error::failed(
                         "Message target is not a current export ID.".to_string(),
                     )),

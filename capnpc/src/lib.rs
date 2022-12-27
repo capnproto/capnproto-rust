@@ -79,7 +79,7 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
         _ => capnp::ErrorKind::Failed,
     };
     capnp::Error {
-        description: format!("{}", err),
+        description: format!("{err}"),
         kind,
     }
 }
@@ -93,8 +93,7 @@ fn run_command(
     let exit_status = p.wait().map_err(convert_io_err)?;
     if !exit_status.success() {
         Err(::capnp::Error::failed(format!(
-            "Non-success exit status: {}",
-            exit_status
+            "Non-success exit status: {exit_status}"
         )))
     } else {
         Ok(())
@@ -256,10 +255,9 @@ impl CompilerCommand {
             // Try `OUT_DIR` by default
             PathBuf::from(::std::env::var("OUT_DIR").map_err(|error| {
                 ::capnp::Error::failed(format!(
-                    "Could not access `OUT_DIR` environment variable: {}. \
+                    "Could not access `OUT_DIR` environment variable: {error}. \
                      You might need to set it up or instead create you own output \
-                     structure using `CompilerCommand::output_path`",
-                    error
+                     structure using `CompilerCommand::output_path`"
                 ))
             })?)
         };
@@ -278,10 +276,9 @@ impl CompilerCommand {
 
         run_command(command, code_generation_command).map_err(|error| {
             ::capnp::Error::failed(format!(
-                "Error while trying to execute `capnp compile`: {}.  \
+                "Error while trying to execute `capnp compile`: {error}.  \
                  Please verify that version 0.5.2 or higher of the capnp executable \
-                 is installed on your system. See https://capnproto.org/install.html",
-                error
+                 is installed on your system. See https://capnproto.org/install.html"
             ))
         })
     }

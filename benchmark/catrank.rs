@@ -151,8 +151,7 @@ impl crate::TestCase for CatRank {
             Ok(())
         } else {
             Err(::capnp::Error::failed(format!(
-                "check_response() expected {} but got {}",
-                expected_good_count, good_count
+                "check_response() expected {expected_good_count} but got {good_count}"
             )))
         }
     }

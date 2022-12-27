@@ -41,7 +41,7 @@ impl Default for FastRand {
 }
 
 impl FastRand {
-    pub fn new() -> FastRand {
+    pub fn new() -> Self {
         Self::default()
     }
 

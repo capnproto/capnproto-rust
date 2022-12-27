@@ -340,8 +340,7 @@ fn pipelining_return_null() {
                     Ok(())
                 } else {
                     Err(Error::failed(format!(
-                        "Should have gotten null capability error. Instead got {:?}",
-                        e
+                        "Should have gotten null capability error. Instead got {e:?}"
                     )))
                 }
             }
