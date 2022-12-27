@@ -991,7 +991,7 @@ impl<VatId> ConnectionState<VatId> {
                         if let Some(f) = redirected_results_done_fulfiller {
                             match v {
                                 Ok(r) => drop(f.send(Ok(Response::redirected(r.clone())))),
-                                Err(e) => drop(f.send(Err(e.clone()))),
+                                Err(e) => drop(f.send(Err(e))),
                             }
                         }
                         Promise::ok(())

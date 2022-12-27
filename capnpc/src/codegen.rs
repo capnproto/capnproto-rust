@@ -956,7 +956,7 @@ fn generate_setter(
                     setter_interior.push(Line(format!(
                         "self.builder.set_data_field::<u16>({offset}, value as u16)"
                     )));
-                    (Some(the_mod.to_string()), None)
+                    (Some(the_mod), None)
                 }
                 type_::Struct(_) => {
                     return_result = true;
