@@ -175,6 +175,18 @@ struct BuilderSegment {
     allocated: u32, // in words
 }
 
+impl BuilderSegment {
+    fn allocate(&mut self, amount: WordCount32) -> Option<u32> {
+        if amount > self.capacity - self.allocated {
+            None
+        } else {
+            let result = self.allocated;
+            self.allocated += amount;
+            Some(result)
+        }
+    }
+}
+
 pub struct BuilderArenaImplInner<A>
 where
     A: Allocator,
@@ -305,31 +317,24 @@ where
     }
 
     fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32> {
-        let seg = &mut self.segments[segment_id as usize];
-        if amount > seg.capacity - seg.allocated {
-            None
-        } else {
-            let result = seg.allocated;
-            seg.allocated += amount;
-            Some(result)
-        }
+        self.segments[segment_id as usize].allocate(amount)
     }
 
     fn allocate_anywhere(&mut self, amount: u32) -> (SegmentId, u32) {
         // first try the existing segments, then try allocating a new segment.
-        let allocated_len = self.segments.len() as u32;
-        for segment_id in 0..allocated_len {
-            if let Some(idx) = self.allocate(segment_id, amount) {
-                return (segment_id, idx);
+        for (segment_id, segment) in self.segments.iter_mut().enumerate() {
+            if let Some(idx) = segment.allocate(amount) {
+                return (segment_id as u32, idx);
             }
         }
 
         // Need to allocate a new segment.
 
+        let segment_id = self.segments.len() as u32;
         self.allocate_segment(amount);
         (
-            allocated_len,
-            self.allocate(allocated_len, amount)
+            segment_id,
+            self.allocate(segment_id, amount)
                 .expect("use freshly-allocated segment"),
         )
     }
