@@ -206,7 +206,7 @@ where
     }
 
     /// Allocates a new segment with capacity for at least `minimum_size` words.
-    pub fn allocate_segment(&self, minimum_size: u32) -> Result<()> {
+    pub fn allocate_segment(&self, minimum_size: u32) {
         self.inner.borrow_mut().allocate_segment(minimum_size)
     }
 
@@ -295,14 +295,13 @@ where
     A: Allocator,
 {
     /// Allocates a new segment with capacity for at least `minimum_size` words.
-    fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
+    fn allocate_segment(&mut self, minimum_size: WordCount32) {
         let seg = self.allocator.allocate_segment(minimum_size);
         self.segments.push(BuilderSegment {
             ptr: seg.0,
             capacity: seg.1,
             allocated: 0,
         });
-        Ok(())
     }
 
     fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32> {
@@ -327,7 +326,7 @@ where
 
         // Need to allocate a new segment.
 
-        self.allocate_segment(amount).expect("allocate new segment");
+        self.allocate_segment(amount);
         (
             allocated_len,
             self.allocate(allocated_len, amount)

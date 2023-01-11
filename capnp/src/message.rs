@@ -412,9 +412,7 @@ where
 
     fn get_root_internal(&mut self) -> any_pointer::Builder<'_> {
         if self.arena.is_empty() {
-            self.arena
-                .allocate_segment(1)
-                .expect("allocate root pointer");
+            self.arena.allocate_segment(1);
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
@@ -463,9 +461,7 @@ where
     /// a single segment, containing the full canonicalized message.
     pub fn set_root_canonical<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
         if self.arena.is_empty() {
-            self.arena
-                .allocate_segment(1)
-                .expect("allocate root pointer");
+            self.arena.allocate_segment(1);
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
