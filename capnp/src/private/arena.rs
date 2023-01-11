@@ -20,7 +20,6 @@
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::cell::RefCell;
 use core::mem::ManuallyDrop;
 use core::ptr::read;
 use core::slice;
@@ -156,15 +155,9 @@ where
 }
 
 pub trait BuilderArena: ReaderArena {
-    // These methods all take an immutable &self because otherwise a StructBuilder<'a>
-    // would need a `&'a mut BuilderArena` and `StructBuilder::borrow()` would
-    // have lifetime issues. (If `'a: 'b`, then a `&'a (BuilderArena + 'a)` can be
-    // converted to a `&'b (BuilderArena + 'b)`, but a `&'a mut (BuilderArena + 'a)`
-    // *cannot* be converted to a `&'b mut (BuilderArena + 'b)`. See some discussion here:
-    // https://botbot.me/mozilla/rust/2017-01-31/?msg=80228117&page=19 .)
-    fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32>;
-    fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32);
-    fn get_segment_mut(&self, id: u32) -> (*mut u8, u32);
+    fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32>;
+    fn allocate_anywhere(&mut self, amount: u32) -> (SegmentId, u32);
+    fn get_segment_mut(&mut self, id: u32) -> (*mut u8, u32);
 
     fn as_reader(&self) -> &dyn ReaderArena;
 }
@@ -201,7 +194,7 @@ pub struct BuilderArenaImpl<A>
 where
     A: Allocator,
 {
-    inner: RefCell<BuilderArenaImplInner<A>>,
+    inner: BuilderArenaImplInner<A>,
 }
 
 impl<A> BuilderArenaImpl<A>
@@ -210,20 +203,20 @@ where
 {
     pub fn new(allocator: A) -> Self {
         Self {
-            inner: RefCell::new(BuilderArenaImplInner {
+            inner: BuilderArenaImplInner {
                 allocator: allocator,
                 segments: Vec::new(),
-            }),
+            },
         }
     }
 
     /// Allocates a new segment with capacity for at least `minimum_size` words.
-    pub fn allocate_segment(&self, minimum_size: u32) {
-        self.inner.borrow_mut().allocate_segment(minimum_size);
+    pub fn allocate_segment(&mut self, minimum_size: u32) {
+        self.inner.allocate_segment(minimum_size);
     }
 
     pub fn get_segments_for_output(&self) -> OutputSegments {
-        let reff = self.inner.borrow();
+        let reff = &self.inner;
         if reff.segments.len() == 1 {
             let seg = &reff.segments[0];
 
@@ -251,19 +244,18 @@ where
     }
 
     pub fn len(&self) -> usize {
-        self.inner.borrow().segments.len()
+        self.inner.segments.len()
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    pub fn into_allocator(self) -> A {
-        let mut inner = self.inner.into_inner();
-        inner.deallocate_all();
+    pub fn into_allocator(mut self) -> A {
+        self.inner.deallocate_all();
         // See https://rust-lang.zulipchat.com/#narrow/stream/122651-general/topic/.E2.9C.94.20Extracting.20field.20from.20struct.20that.20implement.20.60Drop.60
         let (allocator, _segments) = unsafe {
-            let this = &*ManuallyDrop::new(inner);
+            let this = &*ManuallyDrop::new(self.inner);
             (read(&this.allocator), read(&this.segments))
         };
         allocator
@@ -275,8 +267,7 @@ where
     A: Allocator,
 {
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
-        let borrow = self.inner.borrow();
-        let seg = &borrow.segments[id as usize];
+        let seg = &self.inner.segments[id as usize];
         Ok((seg.ptr, seg.allocated))
     }
 
@@ -351,16 +342,16 @@ impl<A> BuilderArena for BuilderArenaImpl<A>
 where
     A: Allocator,
 {
-    fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32> {
-        self.inner.borrow_mut().allocate(segment_id, amount)
+    fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32> {
+        self.inner.allocate(segment_id, amount)
     }
 
-    fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32) {
-        self.inner.borrow_mut().allocate_anywhere(amount)
+    fn allocate_anywhere(&mut self, amount: u32) -> (SegmentId, u32) {
+        self.inner.allocate_anywhere(amount)
     }
 
-    fn get_segment_mut(&self, id: u32) -> (*mut u8, u32) {
-        self.inner.borrow_mut().get_segment_mut(id)
+    fn get_segment_mut(&mut self, id: u32) -> (*mut u8, u32) {
+        self.inner.get_segment_mut(id)
     }
 
     fn as_reader(&self) -> &dyn ReaderArena {
@@ -407,15 +398,15 @@ impl ReaderArena for NullArena {
 }
 
 impl BuilderArena for NullArena {
-    fn allocate(&self, _segment_id: u32, _amount: WordCount32) -> Option<u32> {
+    fn allocate(&mut self, _segment_id: u32, _amount: WordCount32) -> Option<u32> {
         None
     }
 
-    fn allocate_anywhere(&self, _amount: u32) -> (SegmentId, u32) {
+    fn allocate_anywhere(&mut self, _amount: u32) -> (SegmentId, u32) {
         panic!("tried to allocate from a null arena")
     }
 
-    fn get_segment_mut(&self, _id: u32) -> (*mut u8, u32) {
+    fn get_segment_mut(&mut self, _id: u32) -> (*mut u8, u32) {
         (core::ptr::null_mut(), 0)
     }
 

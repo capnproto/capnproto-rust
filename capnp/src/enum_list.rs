@@ -176,14 +176,17 @@ impl<'a, T: ToU16 + FromU16> Builder<'a, T> {
         }
     }
 
-    pub fn reborrow(&self) -> Builder<'_, T> {
-        Builder { ..*self }
+    pub fn reborrow(&mut self) -> Builder<'_, T> {
+        Builder {
+            builder: self.builder.reborrow(),
+            marker: PhantomData,
+        }
     }
 }
 
 impl<'a, T> crate::traits::SetPointerBuilder for Reader<'a, T> {
     fn set_pointer_builder<'b>(
-        pointer: crate::private::layout::PointerBuilder<'b>,
+        mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a, T>,
         canonicalize: bool,
     ) -> Result<()> {

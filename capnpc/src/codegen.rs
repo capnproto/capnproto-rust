@@ -739,7 +739,11 @@ pub fn getter_text(
     }
 }
 
-fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result<FormattedText> {
+fn zero_fields_of_group(
+    gen: &GeneratorContext,
+    node_id: u64,
+    clear: &mut bool,
+) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::{field, node, type_};
     match gen.node_map[&node_id].which()? {
         node::Struct(st) => {
@@ -754,7 +758,7 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
             for field in fields.iter() {
                 match field.which()? {
                     field::Group(group) => {
-                        result.push(zero_fields_of_group(gen, group.get_type_id())?);
+                        result.push(zero_fields_of_group(gen, group.get_type_id(), clear)?);
                     }
                     field::Slot(slot) => {
                         let typ = slot.get_type()?.which()?;
@@ -787,8 +791,9 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
                             type_::AnyPointer(_) |
                             type_::Interface(_) // Is this the right thing to do for interfaces?
                                 => {
-                                    let line = Line(format!("self.builder.get_pointer_field({}).clear();",
+                                    let line = Line(format!("self.builder.get_pointer_field_mut({}).clear();",
                                                             slot.get_offset()));
+                                    *clear = true;
                                     // PERF could dedup more efficiently
                                     if !result.contains(&line) { result.push(line) }
                                 }
@@ -815,6 +820,7 @@ fn generate_setter(
     let mut setter_interior = Vec::new();
     let mut setter_param = "value".to_string();
     let mut initter_interior = Vec::new();
+    let mut initter_mut = false;
     let mut initn_interior = Vec::new();
     let mut initter_params = Vec::new();
 
@@ -849,7 +855,11 @@ fn generate_setter(
             let scope = &gen.scope_map[&group.get_type_id()];
             let the_mod = scope.join("::");
 
-            initter_interior.push(zero_fields_of_group(gen, group.get_type_id())?);
+            initter_interior.push(zero_fields_of_group(
+                gen,
+                group.get_type_id(),
+                &mut initter_mut,
+            )?);
 
             initter_interior.push(Line(
                 "::capnp::traits::FromStructBuilder::new(self.builder)".to_string(),
@@ -898,7 +908,7 @@ fn generate_setter(
                 }
                 type_::Text(()) => {
                     setter_interior.push(Line(format!(
-                        "self.builder.get_pointer_field({offset}).set_text(value);"
+                        "self.builder.get_pointer_field_mut({offset}).set_text(value);"
                     )));
                     initter_interior.push(Line(format!(
                         "self.builder.get_pointer_field({offset}).init_text(size)"
@@ -911,7 +921,7 @@ fn generate_setter(
                 }
                 type_::Data(()) => {
                     setter_interior.push(Line(format!(
-                        "self.builder.get_pointer_field({offset}).set_data(value);"
+                        "self.builder.get_pointer_field_mut({offset}).set_data(value);"
                     )));
                     initter_interior.push(Line(format!(
                         "self.builder.get_pointer_field({offset}).init_data(size)"
@@ -925,7 +935,7 @@ fn generate_setter(
                 type_::List(ot1) => {
                     return_result = true;
                     setter_interior.push(
-                        Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({offset}), value, false)")));
+                        Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut({offset}), value, false)")));
 
                     initter_params.push("size: u32");
                     initter_interior.push(
@@ -965,7 +975,7 @@ fn generate_setter(
                     if typ.is_branded()? {
                         setter_interior.push(
                             Line(format!(
-                                "<{} as ::capnp::traits::SetPointerBuilder>::set_pointer_builder(self.builder.get_pointer_field({}), value, false)",
+                                "<{} as ::capnp::traits::SetPointerBuilder>::set_pointer_builder(self.builder.get_pointer_field_mut({}), value, false)",
                                 typ.type_string(gen, Leaf::Reader("'_"))?,
                                 offset)));
                         (
@@ -974,7 +984,7 @@ fn generate_setter(
                         )
                     } else {
                         setter_interior.push(
-                            Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({offset}), value, false)")));
+                            Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut({offset}), value, false)")));
                         (
                             Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'_"))?),
                             Some(
@@ -987,14 +997,14 @@ fn generate_setter(
                 }
                 type_::Interface(_) => {
                     setter_interior.push(Line(format!(
-                        "self.builder.get_pointer_field({offset}).set_capability(value.client.hook);"
+                        "self.builder.get_pointer_field_mut({offset}).set_capability(value.client.hook);"
                     )));
                     (Some(typ.type_string(gen, Leaf::Client)?), None)
                 }
                 type_::AnyPointer(_) => {
                     if typ.is_parameter()? {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({offset})).init_as()")));
-                        setter_interior.push(Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({offset}), value, false)")));
+                        setter_interior.push(Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut({offset}), value, false)")));
                         return_result = true;
 
                         let builder_type = typ.type_string(gen, Leaf::Builder("'a"))?;
@@ -1039,8 +1049,9 @@ fn generate_setter(
     if let Some(builder_type) = maybe_builder_type {
         result.push(Line("#[inline]".to_string()));
         let args = initter_params.join(", ");
+        let mutable = if initter_mut { "mut " } else { "" };
         result.push(Line(format!(
-            "pub fn init_{styled_name}(self, {args}) -> {builder_type} {{"
+            "pub fn init_{styled_name}({mutable}self, {args}) -> {builder_type} {{"
         )));
         result.push(Indent(Box::new(Branch(initter_interior))));
         result.push(Line("}".to_string()));
@@ -1340,10 +1351,17 @@ fn generate_haser(
             | type_::List(_)
             | type_::Struct(_)
             | type_::AnyPointer(_) => {
-                interior.push(Line(format!(
-                    "!self.{member}.get_pointer_field({}).is_null()",
-                    reg_field.get_offset()
-                )));
+                if is_reader {
+                    interior.push(Line(format!(
+                        "!self.{member}.get_pointer_field({}).is_null()",
+                        reg_field.get_offset()
+                    )));
+                } else {
+                    interior.push(Line(format!(
+                        "!self.{member}.is_pointer_field_null({})",
+                        reg_field.get_offset()
+                    )));
+                }
                 result.push(Line("#[inline]".to_string()));
                 result.push(Line(format!("pub fn has_{styled_name}(&self) -> bool {{")));
                 result.push(Indent(Box::new(Branch(interior))));
@@ -1822,7 +1840,7 @@ fn generate_node(
                 Line(format!(
                     "impl <'a,{0}> ::capnp::traits::SetPointerBuilder for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
-                Indent(Box::new(Line("fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }".to_string()))),
+                Indent(Box::new(Line("fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }".to_string()))),
                 Line("}".to_string()),
                 BlankLine,
                 Line(format!("impl <'a,{0}> Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
@@ -1832,15 +1850,15 @@ fn generate_node(
                         Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow(&mut self) -> Builder<'_,{}> {{", params.params)),
-                        Indent(Box::new(Line("Builder { .. *self }".to_string()))),
+                        Indent(Box::new(Line("Builder { builder: self.builder.reborrow(), ..*self }".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow_as_reader(&self) -> Reader<'_,{}> {{", params.params)),
-                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
+                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string()))),
                         Line("}".to_string()),
 
                         BlankLine,
                         Line("pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {".to_string()),
-                        Indent(Box::new(Line("self.builder.into_reader().total_size()".to_string()))),
+                        Indent(Box::new(Line("self.builder.as_reader().total_size()".to_string()))),
                         Line("}".to_string())
                         ]))),
                 Indent(Box::new(Branch(builder_members))),
