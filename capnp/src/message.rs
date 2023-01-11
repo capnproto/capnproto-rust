@@ -413,7 +413,6 @@ where
     fn get_root_internal(&mut self) -> any_pointer::Builder<'_> {
         if self.arena.is_empty() {
             self.arena.allocate_segment(1);
-            self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
         let location: *mut u8 = seg_start;
@@ -462,7 +461,6 @@ where
     pub fn set_root_canonical<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
         if self.arena.is_empty() {
             self.arena.allocate_segment(1);
-            self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
         let pointer = layout::PointerBuilder::get_root(&self.arena, 0, seg_start);

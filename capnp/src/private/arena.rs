@@ -312,7 +312,7 @@ where
         self.segments.push(BuilderSegment {
             ptr: seg.0,
             capacity: seg.1,
-            allocated: 0,
+            allocated: minimum_size,
         });
     }
 
@@ -332,11 +332,7 @@ where
 
         let segment_id = self.segments.len() as u32;
         self.allocate_segment(amount);
-        (
-            segment_id,
-            self.allocate(segment_id, amount)
-                .expect("use freshly-allocated segment"),
-        )
+        (segment_id, 0)
     }
 
     fn deallocate_all(&mut self) {
