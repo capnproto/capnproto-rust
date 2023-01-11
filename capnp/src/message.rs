@@ -482,7 +482,7 @@ where
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
-        let pointer = layout::PointerBuilder::get_root(&self.arena, 0, seg_start);
+        let pointer = layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start);
         SetPointerBuilder::set_pointer_builder(pointer, value, true)?;
         assert_eq!(self.get_segments_for_output().len(), 1);
         Ok(())

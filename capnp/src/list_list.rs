@@ -232,14 +232,14 @@ where
         }
     }
 
-    pub fn set<'b>(&self, index: u32, value: T::Reader<'a>) -> Result<()>
+    pub fn set<'b>(&mut self, index: u32, value: T::Reader<'a>) -> Result<()>
     where
         T::Reader<'a>: crate::traits::IntoInternalListReader<'b>,
     {
         use crate::traits::IntoInternalListReader;
         assert!(index < self.len());
         self.builder
-            .get_pointer_element(index)
+            .get_pointer_element_mut(index)
             .set_list(&value.into_internal_list_reader(), false)
     }
 }
@@ -249,7 +249,7 @@ where
     T: crate::traits::Owned,
 {
     fn set_pointer_builder<'b>(
-        pointer: crate::private::layout::PointerBuilder<'b>,
+        mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a, T>,
         canonicalize: bool,
     ) -> Result<()> {

@@ -165,7 +165,7 @@ pub mod node {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -173,14 +173,14 @@ pub mod node {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_id(self) -> u64 {
@@ -196,7 +196,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_display_name(&mut self, value: ::capnp::text::Reader<'_>)  {
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.get_pointer_field_mut(0).set_text(value);
     }
     #[inline]
     pub fn init_display_name(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -204,7 +204,7 @@ pub mod node {
     }
     #[inline]
     pub fn has_display_name(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn get_display_name_prefix_length(self) -> u32 {
@@ -228,7 +228,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_nested_nodes(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::nested_node::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(1), value, false)
     }
     #[inline]
     pub fn init_nested_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::nested_node::Owned> {
@@ -236,7 +236,7 @@ pub mod node {
     }
     #[inline]
     pub fn has_nested_nodes(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.is_pointer_field_null(1)
     }
     #[inline]
     pub fn get_annotations(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned>> {
@@ -244,7 +244,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(2), value, false)
     }
     #[inline]
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
@@ -252,14 +252,14 @@ pub mod node {
     }
     #[inline]
     pub fn has_annotations(&self) -> bool {
-      !self.builder.get_pointer_field(2).is_null()
+      !self.builder.is_pointer_field_null(2)
     }
     #[inline]
     pub fn set_file(&mut self, _value: ())  {
       self.builder.set_data_field::<u16>(6, 0);
     }
     #[inline]
-    pub fn init_struct(self, ) -> crate::schema_capnp::node::struct_::Builder<'a> {
+    pub fn init_struct(mut self, ) -> crate::schema_capnp::node::struct_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 1);
       self.builder.set_data_field::<u16>(7, 0u16);
       self.builder.set_data_field::<u16>(12, 0u16);
@@ -267,33 +267,33 @@ pub mod node {
       self.builder.set_bool_field(224, false);
       self.builder.set_data_field::<u16>(15, 0u16);
       self.builder.set_data_field::<u32>(8, 0u32);
-      self.builder.get_pointer_field(3).clear();
+      self.builder.get_pointer_field_mut(3).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_enum(self, ) -> crate::schema_capnp::node::enum_::Builder<'a> {
+    pub fn init_enum(mut self, ) -> crate::schema_capnp::node::enum_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 2);
-      self.builder.get_pointer_field(3).clear();
+      self.builder.get_pointer_field_mut(3).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_interface(self, ) -> crate::schema_capnp::node::interface::Builder<'a> {
+    pub fn init_interface(mut self, ) -> crate::schema_capnp::node::interface::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 3);
-      self.builder.get_pointer_field(3).clear();
-      self.builder.get_pointer_field(4).clear();
+      self.builder.get_pointer_field_mut(3).clear();
+      self.builder.get_pointer_field_mut(4).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_const(self, ) -> crate::schema_capnp::node::const_::Builder<'a> {
+    pub fn init_const(mut self, ) -> crate::schema_capnp::node::const_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 4);
-      self.builder.get_pointer_field(3).clear();
-      self.builder.get_pointer_field(4).clear();
+      self.builder.get_pointer_field_mut(3).clear();
+      self.builder.get_pointer_field_mut(4).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_annotation(self, ) -> crate::schema_capnp::node::annotation::Builder<'a> {
+    pub fn init_annotation(mut self, ) -> crate::schema_capnp::node::annotation::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 5);
-      self.builder.get_pointer_field(3).clear();
+      self.builder.get_pointer_field_mut(3).clear();
       self.builder.set_bool_field(112, false);
       self.builder.set_bool_field(113, false);
       self.builder.set_bool_field(114, false);
@@ -314,7 +314,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_parameters(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::parameter::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(5), value, false)
     }
     #[inline]
     pub fn init_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned> {
@@ -322,7 +322,7 @@ pub mod node {
     }
     #[inline]
     pub fn has_parameters(&self) -> bool {
-      !self.builder.get_pointer_field(5).is_null()
+      !self.builder.is_pointer_field_null(5)
     }
     #[inline]
     pub fn get_is_generic(self) -> bool {
@@ -476,7 +476,7 @@ pub mod node {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -484,14 +484,14 @@ pub mod node {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_name(self) -> ::capnp::Result<::capnp::text::Builder<'a>> {
@@ -499,7 +499,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_name(&mut self, value: ::capnp::text::Reader<'_>)  {
-        self.builder.get_pointer_field(0).set_text(value);
+        self.builder.get_pointer_field_mut(0).set_text(value);
       }
       #[inline]
       pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -507,7 +507,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_name(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
     }
 
@@ -612,7 +612,7 @@ pub mod node {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -620,14 +620,14 @@ pub mod node {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_name(self) -> ::capnp::Result<::capnp::text::Builder<'a>> {
@@ -635,7 +635,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_name(&mut self, value: ::capnp::text::Reader<'_>)  {
-        self.builder.get_pointer_field(0).set_text(value);
+        self.builder.get_pointer_field_mut(0).set_text(value);
       }
       #[inline]
       pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -643,7 +643,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_name(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
       #[inline]
       pub fn get_id(self) -> u64 {
@@ -764,7 +764,7 @@ pub mod node {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -772,14 +772,14 @@ pub mod node {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_id(self) -> u64 {
@@ -795,7 +795,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_doc_comment(&mut self, value: ::capnp::text::Reader<'_>)  {
-        self.builder.get_pointer_field(0).set_text(value);
+        self.builder.get_pointer_field_mut(0).set_text(value);
       }
       #[inline]
       pub fn init_doc_comment(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -803,7 +803,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_doc_comment(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
       #[inline]
       pub fn get_members(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::member::Owned>> {
@@ -811,7 +811,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_members(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::source_info::member::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(1), value, false)
       }
       #[inline]
       pub fn init_members(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::member::Owned> {
@@ -819,7 +819,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_members(&self) -> bool {
-        !self.builder.get_pointer_field(1).is_null()
+        !self.builder.is_pointer_field_null(1)
       }
     }
 
@@ -919,7 +919,7 @@ pub mod node {
       }
 
       impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-        fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+        fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
       }
 
       impl <'a,> Builder<'a,>  {
@@ -927,14 +927,14 @@ pub mod node {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
-          Builder { .. *self }
+          Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-          self.builder.into_reader().total_size()
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn get_doc_comment(self) -> ::capnp::Result<::capnp::text::Builder<'a>> {
@@ -942,7 +942,7 @@ pub mod node {
         }
         #[inline]
         pub fn set_doc_comment(&mut self, value: ::capnp::text::Reader<'_>)  {
-          self.builder.get_pointer_field(0).set_text(value);
+          self.builder.get_pointer_field_mut(0).set_text(value);
         }
         #[inline]
         pub fn init_doc_comment(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -950,7 +950,7 @@ pub mod node {
         }
         #[inline]
         pub fn has_doc_comment(&self) -> bool {
-          !self.builder.get_pointer_field(0).is_null()
+          !self.builder.is_pointer_field_null(0)
         }
       }
 
@@ -1076,7 +1076,7 @@ pub mod node {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -1084,14 +1084,14 @@ pub mod node {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_data_word_count(self) -> u16 {
@@ -1147,7 +1147,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_fields(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::field::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(3), value, false)
       }
       #[inline]
       pub fn init_fields(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::field::Owned> {
@@ -1155,7 +1155,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_fields(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.is_pointer_field_null(3)
       }
     }
 
@@ -1256,7 +1256,7 @@ pub mod node {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -1264,14 +1264,14 @@ pub mod node {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_enumerants(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::enumerant::Owned>> {
@@ -1279,7 +1279,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_enumerants(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::enumerant::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(3), value, false)
       }
       #[inline]
       pub fn init_enumerants(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::enumerant::Owned> {
@@ -1287,7 +1287,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_enumerants(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.is_pointer_field_null(3)
       }
     }
 
@@ -1396,7 +1396,7 @@ pub mod node {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -1404,14 +1404,14 @@ pub mod node {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_methods(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::method::Owned>> {
@@ -1419,7 +1419,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_methods(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::method::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(3), value, false)
       }
       #[inline]
       pub fn init_methods(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::method::Owned> {
@@ -1427,7 +1427,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_methods(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.is_pointer_field_null(3)
       }
       #[inline]
       pub fn get_superclasses(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::superclass::Owned>> {
@@ -1435,7 +1435,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_superclasses(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::superclass::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(4), value, false)
       }
       #[inline]
       pub fn init_superclasses(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::superclass::Owned> {
@@ -1443,7 +1443,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_superclasses(&self) -> bool {
-        !self.builder.get_pointer_field(4).is_null()
+        !self.builder.is_pointer_field_null(4)
       }
     }
 
@@ -1552,7 +1552,7 @@ pub mod node {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -1560,14 +1560,14 @@ pub mod node {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type(self) -> ::capnp::Result<crate::schema_capnp::type_::Builder<'a>> {
@@ -1575,7 +1575,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_type(&mut self, value: crate::schema_capnp::type_::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(3), value, false)
       }
       #[inline]
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
@@ -1583,7 +1583,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_type(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.is_pointer_field_null(3)
       }
       #[inline]
       pub fn get_value(self) -> ::capnp::Result<crate::schema_capnp::value::Builder<'a>> {
@@ -1591,7 +1591,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_value(&mut self, value: crate::schema_capnp::value::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(4), value, false)
       }
       #[inline]
       pub fn init_value(self, ) -> crate::schema_capnp::value::Builder<'a> {
@@ -1599,7 +1599,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_value(&self) -> bool {
-        !self.builder.get_pointer_field(4).is_null()
+        !self.builder.is_pointer_field_null(4)
       }
     }
 
@@ -1754,7 +1754,7 @@ pub mod node {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -1762,14 +1762,14 @@ pub mod node {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type(self) -> ::capnp::Result<crate::schema_capnp::type_::Builder<'a>> {
@@ -1777,7 +1777,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_type(&mut self, value: crate::schema_capnp::type_::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(3), value, false)
       }
       #[inline]
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
@@ -1785,7 +1785,7 @@ pub mod node {
       }
       #[inline]
       pub fn has_type(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.is_pointer_field_null(3)
       }
       #[inline]
       pub fn get_targets_file(self) -> bool {
@@ -2024,7 +2024,7 @@ pub mod field {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -2032,14 +2032,14 @@ pub mod field {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_name(self) -> ::capnp::Result<::capnp::text::Builder<'a>> {
@@ -2047,7 +2047,7 @@ pub mod field {
     }
     #[inline]
     pub fn set_name(&mut self, value: ::capnp::text::Reader<'_>)  {
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.get_pointer_field_mut(0).set_text(value);
     }
     #[inline]
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -2055,7 +2055,7 @@ pub mod field {
     }
     #[inline]
     pub fn has_name(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn get_code_order(self) -> u16 {
@@ -2071,7 +2071,7 @@ pub mod field {
     }
     #[inline]
     pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(1), value, false)
     }
     #[inline]
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
@@ -2079,7 +2079,7 @@ pub mod field {
     }
     #[inline]
     pub fn has_annotations(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.is_pointer_field_null(1)
     }
     #[inline]
     pub fn get_discriminant_value(self) -> u16 {
@@ -2090,11 +2090,11 @@ pub mod field {
       self.builder.set_data_field_mask::<u16>(1, value, 65535);
     }
     #[inline]
-    pub fn init_slot(self, ) -> crate::schema_capnp::field::slot::Builder<'a> {
+    pub fn init_slot(mut self, ) -> crate::schema_capnp::field::slot::Builder<'a> {
       self.builder.set_data_field::<u16>(4, 0);
       self.builder.set_data_field::<u32>(1, 0u32);
-      self.builder.get_pointer_field(2).clear();
-      self.builder.get_pointer_field(3).clear();
+      self.builder.get_pointer_field_mut(2).clear();
+      self.builder.get_pointer_field_mut(3).clear();
       self.builder.set_bool_field(128, false);
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
@@ -2254,7 +2254,7 @@ pub mod field {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -2262,14 +2262,14 @@ pub mod field {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_offset(self) -> u32 {
@@ -2285,7 +2285,7 @@ pub mod field {
       }
       #[inline]
       pub fn set_type(&mut self, value: crate::schema_capnp::type_::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(2), value, false)
       }
       #[inline]
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
@@ -2293,7 +2293,7 @@ pub mod field {
       }
       #[inline]
       pub fn has_type(&self) -> bool {
-        !self.builder.get_pointer_field(2).is_null()
+        !self.builder.is_pointer_field_null(2)
       }
       #[inline]
       pub fn get_default_value(self) -> ::capnp::Result<crate::schema_capnp::value::Builder<'a>> {
@@ -2301,7 +2301,7 @@ pub mod field {
       }
       #[inline]
       pub fn set_default_value(&mut self, value: crate::schema_capnp::value::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(3), value, false)
       }
       #[inline]
       pub fn init_default_value(self, ) -> crate::schema_capnp::value::Builder<'a> {
@@ -2309,7 +2309,7 @@ pub mod field {
       }
       #[inline]
       pub fn has_default_value(&self) -> bool {
-        !self.builder.get_pointer_field(3).is_null()
+        !self.builder.is_pointer_field_null(3)
       }
       #[inline]
       pub fn get_had_explicit_default(self) -> bool {
@@ -2420,7 +2420,7 @@ pub mod field {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -2428,14 +2428,14 @@ pub mod field {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type_id(self) -> u64 {
@@ -2554,7 +2554,7 @@ pub mod field {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -2562,14 +2562,14 @@ pub mod field {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn set_implicit(&mut self, _value: ())  {
@@ -2714,7 +2714,7 @@ pub mod enumerant {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -2722,14 +2722,14 @@ pub mod enumerant {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_name(self) -> ::capnp::Result<::capnp::text::Builder<'a>> {
@@ -2737,7 +2737,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn set_name(&mut self, value: ::capnp::text::Reader<'_>)  {
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.get_pointer_field_mut(0).set_text(value);
     }
     #[inline]
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -2745,7 +2745,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn has_name(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn get_code_order(self) -> u16 {
@@ -2761,7 +2761,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(1), value, false)
     }
     #[inline]
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
@@ -2769,7 +2769,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn has_annotations(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.is_pointer_field_null(1)
     }
   }
 
@@ -2874,7 +2874,7 @@ pub mod superclass {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -2882,14 +2882,14 @@ pub mod superclass {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_id(self) -> u64 {
@@ -2905,7 +2905,7 @@ pub mod superclass {
     }
     #[inline]
     pub fn set_brand(&mut self, value: crate::schema_capnp::brand::Reader<'_>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
     }
     #[inline]
     pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
@@ -2913,7 +2913,7 @@ pub mod superclass {
     }
     #[inline]
     pub fn has_brand(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
   }
 
@@ -3061,7 +3061,7 @@ pub mod method {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -3069,14 +3069,14 @@ pub mod method {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_name(self) -> ::capnp::Result<::capnp::text::Builder<'a>> {
@@ -3084,7 +3084,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_name(&mut self, value: ::capnp::text::Reader<'_>)  {
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.get_pointer_field_mut(0).set_text(value);
     }
     #[inline]
     pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -3092,7 +3092,7 @@ pub mod method {
     }
     #[inline]
     pub fn has_name(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn get_code_order(self) -> u16 {
@@ -3124,7 +3124,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_annotations(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::annotation::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(1), value, false)
     }
     #[inline]
     pub fn init_annotations(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::annotation::Owned> {
@@ -3132,7 +3132,7 @@ pub mod method {
     }
     #[inline]
     pub fn has_annotations(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.is_pointer_field_null(1)
     }
     #[inline]
     pub fn get_param_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Builder<'a>> {
@@ -3140,7 +3140,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_param_brand(&mut self, value: crate::schema_capnp::brand::Reader<'_>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(2), value, false)
     }
     #[inline]
     pub fn init_param_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
@@ -3148,7 +3148,7 @@ pub mod method {
     }
     #[inline]
     pub fn has_param_brand(&self) -> bool {
-      !self.builder.get_pointer_field(2).is_null()
+      !self.builder.is_pointer_field_null(2)
     }
     #[inline]
     pub fn get_result_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Builder<'a>> {
@@ -3156,7 +3156,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_result_brand(&mut self, value: crate::schema_capnp::brand::Reader<'_>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(3), value, false)
     }
     #[inline]
     pub fn init_result_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
@@ -3164,7 +3164,7 @@ pub mod method {
     }
     #[inline]
     pub fn has_result_brand(&self) -> bool {
-      !self.builder.get_pointer_field(3).is_null()
+      !self.builder.is_pointer_field_null(3)
     }
     #[inline]
     pub fn get_implicit_parameters(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned>> {
@@ -3172,7 +3172,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_implicit_parameters(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::parameter::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(4), value, false)
     }
     #[inline]
     pub fn init_implicit_parameters(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::parameter::Owned> {
@@ -3180,7 +3180,7 @@ pub mod method {
     }
     #[inline]
     pub fn has_implicit_parameters(&self) -> bool {
-      !self.builder.get_pointer_field(4).is_null()
+      !self.builder.is_pointer_field_null(4)
     }
   }
 
@@ -3382,7 +3382,7 @@ pub mod type_ {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -3390,14 +3390,14 @@ pub mod type_ {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn set_void(&mut self, _value: ())  {
@@ -3456,30 +3456,30 @@ pub mod type_ {
       self.builder.set_data_field::<u16>(0, 13);
     }
     #[inline]
-    pub fn init_list(self, ) -> crate::schema_capnp::type_::list::Builder<'a> {
+    pub fn init_list(mut self, ) -> crate::schema_capnp::type_::list::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 14);
-      self.builder.get_pointer_field(0).clear();
+      self.builder.get_pointer_field_mut(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_enum(self, ) -> crate::schema_capnp::type_::enum_::Builder<'a> {
+    pub fn init_enum(mut self, ) -> crate::schema_capnp::type_::enum_::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 15);
       self.builder.set_data_field::<u64>(1, 0u64);
-      self.builder.get_pointer_field(0).clear();
+      self.builder.get_pointer_field_mut(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_struct(self, ) -> crate::schema_capnp::type_::struct_::Builder<'a> {
+    pub fn init_struct(mut self, ) -> crate::schema_capnp::type_::struct_::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 16);
       self.builder.set_data_field::<u64>(1, 0u64);
-      self.builder.get_pointer_field(0).clear();
+      self.builder.get_pointer_field_mut(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_interface(self, ) -> crate::schema_capnp::type_::interface::Builder<'a> {
+    pub fn init_interface(mut self, ) -> crate::schema_capnp::type_::interface::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 17);
       self.builder.set_data_field::<u64>(1, 0u64);
-      self.builder.get_pointer_field(0).clear();
+      self.builder.get_pointer_field_mut(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
@@ -3714,7 +3714,7 @@ pub mod type_ {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -3722,14 +3722,14 @@ pub mod type_ {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_element_type(self) -> ::capnp::Result<crate::schema_capnp::type_::Builder<'a>> {
@@ -3737,7 +3737,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn set_element_type(&mut self, value: crate::schema_capnp::type_::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
       }
       #[inline]
       pub fn init_element_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
@@ -3745,7 +3745,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn has_element_type(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
     }
 
@@ -3853,7 +3853,7 @@ pub mod type_ {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -3861,14 +3861,14 @@ pub mod type_ {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type_id(self) -> u64 {
@@ -3884,7 +3884,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn set_brand(&mut self, value: crate::schema_capnp::brand::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
       }
       #[inline]
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
@@ -3892,7 +3892,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn has_brand(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
     }
 
@@ -4000,7 +4000,7 @@ pub mod type_ {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -4008,14 +4008,14 @@ pub mod type_ {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type_id(self) -> u64 {
@@ -4031,7 +4031,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn set_brand(&mut self, value: crate::schema_capnp::brand::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
       }
       #[inline]
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
@@ -4039,7 +4039,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn has_brand(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
     }
 
@@ -4147,7 +4147,7 @@ pub mod type_ {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -4155,14 +4155,14 @@ pub mod type_ {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type_id(self) -> u64 {
@@ -4178,7 +4178,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn set_brand(&mut self, value: crate::schema_capnp::brand::Reader<'_>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
       }
       #[inline]
       pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
@@ -4186,7 +4186,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn has_brand(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
     }
 
@@ -4305,7 +4305,7 @@ pub mod type_ {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -4313,14 +4313,14 @@ pub mod type_ {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn init_unconstrained(self, ) -> crate::schema_capnp::type_::any_pointer::unconstrained::Builder<'a> {
@@ -4487,7 +4487,7 @@ pub mod type_ {
       }
 
       impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-        fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+        fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
       }
 
       impl <'a,> Builder<'a,>  {
@@ -4495,14 +4495,14 @@ pub mod type_ {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
-          Builder { .. *self }
+          Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-          self.builder.into_reader().total_size()
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn set_any_kind(&mut self, _value: ())  {
@@ -4653,7 +4653,7 @@ pub mod type_ {
       }
 
       impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-        fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+        fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
       }
 
       impl <'a,> Builder<'a,>  {
@@ -4661,14 +4661,14 @@ pub mod type_ {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
-          Builder { .. *self }
+          Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-          self.builder.into_reader().total_size()
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn get_scope_id(self) -> u64 {
@@ -4781,7 +4781,7 @@ pub mod type_ {
       }
 
       impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-        fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+        fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
       }
 
       impl <'a,> Builder<'a,>  {
@@ -4789,14 +4789,14 @@ pub mod type_ {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
-          Builder { .. *self }
+          Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-          self.builder.into_reader().total_size()
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
@@ -4907,7 +4907,7 @@ pub mod brand {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -4915,14 +4915,14 @@ pub mod brand {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_scopes(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::brand::scope::Owned>> {
@@ -4930,7 +4930,7 @@ pub mod brand {
     }
     #[inline]
     pub fn set_scopes(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::brand::scope::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
     }
     #[inline]
     pub fn init_scopes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::brand::scope::Owned> {
@@ -4938,7 +4938,7 @@ pub mod brand {
     }
     #[inline]
     pub fn has_scopes(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
   }
 
@@ -5057,7 +5057,7 @@ pub mod brand {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -5065,14 +5065,14 @@ pub mod brand {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_scope_id(self) -> u64 {
@@ -5085,7 +5085,7 @@ pub mod brand {
       #[inline]
       pub fn set_bind(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::brand::binding::Owned>) -> ::capnp::Result<()> {
         self.builder.set_data_field::<u16>(4, 0);
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
       }
       #[inline]
       pub fn init_bind(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::brand::binding::Owned> {
@@ -5095,7 +5095,7 @@ pub mod brand {
       #[inline]
       pub fn has_bind(&self) -> bool {
         if self.builder.get_data_field::<u16>(4) != 0 { return false; }
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
       #[inline]
       pub fn set_inherit(&mut self, _value: ())  {
@@ -5237,7 +5237,7 @@ pub mod brand {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -5245,14 +5245,14 @@ pub mod brand {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn set_unbound(&mut self, _value: ())  {
@@ -5261,7 +5261,7 @@ pub mod brand {
       #[inline]
       pub fn set_type(&mut self, value: crate::schema_capnp::type_::Reader<'_>) -> ::capnp::Result<()> {
         self.builder.set_data_field::<u16>(0, 1);
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
       }
       #[inline]
       pub fn init_type(self, ) -> crate::schema_capnp::type_::Builder<'a> {
@@ -5271,7 +5271,7 @@ pub mod brand {
       #[inline]
       pub fn has_type(&self) -> bool {
         if self.builder.get_data_field::<u16>(0) != 1 { return false; }
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
       #[inline]
       pub fn which(self) -> ::core::result::Result<WhichBuilder<'a,>, ::capnp::NotInSchema> {
@@ -5515,7 +5515,7 @@ pub mod value {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -5523,14 +5523,14 @@ pub mod value {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn set_void(&mut self, _value: ())  {
@@ -5594,7 +5594,7 @@ pub mod value {
     #[inline]
     pub fn set_text(&mut self, value: ::capnp::text::Reader<'_>)  {
       self.builder.set_data_field::<u16>(0, 12);
-      self.builder.get_pointer_field(0).set_text(value);
+      self.builder.get_pointer_field_mut(0).set_text(value);
     }
     #[inline]
     pub fn init_text(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -5604,12 +5604,12 @@ pub mod value {
     #[inline]
     pub fn has_text(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 12 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn set_data(&mut self, value: ::capnp::data::Reader<'_>)  {
       self.builder.set_data_field::<u16>(0, 13);
-      self.builder.get_pointer_field(0).set_data(value);
+      self.builder.get_pointer_field_mut(0).set_data(value);
     }
     #[inline]
     pub fn init_data(self, size: u32) -> ::capnp::data::Builder<'a> {
@@ -5619,7 +5619,7 @@ pub mod value {
     #[inline]
     pub fn has_data(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 13 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn init_list(self, ) -> ::capnp::any_pointer::Builder<'a> {
@@ -5631,7 +5631,7 @@ pub mod value {
     #[inline]
     pub fn has_list(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 14 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn set_enum(&mut self, value: u16)  {
@@ -5648,7 +5648,7 @@ pub mod value {
     #[inline]
     pub fn has_struct(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 16 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn set_interface(&mut self, _value: ())  {
@@ -5664,7 +5664,7 @@ pub mod value {
     #[inline]
     pub fn has_any_pointer(&self) -> bool {
       if self.builder.get_data_field::<u16>(0) != 18 { return false; }
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn which(self) -> ::core::result::Result<WhichBuilder<'a,>, ::capnp::NotInSchema> {
@@ -5901,7 +5901,7 @@ pub mod annotation {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -5909,14 +5909,14 @@ pub mod annotation {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_id(self) -> u64 {
@@ -5932,7 +5932,7 @@ pub mod annotation {
     }
     #[inline]
     pub fn set_value(&mut self, value: crate::schema_capnp::value::Reader<'_>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
     }
     #[inline]
     pub fn init_value(self, ) -> crate::schema_capnp::value::Builder<'a> {
@@ -5940,7 +5940,7 @@ pub mod annotation {
     }
     #[inline]
     pub fn has_value(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn get_brand(self) -> ::capnp::Result<crate::schema_capnp::brand::Builder<'a>> {
@@ -5948,7 +5948,7 @@ pub mod annotation {
     }
     #[inline]
     pub fn set_brand(&mut self, value: crate::schema_capnp::brand::Reader<'_>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(1), value, false)
     }
     #[inline]
     pub fn init_brand(self, ) -> crate::schema_capnp::brand::Builder<'a> {
@@ -5956,7 +5956,7 @@ pub mod annotation {
     }
     #[inline]
     pub fn has_brand(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.is_pointer_field_null(1)
     }
   }
 
@@ -6103,7 +6103,7 @@ pub mod capnp_version {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -6111,14 +6111,14 @@ pub mod capnp_version {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_major(self) -> u16 {
@@ -6267,7 +6267,7 @@ pub mod code_generator_request {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-    fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+    fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -6275,14 +6275,14 @@ pub mod code_generator_request {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { .. *self }
+      Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
 
     pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-      self.builder.into_reader().total_size()
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_nodes(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::Owned>> {
@@ -6290,7 +6290,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_nodes(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(0), value, false)
     }
     #[inline]
     pub fn init_nodes(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::Owned> {
@@ -6298,7 +6298,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn has_nodes(&self) -> bool {
-      !self.builder.get_pointer_field(0).is_null()
+      !self.builder.is_pointer_field_null(0)
     }
     #[inline]
     pub fn get_requested_files(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::Owned>> {
@@ -6306,7 +6306,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_requested_files(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::code_generator_request::requested_file::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(1), value, false)
     }
     #[inline]
     pub fn init_requested_files(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::Owned> {
@@ -6314,7 +6314,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn has_requested_files(&self) -> bool {
-      !self.builder.get_pointer_field(1).is_null()
+      !self.builder.is_pointer_field_null(1)
     }
     #[inline]
     pub fn get_capnp_version(self) -> ::capnp::Result<crate::schema_capnp::capnp_version::Builder<'a>> {
@@ -6322,7 +6322,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_capnp_version(&mut self, value: crate::schema_capnp::capnp_version::Reader<'_>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(2), value, false)
     }
     #[inline]
     pub fn init_capnp_version(self, ) -> crate::schema_capnp::capnp_version::Builder<'a> {
@@ -6330,7 +6330,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn has_capnp_version(&self) -> bool {
-      !self.builder.get_pointer_field(2).is_null()
+      !self.builder.is_pointer_field_null(2)
     }
     #[inline]
     pub fn get_source_info(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::Owned>> {
@@ -6338,7 +6338,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_source_info(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::node::source_info::Owned>) -> ::capnp::Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(3), value, false)
     }
     #[inline]
     pub fn init_source_info(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::node::source_info::Owned> {
@@ -6346,7 +6346,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn has_source_info(&self) -> bool {
-      !self.builder.get_pointer_field(3).is_null()
+      !self.builder.is_pointer_field_null(3)
     }
   }
 
@@ -6461,7 +6461,7 @@ pub mod code_generator_request {
     }
 
     impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-      fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+      fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
     }
 
     impl <'a,> Builder<'a,>  {
@@ -6469,14 +6469,14 @@ pub mod code_generator_request {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { .. *self }
+        Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-        ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+        ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
 
       pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_id(self) -> u64 {
@@ -6492,7 +6492,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn set_filename(&mut self, value: ::capnp::text::Reader<'_>)  {
-        self.builder.get_pointer_field(0).set_text(value);
+        self.builder.get_pointer_field_mut(0).set_text(value);
       }
       #[inline]
       pub fn init_filename(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -6500,7 +6500,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn has_filename(&self) -> bool {
-        !self.builder.get_pointer_field(0).is_null()
+        !self.builder.is_pointer_field_null(0)
       }
       #[inline]
       pub fn get_imports(self) -> ::capnp::Result<::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned>> {
@@ -6508,7 +6508,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn set_imports(&mut self, value: ::capnp::struct_list::Reader<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned>) -> ::capnp::Result<()> {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value, false)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut(1), value, false)
       }
       #[inline]
       pub fn init_imports(self, size: u32) -> ::capnp::struct_list::Builder<'a,crate::schema_capnp::code_generator_request::requested_file::import::Owned> {
@@ -6516,7 +6516,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn has_imports(&self) -> bool {
-        !self.builder.get_pointer_field(1).is_null()
+        !self.builder.is_pointer_field_null(1)
       }
     }
 
@@ -6620,7 +6620,7 @@ pub mod code_generator_request {
       }
 
       impl <'a,> ::capnp::traits::SetPointerBuilder for Reader<'a,>  {
-        fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
+        fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> ::capnp::Result<()> { pointer.set_struct(&value.reader, canonicalize) }
       }
 
       impl <'a,> Builder<'a,>  {
@@ -6628,14 +6628,14 @@ pub mod code_generator_request {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
-          Builder { .. *self }
+          Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
-          ::capnp::traits::FromStructReader::new(self.builder.into_reader())
+          ::capnp::traits::FromStructReader::new(self.builder.as_reader())
         }
 
         pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {
-          self.builder.into_reader().total_size()
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn get_id(self) -> u64 {
@@ -6651,7 +6651,7 @@ pub mod code_generator_request {
         }
         #[inline]
         pub fn set_name(&mut self, value: ::capnp::text::Reader<'_>)  {
-          self.builder.get_pointer_field(0).set_text(value);
+          self.builder.get_pointer_field_mut(0).set_text(value);
         }
         #[inline]
         pub fn init_name(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -6659,7 +6659,7 @@ pub mod code_generator_request {
         }
         #[inline]
         pub fn has_name(&self) -> bool {
-          !self.builder.get_pointer_field(0).is_null()
+          !self.builder.is_pointer_field_null(0)
         }
       }
 

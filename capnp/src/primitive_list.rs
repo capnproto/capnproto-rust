@@ -161,13 +161,13 @@ where
     }
 
     #[cfg(all(target_endian = "little"))]
-    pub fn as_slice(&self) -> Option<&mut [T]> {
+    pub fn as_slice(&self) -> Option<&[T]> {
         if self.builder.get_element_size() == T::element_size() {
-            let bytes = self.builder.into_raw_bytes();
+            let bytes = self.builder.as_raw_bytes();
             Some(unsafe {
                 use core::slice;
-                slice::from_raw_parts_mut(
-                    bytes.as_ptr() as *mut T,
+                slice::from_raw_parts(
+                    bytes.as_ptr() as *const T,
                     8 * bytes.len() / (data_bits_per_element(T::element_size())) as usize,
                 )
             })
@@ -213,8 +213,11 @@ impl<'a, T: PrimitiveElement> Builder<'a, T> {
         }
     }
 
-    pub fn reborrow(&self) -> Builder<'_, T> {
-        Builder { ..*self }
+    pub fn reborrow(&mut self) -> Builder<'_, T> {
+        Builder {
+            marker: marker::PhantomData,
+            builder: self.builder.reborrow(),
+        }
     }
 }
 
@@ -223,7 +226,7 @@ where
     T: PrimitiveElement,
 {
     fn set_pointer_builder<'b>(
-        pointer: PointerBuilder<'b>,
+        mut pointer: PointerBuilder<'b>,
         value: Reader<'a, T>,
         canonicalize: bool,
     ) -> Result<()> {

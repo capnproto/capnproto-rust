@@ -139,7 +139,7 @@ impl<'a> Builder<'a> {
 
     /// Gets the total size of the target and all of its children. Does not count far pointer overhead.
     pub fn target_size(&self) -> Result<crate::MessageSize> {
-        self.builder.into_reader().total_size()
+        self.builder.as_reader().total_size()
     }
 
     pub fn get_as<T: FromPointerBuilder<'a>>(self) -> Result<T> {
