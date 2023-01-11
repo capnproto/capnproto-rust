@@ -21,6 +21,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+use core::mem::ManuallyDrop;
+use core::ptr::read;
 use core::slice;
 use core::u64;
 
@@ -177,7 +179,7 @@ pub struct BuilderArenaImplInner<A>
 where
     A: Allocator,
 {
-    allocator: Option<A>, // None if has already be deallocated.
+    allocator: A,
 
     // TODO(perf): Try using smallvec to avoid heap allocations in the single-segment case?
     segments: Vec<BuilderSegment>,
@@ -197,7 +199,7 @@ where
     pub fn new(allocator: A) -> Self {
         Self {
             inner: RefCell::new(BuilderArenaImplInner {
-                allocator: Some(allocator),
+                allocator: allocator,
                 segments: Vec::new(),
             }),
         }
@@ -247,7 +249,12 @@ where
     pub fn into_allocator(self) -> A {
         let mut inner = self.inner.into_inner();
         inner.deallocate_all();
-        inner.allocator.take().unwrap()
+        // See https://rust-lang.zulipchat.com/#narrow/stream/122651-general/topic/.E2.9C.94.20Extracting.20field.20from.20struct.20that.20implement.20.60Drop.60
+        let (allocator, _segments) = unsafe {
+            let this = &*ManuallyDrop::new(inner);
+            (read(&this.allocator), read(&this.segments))
+        };
+        allocator
     }
 }
 
@@ -289,10 +296,7 @@ where
 {
     /// Allocates a new segment with capacity for at least `minimum_size` words.
     fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
-        let seg = match &mut self.allocator {
-            Some(a) => a.allocate_segment(minimum_size),
-            None => unreachable!(),
-        };
+        let seg = self.allocator.allocate_segment(minimum_size);
         self.segments.push(BuilderSegment {
             ptr: seg.0,
             capacity: seg.1,
@@ -332,10 +336,9 @@ where
     }
 
     fn deallocate_all(&mut self) {
-        if let Some(a) = &mut self.allocator {
-            for seg in &self.segments {
-                a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
-            }
+        for seg in &self.segments {
+            self.allocator
+                .deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
         }
     }
 
