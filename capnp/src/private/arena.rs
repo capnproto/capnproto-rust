@@ -30,6 +30,8 @@ use crate::private::read_limiter::ReadLimiter;
 use crate::private::units::*;
 use crate::{Error, OutputSegments, Result};
 
+use smallvec::SmallVec;
+
 pub type SegmentId = u32;
 
 pub trait ReaderArena {
@@ -179,8 +181,7 @@ where
 {
     allocator: Option<A>, // None if has already be deallocated.
 
-    // TODO(perf): Try using smallvec to avoid heap allocations in the single-segment case?
-    segments: Vec<BuilderSegment>,
+    segments: SmallVec<[BuilderSegment; 1]>,
 }
 
 pub struct BuilderArenaImpl<A>
@@ -198,7 +199,7 @@ where
         Self {
             inner: RefCell::new(BuilderArenaImplInner {
                 allocator: Some(allocator),
-                segments: Vec::new(),
+                segments: SmallVec::new(),
             }),
         }
     }

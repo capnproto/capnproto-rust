@@ -21,6 +21,7 @@ path = "src/lib.rs"
 
 [dependencies]
 quickcheck = { version = "1", optional = true }
+smallvec = {version = "1.10.0", features = ["union"]}
 
 [dev-dependencies]
 quickcheck = "1"
