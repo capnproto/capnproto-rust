@@ -1,3 +1,6 @@
+## v0.15.3
+- Deprecate `HasTypeId::type_id()` in favor of `HasTypeId::TYPE_ID`.
+
 ## v0.15.2
 - Remove list pointer munging.
 
