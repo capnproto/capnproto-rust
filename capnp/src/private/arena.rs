@@ -167,10 +167,17 @@ pub trait BuilderArena: ReaderArena {
     fn as_reader(&self) -> &dyn ReaderArena;
 }
 
+/// A wrapper around a memory segment used in building a message.
 struct BuilderSegment {
+    /// Pointer to the start of the segment.
     ptr: *mut u8,
-    capacity: u32,  // in words
-    allocated: u32, // in words
+
+    /// Total number of words the segment could potentially use. That is, all
+    /// bytes from `ptr` to `ptr + (capacity * 8)` may be used in the segment.
+    capacity: u32,
+
+    /// Number of words already used in the segment.
+    allocated: u32,
 }
 
 pub struct BuilderArenaImplInner<A>
