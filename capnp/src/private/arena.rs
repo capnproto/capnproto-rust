@@ -251,6 +251,8 @@ where
         self.len() == 0
     }
 
+    /// Retrieves the underlying `Allocator`, deallocating all currently-allocated
+    /// segments.
     pub fn into_allocator(self) -> A {
         let mut inner = self.inner.into_inner();
         inner.deallocate_all();

@@ -358,6 +358,19 @@ where
 }
 
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
+/// Users of capnproto-rust who wish to provide memory in non-standard ways should
+/// implement this trait. Objects implementing this trait are intended to be wrapped
+/// by `capnp::private::BuilderArena`, which handles calling the methods at the appropriate
+/// times, including calling `deallocate_segment()` on drop.
+///
+/// # Safety
+/// Implementions must ensure all of the following:
+///   1. The memory returned by `allocate_segment` is initialized to all zeroes.
+///   2. The memory returned by `allocate_segment` is valid until `deallocate_segment()`
+///      is called on it.
+///   3. The allocated memory does not overlap with other allocated memory.
+///   4. The allocated memory is 8-byte aligned (or the "unaligned" feature is enabled
+///      for the capnp crate).
 pub unsafe trait Allocator {
     /// Allocates zeroed memory for a new segment, returning a pointer to the start of the segment
     /// and a u32 indicating the length of the segment in words. The allocated segment must be
@@ -365,18 +378,18 @@ pub unsafe trait Allocator {
     /// commonly allocate much more than the minimum, to reduce the total number of segments needed.
     /// A reasonable strategy is to allocate the maximum of `minimum_size` and twice the size of the
     /// previous segment.
-    ///
-    /// UNSAFETY ALERT: Implementors must ensure all of the following:
-    ///     1. the returned memory is initialized to all zeroes,
-    ///     2. the returned memory is valid until deallocate_segment() is called on it,
-    ///     3. the memory doesn't overlap with other allocated memory,
-    ///     4. the memory is 8-byte aligned (or the "unaligned" feature is enabled for the capnp crate).
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32);
 
     /// Indicates that a segment, previously allocated via allocate_segment(), is no longer in use.
     /// `word_size` is the length of the segment in words, as returned from `allocate_segment()`.
     /// `words_used` is always less than or equal to `word_size`, and indicates how many
     /// words (contiguous from the start of the segment) were possibly written with non-zero values.
+    ///
+    /// # Safety
+    /// Callers must only call this method on a pointer that has previously been been returned
+    /// from `allocate_segment()`, and only once on each such segment. `word_size` must
+    /// equal the word size returned from `allocate_segment()`, and `words_used` must be at
+    /// most `word_size`.
     fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32);
 }
 
@@ -493,6 +506,8 @@ where
         TypedBuilder::new(self)
     }
 
+    /// Retrieves the underlying `Allocator`, deallocating all currently-allocated
+    /// segments.
     pub fn into_allocator(self) -> A {
         self.arena.into_allocator()
     }
