@@ -21,6 +21,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+use core::mem::ManuallyDrop;
+use core::ptr::read;
 use core::slice;
 use core::u64;
 
@@ -180,11 +182,23 @@ struct BuilderSegment {
     allocated: u32,
 }
 
+impl BuilderSegment {
+    fn allocate(&mut self, amount: WordCount32) -> Option<u32> {
+        if amount > self.capacity - self.allocated {
+            None
+        } else {
+            let result = self.allocated;
+            self.allocated += amount;
+            Some(result)
+        }
+    }
+}
+
 pub struct BuilderArenaImplInner<A>
 where
     A: Allocator,
 {
-    allocator: Option<A>, // None if has already be deallocated.
+    allocator: A,
 
     // TODO(perf): Try using smallvec to avoid heap allocations in the single-segment case?
     segments: Vec<BuilderSegment>,
@@ -204,15 +218,15 @@ where
     pub fn new(allocator: A) -> Self {
         Self {
             inner: RefCell::new(BuilderArenaImplInner {
-                allocator: Some(allocator),
+                allocator: allocator,
                 segments: Vec::new(),
             }),
         }
     }
 
     /// Allocates a new segment with capacity for at least `minimum_size` words.
-    pub fn allocate_segment(&self, minimum_size: u32) -> Result<()> {
-        self.inner.borrow_mut().allocate_segment(minimum_size)
+    pub fn allocate_segment(&self, minimum_size: u32) {
+        self.inner.borrow_mut().allocate_segment(minimum_size);
     }
 
     pub fn get_segments_for_output(&self) -> OutputSegments {
@@ -256,7 +270,12 @@ where
     pub fn into_allocator(self) -> A {
         let mut inner = self.inner.into_inner();
         inner.deallocate_all();
-        inner.allocator.take().unwrap()
+        // See https://rust-lang.zulipchat.com/#narrow/stream/122651-general/topic/.E2.9C.94.20Extracting.20field.20from.20struct.20that.20implement.20.60Drop.60
+        let (allocator, _segments) = unsafe {
+            let this = &*ManuallyDrop::new(inner);
+            (read(&this.allocator), read(&this.segments))
+        };
+        allocator
     }
 }
 
@@ -297,54 +316,37 @@ where
     A: Allocator,
 {
     /// Allocates a new segment with capacity for at least `minimum_size` words.
-    fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
-        let seg = match &mut self.allocator {
-            Some(a) => a.allocate_segment(minimum_size),
-            None => unreachable!(),
-        };
+    fn allocate_segment(&mut self, minimum_size: WordCount32) -> SegmentId {
+        let seg = self.allocator.allocate_segment(minimum_size);
+        let segment_id = self.segments.len() as u32;
         self.segments.push(BuilderSegment {
             ptr: seg.0,
             capacity: seg.1,
-            allocated: 0,
+            allocated: minimum_size,
         });
-        Ok(())
+        segment_id
     }
 
     fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32> {
-        let seg = &mut self.segments[segment_id as usize];
-        if amount > seg.capacity - seg.allocated {
-            None
-        } else {
-            let result = seg.allocated;
-            seg.allocated += amount;
-            Some(result)
-        }
+        self.segments[segment_id as usize].allocate(amount)
     }
 
     fn allocate_anywhere(&mut self, amount: u32) -> (SegmentId, u32) {
         // first try the existing segments, then try allocating a new segment.
-        let allocated_len = self.segments.len() as u32;
-        for segment_id in 0..allocated_len {
-            if let Some(idx) = self.allocate(segment_id, amount) {
-                return (segment_id, idx);
+        for (segment_id, segment) in self.segments.iter_mut().enumerate() {
+            if let Some(idx) = segment.allocate(amount) {
+                return (segment_id as u32, idx);
             }
         }
 
         // Need to allocate a new segment.
-
-        self.allocate_segment(amount).expect("allocate new segment");
-        (
-            allocated_len,
-            self.allocate(allocated_len, amount)
-                .expect("use freshly-allocated segment"),
-        )
+        (self.allocate_segment(amount), 0)
     }
 
     fn deallocate_all(&mut self) {
-        if let Some(a) = &mut self.allocator {
-            for seg in &self.segments {
-                a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
-            }
+        for seg in &self.segments {
+            self.allocator
+                .deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
         }
     }
 
