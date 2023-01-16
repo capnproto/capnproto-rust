@@ -174,7 +174,7 @@ impl<'a> Builder<'a> {
 
 impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
     fn set_pointer_builder<'b>(
-        pointer: crate::private::layout::PointerBuilder<'b>,
+        mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a>,
         canonicalize: bool,
     ) -> Result<()> {

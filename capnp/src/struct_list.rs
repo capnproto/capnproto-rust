@@ -184,12 +184,13 @@ where
     /// struct list are allocated inline: if the source struct is larger than the target struct
     /// (as can happen if it was created with a newer version of the schema), then it will be
     /// truncated, losing fields.
-    pub fn set_with_caveats<'b>(&self, index: u32, value: T::Reader<'b>) -> Result<()>
+    pub fn set_with_caveats<'b>(&mut self, index: u32, value: T::Reader<'b>) -> Result<()>
     where
         T::Reader<'b>: crate::traits::IntoInternalStructReader<'b>,
     {
         use crate::traits::IntoInternalStructReader;
         self.builder
+            .reborrow()
             .get_struct_element(index)
             .copy_content_from(&value.into_internal_struct_reader())
     }
@@ -201,7 +202,7 @@ where
 {
     pub fn reborrow(&mut self) -> Builder<'_, T> {
         Builder {
-            builder: self.builder,
+            builder: self.builder.reborrow(),
             marker: PhantomData,
         }
     }
@@ -257,7 +258,7 @@ where
     T: crate::traits::OwnedStruct,
 {
     fn set_pointer_builder<'b>(
-        pointer: crate::private::layout::PointerBuilder<'b>,
+        mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a, T>,
         canonicalize: bool,
     ) -> Result<()> {

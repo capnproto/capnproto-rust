@@ -399,7 +399,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn allocate(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         amount: WordCount32,
@@ -450,7 +450,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn follow_builder_fars(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         ref_target: *mut u8,
         segment_id: u32,
@@ -535,7 +535,11 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn zero_object(arena: &dyn BuilderArena, segment_id: u32, reff: *mut WirePointer) {
+    pub unsafe fn zero_object(
+        arena: &mut dyn BuilderArena,
+        segment_id: u32,
+        reff: *mut WirePointer,
+    ) {
         //# Zero out the pointed-to object. Use when the pointer is
         //# about to be overwritten making the target object no longer
         //# reachable.
@@ -569,7 +573,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn zero_object_helper(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         segment_id: u32,
         tag: *mut WirePointer,
         ptr: *mut u8,
@@ -651,7 +655,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn zero_pointer_and_fars(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         _segment_id: u32,
         reff: *mut WirePointer,
     ) -> Result<()> {
@@ -822,7 +826,7 @@ mod wire_helpers {
 
     // Helper for copy_message().
     unsafe fn copy_struct(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         dst: *mut u8,
@@ -849,7 +853,7 @@ mod wire_helpers {
     // Copies from a trusted message.
     // Returns (new_dst_ptr, new_dst, new_segment_id).
     pub unsafe fn copy_message(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         dst: *mut WirePointer,
@@ -984,7 +988,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn transfer_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
         dst: *mut WirePointer,
         src_segment_id: u32,
@@ -1020,7 +1024,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn transfer_pointer_split(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
         dst: *mut WirePointer,
         src_segment_id: u32,
@@ -1094,7 +1098,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_struct_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1122,7 +1126,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_struct_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+        arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1238,7 +1242,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_list_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1274,7 +1278,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_struct_list_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1319,7 +1323,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_list_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1335,7 +1339,7 @@ mod wire_helpers {
 
         if (*orig_ref).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListBuilder::new_default());
+                return Ok(ListBuilder::new_default(arena));
             }
             let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                 arena,
@@ -1457,7 +1461,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_struct_list_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1468,7 +1472,7 @@ mod wire_helpers {
 
         if (*orig_ref).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListBuilder::new_default());
+                return Ok(ListBuilder::new_default(arena));
             }
             let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                 arena,
@@ -1703,7 +1707,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_text_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         size: ByteCount32,
@@ -1732,7 +1736,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn set_text_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+        arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         value: &str,
@@ -1746,7 +1750,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_text_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+        arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         default: Option<&'a [crate::Word]>,
@@ -1802,7 +1806,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_data_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         size: ByteCount32,
@@ -1827,7 +1831,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn set_data_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+        arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         value: &[u8],
@@ -1839,7 +1843,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_data_pointer<'a>(
-        arena: &'a dyn BuilderArena,
+        arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         default: Option<&'a [crate::Word]>,
@@ -1886,7 +1890,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn set_struct_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
@@ -1970,7 +1974,7 @@ mod wire_helpers {
     }
 
     pub fn set_capability_pointer(
-        _arena: &dyn BuilderArena,
+        _arena: &mut dyn BuilderArena,
         _segment_id: u32,
         mut cap_table: CapTableBuilder,
         reff: *mut WirePointer,
@@ -1983,7 +1987,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn set_list_pointer(
-        arena: &dyn BuilderArena,
+        arena: &mut dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
@@ -2152,7 +2156,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn copy_pointer(
-        dst_arena: &dyn BuilderArena,
+        dst_arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
         dst_cap_table: CapTableBuilder,
         dst: *mut WirePointer,
@@ -3054,9 +3058,8 @@ impl<'a> PointerReader<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
 pub struct PointerBuilder<'a> {
-    arena: &'a dyn BuilderArena,
+    arena: &'a mut dyn BuilderArena,
     segment_id: u32,
     cap_table: CapTableBuilder,
     pointer: *mut WirePointer,
@@ -3064,7 +3067,7 @@ pub struct PointerBuilder<'a> {
 
 impl<'a> PointerBuilder<'a> {
     #[inline]
-    pub fn get_root(arena: &'a dyn BuilderArena, segment_id: u32, location: *mut u8) -> Self {
+    pub fn get_root(arena: &'a mut dyn BuilderArena, segment_id: u32, location: *mut u8) -> Self {
         PointerBuilder {
             arena,
             cap_table: CapTableBuilder::Plain(ptr::null_mut()),
@@ -3073,6 +3076,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
+    #[inline]
     pub fn reborrow(&mut self) -> PointerBuilder<'_> {
         PointerBuilder {
             arena: self.arena,
@@ -3240,7 +3244,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_struct(&self, value: &StructReader, canonicalize: bool) -> Result<()> {
+    pub fn set_struct(&mut self, value: &StructReader, canonicalize: bool) -> Result<()> {
         unsafe {
             wire_helpers::set_struct_pointer(
                 self.arena,
@@ -3254,7 +3258,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_list(&self, value: &ListReader, canonicalize: bool) -> Result<()> {
+    pub fn set_list(&mut self, value: &ListReader, canonicalize: bool) -> Result<()> {
         unsafe {
             wire_helpers::set_list_pointer(
                 self.arena,
@@ -3268,19 +3272,19 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_text(&self, value: &str) {
+    pub fn set_text(&mut self, value: &str) {
         unsafe {
             wire_helpers::set_text_pointer(self.arena, self.pointer, self.segment_id, value);
         }
     }
 
-    pub fn set_data(&self, value: &[u8]) {
+    pub fn set_data(&mut self, value: &[u8]) {
         unsafe {
             wire_helpers::set_data_pointer(self.arena, self.pointer, self.segment_id, value);
         }
     }
 
-    pub fn set_capability(&self, cap: Box<dyn ClientHook>) {
+    pub fn set_capability(&mut self, cap: Box<dyn ClientHook>) {
         wire_helpers::set_capability_pointer(
             self.arena,
             self.segment_id,
@@ -3321,6 +3325,16 @@ impl<'a> PointerBuilder<'a> {
         unsafe {
             wire_helpers::zero_object(self.arena, self.segment_id, self.pointer);
             ptr::write_bytes(self.pointer, 0, 1);
+        }
+    }
+
+    pub fn as_reader(&self) -> PointerReader<'_> {
+        PointerReader {
+            arena: self.arena.as_reader(),
+            segment_id: self.segment_id,
+            cap_table: self.cap_table.into_reader(),
+            pointer: self.pointer,
+            nesting_limit: 0x7fffffff,
         }
     }
 
@@ -3535,9 +3549,8 @@ impl<'a> StructReader<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
 pub struct StructBuilder<'a> {
-    arena: &'a dyn BuilderArena,
+    arena: &'a mut dyn BuilderArena,
     cap_table: CapTableBuilder,
     data: *mut u8,
     pointers: *mut WirePointer,
@@ -3547,6 +3560,27 @@ pub struct StructBuilder<'a> {
 }
 
 impl<'a> StructBuilder<'a> {
+    #[inline]
+    pub fn reborrow(&mut self) -> StructBuilder<'_> {
+        StructBuilder {
+            arena: self.arena,
+            ..*self
+        }
+    }
+
+    pub fn as_reader(&self) -> StructReader<'_> {
+        StructReader {
+            arena: self.arena.as_reader(),
+            cap_table: self.cap_table.into_reader(),
+            data: self.data,
+            pointers: self.pointers,
+            pointer_count: self.pointer_count,
+            segment_id: self.segment_id,
+            data_size: self.data_size,
+            nesting_limit: 0x7fffffff,
+        }
+    }
+
     pub fn into_reader(self) -> StructReader<'a> {
         StructReader {
             arena: self.arena.as_reader(),
@@ -3630,6 +3664,21 @@ impl<'a> StructBuilder<'a> {
             cap_table: self.cap_table,
             pointer: unsafe { self.pointers.add(ptr_index) },
         }
+    }
+
+    #[inline]
+    pub fn get_pointer_field_mut(&mut self, ptr_index: WirePointerCount) -> PointerBuilder<'_> {
+        PointerBuilder {
+            arena: self.arena,
+            segment_id: self.segment_id,
+            cap_table: self.cap_table,
+            pointer: unsafe { self.pointers.add(ptr_index) },
+        }
+    }
+
+    #[inline]
+    pub fn is_pointer_field_null(&self, ptr_index: WirePointerCount) -> bool {
+        unsafe { (*self.pointers.add(ptr_index)).is_null() }
     }
 
     pub fn copy_content_from(&mut self, other: &StructReader) -> Result<()> {
@@ -3924,9 +3973,8 @@ impl<'a> ListReader<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
 pub struct ListBuilder<'a> {
-    arena: &'a dyn BuilderArena,
+    arena: &'a mut dyn BuilderArena,
     cap_table: CapTableBuilder,
     ptr: *mut u8,
     segment_id: u32,
@@ -3939,9 +3987,9 @@ pub struct ListBuilder<'a> {
 
 impl<'a> ListBuilder<'a> {
     #[inline]
-    pub fn new_default<'b>() -> ListBuilder<'b> {
+    pub fn new_default(arena: &mut dyn BuilderArena) -> ListBuilder<'_> {
         ListBuilder {
-            arena: &NULL_ARENA,
+            arena,
             segment_id: 0,
             cap_table: CapTableBuilder::Plain(ptr::null_mut()),
             ptr: ptr::null_mut(),
@@ -3968,6 +4016,7 @@ impl<'a> ListBuilder<'a> {
         }
     }
 
+    #[inline]
     pub fn reborrow(&mut self) -> ListBuilder<'_> {
         ListBuilder {
             arena: self.arena,
@@ -4020,7 +4069,7 @@ impl<'a> ListBuilder<'a> {
         }
     }
 
-    pub(crate) fn into_raw_bytes(self) -> &'a mut [u8] {
+    pub(crate) fn into_raw_bytes(&self) -> &'a mut [u8] {
         if self.element_count == 0 {
             // Explictly handle this case to avoid forming a slice to a null pointer,
             // which would be undefined behavior.

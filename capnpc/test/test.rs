@@ -466,7 +466,7 @@ mod tests {
 
         {
             let mut prim_list_list1 = test_complex_list1.reborrow().init_prim_list_list(1);
-            let prim_list_list2 = test_complex_list2.reborrow().init_prim_list_list(1);
+            let mut prim_list_list2 = test_complex_list2.reborrow().init_prim_list_list(1);
             {
                 let mut prim_list1 = prim_list_list1.reborrow().init(0, 3);
                 prim_list1.set(0, 7);
@@ -1294,7 +1294,7 @@ mod tests {
 
             {
                 let root_builder: test_any_pointer::Builder<'_> = message_builder.init_root();
-                let any_builder = root_builder.get_any_pointer_field();
+                let mut any_builder = root_builder.get_any_pointer_field();
                 any_builder.set_as(list_reader).unwrap();
             }
             let out_seg = message_builder.get_segments_for_output()[0];
@@ -1819,7 +1819,7 @@ mod tests {
         use crate::test_capnp::test_all_types;
         let mut message = message::Builder::new_default();
         let root: test_all_types::Builder<'_> = message.init_root();
-        let list = root.init_struct_list(2);
+        let mut list = root.init_struct_list(2);
         {
             let mut message1 = message::Builder::new_default();
             let mut root1: test_all_types::Builder<'_> = message1.init_root();

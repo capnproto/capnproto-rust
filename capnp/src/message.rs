@@ -467,7 +467,7 @@ where
 
     /// Sets the root to a deep copy of the given value.
     pub fn set_root<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
-        let root = self.get_root_internal();
+        let mut root = self.get_root_internal();
         root.set_as(value)
     }
 
@@ -482,7 +482,7 @@ where
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
-        let pointer = layout::PointerBuilder::get_root(&self.arena, 0, seg_start);
+        let pointer = layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start);
         SetPointerBuilder::set_pointer_builder(pointer, value, true)?;
         assert_eq!(self.get_segments_for_output().len(), 1);
         Ok(())
