@@ -154,8 +154,8 @@ impl<'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as<From: SetPointerBuilder>(self, value: From) -> Result<()> {
-        SetPointerBuilder::set_pointer_builder(self.builder, value, false)
+    pub fn set_as<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
+        SetPointerBuilder::set_pointer_builder(self.builder.reborrow(), value, false)
     }
 
     // XXX value should be a user client.

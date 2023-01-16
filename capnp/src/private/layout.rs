@@ -1974,7 +1974,7 @@ mod wire_helpers {
     }
 
     pub fn set_capability_pointer(
-        _arena: &dyn BuilderArena,
+        _arena: &mut dyn BuilderArena,
         _segment_id: u32,
         mut cap_table: CapTableBuilder,
         reff: *mut WirePointer,
@@ -3284,7 +3284,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_capability(&self, cap: Box<dyn ClientHook>) {
+    pub fn set_capability(&mut self, cap: Box<dyn ClientHook>) {
         wire_helpers::set_capability_pointer(
             self.arena,
             self.segment_id,

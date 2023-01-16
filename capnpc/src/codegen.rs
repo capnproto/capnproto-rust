@@ -2201,7 +2201,7 @@ fn generate_node(
                 Indent(
                     Box::new(
                         Branch(vec![
-                            Line("fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder<'_>, from: Self, _canonicalize: bool) -> ::capnp::Result<()> {".to_string()),
+                            Line("fn set_pointer_builder(mut pointer: ::capnp::private::layout::PointerBuilder<'_>, from: Self, _canonicalize: bool) -> ::capnp::Result<()> {".to_string()),
                             Indent(Box::new(Line(
                                 "pointer.set_capability(from.client.hook);".to_string()))),
                             Indent(Box::new(Line(

@@ -1294,7 +1294,7 @@ mod tests {
 
             {
                 let root_builder: test_any_pointer::Builder<'_> = message_builder.init_root();
-                let any_builder = root_builder.get_any_pointer_field();
+                let mut any_builder = root_builder.get_any_pointer_field();
                 any_builder.set_as(list_reader).unwrap();
             }
             let out_seg = message_builder.get_segments_for_output()[0];
