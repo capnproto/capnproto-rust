@@ -190,7 +190,8 @@ where
     {
         use crate::traits::IntoInternalStructReader;
         self.builder
-            .get_struct_element_mut(index)
+            .reborrow()
+            .get_struct_element(index)
             .copy_content_from(&value.into_internal_struct_reader())
     }
 }

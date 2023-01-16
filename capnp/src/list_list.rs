@@ -239,7 +239,8 @@ where
         use crate::traits::IntoInternalListReader;
         assert!(index < self.len());
         self.builder
-            .get_pointer_element_mut(index)
+            .reborrow()
+            .get_pointer_element(index)
             .set_list(&value.into_internal_list_reader(), false)
     }
 }

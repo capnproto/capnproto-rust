@@ -791,7 +791,7 @@ fn zero_fields_of_group(
                             type_::AnyPointer(_) |
                             type_::Interface(_) // Is this the right thing to do for interfaces?
                                 => {
-                                    let line = Line(format!("self.builder.get_pointer_field_mut({}).clear();",
+                                    let line = Line(format!("self.builder.reborrow().get_pointer_field({}).clear();",
                                                             slot.get_offset()));
                                     *clear = true;
                                     // PERF could dedup more efficiently
@@ -908,7 +908,7 @@ fn generate_setter(
                 }
                 type_::Text(()) => {
                     setter_interior.push(Line(format!(
-                        "self.builder.get_pointer_field_mut({offset}).set_text(value);"
+                        "self.builder.reborrow().get_pointer_field({offset}).set_text(value);"
                     )));
                     initter_interior.push(Line(format!(
                         "self.builder.get_pointer_field({offset}).init_text(size)"
@@ -921,7 +921,7 @@ fn generate_setter(
                 }
                 type_::Data(()) => {
                     setter_interior.push(Line(format!(
-                        "self.builder.get_pointer_field_mut({offset}).set_data(value);"
+                        "self.builder.reborrow().get_pointer_field({offset}).set_data(value);"
                     )));
                     initter_interior.push(Line(format!(
                         "self.builder.get_pointer_field({offset}).init_data(size)"
@@ -935,7 +935,7 @@ fn generate_setter(
                 type_::List(ot1) => {
                     return_result = true;
                     setter_interior.push(
-                        Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut({offset}), value, false)")));
+                        Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
 
                     initter_params.push("size: u32");
                     initter_interior.push(
@@ -975,7 +975,7 @@ fn generate_setter(
                     if typ.is_branded()? {
                         setter_interior.push(
                             Line(format!(
-                                "<{} as ::capnp::traits::SetPointerBuilder>::set_pointer_builder(self.builder.get_pointer_field_mut({}), value, false)",
+                                "<{} as ::capnp::traits::SetPointerBuilder>::set_pointer_builder(self.builder.reborrow().get_pointer_field({}), value, false)",
                                 typ.type_string(gen, Leaf::Reader("'_"))?,
                                 offset)));
                         (
@@ -984,7 +984,7 @@ fn generate_setter(
                         )
                     } else {
                         setter_interior.push(
-                            Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut({offset}), value, false)")));
+                            Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
                         (
                             Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'_"))?),
                             Some(
@@ -997,14 +997,14 @@ fn generate_setter(
                 }
                 type_::Interface(_) => {
                     setter_interior.push(Line(format!(
-                        "self.builder.get_pointer_field_mut({offset}).set_capability(value.client.hook);"
+                        "self.builder.reborrow().get_pointer_field({offset}).set_capability(value.client.hook);"
                     )));
                     (Some(typ.type_string(gen, Leaf::Client)?), None)
                 }
                 type_::AnyPointer(_) => {
                     if typ.is_parameter()? {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({offset})).init_as()")));
-                        setter_interior.push(Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field_mut({offset}), value, false)")));
+                        setter_interior.push(Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
                         return_result = true;
 
                         let builder_type = typ.type_string(gen, Leaf::Builder("'a"))?;

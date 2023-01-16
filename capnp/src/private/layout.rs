@@ -4054,40 +4054,12 @@ impl<'a> ListBuilder<'a> {
         }
     }
 
-    #[inline]
-    pub fn get_struct_element_mut(&mut self, index: ElementCount32) -> StructBuilder<'_> {
-        let index_byte = ((u64::from(index) * u64::from(self.step)) / BITS_PER_BYTE as u64) as u32;
-        let struct_data = unsafe { self.ptr.offset(index_byte as isize) };
-        let struct_pointers =
-            unsafe { struct_data.add((self.struct_data_size as usize) / BITS_PER_BYTE) as *mut _ };
-        StructBuilder {
-            arena: self.arena,
-            segment_id: self.segment_id,
-            cap_table: self.cap_table,
-            data: struct_data,
-            pointers: struct_pointers,
-            data_size: self.struct_data_size,
-            pointer_count: self.struct_pointer_count,
-        }
-    }
-
     pub(crate) fn get_element_size(&self) -> ElementSize {
         self.element_size
     }
 
     #[inline]
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerBuilder<'a> {
-        let offset = (u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64) as u32;
-        PointerBuilder {
-            arena: self.arena,
-            segment_id: self.segment_id,
-            cap_table: self.cap_table,
-            pointer: unsafe { self.ptr.offset(offset as isize) } as *mut _,
-        }
-    }
-
-    #[inline]
-    pub fn get_pointer_element_mut(&mut self, index: ElementCount32) -> PointerBuilder<'_> {
         let offset = (u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64) as u32;
         PointerBuilder {
             arena: self.arena,
