@@ -19,9 +19,9 @@ impl ::capnp::traits::FromU16 for Side {
     }
   }
 }
-impl ::capnp::traits::ToU16 for Side {
+impl From<Side> for u16 {
   #[inline]
-  fn to_u16(self) -> u16 { self as u16 }
+  fn from(x: Side) -> u16 { x as u16 }
 }
 impl ::capnp::traits::HasTypeId for Side {
   const TYPE_ID: u64 = 0x9fd6_9ebc_87b9_719cu64;
