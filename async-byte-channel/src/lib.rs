@@ -18,8 +18,8 @@ struct Inner {
 }
 
 impl Inner {
-    fn new() -> Inner {
-        Inner {
+    fn new() -> Self {
+        Self {
             buffer: vec![0; 8096],
             write_cursor: 0,
             read_cursor: 0,

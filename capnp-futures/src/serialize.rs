@@ -53,9 +53,8 @@ pub async fn try_read_message<R>(
 where
     R: AsyncRead + Unpin,
 {
-    let segment_lengths_builder = match read_segment_table(&mut reader, options).await? {
-        Some(s) => s,
-        None => return Ok(None),
+    let Some(segment_lengths_builder) = read_segment_table(&mut reader, options).await? else {
+        return Ok(None)
     };
     Ok(Some(
         read_segments(
@@ -147,15 +146,9 @@ where
 fn parse_segment_table_first(buf: &[u8]) -> Result<(usize, usize)> {
     let segment_count = u32::from_le_bytes(buf[0..4].try_into().unwrap()).wrapping_add(1);
     if segment_count >= 512 {
-        return Err(Error::failed(format!(
-            "Too many segments: {}",
-            segment_count
-        )));
+        return Err(Error::failed(format!("Too many segments: {segment_count}")));
     } else if segment_count == 0 {
-        return Err(Error::failed(format!(
-            "Too few segments: {}",
-            segment_count
-        )));
+        return Err(Error::failed(format!("Too few segments: {segment_count}")));
     }
 
     let first_segment_len = u32::from_le_bytes(buf[4..8].try_into().unwrap());
@@ -231,8 +224,8 @@ where
                     .copy_from_slice(&((segments[idx].len() / 8) as u32).to_le_bytes());
             }
             if segment_count == 2 {
-                for idx in 4..8 {
-                    buf[idx] = 0
+                for value in &mut buf[4..8] {
+                    *value = 0;
                 }
             }
             write.write_all(&buf).await?;
@@ -258,8 +251,8 @@ async fn write_segments<W>(mut write: W, segments: &[&[u8]]) -> Result<()>
 where
     W: AsyncWrite + Unpin,
 {
-    for i in 0..segments.len() {
-        write.write_all(segments[i]).await?;
+    for segment in segments {
+        write.write_all(segment).await?;
     }
     Ok(())
 }
@@ -552,8 +545,8 @@ pub mod test {
     where
         R: Read,
     {
-        pub(crate) fn new(read: R, blocking_period: usize) -> BlockingRead<R> {
-            BlockingRead {
+        pub(crate) fn new(read: R, blocking_period: usize) -> Self {
+            Self {
                 read,
                 blocking_period,
                 idx: 0,
@@ -605,8 +598,8 @@ pub mod test {
     where
         W: Write,
     {
-        pub(crate) fn new(writer: W, blocking_period: usize) -> BlockingWrite<W> {
-            BlockingWrite {
+        pub(crate) fn new(writer: W, blocking_period: usize) -> Self {
+            Self {
                 writer,
                 blocking_period,
                 idx: 0,

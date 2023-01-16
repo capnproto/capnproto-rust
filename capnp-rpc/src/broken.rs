@@ -35,14 +35,14 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(error: Error) -> Pipeline {
-        Pipeline { error }
+    pub fn new(error: Error) -> Self {
+        Self { error }
     }
 }
 
 impl PipelineHook for Pipeline {
     fn add_ref(&self) -> Box<dyn PipelineHook> {
-        Box::new(Pipeline::new(self.error.clone()))
+        Box::new(Self::new(self.error.clone()))
     }
     fn get_pipelined_cap(&self, _ops: &[PipelineOp]) -> Box<dyn ClientHook> {
         new_cap(self.error.clone())
@@ -56,8 +56,8 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> Request {
-        Request {
+    pub fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> Self {
+        Self {
             error,
             message: ::capnp::message::Builder::new_default(),
             cap_table: Vec::new(),
@@ -97,8 +97,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(error: Error, resolved: bool, brand: usize) -> Client {
-        Client {
+    pub fn new(error: Error, resolved: bool, brand: usize) -> Self {
+        Self {
             inner: Rc::new(ClientInner {
                 error,
                 _resolved: resolved,
@@ -110,7 +110,7 @@ impl Client {
 
 impl ClientHook for Client {
     fn add_ref(&self) -> Box<dyn ClientHook> {
-        Box::new(Client {
+        Box::new(Self {
             inner: self.inner.clone(),
         })
     }

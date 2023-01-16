@@ -43,7 +43,7 @@ pub struct PipelineInner {
 }
 
 impl PipelineInner {
-    fn resolve(this: &Rc<RefCell<PipelineInner>>, result: Result<Box<dyn PipelineHook>, Error>) {
+    fn resolve(this: &Rc<RefCell<Self>>, result: Result<Box<dyn PipelineHook>, Error>) {
         assert!(this.borrow().redirect.is_none());
         let pipeline = match result {
             Ok(pipeline_hook) => pipeline_hook,
@@ -98,7 +98,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new() -> (PipelineInnerSender, Pipeline) {
+    pub fn new() -> (PipelineInnerSender, Self) {
         let inner = Rc::new(RefCell::new(PipelineInner {
             redirect: None,
             promise_to_drive: Promise::ok(()).shared(),
@@ -109,7 +109,7 @@ impl Pipeline {
             PipelineInnerSender {
                 inner: Some(Rc::downgrade(&inner)),
             },
-            Pipeline { inner },
+            Self { inner },
         )
     }
 
@@ -127,8 +127,8 @@ impl Pipeline {
 }
 
 impl Clone for Pipeline {
-    fn clone(&self) -> Pipeline {
-        Pipeline {
+    fn clone(&self) -> Self {
+        Self {
             inner: self.inner.clone(),
         }
     }
@@ -185,7 +185,7 @@ pub struct ClientInner {
 }
 
 impl ClientInner {
-    pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<dyn ClientHook>, Error>) {
+    pub fn resolve(state: &Rc<RefCell<Self>>, result: Result<Box<dyn ClientHook>, Error>) {
         assert!(state.borrow().redirect.is_none());
         let client = match result {
             Ok(clienthook) => clienthook,
@@ -211,7 +211,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(pipeline_inner: Option<Rc<RefCell<PipelineInner>>>) -> Client {
+    pub fn new(pipeline_inner: Option<Rc<RefCell<PipelineInner>>>) -> Self {
         let inner = Rc::new(RefCell::new(ClientInner {
             promise_to_drive: None,
             pipeline_inner,
@@ -219,7 +219,7 @@ impl Client {
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),
         }));
-        Client { inner }
+        Self { inner }
     }
 
     pub fn drive<F>(&mut self, promise: F)
@@ -233,7 +233,7 @@ impl Client {
 
 impl ClientHook for Client {
     fn add_ref(&self) -> Box<dyn ClientHook> {
-        Box::new(Client {
+        Box::new(Self {
             inner: self.inner.clone(),
         })
     }

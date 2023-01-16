@@ -85,7 +85,7 @@ where
         cx: &mut std::task::Context<'_>,
         outbuf: &mut [u8],
     ) -> Poll<std::result::Result<usize, std::io::Error>> {
-        let PackedRead {
+        let Self {
             stage,
             inner,
             buf,
@@ -122,8 +122,8 @@ where
                 PackedReadStage::WritingZeroes => {
                     let num_zeroes = std::cmp::min(outbuf.len(), *num_run_bytes_remaining);
 
-                    for ii in 0..num_zeroes {
-                        outbuf[ii] = 0;
+                    for value in outbuf.iter_mut().take(num_zeroes) {
+                        *value = 0;
                     }
                     if num_zeroes >= *num_run_bytes_remaining {
                         *buf_pos = 0;
@@ -316,7 +316,7 @@ where
         mut inbuf: &[u8],
     ) -> Poll<std::result::Result<usize, std::io::Error>> {
         let mut inbuf_bytes_consumed: usize = 0;
-        let PackedWrite {
+        let Self {
             stage,
             inner,
             buf,

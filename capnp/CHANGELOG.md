@@ -1,3 +1,16 @@
+## v0.15.3
+- Deprecate `HasTypeId::type_id()` in favor of `HasTypeId::TYPE_ID`.
+
+## v0.15.2
+- Remove list pointer munging.
+
+## v0.15.1
+- Add `rust-version` field in Cargo.toml, for better error messages when somone uses and old rustc.
+- Add `is_empty()` methods.
+- Deprecate `MessageSize::plus_eq` in favor of `AddAssign`.
+- Add some `Default` impls.
+- Lots of linting and formatting changes that should not have an observeable effect.
+
 ## v0.15.0
 - Move HasStructSize::struct_size() into a constant HasStructSize::STRUCT_SIZE.
 - Move HasTypeId::type_id() into a constant HasTypeId::TYPE_ID.

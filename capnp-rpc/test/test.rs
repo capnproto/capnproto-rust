@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 #![cfg(test)]
+#![allow(clippy::bool_assert_comparison)]
 
 use capnp::capability::{FromClientHook, Promise};
 use capnp::Error;
@@ -157,7 +158,7 @@ fn disconnector_disconnects() {
     spawn(
         &mut spawner,
         server_rpc_system.map(|x| {
-            let _ = tx.send(()).expect("sending on tx");
+            tx.send(()).expect("sending on tx");
             x
         }),
     );
@@ -286,6 +287,10 @@ fn basic_pipelining() {
 
         let promise = request.send();
 
+        // This is just here to check that code generation for pipelines
+        // inside of groups works correctly.
+        let _ = promise.pipeline.get_out_box().get_foo().get_cap_in_group();
+
         let mut pipeline_request = promise.pipeline.get_out_box().get_cap().foo_request();
         pipeline_request.get().set_i(321);
         let pipeline_promise = pipeline_request.send();
@@ -335,8 +340,7 @@ fn pipelining_return_null() {
                     Ok(())
                 } else {
                     Err(Error::failed(format!(
-                        "Should have gotten null capability error. Instead got {:?}",
-                        e
+                        "Should have gotten null capability error. Instead got {e:?}"
                     )))
                 }
             }

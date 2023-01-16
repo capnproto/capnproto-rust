@@ -29,14 +29,20 @@ pub struct FastRand {
     w: u32,
 }
 
-impl FastRand {
-    pub fn new() -> FastRand {
-        FastRand {
+impl Default for FastRand {
+    fn default() -> Self {
+        Self {
             x: 0x1d2acd47,
             y: 0x58ca3e14,
             z: 0xf563f232,
             w: 0x0bc76199,
         }
+    }
+}
+
+impl FastRand {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     #[inline]
@@ -46,7 +52,7 @@ impl FastRand {
         self.y = self.z;
         self.z = self.w;
         self.w = self.w ^ (self.w >> 19) ^ tmp ^ (tmp >> 8);
-        return self.w;
+        self.w
     }
 
     #[inline]
@@ -74,7 +80,7 @@ pub fn div(a: i32, b: i32) -> i32 {
     if a == i32::MIN && b == -1 {
         return i32::MAX;
     }
-    return a / b;
+    a / b
 }
 
 #[inline]
@@ -85,10 +91,10 @@ pub fn modulus(a: i32, b: i32) -> i32 {
     if a == i32::MIN && b == -1 {
         return i32::MAX;
     }
-    return a % b;
+    a % b
 }
 
-pub const WORDS: [&'static str; 13] = [
+pub const WORDS: [&str; 13] = [
     "foo ", "bar ", "baz ", "qux ", "quux ", "corge ", "grault ", "garply ", "waldo ", "fred ",
     "plugh ", "xyzzy ", "thud ",
 ];

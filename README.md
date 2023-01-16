@@ -2,9 +2,10 @@
 
 [![Build Status](https://github.com/capnproto/capnproto-rust/workflows/CI/badge.svg?branch=master&event=push)](https://github.com/capnproto/capnproto-rust/actions?query=workflow%3ACI)
 
-[documentation](https://docs.capnproto-rust.org/capnp/)
+[documentation](https://docs.rs/capnp/)
 
-[blog](https://dwrensha.github.io/capnproto-rust)
+For the latest news,
+see the [capnproto-rust blog](https://dwrensha.github.io/capnproto-rust).
 
 ## Introduction
 

@@ -183,7 +183,7 @@ impl<VatId> RpcSystem<VatId> {
     pub fn new(
         mut network: Box<dyn crate::VatNetwork<VatId>>,
         bootstrap: Option<::capnp::capability::Client>,
-    ) -> RpcSystem<VatId> {
+    ) -> Self {
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
             None => broken::new_cap(Error::failed("no bootstrap capability".to_string())),
@@ -208,7 +208,7 @@ impl<VatId> RpcSystem<VatId> {
             Promise::ok(())
         }));
 
-        let mut result = RpcSystem {
+        let mut result = Self {
             network,
             bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
@@ -227,13 +227,10 @@ impl<VatId> RpcSystem<VatId> {
     where
         T: ::capnp::capability::FromClientHook,
     {
-        let connection = match self.network.connect(vat_id) {
-            Some(connection) => connection,
-            None => {
-                return T::new(self.bootstrap_cap.clone());
-            }
+        let Some(connection) = self.network.connect(vat_id) else {
+            return T::new(self.bootstrap_cap.clone());
         };
-        let connection_state = RpcSystem::get_connection_state(
+        let connection_state = Self::get_connection_state(
             &self.connection_state,
             self.bootstrap_cap.clone(),
             connection,
@@ -250,12 +247,7 @@ impl<VatId> RpcSystem<VatId> {
         let bootstrap_cap = self.bootstrap_cap.clone();
         let handle = self.handle.clone();
         Promise::from_future(self.network.accept().map_ok(move |connection| {
-            RpcSystem::get_connection_state(
-                &connection_state_ref,
-                bootstrap_cap,
-                connection,
-                handle,
-            );
+            Self::get_connection_state(&connection_state_ref, bootstrap_cap, connection, handle);
         }))
     }
 
@@ -283,7 +275,7 @@ impl<VatId> RpcSystem<VatId> {
                     *connection_state_ref1.borrow_mut() = None;
                     match shutdown_promise {
                         Ok(s) => s,
-                        Err(e) => Promise::err(Error::failed(format!("{}", e))),
+                        Err(e) => Promise::err(Error::failed(format!("{e}"))),
                     }
                 }));
                 rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller)
@@ -330,14 +322,23 @@ where
     caps: std::collections::HashMap<usize, Rc<RefCell<C::Dispatch>>>,
 }
 
+impl<S, C> Default for CapabilityServerSet<S, C>
+where
+    C: capnp::capability::FromServer<S>,
+{
+    fn default() -> Self {
+        Self {
+            caps: std::default::Default::default(),
+        }
+    }
+}
+
 impl<S, C> CapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
 {
     pub fn new() -> Self {
-        Self {
-            caps: std::default::Default::default(),
-        }
+        Self::default()
     }
 
     /// Adds a new capability to the set and returns a client backed by it.
@@ -404,7 +405,7 @@ where
 struct SystemTaskReaper;
 impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
-        println!("ERROR: {}", error);
+        println!("ERROR: {error}");
     }
 }
 
@@ -421,7 +422,7 @@ where
     A: ::capnp::message::Allocator,
 {
     pub fn new(allocator: A) -> Self {
-        ImbuedMessageBuilder {
+        Self {
             builder: ::capnp::message::Builder::new(allocator),
             cap_table: Vec::new(),
         }

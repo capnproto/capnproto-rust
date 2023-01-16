@@ -37,22 +37,17 @@ where
     Ok((reader, m))
 }
 
+type ReadStreamResult<R> =
+    Result<(R, Option<message::Reader<capnp::serialize::OwnedSegments>>), Error>;
+
+/// An incoming sequence of messages.
 #[must_use = "streams do nothing unless polled"]
 pub struct ReadStream<'a, R>
 where
     R: AsyncRead + Unpin,
 {
     options: message::ReaderOptions,
-    read: Pin<
-        Box<
-            dyn Future<
-                    Output = Result<
-                        (R, Option<message::Reader<capnp::serialize::OwnedSegments>>),
-                        Error,
-                    >,
-                > + 'a,
-        >,
-    >,
+    read: Pin<Box<dyn Future<Output = ReadStreamResult<R>> + 'a>>,
 }
 
 impl<'a, R> Unpin for ReadStream<'a, R> where R: AsyncRead + Unpin {}

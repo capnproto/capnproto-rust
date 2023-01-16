@@ -1,6 +1,12 @@
+### v0.15.2
+- Apply clippy lifetime elision suggestion in set_pointer_builder() in generated code.
+
+### v0.15.1
+- Lots of style fixes and linting, including for generated code.
+
 ### v0.15.0
 - Support trait changes in capnp::traits.
-- Remove deprecate function.
+- Remove deprecated function.
 
 ### v0.14.9
 - Fix Clippy warnings in generated code.

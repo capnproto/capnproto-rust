@@ -106,7 +106,7 @@ impl Serialize for NoCompression {
         W: io::Write,
         A: message::Allocator,
     {
-        serialize::write_message(write, message).map_err(|e| e.into())
+        serialize::write_message(write, message)
     }
 }
 
@@ -133,7 +133,7 @@ impl Serialize for Packed {
         W: io::Write,
         A: message::Allocator,
     {
-        serialize_packed::write_message(write, message).map_err(|e| e.into())
+        serialize_packed::write_message(write, message)
     }
 }
 
@@ -161,12 +161,18 @@ pub struct UseScratch {
     buffer2: Vec<capnp::Word>,
 }
 
-impl UseScratch {
-    pub fn new() -> UseScratch {
-        UseScratch {
+impl Default for UseScratch {
+    fn default() -> Self {
+        Self {
             buffer1: capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE),
             buffer2: capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE),
         }
+    }
+}
+
+impl UseScratch {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -174,7 +180,7 @@ impl<'a> Scratch<'a> for UseScratch {
     type Allocator = message::ScratchSpaceHeapAllocator<'a>;
 
     fn get_allocators(&'a mut self) -> (Self::Allocator, Self::Allocator) {
-        let UseScratch { buffer1, buffer2 } = self;
+        let Self { buffer1, buffer2 } = self;
         (
             message::ScratchSpaceHeapAllocator::new(capnp::Word::words_to_bytes_mut(buffer1)),
             message::ScratchSpaceHeapAllocator::new(capnp::Word::words_to_bytes_mut(buffer2)),
@@ -231,7 +237,7 @@ where
 
             {
                 let mut writer: &mut [u8] = &mut request_bytes;
-                compression.write_message(&mut writer, &mut message_req)?;
+                compression.write_message(&mut writer, &message_req)?;
             }
 
             let mut request_bytes1: &[u8] = &request_bytes;
@@ -244,7 +250,7 @@ where
 
         {
             let mut writer: &mut [u8] = &mut response_bytes;
-            compression.write_message(&mut writer, &mut message_res)?;
+            compression.write_message(&mut writer, &message_res)?;
         }
 
         let mut response_bytes1: &[u8] = &response_bytes;
@@ -286,7 +292,7 @@ where
             testcase.handle_request(request_reader, response)?;
         }
 
-        compression.write_message(&mut out_buffered, &mut message_res)?;
+        compression.write_message(&mut out_buffered, &message_res)?;
         out_buffered.flush()?;
     }
     Ok(())
@@ -317,7 +323,7 @@ where
             let request = message_req.init_root();
             testcase.setup_request(&mut rng, request)
         };
-        compression.write_message(&mut out_buffered, &mut message_req)?;
+        compression.write_message(&mut out_buffered, &message_req)?;
         out_buffered.flush()?;
 
         let message_reader = compression.read_message(&mut in_buffered, Default::default())?;
@@ -359,7 +365,7 @@ where
             Ok(())
         }
         Err(e) => {
-            println!("could not start process: {}", e);
+            println!("could not start process: {e}");
             Ok(())
         }
     }
@@ -374,14 +380,14 @@ pub enum Mode {
 }
 
 impl Mode {
-    pub fn parse(s: &str) -> ::capnp::Result<Mode> {
+    pub fn parse(s: &str) -> ::capnp::Result<Self> {
         match s {
-            "object" => Ok(Mode::Object),
-            "bytes" => Ok(Mode::Bytes),
-            "client" => Ok(Mode::Client),
-            "server" => Ok(Mode::Server),
-            "pipe" => Ok(Mode::Pipe),
-            s => Err(::capnp::Error::failed(format!("unrecognized mode: {}", s))),
+            "object" => Ok(Self::Object),
+            "bytes" => Ok(Self::Bytes),
+            "client" => Ok(Self::Client),
+            "server" => Ok(Self::Server),
+            "pipe" => Ok(Self::Pipe),
+            s => Err(::capnp::Error::failed(format!("unrecognized mode: {s}"))),
         }
     }
 }
@@ -427,8 +433,7 @@ where
         "catrank" => do_testcase(catrank::CatRank, mode, scratch, compression, iters),
         "eval" => do_testcase(eval::Eval, mode, scratch, compression, iters),
         s => Err(::capnp::Error::failed(format!(
-            "unrecognized test case: {}",
-            s
+            "unrecognized test case: {s}"
         ))),
     }
 }
@@ -447,8 +452,7 @@ where
         "no-reuse" => do_testcase1(case, mode, NoScratch, compression, iters),
         "reuse" => do_testcase1(case, mode, UseScratch::new(), compression, iters),
         s => Err(::capnp::Error::failed(format!(
-            "unrecognized reuse option: {}",
-            s
+            "unrecognized reuse option: {s}"
         ))),
     }
 }
@@ -462,24 +466,20 @@ fn try_main() -> ::capnp::Result<()> {
         args[0]
     );
 
-    let iters = match args[5].parse::<u64>() {
-        Ok(n) => n,
-        Err(_) => {
-            return Err(::capnp::Error::failed(format!(
-                "Could not parse a u64 from: {}",
-                args[5]
-            )))
-        }
+    let Ok(iters) = args[5].parse::<u64>() else {
+        return Err(::capnp::Error::failed(format!(
+            "Could not parse a u64 from: {}",
+            args[5]
+        )))
     };
 
-    let mode = Mode::parse(&*args[2])?;
+    let mode = Mode::parse(&args[2])?;
 
     match &*args[4] {
-        "none" => do_testcase2(&*args[1], mode, &*args[3], NoCompression, iters),
-        "packed" => do_testcase2(&*args[1], mode, &*args[3], Packed, iters),
+        "none" => do_testcase2(&args[1], mode, &args[3], NoCompression, iters),
+        "packed" => do_testcase2(&args[1], mode, &args[3], Packed, iters),
         s => Err(::capnp::Error::failed(format!(
-            "unrecognized compression: {}",
-            s
+            "unrecognized compression: {s}"
         ))),
     }
 }

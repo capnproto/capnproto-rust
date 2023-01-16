@@ -101,7 +101,7 @@ mod no_std_impls {
                 return Err(Error::failed("buffer is not large enough".to_string()));
             }
             let amt = buf.len();
-            let (a, b) = core::mem::replace(self, &mut []).split_at_mut(amt);
+            let (a, b) = core::mem::take(self).split_at_mut(amt);
             a.copy_from_slice(buf);
             *self = b;
             Ok(())

@@ -1,9 +1,13 @@
 body { font-family: Helvetica, Sans, Arial;
-        font-size: medium;
+       font-size: medium;
         margin-left: auto;
         margin-right: auto;
         width: 600px;
      }
+
+.highlight {
+    overflow: scroll;
+}
 
 p.author {
 	padding: 0;

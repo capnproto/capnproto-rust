@@ -64,7 +64,7 @@ impl ElementSize {
             5 => Self::EightBytes,
             6 => Self::Pointer,
             7 => Self::InlineComposite,
-            _ => panic!("illegal element size: {}", val),
+            _ => panic!("illegal element size: {val}"),
         }
     }
 }
@@ -124,7 +124,7 @@ impl WirePointerKind {
             1 => Self::List,
             2 => Self::Far,
             3 => Self::Other,
-            _ => panic!("illegal element size: {}", val),
+            _ => panic!("illegal element size: {val}"),
         }
     }
 }
@@ -2427,8 +2427,7 @@ mod wire_helpers {
             match cap_table.extract_cap(n) {
                 Some(client_hook) => Ok(client_hook),
                 None => Err(Error::failed(format!(
-                    "Message contains invalid capability pointer. Index: {}",
-                    n
+                    "Message contains invalid capability pointer. Index: {n}"
                 ))),
             }
         }
@@ -2511,13 +2510,13 @@ mod wire_helpers {
 
                 // Check whether the size is compatible.
                 match expected_element_size {
-                    None | Some(Void) | Some(InlineComposite) => (),
+                    None | Some(Void | InlineComposite) => (),
                     Some(Bit) => {
                         return Err(Error::failed(
                             "Found struct list where bit list was expected.".to_string(),
                         ));
                     }
-                    Some(Byte) | Some(TwoBytes) | Some(FourBytes) | Some(EightBytes) => {
+                    Some(Byte | TwoBytes | FourBytes | EightBytes) => {
                         if data_size == 0 {
                             return Err(Error::failed(
                                 "Expected a primitive list, but got a list of pointer-only structs"
@@ -2526,10 +2525,6 @@ mod wire_helpers {
                         }
                     }
                     Some(Pointer) => {
-                        // We expected a list of pointers but got a list of structs. Assuming the
-                        // first field in the struct is the pointer we were looking for, we want to
-                        // munge the pointer to point at the first element's pointer section.
-                        ptr = ptr.offset(data_size as isize * BYTES_PER_WORD as isize);
                         if ptr_count == 0 {
                             return Err(Error::failed(
                                 "Expected a pointer list, but got a list of data-only structs"
@@ -3807,12 +3802,14 @@ impl<'a> ListReader<'a> {
 
     #[inline]
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerReader<'a> {
-        let offset = (u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64) as u32;
+        let offset = (self.struct_data_size as u64 / BITS_PER_BYTE as u64
+            + u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64)
+            as isize;
         PointerReader {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe { self.ptr.offset(offset as isize) } as *const _,
+            pointer: unsafe { self.ptr.offset(offset) } as *const _,
             nesting_limit: self.nesting_limit,
         }
     }
@@ -4100,7 +4097,7 @@ impl<T: Primitive> PrimitiveElement for T {
 
 impl PrimitiveElement for bool {
     #[inline]
-    fn get(list: &ListReader, index: ElementCount32) -> bool {
+    fn get(list: &ListReader, index: ElementCount32) -> Self {
         let bindex = u64::from(index) * u64::from(list.step);
         unsafe {
             let b: *const u8 = list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize);
@@ -4108,13 +4105,13 @@ impl PrimitiveElement for bool {
         }
     }
     #[inline]
-    fn get_from_builder(list: &ListBuilder, index: ElementCount32) -> bool {
+    fn get_from_builder(list: &ListBuilder, index: ElementCount32) -> Self {
         let bindex = u64::from(index) * u64::from(list.step);
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
         unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE as u64))) != 0 }
     }
     #[inline]
-    fn set(list: &ListBuilder, index: ElementCount32, value: bool) {
+    fn set(list: &ListBuilder, index: ElementCount32, value: Self) {
         let bindex = u64::from(index) * u64::from(list.step);
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
 

@@ -1,12 +1,12 @@
 [package]
 name = "capnp-futures"
-version = "0.15.0"
+version = "0.15.1"
 authors = [ "David Renshaw <drenshaw@gmail.com>" ]
 license = "MIT"
 
 description = "async serialization for Cap'n Proto messages"
 repository = "https://github.com/dwrensha/capnproto-rust"
-documentation = "https://docs.capnproto-rust.org/capnp_futures/"
+documentation = "https://docs.rs/capnp-futures/"
 edition = "2021"
 
 keywords = ["async"]

@@ -28,7 +28,7 @@ pub struct ScoredResult<'a> {
     result: search_result::Reader<'a>,
 }
 
-const URL_PREFIX: &'static str = "http://example.com";
+const URL_PREFIX: &str = "http://example.com";
 
 pub struct CatRank;
 
@@ -108,10 +108,7 @@ impl crate::TestCase for CatRank {
             if snippet.contains(" dog ") {
                 score /= 10000.0;
             }
-            scored_results.push(ScoredResult {
-                score: score,
-                result: result,
-            });
+            scored_results.push(ScoredResult { score, result });
         }
 
         // sort in decreasing order
@@ -154,8 +151,7 @@ impl crate::TestCase for CatRank {
             Ok(())
         } else {
             Err(::capnp::Error::failed(format!(
-                "check_response() expected {} but got {}",
-                expected_good_count, good_count
+                "check_response() expected {expected_good_count} but got {good_count}"
             )))
         }
     }

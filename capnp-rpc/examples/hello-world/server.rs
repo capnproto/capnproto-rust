@@ -37,7 +37,7 @@ impl hello_world::Server for HelloWorldImpl {
     ) -> Promise<(), ::capnp::Error> {
         let request = pry!(pry!(params.get()).get_request());
         let name = pry!(request.get_name());
-        let message = format!("Hello, {}!", name);
+        let message = format!("Hello, {name}!");
 
         results.get().init_reply().set_message(&message);
 
