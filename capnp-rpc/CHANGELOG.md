@@ -1,3 +1,7 @@
+## v0.15.1
+- Remove some `unimplemented!()` panics.
+- Lots of style and formatting fixes that should have no effect.
+
 ## v0.15.0
 - Add CapabilityServerSet.
 
