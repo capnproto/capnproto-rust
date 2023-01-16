@@ -105,15 +105,6 @@ pub trait ImbueMut<'a> {
 
 pub trait HasTypeId {
     const TYPE_ID: u64;
-
-    #[deprecated(
-        since = "0.15.3",
-        note = "use the associated constant HasTypeId::TYPE_ID instead"
-    )]
-    #[inline]
-    fn type_id() -> u64 {
-        Self::TYPE_ID
-    }
 }
 
 pub trait ToU16 {
