@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use crate::private::layout::{
-    CapTable, ListReader, PointerBuilder, PointerReader, StructBuilder, StructReader, StructSize,
+    CapTable, PointerBuilder, PointerReader, StructBuilder, StructReader, StructSize,
 };
 use crate::Result;
 
@@ -40,10 +40,6 @@ pub trait IntoInternalStructReader<'a> {
 
 pub trait FromStructBuilder<'a> {
     fn new(struct_builder: StructBuilder<'a>) -> Self;
-}
-
-pub trait IntoInternalListReader<'a> {
-    fn into_internal_list_reader(self) -> ListReader<'a>;
 }
 
 pub trait FromPointerReader<'a>: Sized {

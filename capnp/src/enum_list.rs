@@ -102,12 +102,12 @@ impl<'a, T: FromU16> Reader<'a, T> {
     }
 }
 
-impl<'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T>
+impl<'a, T> From<Reader<'a, T>> for ListReader<'a>
 where
     T: PrimitiveElement,
 {
-    fn into_internal_list_reader(self) -> ListReader<'a> {
-        self.reader
+    fn from(value: Reader<'a, T>) -> Self {
+        value.reader
     }
 }
 
