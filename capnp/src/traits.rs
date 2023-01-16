@@ -34,6 +34,7 @@ pub trait HasStructSize {
     const STRUCT_SIZE: StructSize;
 }
 
+/// Trait for all types that can be converted to a low-level `StructReader`.
 pub trait IntoInternalStructReader<'a> {
     fn into_internal_struct_reader(self) -> StructReader<'a>;
 }
@@ -42,6 +43,7 @@ pub trait FromStructBuilder<'a> {
     fn new(struct_builder: StructBuilder<'a>) -> Self;
 }
 
+/// Trait for all types that can be converted to a low-level `ListReader`.
 pub trait IntoInternalListReader<'a> {
     fn into_internal_list_reader(self) -> ListReader<'a>;
 }
