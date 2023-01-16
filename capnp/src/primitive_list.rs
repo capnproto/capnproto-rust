@@ -161,13 +161,12 @@ where
     }
 
     #[cfg(all(target_endian = "little"))]
-    pub fn as_slice(&self) -> Option<&[T]> {
+    pub fn as_slice(&mut self) -> Option<&mut [T]> {
         if self.builder.get_element_size() == T::element_size() {
-            let bytes = self.builder.as_raw_bytes();
+            let bytes = self.builder.into_raw_bytes();
             Some(unsafe {
-                use core::slice;
-                slice::from_raw_parts(
-                    bytes.as_ptr() as *const T,
+                core::slice::from_raw_parts_mut(
+                    bytes.as_mut_ptr() as *mut T,
                     8 * bytes.len() / (data_bits_per_element(T::element_size())) as usize,
                 )
             })

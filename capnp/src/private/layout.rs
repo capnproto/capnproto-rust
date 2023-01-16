@@ -4069,7 +4069,7 @@ impl<'a> ListBuilder<'a> {
         }
     }
 
-    pub(crate) fn as_raw_bytes(&self) -> &'_ [u8] {
+    pub(crate) fn into_raw_bytes(&self) -> &'a mut [u8] {
         if self.element_count == 0 {
             // Explictly handle this case to avoid forming a slice to a null pointer,
             // which would be undefined behavior.
@@ -4078,7 +4078,7 @@ impl<'a> ListBuilder<'a> {
             let num_bytes = wire_helpers::round_bits_up_to_bytes(
                 u64::from(self.step) * u64::from(self.element_count),
             ) as usize;
-            unsafe { ::core::slice::from_raw_parts(self.ptr, num_bytes) }
+            unsafe { ::core::slice::from_raw_parts_mut(self.ptr, num_bytes) }
         }
     }
 }
