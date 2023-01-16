@@ -162,7 +162,7 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
 
         root_builder.set_struct_field(root)?;
         {
-            let list = root_builder.reborrow().init_struct_list(2);
+            let mut list = root_builder.reborrow().init_struct_list(2);
             list.set_with_caveats(0, root)?;
             list.set_with_caveats(1, root)?;
         }
