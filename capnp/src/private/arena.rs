@@ -403,21 +403,3 @@ impl ReaderArena for NullArena {
         0x7fffffff
     }
 }
-
-impl BuilderArena for NullArena {
-    fn allocate(&mut self, _segment_id: u32, _amount: WordCount32) -> Option<u32> {
-        None
-    }
-
-    fn allocate_anywhere(&mut self, _amount: u32) -> (SegmentId, u32) {
-        panic!("tried to allocate from a null arena")
-    }
-
-    fn get_segment_mut(&mut self, _id: u32) -> (*mut u8, u32) {
-        (core::ptr::null_mut(), 0)
-    }
-
-    fn as_reader(&self) -> &dyn ReaderArena {
-        self
-    }
-}
