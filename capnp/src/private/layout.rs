@@ -3987,7 +3987,7 @@ pub struct ListBuilder<'a> {
 
 impl<'a> ListBuilder<'a> {
     #[inline]
-    pub fn new_default<'b>(arena: &'b mut dyn BuilderArena) -> ListBuilder<'b> {
+    pub fn new_default(arena: &mut dyn BuilderArena) -> ListBuilder<'_> {
         ListBuilder {
             arena,
             segment_id: 0,
