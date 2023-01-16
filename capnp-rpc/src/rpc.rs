@@ -1050,10 +1050,10 @@ impl<VatId> ConnectionState<VatId> {
                                         tmp.borrow_mut().reject(remote_exception_to_error(e?));
                                     }
                                     return_::Canceled(_) => {
-                                        unimplemented!()
+                                        Self::send_unimplemented(&connection_state, &message)?;
                                     }
                                     return_::ResultsSentElsewhere(_) => {
-                                        unimplemented!()
+                                        Self::send_unimplemented(&connection_state, &message)?;
                                     }
                                     return_::TakeFromOtherQuestion(id) => {
                                         if let Some(answer) =
@@ -1080,7 +1080,7 @@ impl<VatId> ConnectionState<VatId> {
                             }
                             None => {
                                 if let return_::TakeFromOtherQuestion(_) = ret.which()? {
-                                    unimplemented!()
+                                    return Self::send_unimplemented(&connection_state, &message);
                                 }
                                 // Looks like this question was canceled earlier, so `Finish`
                                 // was already sent, with `releaseResultCaps` set true so that
