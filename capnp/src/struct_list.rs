@@ -24,7 +24,7 @@
 use core::marker::PhantomData;
 
 use crate::private::layout::{
-    InlineComposite, ListBuilder, ListReader, PointerBuilder, PointerReader,
+    InlineComposite, ListBuilder, ListReader, PointerBuilder, PointerReader, StructReader,
 };
 use crate::traits::{
     FromPointerBuilder, FromPointerReader, FromStructBuilder, FromStructReader, HasStructSize,
@@ -186,12 +186,11 @@ where
     /// truncated, losing fields.
     pub fn set_with_caveats<'b>(&self, index: u32, value: T::Reader<'b>) -> Result<()>
     where
-        T::Reader<'b>: crate::traits::IntoInternalStructReader<'b>,
+        T::Reader<'b>: Into<StructReader<'b>>,
     {
-        use crate::traits::IntoInternalStructReader;
         self.builder
             .get_struct_element(index)
-            .copy_content_from(&value.into_internal_struct_reader())
+            .copy_content_from(&value.into())
     }
 }
 

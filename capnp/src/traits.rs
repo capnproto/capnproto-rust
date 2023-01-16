@@ -34,10 +34,6 @@ pub trait HasStructSize {
     const STRUCT_SIZE: StructSize;
 }
 
-pub trait IntoInternalStructReader<'a> {
-    fn into_internal_struct_reader(self) -> StructReader<'a>;
-}
-
 pub trait FromStructBuilder<'a> {
     fn new(struct_builder: StructBuilder<'a>) -> Self;
 }
@@ -69,7 +65,7 @@ pub trait Owned {
 }
 
 pub trait OwnedStruct {
-    type Reader<'a>: FromStructReader<'a> + SetPointerBuilder + IntoInternalStructReader<'a>;
+    type Reader<'a>: FromStructReader<'a> + SetPointerBuilder + Into<StructReader<'a>>;
     type Builder<'a>: FromStructBuilder<'a> + HasStructSize;
 }
 

@@ -1747,12 +1747,12 @@ fn generate_node(
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
-                Line(format!("impl <'a,{0}> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,{0}> {1} {{",
+                Line(format!("impl <'a,{0}> From<Reader<'a,{0}>> for ::capnp::private::layout::StructReader<'a> {1} {{",
                             params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line("fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {".to_string()),
-                        Indent(Box::new(Line("self.reader".to_string()))),
+                        Line(format!("fn from(reader: Reader<'a,{0}>) -> ::capnp::private::layout::StructReader<'a> {{", params.params)),
+                        Indent(Box::new(Line("reader.reader".to_string()))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,

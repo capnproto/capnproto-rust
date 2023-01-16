@@ -30,9 +30,9 @@ pub mod node {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -417,9 +417,9 @@ pub mod node {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -549,9 +549,9 @@ pub mod node {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -693,9 +693,9 @@ pub mod node {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -860,9 +860,9 @@ pub mod node {
         }
       }
 
-      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-          self.reader
+      impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+        fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+          reader.reader
         }
       }
 
@@ -993,9 +993,9 @@ pub mod node {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -1197,9 +1197,9 @@ pub mod node {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -1329,9 +1329,9 @@ pub mod node {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -1485,9 +1485,9 @@ pub mod node {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -1647,9 +1647,9 @@ pub mod node {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -1929,9 +1929,9 @@ pub mod field {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -2179,9 +2179,9 @@ pub mod field {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -2365,9 +2365,9 @@ pub mod field {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -2487,9 +2487,9 @@ pub mod field {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -2643,9 +2643,9 @@ pub mod enumerant {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -2811,9 +2811,9 @@ pub mod superclass {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -2958,9 +2958,9 @@ pub mod method {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -3230,9 +3230,9 @@ pub mod type_ {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -3655,9 +3655,9 @@ pub mod type_ {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -3790,9 +3790,9 @@ pub mod type_ {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -3937,9 +3937,9 @@ pub mod type_ {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -4084,9 +4084,9 @@ pub mod type_ {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -4233,9 +4233,9 @@ pub mod type_ {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -4410,9 +4410,9 @@ pub mod type_ {
         }
       }
 
-      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-          self.reader
+      impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+        fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+          reader.reader
         }
       }
 
@@ -4594,9 +4594,9 @@ pub mod type_ {
         }
       }
 
-      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-          self.reader
+      impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+        fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+          reader.reader
         }
       }
 
@@ -4726,9 +4726,9 @@ pub mod type_ {
         }
       }
 
-      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-          self.reader
+      impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+        fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+          reader.reader
         }
       }
 
@@ -4848,9 +4848,9 @@ pub mod brand {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -4981,9 +4981,9 @@ pub mod brand {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -5165,9 +5165,9 @@ pub mod brand {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -5338,9 +5338,9 @@ pub mod value {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -5830,9 +5830,9 @@ pub mod annotation {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -6040,9 +6040,9 @@ pub mod capnp_version {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -6184,9 +6184,9 @@ pub mod code_generator_request {
     }
   }
 
-  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-      self.reader
+  impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+    fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+      reader.reader
     }
   }
 
@@ -6390,9 +6390,9 @@ pub mod code_generator_request {
       }
     }
 
-    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-        self.reader
+    impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+      fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+        reader.reader
       }
     }
 
@@ -6557,9 +6557,9 @@ pub mod code_generator_request {
         }
       }
 
-      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
-        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
-          self.reader
+      impl <'a,> From<Reader<'a,>> for ::capnp::private::layout::StructReader<'a>  {
+        fn from(reader: Reader<'a,>) -> ::capnp::private::layout::StructReader<'a> {
+          reader.reader
         }
       }
 
