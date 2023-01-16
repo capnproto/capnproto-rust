@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use capnp::capability::{Promise, FromClientHook};
+use capnp::capability::{FromClientHook, Promise};
 use capnp::private::capability::{ClientHook, RequestHook};
 use futures::TryFutureExt;
 
@@ -25,9 +25,10 @@ struct ClientInner<F, C> {
 }
 
 impl<F, C> ClientInner<F, C>
-    where F: FnMut() -> capnp::Result<C>,
-          F: 'static,
-          C: FromClientHook,
+where
+    F: FnMut() -> capnp::Result<C>,
+    F: 'static,
+    C: FromClientHook,
 {
     fn get_current(&mut self) -> Box<dyn ClientHook> {
         if let Some(hook) = self.current.as_ref() {
@@ -35,9 +36,7 @@ impl<F, C> ClientInner<F, C>
         } else {
             let hook = match (self.connect)() {
                 Ok(hook) => hook.into_client_hook(),
-                Err(err) => {
-                    crate::broken::new_cap(err)
-                }
+                Err(err) => crate::broken::new_cap(err),
             };
             self.current = Some(hook.add_ref());
             hook
@@ -50,10 +49,11 @@ struct Client<F, C> {
 }
 
 impl<F, C> Client<F, C>
-    where F: FnMut() -> capnp::Result<C>,
-          F: 'static,
-          C: FromClientHook,
-          C: 'static,
+where
+    F: FnMut() -> capnp::Result<C>,
+    F: 'static,
+    C: FromClientHook,
+    C: 'static,
 {
     pub fn new(connect: F) -> Client<F, C> {
         Client {
@@ -62,7 +62,7 @@ impl<F, C> Client<F, C>
                 generation: 0,
                 current: None,
                 marker: PhantomData,
-            }))
+            })),
         }
     }
 
@@ -70,8 +70,7 @@ impl<F, C> Client<F, C>
         self.inner.borrow_mut().get_current()
     }
 
-    fn wrap<T: 'static>(&self, promise: Promise<T, capnp::Error>) -> Promise<T, capnp::Error>
-    {
+    fn wrap<T: 'static>(&self, promise: Promise<T, capnp::Error>) -> Promise<T, capnp::Error> {
         let c = self.clone();
         let generation = self.inner.borrow().generation;
         Promise::from_future(promise.map_err(move |err| {
@@ -81,9 +80,7 @@ impl<F, C> Client<F, C>
                 let mut inner = c.inner.borrow_mut();
                 inner.generation = generation + 1;
                 match (inner.connect)() {
-                    Ok(hook) => {
-                        inner.current = Some(hook.into_client_hook())
-                    }
+                    Ok(hook) => inner.current = Some(hook.into_client_hook()),
                     Err(err) => inner.current = Some(crate::broken::new_cap(err)),
                 }
             }
@@ -93,9 +90,10 @@ impl<F, C> Client<F, C>
 }
 
 impl<F: 'static, C> SetTarget<C> for Client<F, C>
-    where F: 'static,
-          C: FromClientHook,
-          C: 'static,
+where
+    F: 'static,
+    C: FromClientHook,
+    C: 'static,
 {
     fn add_ref(&self) -> Box<dyn SetTarget<C>> {
         Box::new(self.clone())
@@ -108,37 +106,46 @@ impl<F: 'static, C> SetTarget<C> for Client<F, C>
 
 impl<F, C> Clone for Client<F, C> {
     fn clone(&self) -> Self {
-        Self { inner: self.inner.clone() }
+        Self {
+            inner: self.inner.clone(),
+        }
     }
 }
 
 impl<F, C> ClientHook for Client<F, C>
-    where F: FnMut() -> capnp::Result<C>,
-          F: 'static,
-          C: FromClientHook,
-          C: 'static,
+where
+    F: FnMut() -> capnp::Result<C>,
+    F: 'static,
+    C: FromClientHook,
+    C: 'static,
 {
     fn add_ref(&self) -> Box<dyn ClientHook> {
         Box::new(self.clone())
     }
 
-    fn new_call(&self,
-                interface_id: u64,
-                method_id: u16,
-                size_hint: Option<capnp::MessageSize>)
-                -> capnp::capability::Request<capnp::any_pointer::Owned, capnp::any_pointer::Owned>
-    {
-        let result = self.get_current().new_call(interface_id, method_id, size_hint);
+    fn new_call(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        size_hint: Option<capnp::MessageSize>,
+    ) -> capnp::capability::Request<capnp::any_pointer::Owned, capnp::any_pointer::Owned> {
+        let result = self
+            .get_current()
+            .new_call(interface_id, method_id, size_hint);
         let hook = Request::new(self.clone(), result.hook);
         capnp::capability::Request::new(Box::new(hook))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16,
-            params: Box<dyn capnp::private::capability::ParamsHook>,
-            results: Box<dyn capnp::private::capability::ResultsHook>)
-            -> Promise<(), capnp::Error>
-    {
-        let result = self.get_current().call(interface_id, method_id, params, results);
+    fn call(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        params: Box<dyn capnp::private::capability::ParamsHook>,
+        results: Box<dyn capnp::private::capability::ResultsHook>,
+    ) -> Promise<(), capnp::Error> {
+        let result = self
+            .get_current()
+            .call(interface_id, method_id, params, results);
         self.wrap(result)
     }
 
@@ -147,7 +154,7 @@ impl<F, C> ClientHook for Client<F, C>
     }
 
     fn get_ptr(&self) -> usize {
-        (self.inner.as_ref()) as * const _ as usize
+        (self.inner.as_ref()) as *const _ as usize
     }
 
     fn get_resolved(&self) -> Option<Box<dyn ClientHook>> {
@@ -175,10 +182,11 @@ impl<F, C> Request<F, C> {
 }
 
 impl<F, C> RequestHook for Request<F, C>
-    where F: FnMut() -> capnp::Result<C>,
-          F: 'static,
-          C: FromClientHook,
-          C: 'static,
+where
+    F: FnMut() -> capnp::Result<C>,
+    F: 'static,
+    C: FromClientHook,
+    C: 'static,
 {
     fn get(&mut self) -> capnp::any_pointer::Builder<'_> {
         self.inner.get()
@@ -195,33 +203,39 @@ impl<F, C> RequestHook for Request<F, C>
         result
     }
 
-    fn tail_send(self: Box<Self>)
-                 -> Option<(u32, Promise<(), capnp::Error>, Box<dyn capnp::private::capability::PipelineHook>)> {
+    fn tail_send(
+        self: Box<Self>,
+    ) -> Option<(
+        u32,
+        Promise<(), capnp::Error>,
+        Box<dyn capnp::private::capability::PipelineHook>,
+    )> {
         todo!()
     }
 }
 
 pub fn auto_reconnect<F, C>(mut connect: F) -> capnp::Result<(C, Box<dyn SetTarget<C>>)>
-    where F: FnMut() -> capnp::Result<C>,
-          F: 'static,
-          C: FromClientHook,
-          C: 'static,
+where
+    F: FnMut() -> capnp::Result<C>,
+    F: 'static,
+    C: FromClientHook,
+    C: 'static,
 {
     let current = connect()?;
     let c = Client::new(connect);
     c.set_target(current);
-    let hook : Box<dyn ClientHook> = Box::new(c.clone());
+    let hook: Box<dyn ClientHook> = Box::new(c.clone());
     Ok((FromClientHook::new(hook), Box::new(c)))
 }
 
-
 pub fn lazy_auto_reconnect<F, C>(connect: F) -> (C, Box<dyn SetTarget<C>>)
-    where F: FnMut() -> capnp::Result<C>,
-          F: 'static,
-          C: FromClientHook,
-          C: 'static,
+where
+    F: FnMut() -> capnp::Result<C>,
+    F: 'static,
+    C: FromClientHook,
+    C: 'static,
 {
-    let c : Client<F, C> = Client::new(connect);
-    let hook : Box<dyn ClientHook> = Box::new(c.clone());
+    let c: Client<F, C> = Client::new(connect);
+    let hook: Box<dyn ClientHook> = Box::new(c.clone());
     (FromClientHook::new(hook), Box::new(c))
 }

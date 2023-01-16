@@ -71,7 +71,7 @@ use std::task::{Context, Poll};
 pub use crate::rpc::Disconnector;
 use crate::task_set::TaskSet;
 
-pub use crate::reconnect::{lazy_auto_reconnect, auto_reconnect, SetTarget};
+pub use crate::reconnect::{auto_reconnect, lazy_auto_reconnect, SetTarget};
 
 /// Code generated from
 /// [rpc.capnp](https://github.com/sandstorm-io/capnproto/blob/master/c%2B%2B/src/capnp/rpc.capnp).
@@ -101,11 +101,11 @@ mod attach;
 mod broken;
 mod local;
 mod queued;
+mod reconnect;
 mod rpc;
 mod sender_queue;
 mod split;
 mod task_set;
-mod reconnect;
 pub mod twoparty;
 
 pub trait OutgoingMessage {
