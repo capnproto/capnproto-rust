@@ -115,7 +115,7 @@ pub mod vat_id {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -235,7 +235,7 @@ pub mod provision_id {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -351,7 +351,7 @@ pub mod recipient_id {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -459,7 +459,7 @@ pub mod third_party_cap_id {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -579,7 +579,7 @@ pub mod join_key_part {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -727,7 +727,7 @@ pub mod join_result {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()

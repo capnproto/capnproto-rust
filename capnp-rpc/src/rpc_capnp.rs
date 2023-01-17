@@ -235,7 +235,7 @@ pub mod message {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -653,7 +653,7 @@ pub mod bootstrap {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -830,7 +830,7 @@ pub mod call {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -1064,7 +1064,7 @@ pub mod call {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { builder: self.builder.reborrow(), ..*self }
+        Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
         self.builder.as_reader().into()
@@ -1286,7 +1286,7 @@ pub mod return_ {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -1527,7 +1527,7 @@ pub mod finish {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -1683,7 +1683,7 @@ pub mod resolve {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -1859,7 +1859,7 @@ pub mod release {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -1995,7 +1995,7 @@ pub mod disembargo {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -2162,7 +2162,7 @@ pub mod disembargo {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { builder: self.builder.reborrow(), ..*self }
+        Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
         self.builder.as_reader().into()
@@ -2344,7 +2344,7 @@ pub mod provide {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -2512,7 +2512,7 @@ pub mod accept {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -2673,7 +2673,7 @@ pub mod join {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -2848,7 +2848,7 @@ pub mod message_target {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -3014,7 +3014,7 @@ pub mod payload {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -3207,7 +3207,7 @@ pub mod cap_descriptor {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -3430,7 +3430,7 @@ pub mod promised_answer {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -3579,7 +3579,7 @@ pub mod promised_answer {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
-        Builder { builder: self.builder.reborrow(), ..*self }
+        Builder { builder: self.builder.reborrow() }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
         self.builder.as_reader().into()
@@ -3731,7 +3731,7 @@ pub mod third_party_cap_descriptor {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
@@ -3892,7 +3892,7 @@ pub mod exception {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
-      Builder { builder: self.builder.reborrow(), ..*self }
+      Builder { builder: self.builder.reborrow() }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
       self.builder.as_reader().into()
