@@ -1,3 +1,6 @@
+[workspace.package]
+rust-version = "1.65.0"
+
 [workspace]
 members = [
     # main crates, published on crates.io
