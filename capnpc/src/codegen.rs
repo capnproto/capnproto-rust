@@ -861,9 +861,7 @@ fn generate_setter(
                 &mut initter_mut,
             )?);
 
-            initter_interior.push(Line(
-                "self.builder.into()".to_string(),
-            ));
+            initter_interior.push(Line("self.builder.into()".to_string()));
 
             (None, Some(format!("{the_mod}::Builder<'a{params_string}>")))
         }
