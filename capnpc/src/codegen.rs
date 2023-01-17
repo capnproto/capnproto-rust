@@ -25,6 +25,7 @@ use std::path::{Path, PathBuf};
 
 use capnp;
 use capnp::Error;
+use quote::quote;
 
 use self::FormattedText::{BlankLine, Branch, Indent, Line};
 use crate::codegen_types::{do_branding, Leaf, RustNodeInfo, RustTypeInfo, TypeParameterTexts};
@@ -723,7 +724,14 @@ pub fn getter_text(
                 }
 
                 (type_::Interface(_), value::Interface(_)) => {
-                    Line(format!("match self.{member}.get_pointer_field({offset}).get_capability() {{ ::core::result::Result::Ok(c) => ::core::result::Result::Ok(::capnp::capability::FromClientHook::new(c)), ::core::result::Result::Err(e) => ::core::result::Result::Err(e)}}"))
+                    Line(
+                        quote! {
+                            match self.#member.get_pointer_field(#offset).get_capability() {
+                                ::core::result::Result::Ok(c) => ::core::result::Result::Ok(::capnp::capability::FromClientHook::new(c)),
+                                ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+                            }
+                        }.to_string()
+                    )
                 }
                 (type_::AnyPointer(_), value::AnyPointer(_)) => {
                     if !raw_type.is_parameter()? {

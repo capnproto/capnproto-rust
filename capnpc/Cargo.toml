@@ -26,6 +26,7 @@ path = "src/capnpc-rust.rs"
 [dependencies]
 syn = { version = "1.0.107", default-features = false, features = ["parsing", "full"]}
 prettyplease = "0.1.23"
+quote = "1.0.23"
 
 [dependencies.capnp]
 version = "0.16.0"
