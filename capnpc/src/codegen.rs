@@ -596,9 +596,9 @@ pub fn getter_text(
             }
 
             let getter_code = if is_reader {
-                Line("::capnp::traits::FromStructReader::new(self.reader)".to_string())
+                Line("self.reader.into()".to_string())
             } else {
-                Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())
+                Line("self.builder.into()".to_string())
             };
 
             Ok((result_type, getter_code, None))
@@ -862,7 +862,7 @@ fn generate_setter(
             )?);
 
             initter_interior.push(Line(
-                "::capnp::traits::FromStructBuilder::new(self.builder)".to_string(),
+                "self.builder.into()".to_string(),
             ));
 
             (None, Some(format!("{the_mod}::Builder<'a{params_string}>")))
@@ -1695,10 +1695,10 @@ fn generate_node(
                         Box::new(
                             Branch(vec!(
                                 Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self {".to_string()),
-                                Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE))".to_string()))),
+                                Indent(Box::new(Line("builder.init_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE).into()".to_string()))),
                                 Line("}".to_string()),
                                 Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
-                                Indent(Box::new(Line("::core::result::Result::Ok(::capnp::traits::FromStructBuilder::new(builder.get_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE, default)?))".to_string()))),
+                                Indent(Box::new(Line("::core::result::Result::Ok(builder.get_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE, default)?.into())".to_string()))),
                                 Line("}".to_string()))))),
                     Line("}".to_string()),
                     BlankLine]);
@@ -1747,11 +1747,11 @@ fn generate_node(
                             params.params, params.where_clause)),
                         Indent(Box::new(Branch(vec!(Line("const TYPE_ID: u64 = _private::TYPE_ID;".to_string()))))),
                     Line("}".to_string()))),
-                Line(format!("impl <'a,{0}> ::capnp::traits::FromStructReader<'a> for Reader<'a,{0}> {1} {{",
+                Line(format!("impl <'a,{0}> ::core::convert::From<::capnp::private::layout::StructReader<'a>> for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Self {".to_string()),
+                        Line("fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self {".to_string()),
                         Indent(Box::new(Line(format!("Self {{ reader, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
@@ -1761,7 +1761,7 @@ fn generate_node(
                 Indent(
                     Box::new(Branch(vec!(
                         Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
-                        Indent(Box::new(Line("::core::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(default)?))".to_string()))),
+                        Indent(Box::new(Line("::core::result::Result::Ok(reader.get_struct(default)?.into())".to_string()))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1817,11 +1817,11 @@ fn generate_node(
                         Line("const TYPE_ID: u64 = _private::TYPE_ID;".to_string()))))),
                     Line("}".to_string()))),
                 Line(format!(
-                    "impl <'a,{0}> ::capnp::traits::FromStructBuilder<'a> for Builder<'a,{0}> {1} {{",
+                    "impl <'a,{0}> ::core::convert::From<::capnp::private::layout::StructBuilder<'a>> for Builder<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line("fn new(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self {".to_string()),
+                        Line("fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self {".to_string()),
                         Indent(Box::new(Line(format!("Self {{ builder, {} }}", params.phantom_data_value)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
@@ -1847,13 +1847,13 @@ fn generate_node(
                 Indent(
                     Box::new(Branch(vec![
                         Line(format!("pub fn into_reader(self) -> Reader<'a,{}> {{", params.params)),
-                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.into_reader())".to_string()))),
+                        Indent(Box::new(Line("self.builder.into_reader().into()".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow(&mut self) -> Builder<'_,{}> {{", params.params)),
                         Indent(Box::new(Line("Builder { builder: self.builder.reborrow(), ..*self }".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow_as_reader(&self) -> Reader<'_,{}> {{", params.params)),
-                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string()))),
+                        Indent(Box::new(Line("self.builder.as_reader().into()".to_string()))),
                         Line("}".to_string()),
 
                         BlankLine,

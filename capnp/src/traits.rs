@@ -26,10 +26,6 @@ use crate::Result;
 
 use core::marker::PhantomData;
 
-pub trait FromStructReader<'a> {
-    fn new(reader: StructReader<'a>) -> Self;
-}
-
 pub trait HasStructSize {
     const STRUCT_SIZE: StructSize;
 }
@@ -37,10 +33,6 @@ pub trait HasStructSize {
 /// Trait for all types that can be converted to a low-level `StructReader`.
 pub trait IntoInternalStructReader<'a> {
     fn into_internal_struct_reader(self) -> StructReader<'a>;
-}
-
-pub trait FromStructBuilder<'a> {
-    fn new(struct_builder: StructBuilder<'a>) -> Self;
 }
 
 /// Trait for all types that can be converted to a low-level `ListReader`.
@@ -71,8 +63,8 @@ pub trait Owned {
 }
 
 pub trait OwnedStruct {
-    type Reader<'a>: FromStructReader<'a> + SetPointerBuilder + IntoInternalStructReader<'a>;
-    type Builder<'a>: FromStructBuilder<'a> + HasStructSize;
+    type Reader<'a>: From<StructReader<'a>> + SetPointerBuilder + IntoInternalStructReader<'a>;
+    type Builder<'a>: From<StructBuilder<'a>> + HasStructSize;
 }
 
 pub trait Pipelined {

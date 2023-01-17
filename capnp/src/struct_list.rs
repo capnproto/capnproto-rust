@@ -27,7 +27,7 @@ use crate::private::layout::{
     InlineComposite, ListBuilder, ListReader, PointerBuilder, PointerReader,
 };
 use crate::traits::{
-    FromPointerBuilder, FromPointerReader, FromStructBuilder, FromStructReader, HasStructSize,
+    FromPointerBuilder, FromPointerReader, HasStructSize,
     IndexMove, ListIter,
 };
 use crate::Result;
@@ -130,14 +130,14 @@ where
     /// equal to `len()`.
     pub fn get(self, index: u32) -> T::Reader<'a> {
         assert!(index < self.len());
-        FromStructReader::new(self.reader.get_struct_element(index))
+        self.reader.get_struct_element(index).into()
     }
 
     /// Gets the element at position `index`. Returns `None` if `index`
     /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<T::Reader<'a>> {
         if index < self.len() {
-            Some(FromStructReader::new(self.reader.get_struct_element(index)))
+            Some(self.reader.get_struct_element(index).into())
         } else {
             None
         }
@@ -237,16 +237,14 @@ where
     /// equal to `len()`.
     pub fn get(self, index: u32) -> T::Builder<'a> {
         assert!(index < self.len());
-        FromStructBuilder::new(self.builder.get_struct_element(index))
+        self.builder.get_struct_element(index).into()
     }
 
     /// Gets the element at position `index`. Returns `None` if `index`
     /// is greater than or equal to `len()`.
     pub fn try_get(self, index: u32) -> Option<T::Builder<'a>> {
         if index < self.len() {
-            Some(FromStructBuilder::new(
-                self.builder.get_struct_element(index),
-            ))
+            Some(self.builder.get_struct_element(index).into())
         } else {
             None
         }
