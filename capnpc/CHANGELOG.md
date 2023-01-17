@@ -1,3 +1,6 @@
+### v0.16.1
+- Fix clippy warnings in generated code.
+
 ### v0.16.0
 - Update code generation for removal of `To16`, `FromU16`, `FromStructReader`, `FromStructBuilder`.
 
