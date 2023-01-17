@@ -14,11 +14,6 @@ readme = "README.md"
 
 keywords = ["encoding", "protocol", "serialization"]
 
-[lib]
-
-name = "capnp"
-path = "src/lib.rs"
-
 [dependencies]
 quickcheck = { version = "1", optional = true }
 

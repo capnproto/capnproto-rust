@@ -13,11 +13,6 @@ edition = "2021"
 
 readme = "README.md"
 
-[lib]
-
-name = "capnp_rpc"
-path = "src/lib.rs"
-
 [dependencies.futures]
 version = "0.3.0"
 default-features = false
