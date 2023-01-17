@@ -1,3 +1,6 @@
+## v0.16.1
+- Regenerate code, with rpc.capnp from upstream latest release, version 0.10.3.
+
 ## v0.16.0
 - Add reconnect API.
 
