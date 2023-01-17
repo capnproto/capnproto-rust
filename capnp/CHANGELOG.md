@@ -1,3 +1,11 @@
+## v0.16.0
+- Remove deprecated `HasTypeId::type_id()` method.
+- Remove deprecated `MessageSize::plus_eq` method.
+- Remove `RefCell` from builder arena. Should result in minor performance boost.
+- Mark `Allocator::deallocate_segment` as `unsafe`.
+- Remove `ToU16` and `FromU16` traits in favor of `core::convert` traits.
+- Remove `FromStructBuilder` and `FromStructReader` traits in favor of `core::convert` traits.
+
 ## v0.15.3
 - Deprecate `HasTypeId::type_id()` in favor of `HasTypeId::TYPE_ID`.
 

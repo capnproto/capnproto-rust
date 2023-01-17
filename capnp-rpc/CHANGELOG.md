@@ -1,3 +1,6 @@
+## v0.16.0
+- Add reconnect API.
+
 ## v0.15.1
 - Remove some `unimplemented!()` panics.
 - Lots of style and formatting fixes that should have no effect.

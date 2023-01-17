@@ -1,3 +1,6 @@
+### v0.16.0
+- Update code generation for removal of `To16`, `FromU16`, `FromStructReader`, `FromStructBuilder`.
+
 ### v0.15.2
 - Apply clippy lifetime elision suggestion in set_pointer_builder() in generated code.
 
