@@ -173,6 +173,7 @@ pub mod node {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -484,6 +485,7 @@ pub mod node {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -620,6 +622,7 @@ pub mod node {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -772,6 +775,7 @@ pub mod node {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -927,6 +931,7 @@ pub mod node {
           self.builder.into_reader().into()
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
+          #[allow(clippy::needless_update)]
           Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1084,6 +1089,7 @@ pub mod node {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1264,6 +1270,7 @@ pub mod node {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1404,6 +1411,7 @@ pub mod node {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1560,6 +1568,7 @@ pub mod node {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1762,6 +1771,7 @@ pub mod node {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2032,6 +2042,7 @@ pub mod field {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2262,6 +2273,7 @@ pub mod field {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2428,6 +2440,7 @@ pub mod field {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2562,6 +2575,7 @@ pub mod field {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2722,6 +2736,7 @@ pub mod enumerant {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2882,6 +2897,7 @@ pub mod superclass {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3069,6 +3085,7 @@ pub mod method {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3390,6 +3407,7 @@ pub mod type_ {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3722,6 +3740,7 @@ pub mod type_ {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3861,6 +3880,7 @@ pub mod type_ {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -4008,6 +4028,7 @@ pub mod type_ {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -4155,6 +4176,7 @@ pub mod type_ {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -4313,6 +4335,7 @@ pub mod type_ {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -4495,6 +4518,7 @@ pub mod type_ {
           self.builder.into_reader().into()
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
+          #[allow(clippy::needless_update)]
           Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -4661,6 +4685,7 @@ pub mod type_ {
           self.builder.into_reader().into()
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
+          #[allow(clippy::needless_update)]
           Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -4789,6 +4814,7 @@ pub mod type_ {
           self.builder.into_reader().into()
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
+          #[allow(clippy::needless_update)]
           Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -4915,6 +4941,7 @@ pub mod brand {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -5065,6 +5092,7 @@ pub mod brand {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -5245,6 +5273,7 @@ pub mod brand {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -5523,6 +5552,7 @@ pub mod value {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -5909,6 +5939,7 @@ pub mod annotation {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -6111,6 +6142,7 @@ pub mod capnp_version {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -6275,6 +6307,7 @@ pub mod code_generator_request {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -6469,6 +6502,7 @@ pub mod code_generator_request {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -6628,6 +6662,7 @@ pub mod code_generator_request {
           self.builder.into_reader().into()
         }
         pub fn reborrow(&mut self) -> Builder<'_,> {
+          #[allow(clippy::needless_update)]
           Builder { builder: self.builder.reborrow(), ..*self }
         }
         pub fn reborrow_as_reader(&self) -> Reader<'_,> {

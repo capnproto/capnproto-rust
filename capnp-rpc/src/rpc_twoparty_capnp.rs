@@ -115,6 +115,7 @@ pub mod vat_id {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -235,6 +236,7 @@ pub mod provision_id {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -351,6 +353,7 @@ pub mod recipient_id {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -459,6 +462,7 @@ pub mod third_party_cap_id {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -579,6 +583,7 @@ pub mod join_key_part {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -727,6 +732,7 @@ pub mod join_result {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {

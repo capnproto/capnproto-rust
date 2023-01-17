@@ -235,6 +235,7 @@ pub mod message {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -653,6 +654,7 @@ pub mod bootstrap {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -783,14 +785,6 @@ pub mod call {
     pub fn get_allow_third_party_tail_call(self) -> bool {
       self.reader.get_bool_field(128)
     }
-    #[inline]
-    pub fn get_no_promise_pipelining(self) -> bool {
-      self.reader.get_bool_field(129)
-    }
-    #[inline]
-    pub fn get_only_promise_pipeline(self) -> bool {
-      self.reader.get_bool_field(130)
-    }
   }
 
   pub struct Builder<'a> { builder: ::capnp::private::layout::StructBuilder<'a> }
@@ -830,6 +824,7 @@ pub mod call {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -912,22 +907,6 @@ pub mod call {
     #[inline]
     pub fn set_allow_third_party_tail_call(&mut self, value: bool)  {
       self.builder.set_bool_field(128, value);
-    }
-    #[inline]
-    pub fn get_no_promise_pipelining(self) -> bool {
-      self.builder.get_bool_field(129)
-    }
-    #[inline]
-    pub fn set_no_promise_pipelining(&mut self, value: bool)  {
-      self.builder.set_bool_field(129, value);
-    }
-    #[inline]
-    pub fn get_only_promise_pipeline(self) -> bool {
-      self.builder.get_bool_field(130)
-    }
-    #[inline]
-    pub fn set_only_promise_pipeline(&mut self, value: bool)  {
-      self.builder.set_bool_field(130, value);
     }
   }
 
@@ -1064,6 +1043,7 @@ pub mod call {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1208,10 +1188,6 @@ pub mod return_ {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_no_finish_needed(self) -> bool {
-      self.reader.get_bool_field(33)
-    }
-    #[inline]
     pub fn which(self) -> ::core::result::Result<WhichReader<'a,>, ::capnp::NotInSchema> {
       match self.reader.get_data_field::<u16>(3) {
         0 => {
@@ -1286,6 +1262,7 @@ pub mod return_ {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1365,14 +1342,6 @@ pub mod return_ {
     pub fn has_accept_from_third_party(&self) -> bool {
       if self.builder.get_data_field::<u16>(3) != 5 { return false; }
       !self.builder.is_pointer_field_null(0)
-    }
-    #[inline]
-    pub fn get_no_finish_needed(self) -> bool {
-      self.builder.get_bool_field(33)
-    }
-    #[inline]
-    pub fn set_no_finish_needed(&mut self, value: bool)  {
-      self.builder.set_bool_field(33, value);
     }
     #[inline]
     pub fn which(self) -> ::core::result::Result<WhichBuilder<'a,>, ::capnp::NotInSchema> {
@@ -1527,6 +1496,7 @@ pub mod finish {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1683,6 +1653,7 @@ pub mod resolve {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1859,6 +1830,7 @@ pub mod release {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -1995,6 +1967,7 @@ pub mod disembargo {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2162,6 +2135,7 @@ pub mod disembargo {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2344,6 +2318,7 @@ pub mod provide {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2512,6 +2487,7 @@ pub mod accept {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2673,6 +2649,7 @@ pub mod join {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -2848,6 +2825,7 @@ pub mod message_target {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3014,6 +2992,7 @@ pub mod payload {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3207,6 +3186,7 @@ pub mod cap_descriptor {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3430,6 +3410,7 @@ pub mod promised_answer {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3579,6 +3560,7 @@ pub mod promised_answer {
         self.builder.into_reader().into()
       }
       pub fn reborrow(&mut self) -> Builder<'_,> {
+        #[allow(clippy::needless_update)]
         Builder { builder: self.builder.reborrow(), ..*self }
       }
       pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3731,6 +3713,7 @@ pub mod third_party_cap_descriptor {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {
@@ -3892,6 +3875,7 @@ pub mod exception {
       self.builder.into_reader().into()
     }
     pub fn reborrow(&mut self) -> Builder<'_,> {
+      #[allow(clippy::needless_update)]
       Builder { builder: self.builder.reborrow(), ..*self }
     }
     pub fn reborrow_as_reader(&self) -> Reader<'_,> {

@@ -1848,6 +1848,7 @@ fn generate_node(
                         Indent(Box::new(Line("self.builder.into_reader().into()".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow(&mut self) -> Builder<'_,{}> {{", params.params)),
+                        Indent(Box::new(Line("#[allow(clippy::needless_update)]".to_string()))),
                         Indent(Box::new(Line("Builder { builder: self.builder.reborrow(), ..*self }".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow_as_reader(&self) -> Reader<'_,{}> {{", params.params)),
