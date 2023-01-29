@@ -64,6 +64,7 @@ namespace {
 
 static constexpr uint64_t NAMESPACE_ANNOTATION_ID = 0xb9c6f99ebf805f2cull;
 static constexpr uint64_t NAME_ANNOTATION_ID = 0xf264a779fef191ceull;
+static constexpr uint64_t ALLOW_CANCELLATION_ANNOTATION_ID = 0xac7096ff8cfc9dceull;
 
 bool hasDiscriminantValue(const schema::Field::Reader& reader) {
   return reader.getDiscriminantValue() != schema::Field::NO_DISCRIMINANT;
@@ -520,10 +521,9 @@ private:
 
       case schema::Type::LIST: {
         CppTypeName result = CppTypeName::makeNamespace("capnp");
-        auto params = kj::heapArrayBuilder<CppTypeName>(2);
+        auto params = kj::heapArrayBuilder<CppTypeName>(1);
         auto list = type.asList();
         params.add(typeName(list.getElementType(), method));
-        params.add(whichKind(list.getElementType()));
         result.addMemberTemplate("List", params.finish());
         return result;
       }
@@ -1596,7 +1596,6 @@ private:
       CppTypeName elementReaderType;
       if (typeSchema.isList()) {
         bool primitiveElement = false;
-        bool interface = false;
         auto elementType = typeSchema.asList().getElementType();
         switch (elementType.which()) {
           case schema::Type::VOID:
@@ -1628,29 +1627,24 @@ private:
             shouldIncludeArrayInitializer = elementType.getBrandParameter() != nullptr;
             break;
 
-          case schema::Type::INTERFACE:
-            primitiveElement = false;
-            interface = true;
-            break;
-
           case schema::Type::STRUCT:
+          case schema::Type::INTERFACE:
             primitiveElement = false;
             break;
         }
-        elementReaderType = typeName(elementType, nullptr);
+        auto elementTypeName = typeName(elementType, nullptr);
         if (!primitiveElement) {
-          if (interface) {
-            elementReaderType.addMemberType("Client");
-          } else {
-            elementReaderType.addMemberType("Reader");
-          }
+          elementReaderType = CppTypeName::makeNamespace("capnp");
+          elementReaderType.addMemberTemplate("ReaderFor", kj::heapArray(&elementTypeName, 1));
+        } else {
+          elementReaderType = elementTypeName;
         }
       };
 
       CppTypeName readerType;
       CppTypeName builderType;
       CppTypeName pipelineType;
-      if (kind == FieldKind::BRAND_PARAMETER) {
+      if (kind == FieldKind::BRAND_PARAMETER || kind == FieldKind::LIST) {
         readerType = CppTypeName::makeNamespace("capnp");
         readerType.addMemberTemplate("ReaderFor", kj::heapArray(&type, 1));
         builderType = CppTypeName::makeNamespace("capnp");
@@ -1659,11 +1653,11 @@ private:
         pipelineType.addMemberTemplate("PipelineFor", kj::heapArray(&type, 1));
       } else {
         readerType = type;
-        readerType.addMemberType("Reader");
+        readerType.addMemberType(kind == FieldKind::INTERFACE ? "Client" : "Reader");
         builderType = type;
-        builderType.addMemberType("Builder");
+        builderType.addMemberType(kind == FieldKind::INTERFACE ? "Client" : "Builder");
         pipelineType = type;
-        pipelineType.addMemberType("Pipeline");
+        pipelineType.addMemberType(kind == FieldKind::INTERFACE ? "Client" : "Pipeline");
       }
 
       #define COND(cond, ...) ((cond) ? kj::strTree(__VA_ARGS__) : kj::strTree())
@@ -2236,6 +2230,8 @@ private:
     // the `CAPNP_AUTO_IF_MSVC()` hackery in the return type declarations below. We're depending on
     // the fact that that this function has an inline implementation for the deduction to work.
 
+    bool noPromisePipelining = !resultSchema.mayContainCapabilities();
+
     auto requestMethodImpl = kj::strTree(
         templateContext.allDecls(),
         implicitParamsTemplateDecl,
@@ -2247,8 +2243,23 @@ private:
         isStreaming
             ? kj::strTree("  return newStreamingCall<", paramType, ">(\n")
             : kj::strTree("  return newCall<", paramType, ", ", resultType, ">(\n"),
-        "      0x", interfaceIdHex, "ull, ", methodId, ", sizeHint);\n"
+        "      0x", interfaceIdHex, "ull, ", methodId, ", sizeHint, {", noPromisePipelining, "});\n"
         "}\n");
+
+    bool allowCancellation = false;
+    if (annotationValue(proto, ALLOW_CANCELLATION_ANNOTATION_ID) != nullptr) {
+      allowCancellation = true;
+    } else if (annotationValue(interfaceProto, ALLOW_CANCELLATION_ANNOTATION_ID) != nullptr) {
+      allowCancellation = true;
+    } else {
+      schema::Node::Reader node = interfaceProto;
+      while (!node.isFile()) {
+        node = schemaLoader.get(node.getScopeId()).getProto();
+      }
+      if (annotationValue(node, ALLOW_CANCELLATION_ANNOTATION_ID) != nullptr) {
+        allowCancellation = true;
+      }
+    }
 
     return MethodText {
       kj::strTree(
@@ -2297,7 +2308,8 @@ private:
               "          return ", identifierName, "(::capnp::Capability::Server::internalGetTypedStreamingContext<\n"
               "              ", genericParamType, ">(context));\n"
               "        }),\n"
-              "        true\n"
+              "        true,\n"
+              "        ", allowCancellation, "\n"
               "      };\n")
             : kj::strTree(
               // For non-streaming calls we let exceptions just flow through for a little more
@@ -2305,7 +2317,8 @@ private:
               "      return {\n"
               "        ", identifierName, "(::capnp::Capability::Server::internalGetTypedContext<\n"
               "            ", genericParamType, ", ", genericResultType, ">(context)),\n"
-              "        false\n"
+              "        false,\n"
+              "        ", allowCancellation, "\n"
               "      };\n"))
     };
   }
@@ -2771,6 +2784,8 @@ private:
     auto brandDeps = makeBrandDepInitializers(
         makeBrandDepMap(templateContext, schema.getGeneric()));
 
+    bool mayContainCapabilities = proto.isStruct() && schema.asStruct().mayContainCapabilities();
+
     auto schemaDef = kj::strTree(
         "static const ::capnp::_::AlignedData<", rawSchema.size(), "> b_", hexId, " = {\n"
         "  {", kj::mv(schemaLiteral), " }\n"
@@ -2803,7 +2818,7 @@ private:
         ", nullptr, nullptr, { &s_", hexId, ", nullptr, ",
         brandDeps.size() == 0 ? kj::strTree("nullptr, 0, 0") : kj::strTree(
             "bd_", hexId, ", 0, " "sizeof(bd_", hexId, ") / sizeof(bd_", hexId, "[0])"),
-        ", nullptr }\n"
+        ", nullptr }, ", mayContainCapabilities, "\n"
         "};\n"
         "#endif  // !CAPNP_LITE\n");
 
@@ -3151,6 +3166,8 @@ private:
     for (auto node: request.getNodes()) {
       schemaLoader.load(node);
     }
+
+    schemaLoader.computeOptimizationHints();
 
     for (auto requestedFile: request.getRequestedFiles()) {
       auto schema = schemaLoader.get(requestedFile.getId());

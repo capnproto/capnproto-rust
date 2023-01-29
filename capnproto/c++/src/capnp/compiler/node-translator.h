@@ -25,6 +25,7 @@
 #include <capnp/compiler/grammar.capnp.h>
 #include <capnp/schema.capnp.h>
 #include <capnp/dynamic.h>
+#include <kj/arena.h>
 #include <kj/vector.h>
 #include <kj/one-of.h>
 #include "error-reporter.h"
@@ -100,6 +101,7 @@ private:
   Orphanage orphanage;
   bool compileAnnotations;
   kj::Own<BrandScope> localBrand;
+  kj::Arena arena;
 
   Orphan<schema::Node> wipNode;
   // The work-in-progress schema node.
@@ -215,7 +217,8 @@ private:
   Orphanage orphanage;
 
   Orphan<DynamicValue> compileValueInner(Expression::Reader src, Type type);
-  // Helper for compileValue().
+  bool matchesType(Expression::Reader src, Type type, Orphan<DynamicValue>& result);
+  // Helpers for compileValue().
 
   kj::String makeNodeName(Schema node);
   kj::String makeTypeName(Type type);

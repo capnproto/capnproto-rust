@@ -338,7 +338,6 @@ public:
   }
 
   kj::Promise<void> doStreamJ(DoStreamJContext context) override {
-    context.allowCancellation();
     jSum += context.getParams().getJ();
 
     if (jShouldThrow) {
@@ -358,6 +357,28 @@ public:
     return kj::READY_NOW;
   }
 };
+
+template<typename T>
+class TestGenericParameterPassThroughInterfaceImpl final : public test::TestGenericParameterPassThroughInterface<T>::Server {
+public:
+  kj::Promise<void> setGenericList(typename test::TestGenericParameterPassThroughInterface<T>::Server::SetGenericListContext context) override {
+    auto params = context.getParams();
+    if (params.hasListResult()) {
+      auto list = params.getListResult();
+      count = list.size();
+    }
+    return kj::READY_NOW;
+  }
+  kj::Promise<void> getGenericList(typename test::TestGenericParameterPassThroughInterface<T>::Server::GetGenericListContext context) override {
+    auto results = context.getResults();
+    results.initListResult(count);
+    return kj::READY_NOW;
+  }
+
+private:
+  int count;
+};
+
 
 #endif  // !CAPNP_LITE
 

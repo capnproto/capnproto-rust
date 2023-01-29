@@ -22,10 +22,10 @@
 #pragma once
 
 #include "async.h"
-#include "common.h"
-#include "debug.h"
-#include "list.h"
-#include "memory.h"
+#include <kj/common.h>
+#include <kj/debug.h>
+#include <kj/list.h>
+#include <kj/memory.h>
 
 #include <list>
 
@@ -39,7 +39,7 @@ public:
   // A WaiterQueue creates Nodes that blend newAdaptedPromise<T, Adaptor> and List<Node>.
 
   WaiterQueue() = default;
-  KJ_DISALLOW_COPY(WaiterQueue);
+  KJ_DISALLOW_COPY_AND_MOVE(WaiterQueue);
 
   Promise<T> wait() {
     return newAdaptedPromise<T, Node>(queue);

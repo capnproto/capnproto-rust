@@ -99,7 +99,9 @@ KJ_BEGIN_HEADER
 #endif
 
 #include <stddef.h>
+#include <cstring>
 #include <initializer_list>
+#include <string.h>
 
 #if __linux__ && __cplusplus > 201200L
 // Hack around stdlib bug with C++14 that exists on some Linux systems.
@@ -183,7 +185,22 @@ typedef unsigned char byte;
 #define KJ_DISALLOW_COPY(classname) \
   classname(const classname&) = delete; \
   classname& operator=(const classname&) = delete
-// Deletes the implicit copy constructor and assignment operator.
+// Deletes the implicit copy constructor and assignment operator. This inhibits the compiler from
+// generating the implicit move constructor and assignment operator for this class, but allows the
+// code author to supply them, if they make sense to implement.
+//
+// This macro should not be your first choice. Instead, prefer using KJ_DISALLOW_COPY_AND_MOVE, and only use
+// this macro when you have determined that you must implement move semantics for your type.
+
+#define KJ_DISALLOW_COPY_AND_MOVE(classname) \
+  classname(const classname&) = delete; \
+  classname& operator=(const classname&) = delete; \
+  classname(classname&&) = delete; \
+  classname& operator=(classname&&) = delete
+// Deletes the implicit copy and move constructors and assignment operators. This is useful in cases
+// where the code author wants to provide an additional compile-time guard against subsequent
+// maintainers casually adding move operations. This is particularly useful when implementing RAII
+// classes that are intended to be completely immobile.
 
 #ifdef __GNUC__
 #define KJ_LIKELY(condition) __builtin_expect(condition, true)
@@ -280,10 +297,14 @@ typedef unsigned char byte;
 #elif __GNUC__
 #define KJ_DEPRECATED(reason) \
     __attribute__((deprecated))
-#define KJ_UNAVAILABLE(reason)
+#define KJ_UNAVAILABLE(reason) = delete
+// If the `unavailable` attribute is not supproted, just mark the method deleted, which at least
+// makes it a compile-time error to try to call it. Note that on Clang, marking a method deleted
+// *and* unavailable unfortunately defeats the purpose of the unavailable annotation, as the
+// generic "deleted" error is reported instead.
 #else
 #define KJ_DEPRECATED(reason)
-#define KJ_UNAVAILABLE(reason)
+#define KJ_UNAVAILABLE(reason) = delete
 // TODO(msvc): Again, here, MSVC prefers a prefix, __declspec(deprecated).
 #endif
 
@@ -419,6 +440,15 @@ KJ_NORETURN(void unreachable());
 
 // =======================================================================================
 // Template metaprogramming helpers.
+
+#define KJ_HAS_TRIVIAL_CONSTRUCTOR __is_trivially_constructible
+#if __GNUC__ && !__clang__
+#define KJ_HAS_NOTHROW_CONSTRUCTOR __has_nothrow_constructor
+#define KJ_HAS_TRIVIAL_DESTRUCTOR __has_trivial_destructor
+#else
+#define KJ_HAS_NOTHROW_CONSTRUCTOR __is_nothrow_constructible
+#define KJ_HAS_TRIVIAL_DESTRUCTOR __is_trivially_destructible
+#endif
 
 template <typename T> struct NoInfer_ { typedef T Type; };
 template <typename T> using NoInfer = typename NoInfer_<T>::Type;
@@ -571,6 +601,19 @@ T refIfLvalue(T&&);
 template <typename T, typename U> struct IsSameType_ { static constexpr bool value = false; };
 template <typename T> struct IsSameType_<T, T> { static constexpr bool value = true; };
 template <typename T, typename U> constexpr bool isSameType() { return IsSameType_<T, U>::value; }
+
+template <typename T> constexpr bool isIntegral() { return false; }
+template <> constexpr bool isIntegral<char>() { return true; }
+template <> constexpr bool isIntegral<signed char>() { return true; }
+template <> constexpr bool isIntegral<short>() { return true; }
+template <> constexpr bool isIntegral<int>() { return true; }
+template <> constexpr bool isIntegral<long>() { return true; }
+template <> constexpr bool isIntegral<long long>() { return true; }
+template <> constexpr bool isIntegral<unsigned char>() { return true; }
+template <> constexpr bool isIntegral<unsigned short>() { return true; }
+template <> constexpr bool isIntegral<unsigned int>() { return true; }
+template <> constexpr bool isIntegral<unsigned long>() { return true; }
+template <> constexpr bool isIntegral<unsigned long long>() { return true; }
 
 template <typename T>
 struct CanConvert_ {
@@ -1748,6 +1791,29 @@ public:
     KJ_IREQUIRE(start <= end && end <= size_, "Out-of-bounds ArrayPtr::slice().");
     return ArrayPtr(ptr + start, end - start);
   }
+  inline bool startsWith(const ArrayPtr<const T>& other) const {
+    return other.size() <= size_ && slice(0, other.size()) == other;
+  }
+  inline bool endsWith(const ArrayPtr<const T>& other) const {
+    return other.size() <= size_ && slice(size_ - other.size(), size_) == other;
+  }
+
+  inline Maybe<size_t> findFirst(const T& match) const {
+    for (size_t i = 0; i < size_; i++) {
+      if (ptr[i] == match) {
+        return i;
+      }
+    }
+    return nullptr;
+  }
+  inline Maybe<size_t> findLast(const T& match) const {
+    for (size_t i = size_; i--;) {
+      if (ptr[i] == match) {
+        return i;
+      }
+    }
+    return nullptr;
+  }
 
   inline ArrayPtr<PropagateConst<T, byte>> asBytes() const {
     // Reinterpret the array as a byte array. This is explicitly legal under C++ aliasing
@@ -1765,6 +1831,9 @@ public:
 
   inline bool operator==(const ArrayPtr& other) const {
     if (size_ != other.size_) return false;
+    if (isIntegral<RemoveConst<T>>()) {
+      return memcmp(ptr, other.ptr, size_ * sizeof(T)) == 0;
+    }
     for (size_t i = 0; i < size_; i++) {
       if (ptr[i] != other[i]) return false;
     }
@@ -1794,6 +1863,49 @@ private:
   T* ptr;
   size_t size_;
 };
+
+template <>
+inline Maybe<size_t> ArrayPtr<const char>::findFirst(const char& c) const {
+  const char* pos = reinterpret_cast<const char*>(memchr(ptr, c, size_));
+  if (pos == nullptr) {
+    return nullptr;
+  } else {
+    return pos - ptr;
+  }
+}
+
+template <>
+inline Maybe<size_t> ArrayPtr<char>::findFirst(const char& c) const {
+  char* pos = reinterpret_cast<char*>(memchr(ptr, c, size_));
+  if (pos == nullptr) {
+    return nullptr;
+  } else {
+    return pos - ptr;
+  }
+}
+
+template <>
+inline Maybe<size_t> ArrayPtr<const byte>::findFirst(const byte& c) const {
+  const byte* pos = reinterpret_cast<const byte*>(memchr(ptr, c, size_));
+  if (pos == nullptr) {
+    return nullptr;
+  } else {
+    return pos - ptr;
+  }
+}
+
+template <>
+inline Maybe<size_t> ArrayPtr<byte>::findFirst(const byte& c) const {
+  byte* pos = reinterpret_cast<byte*>(memchr(ptr, c, size_));
+  if (pos == nullptr) {
+    return nullptr;
+  } else {
+    return pos - ptr;
+  }
+}
+
+// glibc has a memrchr() for reverse search but it's non-standard, so we don't bother optimizing
+// findLast(), which isn't used much anyway.
 
 template <typename T>
 inline constexpr ArrayPtr<T> arrayPtr(T* ptr KJ_LIFETIMEBOUND, size_t size) {

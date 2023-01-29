@@ -26,6 +26,12 @@
 
 namespace capnp {
 
+static BufferedMessageStream::IsShortLivedCallback getShortLivedCallback() {
+  return [](MessageReader& reader) {
+    return IncomingRpcMessage::isShortLivedRpcMessage(reader.getRoot<AnyPointer>());
+  };
+}
+
 TwoPartyVatNetwork::TwoPartyVatNetwork(
     kj::OneOf<MessageStream*, kj::Own<MessageStream>>&& stream,
     uint maxFdsPerMessage,
@@ -66,14 +72,18 @@ TwoPartyVatNetwork::TwoPartyVatNetwork(
 TwoPartyVatNetwork::TwoPartyVatNetwork(kj::AsyncIoStream& stream, rpc::twoparty::Side side,
                                        ReaderOptions receiveOptions,
                                        const kj::MonotonicClock& clock)
-    : TwoPartyVatNetwork(kj::Own<MessageStream>(kj::heap<AsyncIoMessageStream>(stream)),
-                         0, side, receiveOptions, clock) {}
+    : TwoPartyVatNetwork(
+          kj::Own<MessageStream>(kj::heap<BufferedMessageStream>(stream, getShortLivedCallback())),
+          0, side, receiveOptions, clock) {}
 
 TwoPartyVatNetwork::TwoPartyVatNetwork(kj::AsyncCapabilityStream& stream, uint maxFdsPerMessage,
                                        rpc::twoparty::Side side, ReaderOptions receiveOptions,
                                        const kj::MonotonicClock& clock)
-    : TwoPartyVatNetwork(kj::Own<MessageStream>(kj::heap<AsyncCapabilityMessageStream>(stream)),
-                         maxFdsPerMessage, side, receiveOptions, clock) {}
+    : TwoPartyVatNetwork(
+          kj::Own<MessageStream>(kj::heap<BufferedMessageStream>(stream, getShortLivedCallback())),
+          maxFdsPerMessage, side, receiveOptions, clock) {}
+
+TwoPartyVatNetwork::~TwoPartyVatNetwork() noexcept(false) {};
 
 MessageStream& TwoPartyVatNetwork::getStream() {
   KJ_SWITCH_ONEOF(stream) {
@@ -149,7 +159,7 @@ public:
     }
 
     auto sendTime = network.clock.now();
-    if (network.currentQueueCount == 0) {
+    if (network.queuedMessages.size() == 0) {
       // Optimistically set sendTime when there's no messages in the queue. Without this, sending
       // a message after a long delay could cause getOutgoingMessageWaitTime() to return excessively
       // long wait times if it is called during the time period after send() is called,
@@ -158,18 +168,34 @@ public:
       network.currentOutgoingMessageSendTime = sendTime;
     }
 
-    network.currentQueueSize += size * sizeof(capnp::word);
-    ++network.currentQueueCount;
-    auto deferredSizeUpdate = kj::defer([&network = network, size]() mutable {
-      network.currentQueueSize -= size * sizeof(capnp::word);
-      --network.currentQueueCount;
-    });
+    // Instead of sending each new message as soon as possible, we attempt to batch together small
+    // messages by delaying when we send them using evalLast. This allows us to group together
+    // related small messages, reducing the number of syscalls we make.
+    auto& previousWrite = KJ_ASSERT_NONNULL(network.previousWrite, "already shut down");
+    bool alreadyPendingSend = !network.queuedMessages.empty();
+    network.currentQueueSize += message.sizeInWords() * sizeof(word);
+    network.queuedMessages.add(kj::addRef(*this));
+    if (alreadyPendingSend) {
+      // The first send sets up an evalLast that will clear out pendingMessages when it's sent.
+      // If pendingMessages is non-empty, then there must already be a callback waiting to send
+      // them.
+      return;
+    }
 
-    network.previousWrite = KJ_ASSERT_NONNULL(network.previousWrite, "already shut down")
-        .then([this, sendTime]() {
-      return kj::evalNow([&]() {
+    // On the other hand, if pendingMessages was empty, then we should set up the delayed write.
+    network.previousWrite = previousWrite.then([this, sendTime]() {
+      return kj::evalLast([this, sendTime]() -> kj::Promise<void> {
         network.currentOutgoingMessageSendTime = sendTime;
-        return network.getStream().writeMessage(fds, message);
+        // Swap out the connection's pending messages and write all of them together.
+        auto ownMessages = kj::mv(network.queuedMessages);
+        network.currentQueueSize = 0;
+        auto messages =
+          kj::heapArray<MessageAndFds>(ownMessages.size());
+        for (int i = 0; i < messages.size(); ++i) {
+          messages[i].segments = ownMessages[i]->message.getSegmentsForOutput();
+          messages[i].fds = ownMessages[i]->fds;
+        }
+        return network.getStream().writeMessages(messages).attach(kj::mv(ownMessages), kj::mv(messages));
       }).catch_([this](kj::Exception&& e) {
         // Since no one checks write failures, we need to propagate them into read failures,
         // otherwise we might get stuck sending all messages into a black hole and wondering why
@@ -180,7 +206,7 @@ public:
         }
         kj::throwRecoverableException(kj::mv(e));
       });
-    }).attach(kj::addRef(*this), kj::mv(deferredSizeUpdate))
+    }).attach(kj::addRef(*this))
       // Note that it's important that the eagerlyEvaluate() come *after* the attach() because
       // otherwise the message (and any capabilities in it) will not be released until a new
       // message is written! (Kenton once spent all afternoon tracking this down...)
@@ -198,7 +224,7 @@ private:
 };
 
 kj::Duration TwoPartyVatNetwork::getOutgoingMessageWaitTime() {
-  if (currentQueueCount > 0) {
+  if (queuedMessages.size() > 0) {
     return clock.now() - currentOutgoingMessageSendTime;
   } else {
     return 0 * kj::SECONDS;

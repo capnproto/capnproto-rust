@@ -21,6 +21,7 @@
 # Ekam build artifacts.
 /c++/tmp/
 /c++/bin/
+/c++/deps/
 
 # setup-ekam.sh
 /c++/.ekam
@@ -71,9 +72,17 @@
 /c++/m4/ltversion.m4
 /c++/m4/lt~obsolete.m4
 /c++/samples/addressbook
+/c++/.cache/
 
 # editor artefacts
 *~
 
 # cross-compiling / glibc testing
 /dockcross
+
+# bazel output
+bazel-*
+
+# generic build output
+/build/
+/result

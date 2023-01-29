@@ -90,7 +90,6 @@ protected:
   }
 
   kj::Promise<void> waitForever(WaitForeverContext context) override {
-    context.allowCancellation();
     return kj::NEVER_DONE;
   }
 };
@@ -128,6 +127,8 @@ public:
       return fork.addBranch();
     });
   }
+
+  bool shouldResolveBeforeRedirecting() override { return true; }
 
 private:
   kj::Maybe<kj::ForkedPromise<void>> revokePromise;

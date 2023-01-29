@@ -225,7 +225,7 @@ struct SingularDerivedDynamic final: public DynamicType1 {
   ~SingularDerivedDynamic() {
     destructorCalled = true;
   }
-  KJ_DISALLOW_COPY(SingularDerivedDynamic);
+  KJ_DISALLOW_COPY_AND_MOVE(SingularDerivedDynamic);
 
   bool& destructorCalled;
 };
@@ -238,7 +238,7 @@ struct MultipleDerivedDynamic final: public DynamicType1, public DynamicType2 {
     destructorCalled = true;
   }
 
-  KJ_DISALLOW_COPY(MultipleDerivedDynamic);
+  KJ_DISALLOW_COPY_AND_MOVE(MultipleDerivedDynamic);
 
   bool& destructorCalled;
 };
@@ -393,6 +393,46 @@ KJ_TEST("Own<IncompleteType>") {
 
     KJ_EXPECT(disposer.sawPtr == ptr);
   }
+}
+
+KJ_TEST("Own with static disposer") {
+  static int* disposedPtr = nullptr;
+  struct MyDisposer {
+    static void dispose(int* value) {
+      KJ_EXPECT(disposedPtr == nullptr);
+      disposedPtr = value;
+    };
+  };
+
+  int i;
+
+  {
+    Own<int, MyDisposer> ptr(&i);
+    KJ_EXPECT(disposedPtr == nullptr);
+  }
+  KJ_EXPECT(disposedPtr == &i);
+  disposedPtr = nullptr;
+
+  {
+    Own<int, MyDisposer> ptr(&i);
+    KJ_EXPECT(disposedPtr == nullptr);
+    Own<int, MyDisposer> ptr2(kj::mv(ptr));
+    KJ_EXPECT(disposedPtr == nullptr);
+  }
+  KJ_EXPECT(disposedPtr == &i);
+  disposedPtr = nullptr;
+
+  {
+    Own<int, MyDisposer> ptr2;
+    {
+      Own<int, MyDisposer> ptr(&i);
+      KJ_EXPECT(disposedPtr == nullptr);
+      ptr2 = kj::mv(ptr);
+      KJ_EXPECT(disposedPtr == nullptr);
+    }
+    KJ_EXPECT(disposedPtr == nullptr);
+  }
+  KJ_EXPECT(disposedPtr == &i);
 }
 
 // TODO(test):  More tests.

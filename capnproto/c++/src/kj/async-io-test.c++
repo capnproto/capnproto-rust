@@ -34,6 +34,7 @@
 #include <kj/compat/gtest.h>
 #include <kj/time.h>
 #include <sys/types.h>
+#include <kj/filesystem.h>
 #if _WIN32
 #include <ws2tcpip.h>
 #include "windows-sanity.h"
@@ -1199,6 +1200,58 @@ KJ_TEST("NetworkFilter") {
     KJ_EXPECT(allowed4(filter, "1.2.3.1"));
     KJ_EXPECT(!allowed4(filter, "1.2.3.4"));
   }
+
+  // Test combinations of public/private/network/local. At one point these were buggy.
+  {
+    _::NetworkFilter filter({"public", "private"}, {}, base);
+
+    KJ_EXPECT(allowed4(filter, "8.8.8.8"));
+    KJ_EXPECT(!allowed4(filter, "240.1.2.3"));
+
+    KJ_EXPECT(allowed4(filter, "192.168.0.1"));
+    KJ_EXPECT(allowed4(filter, "10.1.2.3"));
+    KJ_EXPECT(allowed4(filter, "127.0.0.1"));
+    KJ_EXPECT(allowed4(filter, "0.0.0.0"));
+
+    KJ_EXPECT(allowed6(filter, "2400:cb00:2048:1::c629:d7a2"));
+    KJ_EXPECT(allowed6(filter, "fc00::1234"));
+    KJ_EXPECT(allowed6(filter, "::1"));
+    KJ_EXPECT(allowed6(filter, "::"));
+  }
+
+  {
+    _::NetworkFilter filter({"network", "local"}, {}, base);
+
+    KJ_EXPECT(allowed4(filter, "8.8.8.8"));
+    KJ_EXPECT(!allowed4(filter, "240.1.2.3"));
+
+    KJ_EXPECT(allowed4(filter, "192.168.0.1"));
+    KJ_EXPECT(allowed4(filter, "10.1.2.3"));
+    KJ_EXPECT(allowed4(filter, "127.0.0.1"));
+    KJ_EXPECT(allowed4(filter, "0.0.0.0"));
+
+    KJ_EXPECT(allowed6(filter, "2400:cb00:2048:1::c629:d7a2"));
+    KJ_EXPECT(allowed6(filter, "fc00::1234"));
+    KJ_EXPECT(allowed6(filter, "::1"));
+    KJ_EXPECT(allowed6(filter, "::"));
+  }
+
+  {
+    _::NetworkFilter filter({"public", "local"}, {}, base);
+
+    KJ_EXPECT(allowed4(filter, "8.8.8.8"));
+    KJ_EXPECT(!allowed4(filter, "240.1.2.3"));
+
+    KJ_EXPECT(!allowed4(filter, "192.168.0.1"));
+    KJ_EXPECT(!allowed4(filter, "10.1.2.3"));
+    KJ_EXPECT(allowed4(filter, "127.0.0.1"));
+    KJ_EXPECT(allowed4(filter, "0.0.0.0"));
+
+    KJ_EXPECT(allowed6(filter, "2400:cb00:2048:1::c629:d7a2"));
+    KJ_EXPECT(!allowed6(filter, "fc00::1234"));
+    KJ_EXPECT(allowed6(filter, "::1"));
+    KJ_EXPECT(allowed6(filter, "::"));
+  }
 }
 
 KJ_TEST("Network::restrictPeers()") {
@@ -1234,7 +1287,7 @@ kj::Promise<void> expectRead(kj::AsyncInputStream& in, kj::StringPtr expected) {
   auto buffer = kj::heapArray<char>(expected.size());
 
   auto promise = in.tryRead(buffer.begin(), 1, buffer.size());
-  return promise.then(kj::mvCapture(buffer, [&in,expected](kj::Array<char> buffer, size_t amount) {
+  return promise.then([&in,expected,buffer=kj::mv(buffer)](size_t amount) {
     if (amount == 0) {
       KJ_FAIL_ASSERT("expected data never sent", expected);
     }
@@ -1245,7 +1298,7 @@ kj::Promise<void> expectRead(kj::AsyncInputStream& in, kj::StringPtr expected) {
     }
 
     return expectRead(in, expected.slice(amount));
-  }));
+  });
 }
 
 class MockAsyncInputStream final: public AsyncInputStream {
@@ -3305,6 +3358,68 @@ KJ_TEST("OS handle pumpTo write buffer is full before pump -- and a lot of data 
   KJ_EXPECT(pipe2.ends[1]->readAllText().wait(ws) == "");
 }
 #endif
+
+KJ_TEST("pump file to socket") {
+  // Tests sendfile() optimization
+
+  auto ioContext = setupAsyncIo();
+  auto& ws = ioContext.waitScope;
+
+  auto doTest = [&](kj::Own<const File> file) {
+    file->writeAll("foobar"_kj.asBytes());
+
+    {
+      FileInputStream input(*file);
+      auto pipe = ioContext.provider->newTwoWayPipe();
+      auto readPromise = pipe.ends[1]->readAllText();
+      input.pumpTo(*pipe.ends[0]).wait(ws);
+      pipe.ends[0]->shutdownWrite();
+      KJ_EXPECT(readPromise.wait(ws) == "foobar");
+      KJ_EXPECT(input.getOffset() == 6);
+    }
+
+    {
+      FileInputStream input(*file);
+      auto pipe = ioContext.provider->newTwoWayPipe();
+      auto readPromise = pipe.ends[1]->readAllText();
+      input.pumpTo(*pipe.ends[0], 3).wait(ws);
+      pipe.ends[0]->shutdownWrite();
+      KJ_EXPECT(readPromise.wait(ws) == "foo");
+      KJ_EXPECT(input.getOffset() == 3);
+    }
+
+    {
+      FileInputStream input(*file, 3);
+      auto pipe = ioContext.provider->newTwoWayPipe();
+      auto readPromise = pipe.ends[1]->readAllText();
+      input.pumpTo(*pipe.ends[0]).wait(ws);
+      pipe.ends[0]->shutdownWrite();
+      KJ_EXPECT(readPromise.wait(ws) == "bar");
+      KJ_EXPECT(input.getOffset() == 6);
+    }
+
+    auto big = bigString(500'000);
+    file->writeAll(big);
+
+    {
+      FileInputStream input(*file);
+      auto pipe = ioContext.provider->newTwoWayPipe();
+      auto readPromise = pipe.ends[1]->readAllText();
+      input.pumpTo(*pipe.ends[0]).wait(ws);
+      pipe.ends[0]->shutdownWrite();
+      // Extra parens here so that we don't write the big string to the console on failure...
+      KJ_EXPECT((readPromise.wait(ws) == big));
+      KJ_EXPECT(input.getOffset() == big.size());
+    }
+  };
+
+  // Try with an in-memory file. No optimization is possible.
+  doTest(kj::newInMemoryFile(kj::nullClock()));
+
+  // Try with a disk file. Should use sendfile().
+  auto fs = kj::newDiskFilesystem();
+  doTest(fs->getCurrent().createTemporary());
+}
 
 }  // namespace
 }  // namespace kj

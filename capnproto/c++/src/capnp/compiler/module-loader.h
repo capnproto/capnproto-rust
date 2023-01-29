@@ -38,7 +38,7 @@ public:
   explicit ModuleLoader(GlobalErrorReporter& errorReporter);
   // Create a ModuleLoader that reports error messages to the given reporter.
 
-  KJ_DISALLOW_COPY(ModuleLoader);
+  KJ_DISALLOW_COPY_AND_MOVE(ModuleLoader);
 
   ~ModuleLoader() noexcept(false);
 
@@ -48,6 +48,10 @@ public:
   kj::Maybe<Module&> loadModule(const kj::ReadableDirectory& dir, kj::PathPtr path);
   // Tries to load a module with the given path inside the given directory. Returns nullptr if the
   // file doesn't exist.
+
+  void setFileIdsRequired(bool value);
+  // Same as SchemaParser::setFileIdsRequired(). If set false, files will not be required to have
+  // a top-level file ID; if missing a random one will be assigned.
 
 private:
   class Impl;

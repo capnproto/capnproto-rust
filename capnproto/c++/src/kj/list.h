@@ -84,7 +84,7 @@ class List {
 
 public:
   List() = default;
-  KJ_DISALLOW_COPY(List);
+  KJ_DISALLOW_COPY_AND_MOVE(List);
 
   bool empty() const {
     return head == nullptr;
@@ -99,6 +99,19 @@ public:
     *tail = element;
     (element.*link).prev = tail;
     tail = &((element.*link).next);
+    ++listSize;
+  }
+
+  void addFront(T& element) {
+    if ((element.*link).prev != nullptr) _::throwDoubleAdd();
+    (element.*link).next = head;
+    (element.*link).prev = &head;
+    KJ_IF_MAYBE(oldHead, head) {
+      (oldHead->*link).prev = &(element.*link).next;
+    } else {
+      tail = &(element.*link).next;
+    }
+    head = element;
     ++listSize;
   }
 
@@ -141,7 +154,7 @@ public:
     // Intentionally `noexcept` because we want to crash if a dangling pointer was left in a list.
     if (prev != nullptr) _::throwDestroyedWhileInList();
   }
-  KJ_DISALLOW_COPY(ListLink);
+  KJ_DISALLOW_COPY_AND_MOVE(ListLink);
 
   bool isLinked() const { return prev != nullptr; }
 

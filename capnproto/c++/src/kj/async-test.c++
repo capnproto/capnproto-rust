@@ -227,9 +227,9 @@ TEST(Async, DeepChain) {
 
   // Create a ridiculous chain of promises.
   for (uint i = 0; i < 1000; i++) {
-    promise = evalLater(mvCapture(promise, [](Promise<void> promise) {
+    promise = evalLater([promise=kj::mv(promise)]() mutable {
       return kj::mv(promise);
-    }));
+    });
   }
 
   loop.run();
@@ -264,9 +264,9 @@ TEST(Async, DeepChain2) {
 
   // Create a ridiculous chain of promises.
   for (uint i = 0; i < 1000; i++) {
-    promise = evalLater(mvCapture(promise, [](Promise<void> promise) {
+    promise = evalLater([promise=kj::mv(promise)]() mutable {
       return kj::mv(promise);
-    }));
+    });
   }
 
   promise.wait(waitScope);
@@ -303,9 +303,9 @@ TEST(Async, DeepChain3) {
 
 Promise<void> makeChain2(uint i, Promise<void> promise) {
   if (i > 0) {
-    return evalLater(mvCapture(promise, [i](Promise<void>&& promise) -> Promise<void> {
+    return evalLater([i, promise=kj::mv(promise)]() mutable -> Promise<void> {
       return makeChain2(i - 1, kj::mv(promise));
-    }));
+    });
   } else {
     return kj::mv(promise);
   }
@@ -1015,6 +1015,46 @@ TEST(Async, Poll) {
   paf.promise.wait(waitScope);
 }
 
+KJ_TEST("Maximum turn count during wait scope poll is enforced") {
+  EventLoop loop;
+  WaitScope waitScope(loop);
+  ErrorHandlerImpl errorHandler;
+  TaskSet tasks(errorHandler);
+
+  auto evaluated1 = false;
+  tasks.add(evalLater([&]() {
+    evaluated1 = true;
+  }));
+
+  auto evaluated2 = false;
+  tasks.add(evalLater([&]() {
+    evaluated2 = true;
+  }));
+
+  auto evaluated3 = false;
+  tasks.add(evalLater([&]() {
+    evaluated3 = true;
+  }));
+
+  uint count;
+
+  // Check that only events up to a maximum are resolved:
+  count = waitScope.poll(2);
+  KJ_ASSERT(count == 2);
+  KJ_EXPECT(evaluated1);
+  KJ_EXPECT(evaluated2);
+  KJ_EXPECT(!evaluated3);
+
+  // Get the last remaining event in the queue:
+  count = waitScope.poll(1);
+  KJ_ASSERT(count == 1);
+  KJ_EXPECT(evaluated3);
+
+  // No more events:
+  count = waitScope.poll(1);
+  KJ_ASSERT(count == 0);
+}
+
 KJ_TEST("exclusiveJoin both events complete simultaneously") {
   // Previously, if both branches of an exclusiveJoin() completed simultaneously, then the parent
   // event could be armed twice. This is an error, but the exact results of this error depend on
@@ -1208,8 +1248,8 @@ KJ_TEST("fiber pool") {
     }
   };
   run();
-  KJ_ASSERT_NONNULL(i1_local);
-  KJ_ASSERT_NONNULL(i2_local);
+  KJ_ASSERT(i1_local != nullptr);
+  KJ_ASSERT(i2_local != nullptr);
   // run the same thing and reuse the fibers
   run();
 }
@@ -1334,6 +1374,12 @@ KJ_TEST("fiber pool limit") {
   // that the second stack doesn't match the previously-deleted stack, because there's a high
   // likelihood that the new stack would be allocated in the same location.
 }
+
+#if __GNUC__ >= 12 && !__clang__
+// The test below intentionally takes a pointer to a stack variable and stores it past the end
+// of the function. This seems to trigger a warning in newer GCCs.
+#pragma GCC diagnostic ignored "-Wdangling-pointer"
+#endif
 
 KJ_TEST("run event loop on freelisted stacks") {
   if (isLibcContextHandlingKnownBroken()) return;
@@ -1511,6 +1557,42 @@ KJ_TEST("retryOnDisconnect") {
     KJ_EXPECT(promise.wait(waitScope) == 123);
     KJ_EXPECT(func.i == 2);
   }
+}
+
+#if !(__GLIBC__ == 2 && __GLIBC_MINOR__ <= 17)
+// manylinux2014-x86 doesn't seem to respect `alignas(16)`. I am guessing this is a glibc issue
+// but I don't really know. It uses glibc 2.17, so testing for that and skipping the test makes
+// CI work.
+KJ_TEST("capture weird alignment in continuation") {
+  struct alignas(16) WeirdAlign {
+    ~WeirdAlign() {
+      KJ_EXPECT(reinterpret_cast<uintptr_t>(this) % 16 == 0);
+    }
+    int i;
+  };
+
+  EventLoop loop;
+  WaitScope waitScope(loop);
+
+  kj::Promise<void> p = kj::READY_NOW;
+
+  WeirdAlign value = { 123 };
+  WeirdAlign value2 = { 456 };
+  auto p2 = p.then([value, value2]() -> WeirdAlign {
+    return { value.i + value2.i };
+  });
+
+  KJ_EXPECT(p2.wait(waitScope).i == 579);
+}
+#endif
+
+KJ_TEST("constPromise") {
+  EventLoop loop;
+  WaitScope waitScope(loop);
+
+  Promise<int> p = constPromise<int, 123>();
+  int i = p.wait(waitScope);
+  KJ_EXPECT(i == 123);
 }
 
 }  // namespace

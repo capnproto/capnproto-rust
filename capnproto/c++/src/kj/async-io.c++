@@ -31,6 +31,7 @@
 #include "io.h"
 #include "one-of.h"
 #include <deque>
+#include <kj/filesystem.h>
 
 #if _WIN32
 #include <winsock2.h>
@@ -220,7 +221,7 @@ public:
 
   Promise<size_t> tryRead(void* buffer, size_t minBytes, size_t maxBytes) override {
     if (minBytes == 0) {
-      return size_t(0);
+      return constPromise<size_t, 0>();
     } else KJ_IF_MAYBE(s, state) {
       return s->tryRead(buffer, minBytes, maxBytes);
     } else {
@@ -259,7 +260,7 @@ public:
 
   Promise<uint64_t> pumpTo(AsyncOutputStream& output, uint64_t amount) override {
     if (amount == 0) {
-      return uint64_t(0);
+      return constPromise<uint64_t, 0>();
     } else KJ_IF_MAYBE(s, state) {
       return s->pumpTo(output, amount);
     } else {
@@ -347,7 +348,7 @@ public:
   Maybe<Promise<uint64_t>> tryPumpFrom(
       AsyncInputStream& input, uint64_t amount) override {
     if (amount == 0) {
-      return Promise<uint64_t>(uint64_t(0));
+      return constPromise<uint64_t, 0>();
     } else KJ_IF_MAYBE(s, state) {
       return s->tryPumpFrom(input, amount);
     } else {
@@ -1415,7 +1416,7 @@ private:
 
       if (input.tryGetLength().orDefault(1) == 0) {
         // Yeah a pump would pump nothing.
-        return Promise<uint64_t>(uint64_t(0));
+        return constPromise<uint64_t, 0>();
       } else {
         // While we *could* just return nullptr here, it would probably then fall back to a normal
         // buffered pump, which would allocate a big old buffer just to find there's nothing to
@@ -1448,7 +1449,7 @@ private:
 
   public:
     Promise<size_t> tryRead(void* readBufferPtr, size_t minBytes, size_t maxBytes) override {
-      return size_t(0);
+      return constPromise<size_t, 0>();
     }
     Promise<ReadResult> tryReadWithFds(void* readBuffer, size_t minBytes, size_t maxBytes,
                                        AutoCloseFd* fdBuffer, size_t maxFds) override {
@@ -1460,7 +1461,7 @@ private:
       return ReadResult { 0, 0 };
     }
     Promise<uint64_t> pumpTo(AsyncOutputStream& output, uint64_t amount) override {
-      return uint64_t(0);
+      return constPromise<uint64_t, 0>();
     }
     void abortRead() override {
       // ignore
@@ -1625,7 +1626,7 @@ public:
   }
 
   Promise<size_t> tryRead(void* buffer, size_t minBytes, size_t maxBytes) override {
-    if (limit == 0) return size_t(0);
+    if (limit == 0) return constPromise<size_t, 0>();
     return inner->tryRead(buffer, kj::min(minBytes, limit), kj::min(maxBytes, limit))
         .then([this,minBytes](size_t actual) {
       decreaseLimit(actual, minBytes);
@@ -1634,7 +1635,7 @@ public:
   }
 
   Promise<uint64_t> pumpTo(AsyncOutputStream& output, uint64_t amount) override {
-    if (limit == 0) return uint64_t(0);
+    if (limit == 0) return constPromise<uint64_t, 0>();
     auto requested = kj::min(amount, limit);
     return inner->pumpTo(output, requested)
         .then([this,requested](uint64_t actual) {
@@ -1852,7 +1853,7 @@ public:
     if (branch.buffer.empty()) {
       KJ_IF_MAYBE(reason, stoppage) {
         if (reason->is<Eof>()) {
-          return uint64_t(0);
+          return constPromise<uint64_t, 0>();
         }
         return cp(reason->get<Exception>());
       }
@@ -1909,7 +1910,7 @@ private:
       KJ_ASSERT(sinkLink == nullptr, "sink initiated with sink already in flight");
       sinkLink = *this;
     }
-    KJ_DISALLOW_COPY(SinkBase);
+    KJ_DISALLOW_COPY_AND_MOVE(SinkBase);
     ~SinkBase() noexcept(false) { detach(); }
 
     void reject(Exception&& exception) override {
@@ -2748,9 +2749,9 @@ Promise<Own<AsyncIoStream>> CapabilityStreamNetworkAddress::connect() {
   }
   auto result = kj::mv(pipe.ends[0]);
   return inner.sendStream(kj::mv(pipe.ends[1]))
-      .then(kj::mvCapture(result, [](Own<AsyncIoStream>&& result) {
-    return kj::mv(result);
-  }));
+      .then([result=kj::mv(result)]() mutable {
+    return Own<AsyncIoStream>(kj::mv(result));
+  });
 }
 Promise<AuthenticatedStream> CapabilityStreamNetworkAddress::connectAuthenticated() {
   return connect().then([](Own<AsyncIoStream>&& stream) {
@@ -2766,6 +2767,40 @@ Own<NetworkAddress> CapabilityStreamNetworkAddress::clone() {
 }
 String CapabilityStreamNetworkAddress::toString() {
   return kj::str("<CapabilityStreamNetworkAddress>");
+}
+
+Promise<size_t> FileInputStream::tryRead(void* buffer, size_t minBytes, size_t maxBytes) {
+  // Note that our contract with `minBytes` is that we should only return fewer than `minBytes` on
+  // EOF. A file read will only produce fewer than the requested number of bytes if EOF was reached.
+  // `minBytes` cannot be greater than `maxBytes`. So, this read satisfies the `minBytes`
+  // requirement.
+  size_t result = file.read(offset, arrayPtr(reinterpret_cast<byte*>(buffer), maxBytes));
+  offset += result;
+  return result;
+}
+
+Maybe<uint64_t> FileInputStream::tryGetLength() {
+  uint64_t size = file.stat().size;
+  return offset < size ? size - offset : 0;
+}
+
+Promise<void> FileOutputStream::write(const void* buffer, size_t size) {
+  file.write(offset, arrayPtr(reinterpret_cast<const byte*>(buffer), size));
+  offset += size;
+  return kj::READY_NOW;
+}
+
+Promise<void> FileOutputStream::write(ArrayPtr<const ArrayPtr<const byte>> pieces) {
+  // TODO(perf): Extend kj::File with an array-of-arrays write?
+  for (auto piece: pieces) {
+    file.write(offset, piece);
+    offset += piece.size();
+  }
+  return kj::READY_NOW;
+}
+
+Promise<void> FileOutputStream::whenWriteDisconnected() {
+  return kj::NEVER_DONE;
 }
 
 // =======================================================================================
@@ -3120,6 +3155,13 @@ ArrayPtr<const CidrRange> exampleAddresses() {
   return kj::arrayPtr(result, kj::size(result));
 }
 
+bool matchesAny(ArrayPtr<const CidrRange> cidrs, const struct sockaddr* addr) {
+  for (auto& cidr: cidrs) {
+    if (cidr.matches(addr)) return true;
+  }
+  return false;
+}
+
 NetworkFilter::NetworkFilter()
     : allowUnix(true), allowAbstractUnix(true) {
   allowCidrs.add(CidrRange::inet4({0,0,0,0}, 0));
@@ -3134,17 +3176,14 @@ NetworkFilter::NetworkFilter(ArrayPtr<const StringPtr> allow, ArrayPtr<const Str
     if (rule == "local") {
       allowCidrs.addAll(localCidrs());
     } else if (rule == "network") {
-      allowCidrs.add(CidrRange::inet4({0,0,0,0}, 0));
-      allowCidrs.add(CidrRange::inet6({}, {}, 0));
-      denyCidrs.addAll(localCidrs());
+      // Can't be represented as a simple union of CIDRs, so we handle in shouldAllow().
+      allowNetwork = true;
     } else if (rule == "private") {
       allowCidrs.addAll(privateCidrs());
       allowCidrs.addAll(localCidrs());
     } else if (rule == "public") {
-      allowCidrs.add(CidrRange::inet4({0,0,0,0}, 0));
-      allowCidrs.add(CidrRange::inet6({}, {}, 0));
-      denyCidrs.addAll(privateCidrs());
-      denyCidrs.addAll(localCidrs());
+      // Can't be represented as a simple union of CIDRs, so we handle in shouldAllow().
+      allowPublic = true;
     } else if (rule == "unix") {
       allowUnix = true;
     } else if (rule == "unix-abstract") {
@@ -3190,6 +3229,23 @@ bool NetworkFilter::shouldAllow(const struct sockaddr* addr, uint addrlen) {
 
   bool allowed = false;
   uint allowSpecificity = 0;
+
+  if (allowPublic) {
+    if ((addr->sa_family == AF_INET || addr->sa_family == AF_INET6) &&
+        !matchesAny(privateCidrs(), addr) && !matchesAny(localCidrs(), addr)) {
+      allowed = true;
+      // Don't adjust allowSpecificity as this match has an effective specificity of zero.
+    }
+  }
+
+  if (allowNetwork) {
+    if ((addr->sa_family == AF_INET || addr->sa_family == AF_INET6) &&
+        !matchesAny(localCidrs(), addr)) {
+      allowed = true;
+      // Don't adjust allowSpecificity as this match has an effective specificity of zero.
+    }
+  }
+
   for (auto& cidr: allowCidrs) {
     if (cidr.matches(addr)) {
       allowSpecificity = kj::max(allowSpecificity, cidr.getSpecificity());
@@ -3222,6 +3278,10 @@ bool NetworkFilter::shouldAllowParse(const struct sockaddr* addr, uint addrlen) 
     }
   } else {
 #endif
+    if ((addr->sa_family == AF_INET || addr->sa_family == AF_INET6) &&
+        (allowPublic || allowNetwork)) {
+      matched = true;
+    }
     for (auto& cidr: allowCidrs) {
       if (cidr.matchesFamily(addr->sa_family)) {
         matched = true;

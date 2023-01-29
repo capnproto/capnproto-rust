@@ -47,8 +47,8 @@ CAPNP_BEGIN_HEADER
 namespace capnp {
 
 #define CAPNP_VERSION_MAJOR 0
-#define CAPNP_VERSION_MINOR 10
-#define CAPNP_VERSION_MICRO 2
+#define CAPNP_VERSION_MINOR 11
+#define CAPNP_VERSION_MICRO 0
 
 #define CAPNP_VERSION \
   (CAPNP_VERSION_MAJOR * 1000000 + CAPNP_VERSION_MINOR * 1000 + CAPNP_VERSION_MICRO)
@@ -173,7 +173,7 @@ inline constexpr Kind kind() {
   return k;
 }
 
-#if _MSC_VER && !defined(__clang__)
+#if (_MSC_VER < 1900) && !defined(__clang__)
 
 #define CAPNP_KIND(T) ::capnp::_::Kind_<T>::kind
 // Avoid constexpr methods in MSVC (it remains buggy in many situations).
@@ -224,6 +224,7 @@ template <typename T, Kind k = CAPNP_KIND(T)> struct ReaderFor_ { typedef typena
 template <typename T> struct ReaderFor_<T, Kind::PRIMITIVE> { typedef T Type; };
 template <typename T> struct ReaderFor_<T, Kind::ENUM> { typedef T Type; };
 template <typename T> struct ReaderFor_<T, Kind::INTERFACE> { typedef typename T::Client Type; };
+template <typename T> struct ReaderFor_<List<T, Kind::OTHER>, Kind::LIST> { typedef typename List<T>::Reader Type; };
 template <typename T> using ReaderFor = typename ReaderFor_<T>::Type;
 // The type returned by List<T>::Reader::operator[].
 
@@ -231,11 +232,13 @@ template <typename T, Kind k = CAPNP_KIND(T)> struct BuilderFor_ { typedef typen
 template <typename T> struct BuilderFor_<T, Kind::PRIMITIVE> { typedef T Type; };
 template <typename T> struct BuilderFor_<T, Kind::ENUM> { typedef T Type; };
 template <typename T> struct BuilderFor_<T, Kind::INTERFACE> { typedef typename T::Client Type; };
+template <typename T> struct BuilderFor_<List<T, Kind::OTHER>, Kind::LIST> { typedef typename List<T>::Builder Type; };
 template <typename T> using BuilderFor = typename BuilderFor_<T>::Type;
 // The type returned by List<T>::Builder::operator[].
 
 template <typename T, Kind k = CAPNP_KIND(T)> struct PipelineFor_ { typedef typename T::Pipeline Type;};
 template <typename T> struct PipelineFor_<T, Kind::INTERFACE> { typedef typename T::Client Type; };
+template <typename T> struct PipelineFor_<List<T, Kind::OTHER>, Kind::LIST> { typedef typename List<T>::Pipeline Type; };
 template <typename T> using PipelineFor = typename PipelineFor_<T>::Type;
 
 template <typename T, Kind k = CAPNP_KIND(T)> struct TypeIfEnum_;
@@ -361,7 +364,7 @@ private:
   // the copy constructor. We don't want to disable the warning because it's a useful warning and
   // we'd have to disable it for all applications that include this header. Instead we allow `word`
   // to be copyable on GCC.
-  KJ_DISALLOW_COPY(word);
+  KJ_DISALLOW_COPY_AND_MOVE(word);
 #endif
 };
 

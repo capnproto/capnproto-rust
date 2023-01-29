@@ -546,6 +546,8 @@ struct TestGenerics(Foo, Bar) {
     bar @1 :Bar;
   }
 
+  listFoo @5 :List(Foo);
+
   struct Inner2(Baz) {
     bar @0 :Bar;
     baz @1 :Baz;
@@ -758,6 +760,13 @@ const embeddedStruct :TestAllTypes = embed "testdata/binary";
 
 const nonAsciiText :Text = "♫ é ✓";
 
+const blockText :Text =
+    `foo bar baz
+    `"qux" `corge` 'grault'
+    "regular\"quoted\"line"
+    `garply\nwaldo\tfred\"plugh\"xyzzy\'thud
+    ;
+
 struct TestAnyPointerConstants {
   anyKindAsStruct @0 :AnyPointer;
   anyStructAsStruct @1 :AnyStruct;
@@ -814,7 +823,7 @@ interface TestCallOrder {
   # The input `expected` is ignored but useful for disambiguating debug logs.
 }
 
-interface TestTailCallee {
+interface TestTailCallee $Cxx.allowCancellation {
   struct TailResult {
     i @0 :UInt32;
     t @1 :Text;
@@ -828,7 +837,7 @@ interface TestTailCaller {
   foo @0 (i :Int32, callee :TestTailCallee) -> TestTailCallee.TailResult;
 }
 
-interface TestStreaming {
+interface TestStreaming $Cxx.allowCancellation {
   doStreamI @0 (i :UInt32) -> stream;
   doStreamJ @1 (j :UInt32) -> stream;
   finishStream @2 () -> (totalI :UInt32, totalJ :UInt32);
@@ -846,7 +855,7 @@ interface TestMoreStuff extends(TestCallOrder) {
   callFooWhenResolved @1 (cap :TestInterface) -> (s: Text);
   # Like callFoo but waits for `cap` to resolve first.
 
-  neverReturn @2 (cap :TestInterface) -> (capCopy :TestInterface);
+  neverReturn @2 (cap :TestInterface) -> (capCopy :TestInterface) $Cxx.allowCancellation;
   # Doesn't return.  You should cancel it.
 
   hold @3 (cap :TestInterface) -> ();
@@ -861,7 +870,7 @@ interface TestMoreStuff extends(TestCallOrder) {
   echo @6 (cap :TestCallOrder) -> (cap :TestCallOrder);
   # Just returns the input cap.
 
-  expectCancel @7 (cap :TestInterface) -> ();
+  expectCancel @7 (cap :TestInterface) -> () $Cxx.allowCancellation;
   # evalLater()-loops forever, holding `cap`.  Must be canceled.
 
   methodWithDefaults @8 (a :Text, b :UInt32 = 123, c :Text = "foo") -> (d :Text, e :Text = "bar");
@@ -893,7 +902,7 @@ interface TestMembrane {
   callIntercept @2 (thing :Thing, tailCall :Bool) -> Result;
   loopback @3 (thing :Thing) -> (thing :Thing);
 
-  waitForever @4 ();
+  waitForever @4 () $Cxx.allowCancellation;
 
   interface Thing {
     passThrough @0 () -> Result;
@@ -991,4 +1000,48 @@ struct TestNameAnnotation $Cxx.name("RenamedStruct") {
 
 interface TestNameAnnotationInterface $Cxx.name("RenamedInterface") {
   badlyNamedMethod @0 (badlyNamedParam :UInt8 $Cxx.name("renamedParam")) $Cxx.name("renamedMethod");
+}
+
+struct TestImpliedFirstField {
+  struct TextStruct {
+    text @0 :Text;
+    i @1 :UInt32 = 321;
+  }
+
+  textStruct @0 :TextStruct = "foo";
+  textStructList @1 :List(TextStruct);
+
+  intGroup :group {
+    i @2 :UInt32;
+    str @3 :Text = "corge";
+  }
+}
+
+const testImpliedFirstField :TestImpliedFirstField = (
+  textStruct = "bar",
+  textStructList = ["baz", (text = "qux", i = 123)],
+  intGroup = 123
+);
+
+struct TestCycleANoCaps {
+  foo @0 :TestCycleBNoCaps;
+}
+
+struct TestCycleBNoCaps {
+  foo @0 :List(TestCycleANoCaps);
+  bar @1 :TestAllTypes;
+}
+
+struct TestCycleAWithCaps {
+  foo @0 :TestCycleBWithCaps;
+}
+
+struct TestCycleBWithCaps {
+  foo @0 :List(TestCycleAWithCaps);
+  bar @1 :TestInterface;
+}
+
+interface TestGenericParameterPassThroughInterface(T) {
+  getGenericList @0 () -> (listResult :List(T));
+  setGenericList @1 (listResult :List(T)) -> ();
 }

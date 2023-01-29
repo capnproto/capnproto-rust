@@ -92,8 +92,17 @@ KJ_HTTP_FOR_EACH_METHOD(DECLARE_METHOD)
 #undef DECLARE_METHOD
 };
 
+struct HttpConnectMethod {};
+// CONNECT is handled specially and separately from the other HttpMethods.
+
 kj::StringPtr KJ_STRINGIFY(HttpMethod method);
+kj::StringPtr KJ_STRINGIFY(HttpConnectMethod method);
 kj::Maybe<HttpMethod> tryParseHttpMethod(kj::StringPtr name);
+kj::Maybe<kj::OneOf<HttpMethod, HttpConnectMethod>> tryParseHttpMethodAllowingConnect(
+    kj::StringPtr name);
+// Like tryParseHttpMethod but, as the name suggests, explicitly allows for the CONNECT
+// method. Added as a separate function instead of modifying tryParseHttpMethod to avoid
+// breaking API changes in existing uses of tryParseHttpMethod.
 
 class HttpHeaderTable;
 
@@ -221,7 +230,7 @@ public:
     kj::Own<HttpHeaderTable> table;
   };
 
-  KJ_DISALLOW_COPY(HttpHeaderTable);  // Can't copy because HttpHeaderId points to the table.
+  KJ_DISALLOW_COPY_AND_MOVE(HttpHeaderTable);  // Can't copy because HttpHeaderId points to the table.
   ~HttpHeaderTable() noexcept(false);
 
   uint idCount() const;
@@ -357,6 +366,9 @@ public:
     HttpMethod method;
     kj::StringPtr url;
   };
+  struct ConnectRequest {
+    kj::StringPtr authority;
+  };
   struct Response {
     uint statusCode;
     kj::StringPtr statusText;
@@ -395,9 +407,12 @@ public:
 
   using RequestOrProtocolError = kj::OneOf<Request, ProtocolError>;
   using ResponseOrProtocolError = kj::OneOf<Response, ProtocolError>;
+  using RequestConnectOrProtocolError = kj::OneOf<Request, ConnectRequest, ProtocolError>;
 
   RequestOrProtocolError tryParseRequest(kj::ArrayPtr<char> content);
+  RequestConnectOrProtocolError tryParseRequestOrConnect(kj::ArrayPtr<char> content);
   ResponseOrProtocolError tryParseResponse(kj::ArrayPtr<char> content);
+
   // Parse an HTTP header blob and add all the headers to this object.
   //
   // `content` should be all text from the start of the request to the first occurrence of two
@@ -411,6 +426,8 @@ public:
   // Like tryParseRequest()/tryParseResponse(), but don't expect any request/response line.
 
   kj::String serializeRequest(HttpMethod method, kj::StringPtr url,
+                              kj::ArrayPtr<const kj::StringPtr> connectionHeaders = nullptr) const;
+  kj::String serializeConnectRequest(kj::StringPtr authority,
                               kj::ArrayPtr<const kj::StringPtr> connectionHeaders = nullptr) const;
   kj::String serializeResponse(uint statusCode, kj::StringPtr statusText,
                                kj::ArrayPtr<const kj::StringPtr> connectionHeaders = nullptr) const;
@@ -495,6 +512,17 @@ public:
   // The returned struct contains pointers directly into a buffer that is invalidated on the next
   // message read.
 
+  struct Connect {
+    kj::StringPtr authority;
+    const HttpHeaders& headers;
+    kj::Own<kj::AsyncInputStream> body;
+  };
+  virtual kj::Promise<kj::OneOf<Request, Connect>> readRequestAllowingConnect() = 0;
+  // Reads one HTTP request from the input stream.
+  //
+  // The returned struct contains pointers directly into a buffer that is invalidated on the next
+  // message read.
+
   struct Response {
     uint statusCode;
     kj::StringPtr statusText;
@@ -534,6 +562,16 @@ class EntropySource {
 
 public:
   virtual void generate(kj::ArrayPtr<byte> buffer) = 0;
+};
+
+struct CompressionParameters {
+  // These are the parameters for `Sec-WebSocket-Extensions` permessage-deflate extension.
+  // Since we cannot distinguish the client/server in `upgradeToWebSocket`, we use the prefixes
+  // `inbound` and `outbound` instead.
+  bool outboundNoContextTakeover = false;
+  bool inboundNoContextTakeover = false;
+  kj::Maybe<size_t> outboundMaxWindowBits = nullptr;
+  kj::Maybe<size_t> inboundMaxWindowBits = nullptr;
 };
 
 class WebSocket {
@@ -605,6 +643,21 @@ public:
 
   virtual uint64_t sentByteCount() = 0;
   virtual uint64_t receivedByteCount() = 0;
+
+  enum ExtensionsContext {
+    // Indicate whether a Sec-WebSocket-Extension header should be rendered for use in request
+    // headers or response headers.
+    REQUEST,
+    RESPONSE
+  };
+  virtual kj::Maybe<kj::String> getPreferredExtensions(ExtensionsContext ctx) { return nullptr; }
+  // If pumpTo() / tryPumpFrom() is able to be optimized only if the other WebSocket is using
+  // certain extensions (e.g. compression settings), then this method returns what those extensions
+  // are. For example, matching extensions between standard WebSockets allows pumping to be
+  // implemented by pumping raw bytes between network connections, without reading individual frames.
+  //
+  // A null return value indicates that there is no preference. A non-null return value containing
+  // an empty string indicates a preference for no extensions to be applied.
 };
 
 class HttpClient {
@@ -664,9 +717,44 @@ public:
   // `url` and `headers` need only remain valid until `openWebSocket()` returns (they can be
   // stack-allocated).
 
-  virtual kj::Promise<kj::Own<kj::AsyncIoStream>> connect(kj::StringPtr host);
-  // Handles CONNECT requests. Only relevant for proxy clients. Default implementation throws
-  // UNIMPLEMENTED.
+  struct ConnectRequest {
+    struct Status {
+      uint statusCode;
+      kj::String statusText;
+      kj::Own<HttpHeaders> headers;
+      kj::Maybe<kj::Own<kj::AsyncInputStream>> errorBody;
+      // If the connect request is rejected, the statusCode can be any HTTP status code
+      // outside the 200-299 range and errorBody *may* be specified if there is a rejection
+      // payload.
+
+      // TODO(soon): Having Status own the statusText and headers is a bit unfortunate.
+      // Ideally we could have these be non-owned so that the headers object could just
+      // point directly into HttpOutputStream's buffer and not be copied. That's a bit
+      // more difficult to with CONNECT since the lifetimes of the buffers are a little
+      // different than with regular HTTP requests. It should still be possible but for
+      // now copying and owning the status text and headers is easier.
+
+      Status(uint statusCode,
+             kj::String statusText,
+             kj::Own<HttpHeaders> headers,
+             kj::Maybe<kj::Own<kj::AsyncInputStream>> errorBody = nullptr)
+          : statusCode(statusCode),
+            statusText(kj::mv(statusText)),
+            headers(kj::mv(headers)),
+            errorBody(kj::mv(errorBody)) {}
+    };
+
+    kj::Promise<Status> status;
+    kj::Own<kj::AsyncIoStream> connection;
+  };
+
+  virtual ConnectRequest connect(kj::StringPtr host, const HttpHeaders& headers);
+  // Handles CONNECT requests.
+  //
+  // `host` must specify both the host and port (e.g. "example.org:1234").
+  //
+  // The `host` and `headers` need only remain valid until `connect()` returns (it can be
+  // stack-allocated).
 };
 
 class HttpService {
@@ -724,9 +812,39 @@ public:
   // Request processing can be canceled by dropping the returned promise. HttpServer may do so if
   // the client disconnects prematurely.
 
-  virtual kj::Promise<kj::Own<kj::AsyncIoStream>> connect(kj::StringPtr host);
-  // Handles CONNECT requests. Only relevant for proxy services. Default implementation throws
-  // UNIMPLEMENTED.
+  class ConnectResponse {
+  public:
+    virtual void accept(
+        uint statusCode,
+        kj::StringPtr statusText,
+        const HttpHeaders& headers) = 0;
+    // Signals acceptance of the CONNECT tunnel.
+
+    virtual kj::Own<kj::AsyncOutputStream> reject(
+        uint statusCode,
+        kj::StringPtr statusText,
+        const HttpHeaders& headers,
+        kj::Maybe<uint64_t> expectedBodySize = nullptr) = 0;
+    // Signals rejection of the CONNECT tunnel.
+  };
+
+  virtual kj::Promise<void> connect(kj::StringPtr host,
+                                    const HttpHeaders& headers,
+                                    kj::AsyncIoStream& connection,
+                                    ConnectResponse& response);
+  // Handles CONNECT requests.
+  //
+  // The `host` must include host and port.
+  //
+  // `host` and `headers` are invalidated when accept or reject is called on the ConnectResponse
+  // or when the returned promise resolves, whichever comes first.
+  //
+  // The connection is provided to support pipelining. Writes to the connection will be blocked
+  // until one of either accept() or reject() is called on tunnel. Reads from the connection are
+  // permitted at any time.
+  //
+  // Request processing can be canceled by dropping the returned promise. HttpServer may do so if
+  // the client disconnects prematurely.
 };
 
 class HttpClientErrorHandler {
@@ -768,6 +886,13 @@ struct HttpClientSettings {
   kj::Maybe<HttpClientErrorHandler&> errorHandler = nullptr;
   // Customize how protocol errors are handled by the HttpClient. If null, HttpClientErrorHandler's
   // default implementation will be used.
+
+  enum WebSocketCompressionMode {
+    NO_COMPRESSION,
+    MANUAL_COMPRESSION,    // Lets the application decide the compression configuration (if any).
+    AUTOMATIC_COMPRESSION, // Automatically includes the compression header in the WebSocket request.
+  };
+  WebSocketCompressionMode webSocketCompressionMode = NO_COMPRESSION;
 };
 
 kj::Own<HttpClient> newHttpClient(kj::Timer& timer, const HttpHeaderTable& responseHeaderTable,
@@ -836,7 +961,8 @@ kj::Own<HttpInputStream> newHttpInputStream(
 // continue reading from `input` in a reliable way.
 
 kj::Own<WebSocket> newWebSocket(kj::Own<kj::AsyncIoStream> stream,
-                                kj::Maybe<EntropySource&> maskEntropySource);
+                                kj::Maybe<EntropySource&> maskEntropySource,
+                                kj::Maybe<CompressionParameters> compressionConfig = nullptr);
 // Create a new WebSocket on top of the given stream. It is assumed that the HTTP -> WebSocket
 // upgrade handshake has already occurred (or is not needed), and messages can immediately be
 // sent and received on the stream. Normally applications would not call this directly.
@@ -848,6 +974,11 @@ kj::Own<WebSocket> newWebSocket(kj::Own<kj::AsyncIoStream> stream,
 // purpose of the mask is to prevent badly-written HTTP proxies from interpreting "things that look
 // like HTTP requests" in a message as being actual HTTP requests, which could result in cache
 // poisoning. See RFC6455 section 10.3.
+//
+// `compressionConfig` is an optional argument that allows us to specify how the WebSocket should
+// compress and decompress messages. The configuration is determined by the
+// `Sec-WebSocket-Extensions` header during WebSocket negotiation.
+//
 
 struct WebSocketPipe {
   kj::Own<WebSocket> ends[2];
@@ -884,6 +1015,13 @@ struct HttpServerSettings {
 
   kj::Maybe<HttpServerCallbacks&> callbacks = nullptr;
   // Additional optional callbacks used to control some server behavior.
+
+  enum WebSocketCompressionMode {
+    NO_COMPRESSION,
+    MANUAL_COMPRESSION,    // Gives the application more control when considering whether to compress.
+    AUTOMATIC_COMPRESSION, // Will perform compression parameter negotiation if client requests it.
+  };
+  WebSocketCompressionMode webSocketCompressionMode = NO_COMPRESSION;
 };
 
 class HttpServerErrorHandler {
@@ -996,7 +1134,7 @@ public:
     // Nothing, this is an opaque type.
 
   private:
-    SuspendedRequest(kj::Array<byte>, kj::ArrayPtr<byte>, HttpMethod, kj::StringPtr, HttpHeaders);
+    SuspendedRequest(kj::Array<byte>, kj::ArrayPtr<byte>, kj::OneOf<HttpMethod, HttpConnectMethod>, kj::StringPtr, HttpHeaders);
 
     kj::Array<byte> buffer;
     // A buffer containing at least the request's method, URL, and headers, and possibly content
@@ -1006,7 +1144,7 @@ public:
     // Pointer to the end of the request headers. If this has a non-zero length, then our buffer
     // contains additional content, presumably the head of the request body.
 
-    HttpMethod method;
+    kj::OneOf<HttpMethod, HttpConnectMethod> method;
     kj::StringPtr url;
     HttpHeaders headers;
     // Parsed request front matter. `url` and `headers` both store pointers into `buffer`.
@@ -1066,7 +1204,7 @@ class HttpServer::SuspendableRequest {
   // Interface passed to the SuspendableHttpServiceFactory parameter of listenHttpCleanDrain().
 
 public:
-  HttpMethod method;
+  kj::OneOf<HttpMethod,HttpConnectMethod> method;
   kj::StringPtr url;
   const HttpHeaders& headers;
   // Parsed request front matter, so the implementer can decide whether to suspend the request.
@@ -1079,9 +1217,9 @@ public:
 
 private:
   explicit SuspendableRequest(
-      Connection& connection, HttpMethod method, kj::StringPtr url, const HttpHeaders& headers)
+      Connection& connection, kj::OneOf<HttpMethod, HttpConnectMethod> method, kj::StringPtr url, const HttpHeaders& headers)
       : method(method), url(url), headers(headers), connection(connection) {}
-  KJ_DISALLOW_COPY(SuspendableRequest);
+  KJ_DISALLOW_COPY_AND_MOVE(SuspendableRequest);
 
   Connection& connection;
 
@@ -1154,6 +1292,57 @@ inline void HttpHeaders::forEach(Func1&& func1, Func2&& func2) const {
     func2(header.name, header.value);
   }
 }
+
+// =======================================================================================
+namespace _ { // private implementation details for WebSocket compression
+
+kj::ArrayPtr<const char> splitNext(kj::ArrayPtr<const char>& cursor, char delimiter);
+
+void stripLeadingAndTrailingSpace(ArrayPtr<const char>& str);
+
+kj::Vector<kj::ArrayPtr<const char>> splitParts(kj::ArrayPtr<const char> input, char delim);
+
+struct KeyMaybeVal {
+  ArrayPtr<const char> key;
+  kj::Maybe<ArrayPtr<const char>> val;
+};
+
+kj::Array<KeyMaybeVal> toKeysAndVals(const kj::ArrayPtr<kj::ArrayPtr<const char>>& params);
+
+struct UnverifiedConfig {
+  // An intermediate representation of the final `CompressionParameters` struct; used during parsing.
+  // We use it to ensure the structure of an offer is generally correct, see
+  // `populateUnverifiedConfig()` for details.
+  bool clientNoContextTakeover = false;
+  bool serverNoContextTakeover = false;
+  kj::Maybe<ArrayPtr<const char>> clientMaxWindowBits = nullptr;
+  kj::Maybe<ArrayPtr<const char>> serverMaxWindowBits = nullptr;
+};
+
+kj::Maybe<UnverifiedConfig> populateUnverifiedConfig(kj::Array<KeyMaybeVal>& params);
+
+kj::Maybe<CompressionParameters> validateCompressionConfig(UnverifiedConfig&& config,
+    bool isAgreement);
+
+kj::Vector<CompressionParameters> findValidExtensionOffers(StringPtr offers);
+
+kj::String generateExtensionRequest(const ArrayPtr<CompressionParameters>& extensions);
+
+kj::Maybe<CompressionParameters> tryParseExtensionOffers(StringPtr offers);
+
+kj::Maybe<CompressionParameters> tryParseAllExtensionOffers(StringPtr offers,
+    CompressionParameters manualConfig);
+
+kj::Maybe<CompressionParameters> compareClientAndServerConfigs(CompressionParameters requestConfig,
+    CompressionParameters manualConfig);
+
+kj::String generateExtensionResponse(const CompressionParameters& parameters);
+
+kj::OneOf<CompressionParameters, kj::Exception> tryParseExtensionAgreement(
+    const Maybe<CompressionParameters>& clientOffer,
+    StringPtr agreedParameters);
+
+}; // namespace _ (private)
 
 }  // namespace kj
 

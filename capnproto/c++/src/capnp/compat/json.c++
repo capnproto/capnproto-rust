@@ -93,6 +93,10 @@ struct JsonCodec::Impl {
         return kj::strTree(call.getFunction(), '(', encodeList(
             kj::mv(encodedElements), childMultiline, indent, multiline, true), ')');
       }
+
+      case JsonValue::RAW: {
+        return kj::strTree(value.getRaw());
+      }
     }
 
     KJ_FAIL_ASSERT("unknown JsonValue type", static_cast<uint>(value.which()));
@@ -819,9 +823,9 @@ private:
       if ('0' <= c && c <= '9') {
         codePoint |= c - '0';
       } else if ('a' <= c && c <= 'f') {
-        codePoint |= c - 'a';
+        codePoint |= c - 'a' + 10;
       } else if ('A' <= c && c <= 'F') {
-        codePoint |= c - 'A';
+        codePoint |= c - 'A' + 10;
       } else {
         KJ_FAIL_REQUIRE("Invalid hex digit in unicode escape.", c);
       }
