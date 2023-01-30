@@ -1937,7 +1937,7 @@ fn generate_node(
                 ))),
                 Indent(Box::new(Branch(vec![
                     Line(
-                        "fn try_from(value: u16) -> ::core::result::Result<Self, Self::Error> {"
+                        "fn try_from(value: u16) -> ::core::result::Result<Self, <{last_name} as ::core::convert::TryFrom<u16>>::Error> {"
                             .to_string(),
                     ),
                     Indent(Box::new(Branch(vec![
