@@ -106,6 +106,12 @@ enum TestEnum {
   garply @7;
 }
 
+enum TestEnumWithTrickyNames {
+  foo @0;
+  bar @1;
+  error @2;
+}
+
 struct TestAllTypes {
   voidField      @0  : Void;
   boolField      @1  : Bool;
