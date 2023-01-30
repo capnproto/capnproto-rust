@@ -1,3 +1,6 @@
+### v0.16.2
+- Avoid ambiguous associated item in TryFrom implementations.
+
 ### v0.16.1
 - Fix clippy warnings in generated code.
 
