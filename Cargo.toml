@@ -12,6 +12,7 @@ homepage = "https://github.com/fundament-software/capnp_import"
 readme = "README.md"
 repository = "https://github.com/fundament-software/capnp_import"
 license = "Apache-2.0"
+debug = true
 
 [dependencies]
 anyhow = "1.*"

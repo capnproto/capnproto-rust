@@ -8,8 +8,8 @@ use std::{
     process::Command,
 };
 
-// update this whenever you change the submodule pointer
-const CAPNP_VERSION: &str = "0.10.2";
+// update this whenever you change the subtree pointer
+const CAPNP_VERSION: &str = "0.11.0";
 
 enum CapnprotoAcquired {
     Locally(relative_path::RelativePathBuf),
@@ -78,7 +78,11 @@ fn main() -> anyhow::Result<()> {
     // non-rust artefacts to fix it
     fs::write(
         out_dir.join("binary_decision.rs"),
-        format!("const CAPNP_BIN_PATH: &str = \"{}\";", capnp_path.unwrap()),
+        format!(
+            "const CAPNP_BIN_PATH: &str = \"{}/{}\";",
+            out_dir.to_string_lossy().replace('\\', "/"),
+            capnp_path.unwrap()
+        ),
     )?;
 
     Ok(())
