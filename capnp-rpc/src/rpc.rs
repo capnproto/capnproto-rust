@@ -1392,7 +1392,7 @@ impl<VatId> ConnectionState<VatId> {
             let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
             if contains_key {
                 // We've already seen and exported this capability before.  Just up the refcount.
-                let export_id = state.exports_by_cap.borrow()[(&ptr)];
+                let export_id = state.exports_by_cap.borrow()[&ptr];
                 match state.exports.borrow_mut().find(export_id) {
                     None => unreachable!(),
                     Some(exp) => {
