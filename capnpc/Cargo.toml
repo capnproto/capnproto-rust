@@ -13,11 +13,6 @@ readme = "README.md"
 
 keywords = ["encoding", "protocol", "serialization"]
 
-[lib]
-
-name = "capnpc"
-path = "src/lib.rs"
-
 [[bin]]
 
 name = "capnpc-rust"
