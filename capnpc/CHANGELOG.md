@@ -1,3 +1,6 @@
+### v0.16.3
+- Generate `*_has()` methods for capability fields.
+
 ### v0.16.2
 - Avoid ambiguous associated item in TryFrom implementations.
 
