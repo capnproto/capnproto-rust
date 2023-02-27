@@ -1348,6 +1348,7 @@ fn generate_haser(
             | type_::Data(())
             | type_::List(_)
             | type_::Struct(_)
+            | type_::Interface(_)
             | type_::AnyPointer(_) => {
                 if is_reader {
                     interior.push(Line(format!(

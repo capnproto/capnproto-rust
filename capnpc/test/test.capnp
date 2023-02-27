@@ -129,7 +129,7 @@ struct TestAllTypes {
   dataField      @13 : Data;
   structField    @14 : TestAllTypes;
   enumField      @15 : TestEnum;
-  interfaceField @16 : Void;  # TODO
+  interfaceField @16 : EmptyInterface;
 
   voidList      @17 : List(Void);
   boolList      @18 : List(Bool);
@@ -147,7 +147,7 @@ struct TestAllTypes {
   dataList      @30 : List(Data);
   structList    @31 : List(TestAllTypes);
   enumList      @32 : List(TestEnum);
-  interfaceList @33 : List(Void);  # TODO
+  interfaceList @33 : List(EmptyInterface);
 }
 
 struct TestDefaults {

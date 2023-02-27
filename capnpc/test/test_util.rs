@@ -199,6 +199,7 @@ check_test_message_impl(($mod:ident::$typ:ident) => (
                                                                 .get_text_field().unwrap());
                 }
                 assert!(Ok(TestEnum::Baz) == sub_reader.reborrow().get_enum_field());
+                assert_eq!(false, sub_reader.reborrow().has_interface_field());
                 assert_eq!(3, sub_reader.reborrow().get_void_list().unwrap().len());
 
                 {
