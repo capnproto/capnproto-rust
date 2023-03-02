@@ -93,10 +93,16 @@ impl Clone for alloc::boxed::Box<dyn ClientHook> {
 pub trait ResultsHook {
     fn get(&mut self) -> crate::Result<any_pointer::Builder<'_>>;
     fn allow_cancellation(&self);
+
     fn tail_call(
         self: alloc::boxed::Box<Self>,
         request: alloc::boxed::Box<dyn RequestHook>,
     ) -> Promise<(), crate::Error>;
+
+    fn set_pipeline(&mut self, pipeline: Box<dyn PipelineHook>);
+
+    fn on_tail_call(&mut self) -> Promise<any_pointer::Pipeline, crate::Error>;
+
     fn direct_tail_call(
         self: alloc::boxed::Box<Self>,
         request: alloc::boxed::Box<dyn RequestHook>,

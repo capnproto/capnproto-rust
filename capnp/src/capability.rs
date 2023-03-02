@@ -247,7 +247,7 @@ pub struct Results<T> {
 #[cfg(feature = "alloc")]
 impl<T> Results<T>
 where
-    T: Owned,
+    T: Owned + Pipelined,
 {
     pub fn new(hook: alloc::boxed::Box<dyn ResultsHook>) -> Self {
         Self {
@@ -262,6 +262,15 @@ where
 
     pub fn set(&mut self, other: T::Reader<'_>) -> crate::Result<()> {
         self.hook.get().unwrap().set_as(other)
+    }
+
+    pub fn set_pipeline(&mut self, pipeline: T::Pipeline) {
+        // How do we get a PipelineHook out of `pipeline`?
+        //self.hook.set_pipeline(pipeline)
+    }
+
+    pub fn tail_call<SubParams>(self, tail_request: Request<SubParams, T>) -> Promise<(), Error> {
+        self.hook.tail_call(tail_request.hook)
     }
 }
 

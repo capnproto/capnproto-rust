@@ -2140,6 +2140,7 @@ where
     variant: Option<ResultsVariant>,
     redirect_results: bool,
     answer_id: AnswerId,
+    tail_call_pipeline_fulfiller: Option<oneshot::Sender<any_pointer::Pipeline>>,
     finish_received: Rc<Cell<bool>>,
 }
 
@@ -2203,6 +2204,7 @@ where
                 redirect_results,
                 answer_id,
                 finish_received,
+                tail_call_pipeline_fulfiller: None,
             }),
             results_done_fulfiller: Some(fulfiller),
         }
@@ -2250,8 +2252,18 @@ impl<VatId> ResultsHook for Results<VatId> {
         }
     }
 
-    fn tail_call(self: Box<Self>, _request: Box<dyn RequestHook>) -> Promise<(), Error> {
-        unimplemented!()
+    fn set_pipeline(&mut self, pipeline: Box<dyn PipelineHook>) {
+        todo!()
+    }
+
+    fn on_tail_call(&mut self) -> Promise<any_pointer::Pipeline, crate::Error> {
+        todo!()
+    }
+
+    fn tail_call(self: Box<Self>, request: Box<dyn RequestHook>) -> Promise<(), Error> {
+        let (promise, pipeline) = self.direct_tail_call(request);
+        // TODO somehow send pipeline to tail_call_pipeline_fulfiller
+        promise
     }
 
     fn direct_tail_call(
