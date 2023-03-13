@@ -164,6 +164,8 @@ impl WirePointer {
         unsafe { this_addr.offset(8 * (1 + ((self.offset_and_kind.get() as i32) >> 2)) as isize) }
     }
 
+    // At one point, we had `&self` here instead of `ptr: *const Self`, but miri
+    // flagged that as running afoul of "stacked borrow" rules.
     #[inline]
     fn target_from_segment(
         ptr: *const Self,
@@ -177,6 +179,8 @@ impl WirePointer {
         }
     }
 
+    // At one point, we had `&mut self` here instead of `ptr: *mut Self`, but miri
+    // flagged that as running afoul of "stacked borrow" rules.
     #[inline]
     fn mut_target(ptr: *mut Self) -> *mut u8 {
         let this_addr: *mut u8 = ptr as *mut _;
