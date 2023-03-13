@@ -1,3 +1,6 @@
+## v0.16.1
+- Fix "stacked borrow" errors found by miri.
+
 ## v0.16.0
 - Remove deprecated `HasTypeId::type_id()` method.
 - Remove deprecated `MessageSize::plus_eq` method.
