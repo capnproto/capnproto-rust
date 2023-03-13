@@ -396,6 +396,7 @@ mod tests {
     }
 
     quickcheck! {
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_single_segment_optimization(
             segment_0 : Vec<Word>) -> TestResult
         {
@@ -420,6 +421,7 @@ mod tests {
             TestResult::from_bool(true)
         }
 
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_multiple_segments(segments_vec: Vec<Vec<Word>>) -> TestResult {
             if segments_vec.is_empty() { return TestResult::discard() };
 
@@ -486,6 +488,7 @@ mod tests {
     }
 
     quickcheck! {
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_message_truncated(segments_vec: Vec<Vec<Word>>) -> TestResult {
             if segments_vec.is_empty() { return TestResult::discard() }
 
@@ -508,6 +511,7 @@ mod tests {
             TestResult::from_bool(true)
         }
 
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_message_options_limit(
             segments_vec: Vec<Vec<Word>>) -> TestResult
         {
@@ -541,6 +545,7 @@ mod tests {
             TestResult::from_bool(true)
         }
 
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_bad_alignment(segment_0: Vec<Word>) -> TestResult {
             if segment_0.is_empty() { return TestResult::discard(); }
             let output_segments = OutputSegments::SingleSegment([Word::words_to_bytes(&segment_0)]);

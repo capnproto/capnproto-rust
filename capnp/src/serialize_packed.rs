@@ -87,8 +87,9 @@ where
         assert!(len % 8 == 0, "PackedRead reads must be word-aligned.");
 
         unsafe {
-            let mut out = out_buf.as_mut_ptr();
-            let out_end: *mut u8 = out_buf.as_mut_ptr().wrapping_add(len);
+            let out_buf_start = out_buf.as_mut_ptr();
+            let mut out = out_buf_start;
+            let out_end: *mut u8 = out.wrapping_add(len);
 
             let (mut in_ptr, mut in_end) = self.get_read_buffer()?;
             let mut buffer_begin = in_ptr;
@@ -101,7 +102,7 @@ where
                 let tag: u8;
 
                 assert_eq!(
-                    ptr_sub(out, out_buf.as_mut_ptr()) % 8,
+                    ptr_sub(out, out_buf_start) % 8,
                     0,
                     "Output pointer should always be aligned here."
                 );
@@ -538,6 +539,7 @@ mod tests {
             }))
         }
 
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_unpack(packed: Vec<u8>) -> TestResult {
             let len = packed.len();
             let mut packed_read = PackedRead { inner: &packed[..] };
