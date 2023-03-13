@@ -164,23 +164,32 @@ impl WirePointer {
         unsafe { this_addr.offset(8 * (1 + ((self.offset_and_kind.get() as i32) >> 2)) as isize) }
     }
 
+    // At one point, we had `&self` here instead of `ptr: *const Self`, but miri
+    // flagged that as running afoul of "stacked borrow" rules.
     #[inline]
-    pub fn target_from_segment(
-        &self,
+    fn target_from_segment(
+        ptr: *const Self,
         arena: &dyn ReaderArena,
         segment_id: u32,
     ) -> Result<*const u8> {
-        let this_addr: *const u8 = self as *const _ as *const _;
-        let offset = 1 + ((self.offset_and_kind.get() as i32) >> 2);
-        unsafe { arena.check_offset(segment_id, this_addr, offset) }
+        let this_addr: *const u8 = ptr as *const _;
+        unsafe {
+            let offset = 1 + (((*ptr).offset_and_kind.get() as i32) >> 2);
+            arena.check_offset(segment_id, this_addr, offset)
+        }
     }
 
+    // At one point, we had `&mut self` here instead of `ptr: *mut Self`, but miri
+    // flagged that as running afoul of "stacked borrow" rules.
     #[inline]
-    pub fn mut_target(&mut self) -> *mut u8 {
-        let this_addr: *mut u8 = self as *mut _ as *mut _;
-        this_addr.wrapping_offset(
-            BYTES_PER_WORD as isize * (1 + ((self.offset_and_kind.get() as i32) >> 2)) as isize,
-        )
+    fn mut_target(ptr: *mut Self) -> *mut u8 {
+        let this_addr: *mut u8 = ptr as *mut _;
+        unsafe {
+            this_addr.wrapping_offset(
+                BYTES_PER_WORD as isize
+                    * (1 + (((*ptr).offset_and_kind.get() as i32) >> 2)) as isize,
+            )
+        }
     }
 
     #[inline]
@@ -470,7 +479,7 @@ mod wire_helpers {
             let pad: *mut WirePointer =
                 (seg_start as *mut WirePointer).offset((*reff).far_position_in_segment() as isize);
             if !(*reff).is_double_far() {
-                Ok(((*pad).mut_target(), pad, segment_id))
+                Ok((WirePointer::mut_target(pad), pad, segment_id))
             } else {
                 //# Landing pad is another far pointer. It is followed by a
                 //# tag describing the pointed-to object.
@@ -511,7 +520,7 @@ mod wire_helpers {
 
             if !(*reff).is_double_far() {
                 Ok((
-                    (*pad).target_from_segment(arena, far_segment_id)?,
+                    WirePointer::target_from_segment(pad, arena, far_segment_id)?,
                     pad,
                     far_segment_id,
                 ))
@@ -528,7 +537,7 @@ mod wire_helpers {
             }
         } else {
             Ok((
-                (*reff).target_from_segment(arena, segment_id)?,
+                WirePointer::target_from_segment(reff, arena, segment_id)?,
                 reff,
                 segment_id,
             ))
@@ -546,7 +555,7 @@ mod wire_helpers {
 
         match (*reff).kind() {
             WirePointerKind::Struct | WirePointerKind::List | WirePointerKind::Other => {
-                zero_object_helper(arena, segment_id, reff, (*reff).mut_target())
+                zero_object_helper(arena, segment_id, reff, WirePointer::mut_target(reff))
             }
             WirePointerKind::Far => {
                 let segment_id = (*reff).far_segment_id();
@@ -1016,7 +1025,7 @@ mod wire_helpers {
                 dst,
                 src_segment_id,
                 src,
-                (*src).mut_target(),
+                WirePointer::mut_target(src),
             );
         } else {
             ptr::copy_nonoverlapping(src, dst, 1);
@@ -1133,7 +1142,7 @@ mod wire_helpers {
         size: StructSize,
         default: Option<&'a [crate::Word]>,
     ) -> Result<StructBuilder<'a>> {
-        let mut ref_target = (*reff).mut_target();
+        let mut ref_target = WirePointer::mut_target(reff);
 
         if (*reff).is_null() {
             match default {
@@ -1335,7 +1344,7 @@ mod wire_helpers {
             "Use get_writable_struct_list_pointer() for struct lists"
         );
 
-        let mut orig_ref_target = (*orig_ref).mut_target();
+        let mut orig_ref_target = WirePointer::mut_target(orig_ref);
 
         if (*orig_ref).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
@@ -1468,7 +1477,7 @@ mod wire_helpers {
         element_size: StructSize,
         default_value: *const u8,
     ) -> Result<ListBuilder<'_>> {
-        let mut orig_ref_target = (*orig_ref).mut_target();
+        let mut orig_ref_target = WirePointer::mut_target(orig_ref);
 
         if (*orig_ref).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
@@ -1772,7 +1781,7 @@ mod wire_helpers {
                 }
             }
         } else {
-            (*reff).mut_target()
+            WirePointer::mut_target(reff)
         };
 
         let (ptr, reff, _segment_id) = follow_builder_fars(arena, reff, ref_target, segment_id)?;
@@ -1865,7 +1874,7 @@ mod wire_helpers {
                 }
             }
         } else {
-            (*reff).mut_target()
+            WirePointer::mut_target(reff)
         };
 
         let (ptr, reff, _segment_id) = follow_builder_fars(arena, reff, ref_target, segment_id)?;
