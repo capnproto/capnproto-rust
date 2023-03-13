@@ -834,8 +834,8 @@ pub mod test {
         buf.clear();
     }
 
-    #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
     quickcheck! {
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
             if segments.is_empty() { return TestResult::discard(); }
             let mut buf: Vec<u8> = Vec::new();
@@ -849,6 +849,7 @@ pub mod test {
             }))
         }
 
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_round_trip_slice_segments(segments: Vec<Vec<crate::Word>>) -> TestResult {
             if segments.is_empty() { return TestResult::discard(); }
             let borrowed_segments: &[&[u8]] = &segments.iter()

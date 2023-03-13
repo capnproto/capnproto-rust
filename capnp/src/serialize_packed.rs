@@ -522,8 +522,8 @@ mod tests {
         );
     }
 
-    #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
     quickcheck! {
+        #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
             use crate::message::ReaderSegments;
             if segments.is_empty() { return TestResult::discard(); }
