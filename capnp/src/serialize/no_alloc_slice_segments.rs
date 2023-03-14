@@ -193,8 +193,7 @@ fn verify_alignment(ptr: *const u8) -> Result<()> {
         return Ok(());
     }
 
-    let ptr = ptr as usize;
-    if ptr % BYTES_PER_WORD == 0 {
+    if ptr.align_offset(BYTES_PER_WORD) == 0 {
         Ok(())
     } else {
         Err(Error::failed(
@@ -330,24 +329,37 @@ mod tests {
 
     use alloc::vec::Vec;
 
+    #[repr(align(8))]
+    struct Aligned([u8; 8]);
+
     #[cfg(feature = "unaligned")]
     #[test]
     fn test_verify_alignment_unaligned_mode() {
         // To run this test do
         // `% cargo test --features unaligned`
 
+        // make sure there is no padding
+        assert_eq!(core::mem::size_of::<Aligned>(), 8);
+
+        let aligned = Aligned([0; 8]);
+
         // no alignment requirements in "unaligned" mode
-        for ptr in 1024..(1024 + 8) {
-            verify_alignment(ptr as *const u8).unwrap();
+        for idx in 0..8 {
+            verify_alignment(unsafe { aligned.0.as_ptr().add(idx) }).unwrap();
         }
     }
 
     #[cfg(not(feature = "unaligned"))]
     #[test]
     fn test_verify_alignment() {
-        verify_alignment(1024 as *const u8).unwrap();
-        for ptr in 1025..(1024 + 8) {
-            verify_alignment(ptr as *const u8).unwrap_err();
+        // make sure there is no padding
+        assert_eq!(core::mem::size_of::<Aligned>(), 8);
+
+        let aligned = Aligned([0; 8]);
+
+        verify_alignment(aligned.0.as_ptr()).unwrap();
+        for idx in 1..8 {
+            verify_alignment(unsafe { aligned.0.as_ptr().add(idx) }).unwrap_err();
         }
     }
 

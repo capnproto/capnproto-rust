@@ -285,12 +285,14 @@ impl CompilerCommand {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn compiler_command_new_no_out_dir() {
     let error = CompilerCommand::new().run().unwrap_err().description;
     assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn compiler_command_with_output_path_no_out_dir() {
     let error = CompilerCommand::new()
         .output_path("foo")
