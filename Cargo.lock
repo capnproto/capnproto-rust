@@ -121,6 +121,7 @@ dependencies = [
  "cmake",
  "relative-path",
  "reqwest",
+ "walkdir",
  "wax",
  "which",
  "zip-extract",

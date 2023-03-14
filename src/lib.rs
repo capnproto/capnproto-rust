@@ -1,8 +1,9 @@
 //! Download and/or build official Cap-n-Proto compiler (capnp) release for the current OS and architecture
 
 use anyhow::bail;
+use walkdir::WalkDir;
 use std::{env, fs, path::{Path, PathBuf, Component}};
-use wax::{Glob, BuildError};
+use wax::{Glob, BuildError, Pattern};
 
 include!(concat!(env!("OUT_DIR"), "/binary_decision.rs"));
 
@@ -13,22 +14,26 @@ fn process_inner(path_patterns: &[&str]) -> anyhow::Result<String> {
     let mut cmd = capnpc::CompilerCommand::new();
     cmd.capnp_executable(cmdpath);
 
-    for pattern in path_patterns {
-        // Glob borrows values passed into it and the borrow checker doesn't like this.
-        // So we use into_owned to clone the data.
-        let glob = Glob::new(pattern)
-            .map(Glob::into_owned)
-            .map_err(BuildError::into_owned)?;
+    // any() wants to borrow the list of strings we give it, but we can't pass in path_patterns
+    // because the borrw checker doesn't like it. We also can't pass in Vec<String> because
+    // TryInto<Pattern isn't implemented for String. So, we turn the strings into owned Globs
+    // (which clones the string internally)
+    let globs: Result<Vec<Glob<'static>>, BuildError<'static>> = path_patterns.iter()
+        .map(|s| Glob::new(s).map_err(BuildError::into_owned).map(Glob::into_owned))
+        .collect();
+    let combined_globs = wax::any::<Glob, _>(globs?)?;
 
-        let walk = glob.walk(".");
-        for walk_result in walk {
-            let entry = walk_result?;
-            let path = entry.path();
+    for entry_result in WalkDir::new(".") {
+        let entry = entry_result?;
+        let path = normalize_path(entry.path()); // Remove the current directory indicator
 
-            println!("Processing {}", path.to_string_lossy());
-            helperfile += append_path(&mut cmd, path)?.as_str();
+        if path.is_file() && combined_globs.is_match(path.as_path()) {
+            println!("Processing {:?}", path);
+            helperfile += append_path(&mut cmd, &path)?.as_str();
         }
     }
+
+    println!("Helperfile {}", helperfile);
 
     if let Err(e) = cmd.run() {
         bail!(e.to_string());
@@ -37,8 +42,7 @@ fn process_inner(path_patterns: &[&str]) -> anyhow::Result<String> {
     return Ok(helperfile);
 }
 
-pub fn process(path_patterns: &[&str]) -> anyhow::Result<()>
-{
+pub fn process(path_patterns: &[&str]) -> anyhow::Result<()> {
     let target_dir = env::var("OUT_DIR").unwrap();
     fs::write(target_dir + "/capnp_include.rs", process_inner(path_patterns)?)?;
     Ok(())
@@ -52,14 +56,7 @@ fn append_path(cmd: &mut capnpc::CompilerCommand, file_path: &Path) -> anyhow::R
     let file_stem = file_path.file_stem().unwrap().to_str().unwrap();
     let file_extension = file_path.extension().unwrap().to_str().unwrap();
     let module_name = format!("{}_{}", file_stem, file_extension);
-
-    let mut rust_module_pathbuf: PathBuf = file_path.components()
-        .filter(|x| match x {
-            Component::Normal(_) => true,
-            _ => false
-        })
-        .collect();
-    rust_module_pathbuf.set_file_name(format!("{}.rs", module_name));
+    let rust_module_path = file_path.with_file_name(format!("{}.rs", module_name));
 
     let section = format!(
         "
@@ -67,11 +64,20 @@ mod {} {{
 include!(concat!(env!(\"OUT_DIR\"), \"/{}\"));
 }}",
         module_name,
-        rust_module_pathbuf.to_string_lossy()
+        rust_module_path.to_string_lossy()
     );
     helperfile.push('\n');
     helperfile += &section;
     Ok(helperfile)
+}
+
+fn normalize_path(path: &Path) -> PathBuf {
+    path.components()
+        .filter(|x| match x {
+            Component::Normal(_) => true,
+            _ => false
+        })
+    .collect()
 }
 
 #[test]

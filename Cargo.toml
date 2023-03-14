@@ -18,6 +18,7 @@ debug = true
 anyhow = "1.*"
 capnpc = "0.14"
 wax = "0.5.0"
+walkdir = "2"
 
 [build-dependencies]
 relative-path = "1.7.2"
