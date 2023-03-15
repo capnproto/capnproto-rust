@@ -33,8 +33,6 @@ fn process_inner(path_patterns: &[&str]) -> anyhow::Result<String> {
         }
     }
 
-    println!("Helperfile {}", helperfile);
-
     if let Err(e) = cmd.run() {
         bail!(e.to_string());
     }
