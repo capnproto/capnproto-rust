@@ -1,9 +1,12 @@
 //! Download and/or build official Cap-n-Proto compiler (capnp) release for the current OS and architecture
 
 use anyhow::bail;
+use std::{
+    env, fs,
+    path::{Component, Path, PathBuf},
+};
 use walkdir::WalkDir;
-use std::{env, fs, path::{Path, PathBuf, Component}};
-use wax::{Glob, BuildError, Pattern};
+use wax::{BuildError, Glob, Pattern};
 
 include!(concat!(env!("OUT_DIR"), "/binary_decision.rs"));
 
@@ -18,8 +21,13 @@ fn process_inner(path_patterns: &[&str]) -> anyhow::Result<String> {
     // because the borrw checker doesn't like it. We also can't pass in Vec<String> because
     // TryInto<Pattern isn't implemented for String. So, we turn the strings into owned Globs
     // (which clones the string internally)
-    let globs: Result<Vec<Glob<'static>>, BuildError<'static>> = path_patterns.iter()
-        .map(|s| Glob::new(s).map_err(BuildError::into_owned).map(Glob::into_owned))
+    let globs: Result<Vec<Glob<'static>>, BuildError<'static>> = path_patterns
+        .iter()
+        .map(|s| {
+            Glob::new(s)
+                .map_err(BuildError::into_owned)
+                .map(Glob::into_owned)
+        })
         .collect();
     let combined_globs = wax::any::<Glob, _>(globs?)?;
 
@@ -42,7 +50,10 @@ fn process_inner(path_patterns: &[&str]) -> anyhow::Result<String> {
 
 pub fn process(path_patterns: &[&str]) -> anyhow::Result<()> {
     let target_dir = env::var("OUT_DIR").unwrap();
-    fs::write(target_dir + "/capnp_include.rs", process_inner(path_patterns)?)?;
+    fs::write(
+        target_dir + "/capnp_include.rs",
+        process_inner(path_patterns)?,
+    )?;
     Ok(())
 }
 
@@ -62,7 +73,7 @@ mod {} {{
 include!(concat!(env!(\"OUT_DIR\"), \"/{}\"));
 }}",
         module_name,
-        rust_module_path.to_string_lossy()
+        rust_module_path.to_string_lossy().replace('\\', "/")
     );
     helperfile.push('\n');
     helperfile += &section;
@@ -73,9 +84,9 @@ fn normalize_path(path: &Path) -> PathBuf {
     path.components()
         .filter(|x| match x {
             Component::Normal(_) => true,
-            _ => false
+            _ => false,
         })
-    .collect()
+        .collect()
 }
 
 #[test]
@@ -98,4 +109,3 @@ fn glob_test() -> anyhow::Result<()> {
     );
     Ok(())
 }
-
