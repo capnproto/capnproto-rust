@@ -123,6 +123,6 @@ fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
             "bin/capnp",
         )))
     } else {
-        panic!("Sorry, capnp_import does not support your operating system.");
+        panic!("Sorry, capnp-import does not support your operating system.");
     }
 }
