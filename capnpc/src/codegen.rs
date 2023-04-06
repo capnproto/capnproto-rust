@@ -1786,7 +1786,7 @@ fn generate_node(
                 Indent(
                     Box::new(Branch(vec![
                         Line(format!("pub fn reborrow(&self) -> Reader<'_,{}> {{",params.params)),
-                        Indent(Box::new(Line("Self { .. *self }".to_string()))),
+                        Indent(Box::new(Line("*self".to_string()))),
                         Line("}".to_string()),
                         BlankLine,
                         Line("pub fn total_size(&self) -> ::capnp::Result<::capnp::MessageSize> {".to_string()),
