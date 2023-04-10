@@ -30,11 +30,23 @@
 //! In your Cargo.toml:
 //!
 //! ```ignore
-//! [package]
-//! build = "build.rs"
+//! [dependencies]
+//! capnp = "0.16" # Note this is a different library than capnp*c*
 //!
 //! [build-dependencies]
 //! capnpc = "0.16"
+//! ```
+//!
+//! In your lib.rs:
+//!
+//! ```ignore
+//! mod foo_schema {
+//!     include!(concat!(env!("OUT_DIR"), "/schema_foo.rs"));
+//! }
+//!
+//! mod bar_schema {
+//!     include!(concat!(env!("OUT_DIR"), "/schema_bar.rs"));
+//! }
 //! ```
 //!
 //! In your build.rs:
