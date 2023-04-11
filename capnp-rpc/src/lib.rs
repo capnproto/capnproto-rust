@@ -322,7 +322,9 @@ where
 /// and the only way to drop them is to drop the entire `CapabilityServerSet`.
 /// The `WeakCapabilityServerSet` struct below is a (better) alternative that only holds
 /// weak references. Its semantics match the capnproto-c++ version of `CapabilityServerSet`.
-/// TODO(v0.17): replace this with the `WeakCapabilityServerSet`.
+///
+/// TODO(v0.17): remove this `CapabilityServerSet` implementation and rename
+/// `WeakCapabilityServerSet` to `CapabilityServerSet`.
 pub struct CapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
