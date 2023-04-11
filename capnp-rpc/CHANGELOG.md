@@ -1,3 +1,6 @@
+## v0.16.2
+- Add WeakCapabilityServerSet, intended to eventually replace CapabilityServerSet.
+
 ## v0.16.1
 - Regenerate code, with rpc.capnp from upstream latest release, version 0.10.3.
 

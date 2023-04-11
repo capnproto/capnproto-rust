@@ -1,7 +1,7 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.16.1"
+version = "0.16.2"
 authors = [ "David Renshaw <dwrenshaw@sandstorm.io>" ]
 license = "MIT"
 description = "implementation of the Cap'n Proto remote procedure call protocol"
