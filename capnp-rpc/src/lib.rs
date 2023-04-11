@@ -318,6 +318,11 @@ where
 
 /// Allows a server to recognize its own capabilities when passed back to it, and obtain the
 /// underlying Server objects associated with them.
+/// Note that `CapabilityServerSet` holds references to every `Server` passed to it,
+/// and the only way to drop them is to drop the entire `CapabilityServerSet`.
+/// The `WeakCapabilityServerSet` struct below is a (better) alternative that only holds
+/// weak references. Its semantics match the capnproto-c++ version of `CapabilityServerSet`.
+/// TODO(v0.17): replace this with the `WeakCapabilityServerSet`.
 pub struct CapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
