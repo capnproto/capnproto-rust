@@ -3,7 +3,7 @@
 name = "hello-world"
 version = "0.0.0"
 authors = [ "Mostafa Sedaghat Joo <mostafa.sedaghat@gmail.com>"  ]
-edition = "2018"
+edition = "2021"
 
 build = "build.rs"
 

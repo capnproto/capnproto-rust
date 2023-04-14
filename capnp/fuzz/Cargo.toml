@@ -5,7 +5,7 @@ version = "0.0.1"
 authors = ["Automatically generated"]
 publish = false
 build = "build.rs"
-edition = "2018"
+edition = "2021"
 
 [package.metadata]
 cargo-fuzz = true
