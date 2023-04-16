@@ -27,6 +27,7 @@ use crate::private::layout::{
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
 use crate::{NotInSchema, Result};
 
+use core::fmt::Debug;
 use core::marker::PhantomData;
 
 #[derive(Clone, Copy)]
@@ -101,6 +102,21 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema>> Reader<'a, T> {
         } else {
             None
         }
+    }
+}
+
+impl<'a, T: TryFrom<u16, Error = NotInSchema> + Debug> Debug for Reader<'a, T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut l = f.debug_list();
+        for i in 0..self.len() {
+            let get = self.get(i);
+            if let Ok(inner) = &get {
+                l.entry(inner);
+            } else {
+                l.entry(&get);
+            }
+        }
+        l.finish()
     }
 }
 

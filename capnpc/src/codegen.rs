@@ -1265,6 +1265,7 @@ fn generate_union(
     ));
 
     interior.push(Branch(vec![
+        Line("#[derive(Debug)]".to_string()),
         Line(format!("pub enum {enum_name} {{")),
         Indent(Box::new(Branch(enum_interior))),
         Line("}".to_string()),
@@ -1371,6 +1372,54 @@ fn generate_haser(
     }
 
     Ok(Branch(result))
+}
+
+fn generate_debug(
+    styled_name: &str,
+    field: &schema_capnp::field::Reader,
+) -> ::capnp::Result<FormattedText> {
+    use crate::schema_capnp::*;
+
+    match field.which() {
+        Err(_) => Ok(Line(format!("s.field(\"{0}\", \"?\");", styled_name))),
+        Ok(field::Group(_)) => Ok(Line(format!(
+            "s.field(\"{0}\", &self.get_{0}());",
+            styled_name
+        ))),
+        Ok(field::Slot(reg_field)) => match reg_field.get_type()?.which()? {
+            type_::Text(())
+            | type_::Data(())
+            | type_::List(_)
+            | type_::Struct(_)
+            | type_::Interface(_)
+            | type_::AnyPointer(_) => {
+                if matches!(reg_field.get_type()?.which()?, type_::AnyPointer(_))
+                    && !reg_field.get_type()?.is_parameter()?
+                {
+                    Ok(Branch(vec![
+                        Line(format!("if self.has_{styled_name}() {{")),
+                        Indent(Box::new(Branch(vec![
+                            Line(format!("s.field(\"{0}\", &self.get_{0}())", styled_name))
+                        ]))),
+                        Line(format!("}} else {{ s.field(\"{styled_name}\", &::core::option::Option::None::<()>) }};"))
+                    ]))
+                } else {
+                    Ok(Branch(vec![
+                        Line(format!("if self.has_{styled_name}() {{")),
+                        Indent(Box::new(Branch(vec![
+                            Line(format!("let get = self.get_{styled_name}();")),
+                            Line(format!("if let Ok(inner) = &get {{ s.field(\"{0}\", inner) }} else {{ s.field(\"{0}\", &get) }}", styled_name))
+                        ]))),
+                        Line(format!("}} else {{ s.field(\"{styled_name}\", &::core::option::Option::None::<()>) }};"))
+                    ]))
+                }
+            }
+            _ => Ok(Line(format!(
+                "s.field(\"{0}\", &self.get_{0}());",
+                styled_name
+            ))),
+        },
+    }
 }
 
 fn generate_pipeline_getter(
@@ -1579,6 +1628,7 @@ fn generate_node(
             let mut preamble = Vec::new();
             let mut builder_members = Vec::new();
             let mut reader_members = Vec::new();
+            let mut debug_members = Vec::new();
             let mut union_fields = Vec::new();
             let mut which_enums = Vec::new();
             let mut pipeline_impl_interior = Vec::new();
@@ -1617,6 +1667,8 @@ fn generate_node(
                         Indent(Box::new(get_b)),
                         Line("}".to_string()),
                     ]));
+
+                    debug_members.push(generate_debug(&styled_name, &field)?);
                 } else {
                     union_fields.push(field);
                 }
@@ -1672,6 +1724,25 @@ fn generate_node(
                 reexports.push_str("};");
                 preamble.push(Line(reexports));
                 preamble.push(BlankLine);
+
+                if debug_members.is_empty() {
+                    debug_members.push(Line("let w = self.which();".to_string()));
+                    debug_members.push(Line("if let Ok(inner) = &w { ::core::fmt::Debug::fmt(inner, f) } else { ::core::fmt::Debug::fmt(&w, f) }".to_string()));
+                } else {
+                    debug_members.insert(
+                        0,
+                        Line(format!("let mut s = f.debug_struct(\"{node_name}\");")),
+                    );
+                    debug_members.push(Line("let w = self.which();".to_string()));
+                    debug_members.push(Line("if let Ok(inner) = &w { s.field(\"[unnamed union]\", inner) } else { s.field(\"[unnamed union]\", &w) };".to_string()));
+                    debug_members.push(Line("s.finish()".to_string()));
+                }
+            } else {
+                debug_members.insert(
+                    0,
+                    Line(format!("let mut s = f.debug_struct(\"{node_name}\");")),
+                );
+                debug_members.push(Line("s.finish()".to_string()));
             }
 
             let builder_struct_size =
@@ -1801,6 +1872,15 @@ fn generate_node(
                         Indent(Box::new(Line("self.reader.total_size()".to_string()))),
                         Line("}".to_string())]))),
                 Indent(Box::new(Branch(reader_members))),
+                Line("}".to_string()),
+                Line(format!("impl <'a,{0}> ::core::fmt::Debug for Reader<'a,{0}> {1} {{", params.params, params.where_clause_with_debug)),
+                Indent(
+                    Box::new(Branch(vec![
+                        Line("fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {".to_string()),
+                        Indent(Box::new(Branch(debug_members))),
+                        Line("}".to_string())
+                    ]))
+                ),
                 Line("}".to_string()),
                 BlankLine,
                 (if !is_generic {
@@ -2241,6 +2321,22 @@ fn generate_node(
                     Indent(Box::new(Indent(Box::new(Line(format!("Self {{ client: ::capnp::capability::Client::new(self.client.hook.add_ref()), {} }}", params.phantom_data_value)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string())]));
+
+            mod_interior.push(Branch(vec![
+                Line(format!(
+                    "impl {bracketed_params} ::core::fmt::Debug for Client{bracketed_params} {{"
+                )),
+                Indent(Box::new(Line(
+                    "fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {"
+                        .to_string(),
+                ))),
+                Indent(Box::new(Indent(Box::new(Line(format!(
+                    "f.debug_struct(\"{}\").finish_non_exhaustive()",
+                    node_name
+                )))))),
+                Indent(Box::new(Line("}".to_string()))),
+                Line("}".to_string()),
+            ]));
 
             mod_interior.push(Branch(vec![
                 Line(format!(

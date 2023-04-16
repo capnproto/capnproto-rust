@@ -23,6 +23,8 @@
 //! Note: this cannot be used for a list of structs, since such lists are not encoded
 //! as pointer lists.
 
+use core::fmt::Debug;
+
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
 use crate::Result;
@@ -92,6 +94,16 @@ impl<'a> FromPointerReader<'a> for Reader<'a> {
         Ok(Reader {
             reader: reader.get_list(Pointer, default)?,
         })
+    }
+}
+
+impl<'a> Debug for Reader<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut l = f.debug_list();
+        for i in 0..self.len() {
+            l.entry(&self.get(i));
+        }
+        l.finish()
     }
 }
 

@@ -21,6 +21,8 @@
 
 //! List of strings containing UTF-8 encoded text.
 
+use core::fmt::Debug;
+
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
 use crate::Result;
@@ -96,6 +98,21 @@ impl<'a> Reader<'a> {
 impl<'a> crate::traits::IntoInternalListReader<'a> for Reader<'a> {
     fn into_internal_list_reader(self) -> ListReader<'a> {
         self.reader
+    }
+}
+
+impl<'a> Debug for Reader<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut l = f.debug_list();
+        for i in 0..self.len() {
+            let get = self.get(i);
+            if let Ok(inner) = &get {
+                l.entry(inner);
+            } else {
+                l.entry(&get);
+            }
+        }
+        l.finish()
     }
 }
 

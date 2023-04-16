@@ -21,6 +21,7 @@
 
 //! List of structs.
 
+use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
 
 use crate::private::layout::{
@@ -138,6 +139,20 @@ where
         } else {
             None
         }
+    }
+}
+
+impl<'a, T> Debug for Reader<'a, T>
+where
+    T: crate::traits::OwnedStruct,
+    <T as crate::traits::OwnedStruct>::Reader<'a>: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let mut l = f.debug_list();
+        for i in 0..self.len() {
+            l.entry(&self.get(i));
+        }
+        l.finish()
     }
 }
 

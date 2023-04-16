@@ -21,6 +21,8 @@
 
 //! Dynamically typed value.
 
+use core::fmt::Debug;
+
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
@@ -115,6 +117,12 @@ impl<'a> crate::traits::Imbue<'a> for Reader<'a> {
     fn imbue(&mut self, cap_table: &'a crate::private::layout::CapTable) {
         self.reader
             .imbue(crate::private::layout::CapTableReader::Plain(cap_table));
+    }
+}
+
+impl<'a> Debug for Reader<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("AnyPointer").finish_non_exhaustive()
     }
 }
 

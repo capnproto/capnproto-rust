@@ -21,6 +21,7 @@
 
 //! List of primitives.
 
+use core::fmt::Debug;
 use core::marker;
 
 use crate::private::layout::{
@@ -126,6 +127,16 @@ where
 {
     fn into_internal_list_reader(self) -> ListReader<'a> {
         self.reader
+    }
+}
+
+impl<'a, T: PrimitiveElement + Debug> Debug for Reader<'a, T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut l = f.debug_list();
+        for i in 0..self.len() {
+            l.entry(&self.get(i));
+        }
+        l.finish()
     }
 }
 

@@ -21,6 +21,7 @@
 //! List of capabilities.
 
 use alloc::boxed::Box;
+use core::fmt::Debug;
 use core::marker::PhantomData;
 
 use crate::capability::FromClientHook;
@@ -268,5 +269,23 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<'a, T> Debug for Reader<'a, T>
+where
+    T: FromClientHook + Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let mut l = f.debug_list();
+        for i in 0..self.len() {
+            let get = self.get(i);
+            if let Ok(inner) = &get {
+                l.entry(inner);
+            } else {
+                l.entry(&get);
+            }
+        }
+        l.finish()
     }
 }
