@@ -1696,7 +1696,7 @@ fn generate_node(
                                 Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self {".to_string()),
                                 Indent(Box::new(Line("builder.init_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE).into()".to_string()))),
                                 Line("}".to_string()),
-                                Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
+                                Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
                                 Indent(Box::new(Line("::core::result::Result::Ok(builder.get_struct(<Self as ::capnp::traits::HasStructSize>::STRUCT_SIZE, default)?.into())".to_string()))),
                                 Line("}".to_string())]))),
                     Line("}".to_string()),
@@ -1759,7 +1759,7 @@ fn generate_node(
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
+                        Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
                         Indent(Box::new(Line("::core::result::Result::Ok(reader.get_struct(default)?.into())".to_string()))),
                         Line("}".to_string())]))),
                 Line("}".to_string()),
@@ -2181,7 +2181,7 @@ fn generate_node(
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
+                        Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
                         Indent(Box::new(Line("::core::result::Result::Ok(::capnp::capability::FromClientHook::new(reader.get_capability()?))".to_string()))),
                         Line("}".to_string())]))),
                 Line("}".to_string())]));
@@ -2195,7 +2195,7 @@ fn generate_node(
                             Line("fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self {".to_string()),
                             Indent(Box::new(Line("unimplemented!()".to_string()))),
                             Line("}".to_string()),
-                            Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
+                            Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self> {".to_string()),
                             Indent(Box::new(Line("::core::result::Result::Ok(::capnp::capability::FromClientHook::new(builder.get_capability()?))".to_string()))),
                             Line("}".to_string())]))),
                 Line("}".to_string()),
