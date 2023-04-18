@@ -805,7 +805,7 @@ mod tests {
 
         CheckTestMessage::check_test_message(root.reborrow().get_foo().unwrap());
         let root_reader = root.into_reader();
-        CheckTestMessage::check_test_message(root_reader.reborrow().get_foo().unwrap());
+        CheckTestMessage::check_test_message(root_reader.get_foo().unwrap());
         let dub_reader = root_reader.get_dub().unwrap();
         assert_eq!("Hello", dub_reader.get_foo().unwrap());
         let bar_reader = dub_reader.get_bar().unwrap();
