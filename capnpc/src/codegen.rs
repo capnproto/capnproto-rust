@@ -1727,7 +1727,6 @@ fn generate_node(
                     ])
                 }),
                 BlankLine,
-                Line("#[derive(Clone, Copy)]".to_string()),
                 (if !is_generic {
                     Line("pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }".to_string())
                 } else {
@@ -1740,6 +1739,15 @@ fn generate_node(
                         Line("}".to_string())
                     ])
                 }),
+                // Manually implement Copy/Clone because `derive` only kicks in if all of
+                // the parameters are known to implement Copy/Clone.
+                Branch(vec![
+                    Line(format!("impl <'a,{0}> ::core::marker::Copy for Reader<'a,{0}> {1} {{}}",
+                                 params.params, params.where_clause)),
+                    Line(format!("impl <'a,{0}> ::core::clone::Clone for Reader<'a,{0}> {1} {{",
+                                 params.params, params.where_clause)),
+                    Indent(Box::new(Line("fn clone(&self) -> Self { *self }".into()))),
+                    Line("}".into())]),
                 BlankLine,
                 Branch(vec![
                         Line(format!("impl <'a,{0}> ::capnp::traits::HasTypeId for Reader<'a,{0}> {1} {{",
