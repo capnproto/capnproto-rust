@@ -1873,7 +1873,7 @@ fn generate_node(
                         Line("}".to_string())]))),
                 Indent(Box::new(Branch(reader_members))),
                 Line("}".to_string()),
-                Line(format!("impl <'a,{0}> ::core::fmt::Debug for Reader<'a,{0}> {1} {{", params.params, params.where_clause_with_debug)),
+                Line(format!("impl <'a,{0}> ::core::fmt::Debug for Reader<'a,{0}> {1} {{", params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
                         Line("fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {".to_string()),

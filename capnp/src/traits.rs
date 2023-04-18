@@ -24,6 +24,7 @@ use crate::private::layout::{
 };
 use crate::Result;
 
+use core::fmt::Debug;
 use core::marker::PhantomData;
 
 pub trait HasStructSize {
@@ -58,7 +59,7 @@ pub trait FromPointerReader<'a>: Sized {
 /// nonetheless as a type parameter, e.g. for a generic container that owns a Cap'n Proto
 /// message of type `T: capnp::traits::Owned`.
 pub trait Owned {
-    type Reader<'a>: FromPointerReader<'a> + SetPointerBuilder;
+    type Reader<'a>: FromPointerReader<'a> + SetPointerBuilder + Debug;
     type Builder<'a>: FromPointerBuilder<'a>;
 }
 

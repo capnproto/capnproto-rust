@@ -40,7 +40,7 @@ where
 
 impl<T> crate::traits::Owned for Owned<T>
 where
-    T: FromClientHook,
+    T: FromClientHook + Debug,
 {
     type Reader<'a> = Reader<'a, T>;
     type Builder<'a> = Builder<'a, T>;

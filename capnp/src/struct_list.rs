@@ -41,6 +41,7 @@ where
 impl<T> crate::traits::Owned for Owned<T>
 where
     T: crate::traits::OwnedStruct,
+    for<'a> <T as crate::traits::OwnedStruct>::Reader<'a>: Debug,
 {
     type Reader<'a> = Reader<'a, T>;
     type Builder<'a> = Builder<'a, T>;

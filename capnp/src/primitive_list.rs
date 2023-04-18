@@ -37,7 +37,7 @@ pub struct Owned<T> {
 
 impl<T> crate::traits::Owned for Owned<T>
 where
-    T: PrimitiveElement,
+    T: PrimitiveElement + Debug,
 {
     type Reader<'a> = Reader<'a, T>;
     type Builder<'a> = Builder<'a, T>;

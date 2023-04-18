@@ -81,7 +81,6 @@ pub struct TypeParameterTexts {
     pub params: String,
     pub where_clause: String,
     pub where_clause_with_static: String,
-    pub where_clause_with_debug: String,
     pub pipeline_where_clause: String,
     pub phantom_data_value: String,
     pub phantom_data_type: String,
@@ -131,13 +130,6 @@ impl<'a> RustNodeInfo for node::Reader<'a> {
                     .collect::<Vec<String>>()
                     .join(", ")
                     + " ");
-            let where_clause_with_debug = "where ".to_string()
-                + &*(params
-                    .iter()
-                    .flat_map(|param| [format!("{param}: ::capnp::traits::Owned"), format!("<{param} as ::capnp::traits::Owned>::Reader<'a>: ::core::fmt::Debug")])
-                    .collect::<Vec<String>>()
-                    .join(", ")
-                    + " ");
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
                 format!("{param}: ::capnp::traits::Pipelined, <{param} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline")
             }).collect::<Vec<String>>().join(", ") + " ");
@@ -154,7 +146,6 @@ impl<'a> RustNodeInfo for node::Reader<'a> {
                 params: type_parameters,
                 where_clause,
                 where_clause_with_static,
-                where_clause_with_debug,
                 pipeline_where_clause,
                 phantom_data_type,
                 phantom_data_value,
@@ -165,7 +156,6 @@ impl<'a> RustNodeInfo for node::Reader<'a> {
                 params: "".to_string(),
                 where_clause: "".to_string(),
                 where_clause_with_static: "".to_string(),
-                where_clause_with_debug: "".to_string(),
                 pipeline_where_clause: "".to_string(),
                 phantom_data_type: "".to_string(),
                 phantom_data_value: "".to_string(),
