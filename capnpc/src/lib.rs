@@ -186,6 +186,15 @@ impl CompilerCommand {
         self
     }
 
+    /// Internal function for starting to build a capnp command.
+    fn new_command(&self) -> ::std::process::Command {
+        if let Some(executable) = &self.executable_path {
+            ::std::process::Command::new(executable)
+        } else {
+            ::std::process::Command::new("capnp")
+        }
+    }
+
     /// Sets the default parent module. This indicates the scope in your crate where you will
     /// add a module containing the generated code. For example, if you set this option to
     /// `vec!["foo".into(), "bar".into()]`, and you are generating code for `baz.capnp`, then your crate
@@ -222,11 +231,28 @@ impl CompilerCommand {
     /// Runs the command.
     /// Returns an error if `OUT_DIR` or a custom output directory was not set, or if `capnp compile` fails.
     pub fn run(&mut self) -> ::capnp::Result<()> {
-        let mut command = if let Some(executable) = &self.executable_path {
-            ::std::process::Command::new(executable)
-        } else {
-            ::std::process::Command::new("capnp")
-        };
+        match self.new_command().arg("--version").output() {
+            Err(error) => {
+                return Err(::capnp::Error::failed(format!(
+                    "Failed to execute `capnp --version`: {error}. \
+                     Please verify that version 0.5.2 or higher of the capnp executable \
+                     is installed on your system. See https://capnproto.org/install.html"
+                )))
+            }
+            Ok(output) => {
+                if !output.status.success() {
+                    return Err(::capnp::Error::failed(format!(
+                        "`capnp --version` returned an error: {:?}. \
+                         Please verify that version 0.5.2 or higher of the capnp executable \
+                         is installed on your system. See https://capnproto.org/install.html",
+                        output.status
+                    )));
+                }
+                // TODO Parse the version string?
+            }
+        }
+
+        let mut command = self.new_command();
 
         command.arg("compile").arg("-o").arg("-");
 
@@ -288,9 +314,7 @@ impl CompilerCommand {
 
         run_command(command, code_generation_command).map_err(|error| {
             ::capnp::Error::failed(format!(
-                "Error while trying to execute `capnp compile`: {error}.  \
-                 Please verify that version 0.5.2 or higher of the capnp executable \
-                 is installed on your system. See https://capnproto.org/install.html"
+                "Error while trying to execute `capnp compile`: {error}."
             ))
         })
     }
