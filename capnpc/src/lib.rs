@@ -254,6 +254,11 @@ impl CompilerCommand {
 
         let mut command = self.new_command();
 
+        // We remove PWD from the env to avoid the following warning.
+        // kj/filesystem-disk-unix.c++:1690:
+        //    warning: PWD environment variable doesn't match current directory
+        command.env_remove("PWD");
+
         command.arg("compile").arg("-o").arg("-");
 
         if self.no_standard_import {
