@@ -196,9 +196,7 @@ impl<'a> GeneratorContext<'a> {
                     "{}_capnp",
                     path_to_stem_string(importpath)?.replace('-', "_")
                 );
-                populate_scope_map(
-                    &gen.node_map,
-                    &mut gen.scope_map,
+                gen.populate_scope_map(
                     default_parent_module_scope.clone(),
                     root_name,
                     NameKind::Verbatim,
@@ -208,9 +206,7 @@ impl<'a> GeneratorContext<'a> {
 
             let root_name = path_to_stem_string(requested_file.get_filename()?)?;
             let root_mod = format!("{}_capnp", root_name.replace('-', "_"));
-            populate_scope_map(
-                &gen.node_map,
-                &mut gen.scope_map,
+            gen.populate_scope_map(
                 default_parent_module_scope.clone(),
                 root_mod,
                 NameKind::Verbatim,
@@ -228,6 +224,75 @@ impl<'a> GeneratorContext<'a> {
                 Some(n) => Ok(n),
             },
         }
+    }
+
+    fn populate_scope_map(
+        &mut self,
+        mut ancestor_scope_names: Vec<String>,
+        mut current_node_name: String,
+        current_name_kind: NameKind,
+        node_id: u64,
+    ) -> ::capnp::Result<()> {
+        // unused nodes in imported files might be omitted from the node map
+        let Some(&node_reader) = self.node_map.get(&node_id) else { return Ok(()) };
+
+        for annotation in node_reader.get_annotations()?.iter() {
+            if annotation.get_id() == NAME_ANNOTATION_ID {
+                current_node_name = name_annotation_value(annotation)?.to_string();
+            } else if annotation.get_id() == PARENT_MODULE_ANNOTATION_ID {
+                ancestor_scope_names = vec!["crate".to_string()];
+                ancestor_scope_names.append(&mut get_parent_module(annotation)?);
+            }
+        }
+
+        let mut scope_names = ancestor_scope_names;
+        scope_names.push(capnp_name_to_rust_name(
+            &current_node_name,
+            current_name_kind,
+        ));
+
+        self.scope_map.insert(node_id, scope_names.clone());
+
+        let nested_nodes = node_reader.get_nested_nodes()?;
+        for nested_node in nested_nodes.iter() {
+            let nested_node_id = nested_node.get_id();
+            match self.node_map.get(&nested_node_id) {
+                None => {}
+                Some(node_reader) => match node_reader.which() {
+                    Ok(schema_capnp::node::Enum(_enum_reader)) => {
+                        self.populate_scope_map(
+                            scope_names.clone(),
+                            nested_node.get_name()?.to_string(),
+                            NameKind::Verbatim,
+                            nested_node_id,
+                        )?;
+                    }
+                    _ => {
+                        self.populate_scope_map(
+                            scope_names.clone(),
+                            nested_node.get_name()?.to_string(),
+                            NameKind::Module,
+                            nested_node_id,
+                        )?;
+                    }
+                },
+            }
+        }
+
+        if let Ok(schema_capnp::node::Struct(struct_reader)) = node_reader.which() {
+            let fields = struct_reader.get_fields()?;
+            for field in fields.iter() {
+                if let Ok(schema_capnp::field::Group(group)) = field.which() {
+                    self.populate_scope_map(
+                        scope_names.clone(),
+                        get_field_name(field)?.to_string(),
+                        NameKind::Module,
+                        group.get_type_id(),
+                    )?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -430,82 +495,6 @@ fn capnp_name_to_rust_name(capnp_name: &str, name_kind: NameKind) -> String {
         NameKind::Module => module_name(capnp_name),
         NameKind::Verbatim => capnp_name.to_string(),
     }
-}
-
-fn populate_scope_map(
-    node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
-    scope_map: &mut collections::hash_map::HashMap<u64, Vec<String>>,
-    mut ancestor_scope_names: Vec<String>,
-    mut current_node_name: String,
-    current_name_kind: NameKind,
-    node_id: u64,
-) -> ::capnp::Result<()> {
-    // unused nodes in imported files might be omitted from the node map
-    let Some(node_reader) = node_map.get(&node_id) else { return Ok(()) };
-
-    for annotation in node_reader.get_annotations()?.iter() {
-        if annotation.get_id() == NAME_ANNOTATION_ID {
-            current_node_name = name_annotation_value(annotation)?.to_string();
-        } else if annotation.get_id() == PARENT_MODULE_ANNOTATION_ID {
-            ancestor_scope_names = vec!["crate".to_string()];
-            ancestor_scope_names.append(&mut get_parent_module(annotation)?);
-        }
-    }
-
-    let mut scope_names = ancestor_scope_names;
-    scope_names.push(capnp_name_to_rust_name(
-        &current_node_name,
-        current_name_kind,
-    ));
-
-    scope_map.insert(node_id, scope_names.clone());
-
-    let nested_nodes = node_reader.get_nested_nodes()?;
-    for nested_node in nested_nodes.iter() {
-        let nested_node_id = nested_node.get_id();
-        match node_map.get(&nested_node_id) {
-            None => {}
-            Some(node_reader) => match node_reader.which() {
-                Ok(schema_capnp::node::Enum(_enum_reader)) => {
-                    populate_scope_map(
-                        node_map,
-                        scope_map,
-                        scope_names.clone(),
-                        nested_node.get_name()?.to_string(),
-                        NameKind::Verbatim,
-                        nested_node_id,
-                    )?;
-                }
-                _ => {
-                    populate_scope_map(
-                        node_map,
-                        scope_map,
-                        scope_names.clone(),
-                        nested_node.get_name()?.to_string(),
-                        NameKind::Module,
-                        nested_node_id,
-                    )?;
-                }
-            },
-        }
-    }
-
-    if let Ok(schema_capnp::node::Struct(struct_reader)) = node_reader.which() {
-        let fields = struct_reader.get_fields()?;
-        for field in fields.iter() {
-            if let Ok(schema_capnp::field::Group(group)) = field.which() {
-                populate_scope_map(
-                    node_map,
-                    scope_map,
-                    scope_names.clone(),
-                    get_field_name(field)?.to_string(),
-                    NameKind::Module,
-                    group.get_type_id(),
-                )?;
-            }
-        }
-    }
-    Ok(())
 }
 
 fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<String>> {
