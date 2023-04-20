@@ -88,11 +88,7 @@ pub struct TypeParameterTexts {
 
 // this is a collection of helpers acting on a "Node" (most of them are Type definitions)
 pub trait RustNodeInfo {
-    fn parameters_texts(
-        &self,
-        gen: &crate::codegen::GeneratorContext,
-        parent_node_id: Option<u64>,
-    ) -> TypeParameterTexts;
+    fn parameters_texts(&self, gen: &crate::codegen::GeneratorContext) -> TypeParameterTexts;
 }
 
 // this is a collection of helpers acting on a "Type" (someplace where a Type is used, not defined)
@@ -104,13 +100,9 @@ pub trait RustTypeInfo {
 }
 
 impl<'a> RustNodeInfo for node::Reader<'a> {
-    fn parameters_texts(
-        &self,
-        gen: &crate::codegen::GeneratorContext,
-        parent_node_id: Option<u64>,
-    ) -> TypeParameterTexts {
+    fn parameters_texts(&self, gen: &crate::codegen::GeneratorContext) -> TypeParameterTexts {
         if self.get_is_generic() {
-            let params = get_type_parameters(gen, self.get_id(), parent_node_id);
+            let params = get_type_parameters(gen, self.get_id());
             let type_parameters = params
                 .iter()
                 .map(|param| param.to_string())
@@ -431,28 +423,21 @@ pub fn do_branding(
         arguments = arguments))
 }
 
-pub fn get_type_parameters(
-    gen: &GeneratorContext,
-    node_id: u64,
-    mut parent_scope_id: Option<u64>,
-) -> Vec<String> {
+pub fn get_type_parameters(gen: &GeneratorContext, node_id: u64) -> Vec<String> {
     let mut current_node_id = node_id;
     let mut accumulator: Vec<Vec<String>> = Vec::new();
     loop {
-        let Some(current_node) = gen.node_map.get(&current_node_id) else {
-            break
-        };
+        let current_node = gen.node_map[&current_node_id];
         let mut params = Vec::new();
         for param in current_node.get_parameters().unwrap() {
             params.push(param.get_name().unwrap().to_string());
         }
 
         accumulator.push(params);
-        current_node_id = current_node.get_scope_id();
-        if let (0, Some(id)) = (current_node_id, parent_scope_id) {
-            current_node_id = id
-        }
-        parent_scope_id = None; // Only consider on the first time around.
+        current_node_id = match gen.node_parents.get(&current_node_id).copied() {
+            Some(0) | None => break,
+            Some(id) => id,
+        };
     }
 
     accumulator.reverse();
