@@ -1,3 +1,9 @@
+### v0.16.4
+- Generate explicit Clone and Copy impls for Reader structs.
+- Fully-qualify `::capnp::Word` in generated code.
+- Add `capnp --version` invocation before `capnp compile`, for better error reporting.
+- Clear PWD env variable, to silence warning from kj/filesystem-disk-unix.c++.
+
 ### v0.16.3
 - Generate `*_has()` methods for capability fields.
 
