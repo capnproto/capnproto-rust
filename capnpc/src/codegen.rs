@@ -91,7 +91,7 @@ impl CodeGenerationCommand {
             &message,
         )?;
 
-        for requested_file in gen.request.get_requested_files()?.iter() {
+        for requested_file in gen.request.get_requested_files()? {
             let id = requested_file.get_id();
             let mut filepath = self.output_directory.to_path_buf();
             let requested = ::std::path::PathBuf::from(requested_file.get_filename()?);
@@ -182,15 +182,14 @@ impl<'a> GeneratorContext<'a> {
             scope_map: collections::hash_map::HashMap::<u64, Vec<String>>::new(),
         };
 
-        for node in gen.request.get_nodes()?.iter() {
+        for node in gen.request.get_nodes()? {
             gen.node_map.insert(node.get_id(), node);
         }
 
-        for requested_file in gen.request.get_requested_files()?.iter() {
+        for requested_file in gen.request.get_requested_files()? {
             let id = requested_file.get_id();
 
-            let imports = requested_file.get_imports()?;
-            for import in imports.iter() {
+            for import in requested_file.get_imports()? {
                 let importpath = ::std::path::Path::new(import.get_name()?);
                 let root_name: String = format!(
                     "{}_capnp",
@@ -236,7 +235,7 @@ impl<'a> GeneratorContext<'a> {
         // unused nodes in imported files might be omitted from the node map
         let Some(&node_reader) = self.node_map.get(&node_id) else { return Ok(()) };
 
-        for annotation in node_reader.get_annotations()?.iter() {
+        for annotation in node_reader.get_annotations()? {
             if annotation.get_id() == NAME_ANNOTATION_ID {
                 current_node_name = name_annotation_value(annotation)?.to_string();
             } else if annotation.get_id() == PARENT_MODULE_ANNOTATION_ID {
@@ -254,7 +253,7 @@ impl<'a> GeneratorContext<'a> {
         self.scope_map.insert(node_id, scope_names.clone());
 
         let nested_nodes = node_reader.get_nested_nodes()?;
-        for nested_node in nested_nodes.iter() {
+        for nested_node in nested_nodes {
             let nested_node_id = nested_node.get_id();
             match self.node_map.get(&nested_node_id) {
                 None => {}
@@ -281,7 +280,7 @@ impl<'a> GeneratorContext<'a> {
 
         if let Ok(schema_capnp::node::Struct(struct_reader)) = node_reader.which() {
             let fields = struct_reader.get_fields()?;
-            for field in fields.iter() {
+            for field in fields {
                 if let Ok(schema_capnp::field::Group(group)) = field.which() {
                     self.populate_scope_map(
                         scope_names.clone(),
@@ -396,7 +395,7 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
         Indent(ft) => to_lines(ft, indent + 1),
         Branch(fts) => {
             let mut result = Vec::new();
-            for ft in fts.iter() {
+            for ft in fts {
                 for line in &to_lines(ft, indent) {
                     result.push(line.clone()); // TODO there's probably a better way to do this.
                 }
@@ -458,7 +457,7 @@ fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp:
 }
 
 fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
-    for annotation in field.get_annotations()?.iter() {
+    for annotation in field.get_annotations()? {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             return name_annotation_value(annotation);
         }
@@ -467,7 +466,7 @@ fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
 }
 
 fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Result<&str> {
-    for annotation in enumerant.get_annotations()?.iter() {
+    for annotation in enumerant.get_annotations()? {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             return name_annotation_value(annotation);
         }
@@ -748,7 +747,7 @@ fn zero_fields_of_group(
                 )));
             }
             let fields = st.get_fields()?;
-            for field in fields.iter() {
+            for field in fields {
                 match field.which()? {
                     field::Group(group) => {
                         result.push(zero_fields_of_group(gen, group.get_type_id(), clear)?);
@@ -1057,7 +1056,7 @@ fn used_params_of_group(
     let node = gen.node_map[&group_id];
     match node.which()? {
         schema_capnp::node::Struct(st) => {
-            for field in st.get_fields()?.iter() {
+            for field in st.get_fields()? {
                 match field.which()? {
                     schema_capnp::field::Group(group) => {
                         used_params_of_group(gen, group.get_type_id(), used_params)?;
@@ -1123,7 +1122,7 @@ fn used_params_of_brand(
     use schema_capnp::brand;
     let scopes = brand.get_scopes()?;
     let mut brand_scopes = HashMap::new();
-    for scope in scopes.iter() {
+    for scope in scopes {
         brand_scopes.insert(scope.get_scope_id(), scope);
     }
     let brand_scopes = brand_scopes; // freeze
@@ -1135,14 +1134,14 @@ fn used_params_of_brand(
             None => (),
             Some(scope) => match scope.which()? {
                 brand::scope::Inherit(()) => {
-                    for param in params.iter() {
+                    for param in params {
                         used_params.insert(param.get_name()?.to_string());
                     }
                 }
                 brand::scope::Bind(bindings_list_opt) => {
                     let bindings_list = bindings_list_opt?;
                     assert_eq!(bindings_list.len(), params.len());
-                    for binding in bindings_list.iter() {
+                    for binding in bindings_list {
                         match binding.which()? {
                             brand::binding::Unbound(()) => (),
                             brand::binding::Type(t) => {
@@ -1191,7 +1190,7 @@ fn generate_union(
 
     let doffset = discriminant_offset as usize;
 
-    for field in fields.iter() {
+    for field in fields {
         let dvalue = field.get_discriminant_value() as usize;
 
         let field_name = get_field_name(*field)?;
@@ -1500,11 +1499,11 @@ fn get_ty_params_of_brand_helper(
     accumulator: &mut HashSet<(u64, u16)>,
     brand: crate::schema_capnp::brand::Reader,
 ) -> ::capnp::Result<()> {
-    for scope in brand.get_scopes()?.iter() {
+    for scope in brand.get_scopes()? {
         let scope_id = scope.get_scope_id();
         match scope.which()? {
             crate::schema_capnp::brand::scope::Bind(bind) => {
-                for binding in bind?.iter() {
+                for binding in bind? {
                     match binding.which()? {
                         crate::schema_capnp::brand::binding::Unbound(()) => {}
                         crate::schema_capnp::brand::binding::Type(t) => {
@@ -1539,7 +1538,7 @@ fn generate_node(
 
     let node_reader = &gen.node_map[&node_id];
     let nested_nodes = node_reader.get_nested_nodes()?;
-    for nested_node in nested_nodes.iter() {
+    for nested_node in nested_nodes {
         let id = nested_node.get_id();
         nested_output.push(generate_node(gen, id, gen.get_last_name(id)?, None)?);
     }
@@ -1582,7 +1581,7 @@ fn generate_node(
             let discriminant_offset = struct_reader.get_discriminant_offset();
 
             let fields = struct_reader.get_fields()?;
-            for field in fields.iter() {
+            for field in fields {
                 let name = get_field_name(field)?;
                 let styled_name = camel_to_snake_case(name);
 

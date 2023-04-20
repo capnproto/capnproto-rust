@@ -341,7 +341,7 @@ fn to_pipeline_ops(
     ops: ::capnp::struct_list::Reader<promised_answer::op::Owned>,
 ) -> ::capnp::Result<Vec<PipelineOp>> {
     let mut result = Vec::new();
-    for op in ops.iter() {
+    for op in ops {
         match op.which()? {
             promised_answer::op::Noop(()) => {
                 result.push(PipelineOp::Noop);

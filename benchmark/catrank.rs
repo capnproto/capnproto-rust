@@ -139,7 +139,7 @@ impl crate::TestCase for CatRank {
     ) -> ::capnp::Result<()> {
         let mut good_count: i32 = 0;
         let results = response.get_results()?;
-        for result in results.iter() {
+        for result in results {
             if result.get_score() > 1001.0 {
                 good_count += 1;
             } else {

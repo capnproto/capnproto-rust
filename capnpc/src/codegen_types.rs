@@ -360,7 +360,7 @@ pub fn do_branding(
 ) -> Result<String, Error> {
     let scopes = brand.get_scopes()?;
     let mut brand_scopes = HashMap::new();
-    for scope in scopes.iter() {
+    for scope in scopes {
         brand_scopes.insert(scope.get_scope_id(), scope);
     }
     let brand_scopes = brand_scopes; // freeze
@@ -372,20 +372,20 @@ pub fn do_branding(
         let mut arguments: Vec<String> = Vec::new();
         match brand_scopes.get(&current_node_id) {
             None => {
-                for _ in params.iter() {
+                for _ in params {
                     arguments.push("::capnp::any_pointer::Owned".to_string());
                 }
             }
             Some(scope) => match scope.which()? {
                 brand::scope::Inherit(()) => {
-                    for param in params.iter() {
+                    for param in params {
                         arguments.push(param.get_name()?.to_string());
                     }
                 }
                 brand::scope::Bind(bindings_list_opt) => {
                     let bindings_list = bindings_list_opt?;
                     assert_eq!(bindings_list.len(), params.len());
-                    for binding in bindings_list.iter() {
+                    for binding in bindings_list {
                         match binding.which()? {
                             brand::binding::Unbound(()) => {
                                 arguments.push("::capnp::any_pointer::Owned".to_string());
@@ -443,7 +443,7 @@ pub fn get_type_parameters(
             break
         };
         let mut params = Vec::new();
-        for param in current_node.get_parameters().unwrap().iter() {
+        for param in current_node.get_parameters().unwrap() {
             params.push(param.get_name().unwrap().to_string());
         }
 

@@ -155,7 +155,7 @@ impl crate::TestCase for CarSales {
         mut response: total_value::Builder,
     ) -> ::capnp::Result<()> {
         let mut result = 0;
-        for car in request.get_cars()?.iter() {
+        for car in request.get_cars()? {
             result += car.car_value()?;
         }
         response.set_amount(result);
