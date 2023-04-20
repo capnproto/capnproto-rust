@@ -294,6 +294,10 @@ impl<'a> GeneratorContext<'a> {
         }
         Ok(())
     }
+
+    fn get_qualified_module(&self, type_id: u64) -> String {
+        self.scope_map[&type_id].join("::")
+    }
 }
 
 fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<String> {
@@ -572,7 +576,7 @@ pub fn getter_text(
                 format!(",{}", params.join(","))
             };
 
-            let the_mod = gen.scope_map[&group.get_type_id()].join("::");
+            let the_mod = gen.get_qualified_module(group.get_type_id());
 
             let mut result_type = if is_reader {
                 format!("{the_mod}::Reader<'a{params_string}>")
@@ -841,8 +845,7 @@ fn generate_setter(
                 format!(",{}", params.join(","))
             };
 
-            let scope = &gen.scope_map[&group.get_type_id()];
-            let the_mod = scope.join("::");
+            let the_mod = gen.get_qualified_module(group.get_type_id());
 
             initter_interior.push(zero_fields_of_group(
                 gen,
@@ -949,7 +952,7 @@ fn generate_setter(
                 }
                 type_::Enum(e) => {
                     let id = e.get_type_id();
-                    let the_mod = gen.scope_map[&id].join("::");
+                    let the_mod = gen.get_qualified_module(id);
                     setter_interior.push(Line(format!(
                         "self.builder.set_data_field::<u16>({offset}, value as u16)"
                     )));
@@ -1379,7 +1382,7 @@ fn generate_pipeline_getter(
                 format!("<{}>", params.join(","))
             };
 
-            let the_mod = gen.scope_map[&group.get_type_id()].join("::");
+            let the_mod = gen.get_qualified_module(group.get_type_id());
             Ok(Branch(vec![
                 Line(format!(
                     "pub fn get_{}(&self) -> {}::Pipeline{} {{",
