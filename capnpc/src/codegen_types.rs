@@ -194,7 +194,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 st.get_type_id(),
                 st.get_brand()?,
                 module,
-                &gen.scope_map[&st.get_type_id()].join("::"),
+                &gen.get_qualified_module(st.get_type_id()),
                 None,
             ),
             type_::Interface(interface) => do_branding(
@@ -202,7 +202,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 interface.get_type_id(),
                 interface.get_brand()?,
                 module,
-                &gen.scope_map[&interface.get_type_id()].join("::"),
+                &gen.get_qualified_module(interface.get_type_id()),
                 None,
             ),
             type_::List(ot1) => {
@@ -260,10 +260,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     }
                 }
             }
-            type_::Enum(en) => {
-                let scope = &gen.scope_map[&en.get_type_id()];
-                Ok(scope.join("::"))
-            }
+            type_::Enum(en) => Ok(gen.get_qualified_module(en.get_type_id())),
             type_::AnyPointer(pointer) => match pointer.which()? {
                 type_::any_pointer::Parameter(def) => {
                     let the_struct = &gen.node_map[&def.get_scope_id()];

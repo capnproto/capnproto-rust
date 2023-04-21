@@ -318,7 +318,7 @@ impl<'a> GeneratorContext<'a> {
         Ok(())
     }
 
-    fn get_qualified_module(&self, type_id: u64) -> String {
+    pub fn get_qualified_module(&self, type_id: u64) -> String {
         self.scope_map[&type_id].join("::")
     }
 }
