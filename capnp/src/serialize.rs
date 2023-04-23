@@ -428,6 +428,9 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8
 ///
 /// For optimal performance, `write` should be a buffered writer. `flush()` will not be called on
 /// the writer.
+///
+/// The only source of errors from this function are `write.write_all()` calls. If you pass in
+/// a writer that never returns an error, then this function will never return an error.
 pub fn write_message<W, A>(mut write: W, message: &message::Builder<A>) -> Result<()>
 where
     W: Write,
