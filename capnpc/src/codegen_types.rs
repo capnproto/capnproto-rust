@@ -209,28 +209,22 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     type_::Struct(_) => {
                         let inner = element_type.type_string(gen, Leaf::Owned)?;
                         Ok(format!(
-                            "::capnp::struct_list::{}<{}{}>",
-                            module.bare_name(),
-                            lifetime_comma,
-                            inner
+                            "::capnp::struct_list::{}<{lifetime_comma}{inner}>",
+                            module.bare_name()
                         ))
                     }
                     type_::Enum(_) => {
                         let inner = element_type.type_string(gen, Leaf::Owned)?;
                         Ok(format!(
-                            "::capnp::enum_list::{}<{}{}>",
-                            module.bare_name(),
-                            lifetime_comma,
-                            inner
+                            "::capnp::enum_list::{}<{lifetime_comma}{inner}>",
+                            module.bare_name()
                         ))
                     }
                     type_::List(_) => {
                         let inner = element_type.type_string(gen, Leaf::Owned)?;
                         Ok(format!(
-                            "::capnp::list_list::{}<{}{}>",
-                            module.bare_name(),
-                            lifetime_comma,
-                            inner
+                            "::capnp::list_list::{}<{lifetime_comma}{inner}>",
+                            module.bare_name()
                         ))
                     }
                     type_::Text(()) => Ok(format!("::capnp::text_list::{module}")),
@@ -238,10 +232,8 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     type_::Interface(_) => {
                         let inner = element_type.type_string(gen, Leaf::Client)?;
                         Ok(format!(
-                            "::capnp::capability_list::{}<{}{}>",
-                            module.bare_name(),
-                            lifetime_comma,
-                            inner
+                            "::capnp::capability_list::{}<{lifetime_comma}{inner}>",
+                            module.bare_name()
                         ))
                     }
                     type_::AnyPointer(_) => {
@@ -250,10 +242,8 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     _ => {
                         let inner = element_type.type_string(gen, Leaf::Owned)?;
                         Ok(format!(
-                            "::capnp::primitive_list::{}<{}{}>",
-                            module.bare_name(),
-                            lifetime_comma,
-                            inner
+                            "::capnp::primitive_list::{}<{lifetime_comma}{inner}>",
+                            module.bare_name()
                         ))
                     }
                 }
@@ -408,12 +398,15 @@ pub fn do_branding(
         "".to_string()
     };
 
+    let maybe_colons = if leaf == Leaf::ServerDispatch {
+        "::"
+    } else {
+        ""
+    }; // HACK
     Ok(format!(
-        "{mod}::{leaf}{maybe_colons}{arguments}",
-        mod = the_mod,
-        leaf = leaf.bare_name(),
-        maybe_colons = if leaf == Leaf::ServerDispatch { "::" } else { "" }, // HACK
-        arguments = arguments))
+        "{the_mod}::{leaf}{maybe_colons}{arguments}",
+        leaf = leaf.bare_name()
+    ))
 }
 
 pub fn get_type_parameters(gen: &GeneratorContext, node_id: u64) -> Vec<String> {
