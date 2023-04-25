@@ -195,7 +195,6 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 st.get_brand()?,
                 module,
                 &gen.get_qualified_module(st.get_type_id()),
-                None,
             ),
             type_::Interface(interface) => do_branding(
                 gen,
@@ -203,7 +202,6 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 interface.get_brand()?,
                 module,
                 &gen.get_qualified_module(interface.get_type_id()),
-                None,
             ),
             type_::List(ot1) => {
                 let element_type = ot1.get_element_type()?;
@@ -345,7 +343,6 @@ pub fn do_branding(
     brand: brand::Reader,
     leaf: Leaf,
     the_mod: &str,
-    mut parent_scope_id: Option<u64>,
 ) -> Result<String, Error> {
     let scopes = brand.get_scopes()?;
     let mut brand_scopes = HashMap::new();
@@ -356,7 +353,7 @@ pub fn do_branding(
     let mut current_node_id = node_id;
     let mut accumulator: Vec<Vec<String>> = Vec::new();
     loop {
-        let Some(current_node) = gen.node_map.get(&current_node_id) else { break };
+        let current_node = gen.node_map[&current_node_id];
         let params = current_node.get_parameters()?;
         let mut arguments: Vec<String> = Vec::new();
         match brand_scopes.get(&current_node_id) {
@@ -388,11 +385,10 @@ pub fn do_branding(
             },
         }
         accumulator.push(arguments);
-        current_node_id = current_node.get_scope_id();
-        if let (0, Some(id)) = (current_node_id, parent_scope_id) {
-            current_node_id = id
-        }
-        parent_scope_id = None; // Only consider on the first time around.
+        current_node_id = match gen.node_parents.get(&current_node_id).copied() {
+            Some(0) | None => break,
+            Some(id) => id,
+        };
     }
 
     // Now add a lifetime parameter if the leaf has one.

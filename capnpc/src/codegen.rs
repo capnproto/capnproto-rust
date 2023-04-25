@@ -2038,7 +2038,6 @@ fn generate_node(
                     method.get_param_brand()?,
                     Leaf::Owned,
                     &param_scopes.join("::"),
-                    Some(node_id),
                 )?;
 
                 let result_id = method.get_result_struct_type();
@@ -2061,7 +2060,6 @@ fn generate_node(
                     method.get_result_brand()?,
                     Leaf::Owned,
                     &result_scopes.join("::"),
-                    Some(node_id),
                 )?;
 
                 dispatch_arms.push(
@@ -2136,15 +2134,8 @@ fn generate_node(
                     base_dispatch_arms.push(Line(format!(
                         "0x{type_id:x} => {}::dispatch_call_internal(&mut self.server, method_id, params, results),",
                         do_branding(
-                            gen, type_id, brand, Leaf::ServerDispatch, &the_mod, None)?)));
-                    base_traits.push(do_branding(
-                        gen,
-                        type_id,
-                        brand,
-                        Leaf::Server,
-                        &the_mod,
-                        None,
-                    )?);
+                            gen, type_id, brand, Leaf::ServerDispatch, &the_mod)?)));
+                    base_traits.push(do_branding(gen, type_id, brand, Leaf::Server, &the_mod)?);
                 }
                 if !extends.is_empty() {
                     format!(": {}", base_traits.join(" + "))
