@@ -19,7 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-/// Since `::std::num::Zero` isn't stable, we have our own version.
+/// At one point the standard library had `::std::num::Zero`. It was never stabilized
+/// it eventually got deleted. So we define our own version here.
 pub trait Zero {
     fn zero() -> Self;
 }
