@@ -2129,7 +2129,7 @@ fn generate_node(
                 for interface in &extends {
                     let type_id = interface.get_id();
                     let brand = interface.get_brand()?;
-                    let the_mod = gen.scope_map[&type_id].join("::");
+                    let the_mod = gen.get_qualified_module(type_id);
 
                     base_dispatch_arms.push(Line(format!(
                         "0x{type_id:x} => {}::dispatch_call_internal(&mut self.server, method_id, params, results),",
