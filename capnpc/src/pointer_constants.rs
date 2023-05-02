@@ -89,7 +89,7 @@ pub fn generate_pointer_constant(
             )?,
             Line("::capnp::constant::Reader {".into()),
             Indent(Box::new(Branch(vec![
-                Line("phantom: ::std::marker::PhantomData,".into()),
+                Line("phantom: ::core::marker::PhantomData,".into()),
                 Line("words: &WORDS,".into()),
             ]))),
             Line("}".into()),
