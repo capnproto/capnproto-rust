@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use crate::codegen;
 use crate::codegen::GeneratorContext;
 use crate::schema_capnp::{brand, node, type_};
 use capnp::Error;
@@ -88,7 +87,7 @@ pub struct TypeParameterTexts {
 
 // this is a collection of helpers acting on a "Node" (most of them are Type definitions)
 pub trait RustNodeInfo {
-    fn parameters_texts(&self, gen: &crate::codegen::GeneratorContext) -> TypeParameterTexts;
+    fn parameters_texts(&self, ctx: &GeneratorContext) -> TypeParameterTexts;
 }
 
 // this is a collection of helpers acting on a "Type" (someplace where a Type is used, not defined)
@@ -96,13 +95,13 @@ pub trait RustTypeInfo {
     fn is_prim(&self) -> Result<bool, Error>;
     fn is_parameter(&self) -> Result<bool, Error>;
     fn is_branded(&self) -> Result<bool, Error>;
-    fn type_string(&self, gen: &codegen::GeneratorContext, module: Leaf) -> Result<String, Error>;
+    fn type_string(&self, ctx: &GeneratorContext, module: Leaf) -> Result<String, Error>;
 }
 
 impl<'a> RustNodeInfo for node::Reader<'a> {
-    fn parameters_texts(&self, gen: &crate::codegen::GeneratorContext) -> TypeParameterTexts {
+    fn parameters_texts(&self, ctx: &GeneratorContext) -> TypeParameterTexts {
         if self.get_is_generic() {
-            let params = get_type_parameters(gen, self.get_id());
+            let params = get_type_parameters(ctx, self.get_id());
             let type_parameters = params
                 .iter()
                 .map(|param| param.to_string())
@@ -157,11 +156,7 @@ impl<'a> RustNodeInfo for node::Reader<'a> {
 }
 
 impl<'a> RustTypeInfo for type_::Reader<'a> {
-    fn type_string(
-        &self,
-        gen: &codegen::GeneratorContext,
-        module: Leaf,
-    ) -> Result<String, ::capnp::Error> {
+    fn type_string(&self, ctx: &GeneratorContext, module: Leaf) -> Result<String, Error> {
         let local_lifetime = match module {
             Leaf::Reader(lt) => lt,
             Leaf::Builder(lt) => lt,
@@ -190,38 +185,38 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             type_::Text(()) => Ok(format!("::capnp::text::{module}")),
             type_::Data(()) => Ok(format!("::capnp::data::{module}")),
             type_::Struct(st) => do_branding(
-                gen,
+                ctx,
                 st.get_type_id(),
                 st.get_brand()?,
                 module,
-                &gen.get_qualified_module(st.get_type_id()),
+                &ctx.get_qualified_module(st.get_type_id()),
             ),
             type_::Interface(interface) => do_branding(
-                gen,
+                ctx,
                 interface.get_type_id(),
                 interface.get_brand()?,
                 module,
-                &gen.get_qualified_module(interface.get_type_id()),
+                &ctx.get_qualified_module(interface.get_type_id()),
             ),
             type_::List(ot1) => {
                 let element_type = ot1.get_element_type()?;
                 match element_type.which()? {
                     type_::Struct(_) => {
-                        let inner = element_type.type_string(gen, Leaf::Owned)?;
+                        let inner = element_type.type_string(ctx, Leaf::Owned)?;
                         Ok(format!(
                             "::capnp::struct_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
                         ))
                     }
                     type_::Enum(_) => {
-                        let inner = element_type.type_string(gen, Leaf::Owned)?;
+                        let inner = element_type.type_string(ctx, Leaf::Owned)?;
                         Ok(format!(
                             "::capnp::enum_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
                         ))
                     }
                     type_::List(_) => {
-                        let inner = element_type.type_string(gen, Leaf::Owned)?;
+                        let inner = element_type.type_string(ctx, Leaf::Owned)?;
                         Ok(format!(
                             "::capnp::list_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
@@ -230,7 +225,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     type_::Text(()) => Ok(format!("::capnp::text_list::{module}")),
                     type_::Data(()) => Ok(format!("::capnp::data_list::{module}")),
                     type_::Interface(_) => {
-                        let inner = element_type.type_string(gen, Leaf::Client)?;
+                        let inner = element_type.type_string(ctx, Leaf::Client)?;
                         Ok(format!(
                             "::capnp::capability_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
@@ -240,7 +235,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                         Err(Error::failed("List(AnyPointer) is unsupported".to_string()))
                     }
                     _ => {
-                        let inner = element_type.type_string(gen, Leaf::Owned)?;
+                        let inner = element_type.type_string(ctx, Leaf::Owned)?;
                         Ok(format!(
                             "::capnp::primitive_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
@@ -248,10 +243,10 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     }
                 }
             }
-            type_::Enum(en) => Ok(gen.get_qualified_module(en.get_type_id())),
+            type_::Enum(en) => Ok(ctx.get_qualified_module(en.get_type_id())),
             type_::AnyPointer(pointer) => match pointer.which()? {
                 type_::any_pointer::Parameter(def) => {
-                    let the_struct = &gen.node_map[&def.get_scope_id()];
+                    let the_struct = &ctx.node_map[&def.get_scope_id()];
                     let parameters = the_struct.get_parameters()?;
                     let parameter = parameters.get(u32::from(def.get_parameter_index()));
                     let parameter_name = parameter.get_name()?;
@@ -328,7 +323,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
 ///
 ///
 pub fn do_branding(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     node_id: u64,
     brand: brand::Reader,
     leaf: Leaf,
@@ -343,7 +338,7 @@ pub fn do_branding(
     let mut current_node_id = node_id;
     let mut accumulator: Vec<Vec<String>> = Vec::new();
     loop {
-        let current_node = gen.node_map[&current_node_id];
+        let current_node = ctx.node_map[&current_node_id];
         let params = current_node.get_parameters()?;
         let mut arguments: Vec<String> = Vec::new();
         match brand_scopes.get(&current_node_id) {
@@ -367,7 +362,7 @@ pub fn do_branding(
                                 arguments.push("::capnp::any_pointer::Owned".to_string());
                             }
                             brand::binding::Type(t) => {
-                                arguments.push(t?.type_string(gen, Leaf::Owned)?);
+                                arguments.push(t?.type_string(ctx, Leaf::Owned)?);
                             }
                         }
                     }
@@ -375,7 +370,7 @@ pub fn do_branding(
             },
         }
         accumulator.push(arguments);
-        current_node_id = match gen.node_parents.get(&current_node_id).copied() {
+        current_node_id = match ctx.node_parents.get(&current_node_id).copied() {
             Some(0) | None => break,
             Some(id) => id,
         };
@@ -409,18 +404,18 @@ pub fn do_branding(
     ))
 }
 
-pub fn get_type_parameters(gen: &GeneratorContext, node_id: u64) -> Vec<String> {
+pub fn get_type_parameters(ctx: &GeneratorContext, node_id: u64) -> Vec<String> {
     let mut current_node_id = node_id;
     let mut accumulator: Vec<Vec<String>> = Vec::new();
     loop {
-        let current_node = gen.node_map[&current_node_id];
+        let current_node = ctx.node_map[&current_node_id];
         let mut params = Vec::new();
         for param in current_node.get_parameters().unwrap() {
             params.push(param.get_name().unwrap().to_string());
         }
 
         accumulator.push(params);
-        current_node_id = match gen.node_parents.get(&current_node_id).copied() {
+        current_node_id = match ctx.node_parents.get(&current_node_id).copied() {
             Some(0) | None => break,
             Some(id) => id,
         };

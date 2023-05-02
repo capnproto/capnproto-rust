@@ -86,12 +86,12 @@ impl CodeGenerationCommand {
             capnp::message::ReaderOptions::new(),
         )?;
 
-        let gen = GeneratorContext::new_with_default_parent_module(
+        let ctx = GeneratorContext::new_with_default_parent_module(
             &self.default_parent_module[..],
             &message,
         )?;
 
-        for requested_file in gen.request.get_requested_files()? {
+        for requested_file in ctx.request.get_requested_files()? {
             let id = requested_file.get_id();
             let mut filepath = self.output_directory.to_path_buf();
             let requested = ::std::path::PathBuf::from(requested_file.get_filename()?);
@@ -111,7 +111,7 @@ impl CodeGenerationCommand {
                 Line("// DO NOT EDIT.".to_string()),
                 Line(format!("// source: {}", requested_file.get_filename()?)),
                 BlankLine,
-                generate_node(&gen, id, &root_name)?,
+                generate_node(&ctx, id, &root_name)?,
             ]);
 
             let text = stringify(&lines);
@@ -181,35 +181,35 @@ impl<'a> GeneratorContext<'a> {
         let mut default_parent_module_scope = vec!["crate".to_string()];
         default_parent_module_scope.extend_from_slice(default_parent_module);
 
-        let mut gen = GeneratorContext {
+        let mut ctx = GeneratorContext {
             request: message.get_root()?,
             node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a>>::new(),
             scope_map: collections::hash_map::HashMap::<u64, Vec<String>>::new(),
             node_parents: collections::hash_map::HashMap::new(),
         };
 
-        for node in gen.request.get_nodes()? {
-            gen.node_map.insert(node.get_id(), node);
-            gen.node_parents.insert(node.get_id(), node.get_scope_id());
+        for node in ctx.request.get_nodes()? {
+            ctx.node_map.insert(node.get_id(), node);
+            ctx.node_parents.insert(node.get_id(), node.get_scope_id());
         }
 
         // Fix up "anonymous" method params and results scopes.
-        for node in gen.request.get_nodes()? {
+        for node in ctx.request.get_nodes()? {
             if let Ok(schema_capnp::node::Interface(interface_reader)) = node.which() {
                 for method in interface_reader.get_methods()? {
                     let param_struct_type = method.get_param_struct_type();
-                    if gen.node_parents.get(&param_struct_type) == Some(&0) {
-                        gen.node_parents.insert(param_struct_type, node.get_id());
+                    if ctx.node_parents.get(&param_struct_type) == Some(&0) {
+                        ctx.node_parents.insert(param_struct_type, node.get_id());
                     }
                     let result_struct_type = method.get_result_struct_type();
-                    if gen.node_parents.get(&result_struct_type) == Some(&0) {
-                        gen.node_parents.insert(result_struct_type, node.get_id());
+                    if ctx.node_parents.get(&result_struct_type) == Some(&0) {
+                        ctx.node_parents.insert(result_struct_type, node.get_id());
                     }
                 }
             }
         }
 
-        for requested_file in gen.request.get_requested_files()? {
+        for requested_file in ctx.request.get_requested_files()? {
             let id = requested_file.get_id();
 
             for import in requested_file.get_imports()? {
@@ -218,7 +218,7 @@ impl<'a> GeneratorContext<'a> {
                     "{}_capnp",
                     path_to_stem_string(importpath)?.replace('-', "_")
                 );
-                gen.populate_scope_map(
+                ctx.populate_scope_map(
                     default_parent_module_scope.clone(),
                     root_name,
                     NameKind::Verbatim,
@@ -228,14 +228,14 @@ impl<'a> GeneratorContext<'a> {
 
             let root_name = path_to_stem_string(requested_file.get_filename()?)?;
             let root_mod = format!("{}_capnp", root_name.replace('-', "_"));
-            gen.populate_scope_map(
+            ctx.populate_scope_map(
                 default_parent_module_scope.clone(),
                 root_mod,
                 NameKind::Verbatim,
                 id,
             )?;
         }
-        Ok(gen)
+        Ok(ctx)
     }
 
     fn get_last_name(&self, id: u64) -> ::capnp::Result<&str> {
@@ -561,11 +561,11 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
 }
 
 // Gets the full list ordered of generic parameters for a node. Outer scopes come first.
-fn get_params(gen: &GeneratorContext, mut node_id: u64) -> ::capnp::Result<Vec<String>> {
+fn get_params(ctx: &GeneratorContext, mut node_id: u64) -> ::capnp::Result<Vec<String>> {
     let mut result = Vec::new();
 
     while node_id != 0 {
-        let node = gen.node_map[&node_id];
+        let node = ctx.node_map[&node_id];
         let parameters = node.get_parameters()?;
 
         for parameter in parameters.into_iter().rev() {
@@ -583,7 +583,7 @@ fn get_params(gen: &GeneratorContext, mut node_id: u64) -> ::capnp::Result<Vec<S
 // Returns (type, getter body, default_decl)
 //
 pub fn getter_text(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     field: &schema_capnp::field::Reader,
     is_reader: bool,
     is_fn: bool,
@@ -592,14 +592,14 @@ pub fn getter_text(
 
     match field.which()? {
         field::Group(group) => {
-            let params = get_params(gen, group.get_type_id())?;
+            let params = get_params(ctx, group.get_type_id())?;
             let params_string = if params.is_empty() {
                 "".to_string()
             } else {
                 format!(",{}", params.join(","))
             };
 
-            let the_mod = gen.get_qualified_module(group.get_type_id());
+            let the_mod = ctx.get_qualified_module(group.get_type_id());
 
             let mut result_type = if is_reader {
                 format!("{the_mod}::Reader<'a{params_string}>")
@@ -647,7 +647,7 @@ pub fn getter_text(
             }
 
             let raw_type = reg_field.get_type()?;
-            let typ = raw_type.type_string(gen, module)?;
+            let typ = raw_type.type_string(ctx, module)?;
             let default_value = reg_field.get_default_value()?;
             let default = default_value.which()?;
             let default_name = format!(
@@ -661,7 +661,7 @@ pub fn getter_text(
                 type_::Interface(_) => {
                     format!(
                         "::capnp::Result<{}>",
-                        raw_type.type_string(gen, Leaf::Client)?
+                        raw_type.type_string(ctx, Leaf::Client)?
                     )
                 }
                 _ if raw_type.is_prim()? => typ.clone(),
@@ -756,12 +756,12 @@ pub fn getter_text(
 }
 
 fn zero_fields_of_group(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     node_id: u64,
     clear: &mut bool,
 ) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::{field, node, type_};
-    match gen.node_map[&node_id].which()? {
+    match ctx.node_map[&node_id].which()? {
         node::Struct(st) => {
             let mut result = Vec::new();
             if st.get_discriminant_count() != 0 {
@@ -774,7 +774,7 @@ fn zero_fields_of_group(
             for field in fields {
                 match field.which()? {
                     field::Group(group) => {
-                        result.push(zero_fields_of_group(gen, group.get_type_id(), clear)?);
+                        result.push(zero_fields_of_group(ctx, group.get_type_id(), clear)?);
                     }
                     field::Slot(slot) => {
                         let typ = slot.get_type()?.which()?;
@@ -792,7 +792,7 @@ fn zero_fields_of_group(
                             type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
                                 let line = Line(format!(
                                     "self.builder.set_data_field::<{0}>({1}, 0{0});",
-                                    slot.get_type()?.type_string(gen, Leaf::Builder("'a"))?,
+                                    slot.get_type()?.type_string(ctx, Leaf::Builder("'a"))?,
                                     slot.get_offset()));
                                 // PERF could dedup more efficiently
                                 if !result.contains(&line) { result.push(line) }
@@ -826,7 +826,7 @@ fn zero_fields_of_group(
 }
 
 fn generate_setter(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     discriminant_offset: u32,
     styled_name: &str,
     field: &schema_capnp::field::Reader,
@@ -861,17 +861,17 @@ fn generate_setter(
         .which()?
     {
         field::Group(group) => {
-            let params = get_params(gen, group.get_type_id())?;
+            let params = get_params(ctx, group.get_type_id())?;
             let params_string = if params.is_empty() {
                 "".to_string()
             } else {
                 format!(",{}", params.join(","))
             };
 
-            let the_mod = gen.get_qualified_module(group.get_type_id());
+            let the_mod = ctx.get_qualified_module(group.get_type_id());
 
             initter_interior.push(zero_fields_of_group(
-                gen,
+                ctx,
                 group.get_type_id(),
                 &mut initter_mut,
             )?);
@@ -904,7 +904,7 @@ fn generate_setter(
                     (Some("bool".to_string()), None)
                 }
                 _ if typ.is_prim()? => {
-                    let tstr = typ.type_string(gen, Leaf::Reader("'a"))?;
+                    let tstr = typ.type_string(ctx, Leaf::Reader("'a"))?;
                     match prim_default(&reg_field.get_default_value()?)? {
                         None => {
                             setter_interior.push(Line(format!(
@@ -956,26 +956,26 @@ fn generate_setter(
 
                     match ot1.get_element_type()?.which()? {
                         type_::List(_) => (
-                            Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'_"))?),
+                            Some(reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?),
                             Some(
                                 reg_field
                                     .get_type()?
-                                    .type_string(gen, Leaf::Builder("'a"))?,
+                                    .type_string(ctx, Leaf::Builder("'a"))?,
                             ),
                         ),
                         _ => (
-                            Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'a"))?),
+                            Some(reg_field.get_type()?.type_string(ctx, Leaf::Reader("'a"))?),
                             Some(
                                 reg_field
                                     .get_type()?
-                                    .type_string(gen, Leaf::Builder("'a"))?,
+                                    .type_string(ctx, Leaf::Builder("'a"))?,
                             ),
                         ),
                     }
                 }
                 type_::Enum(e) => {
                     let id = e.get_type_id();
-                    let the_mod = gen.get_qualified_module(id);
+                    let the_mod = ctx.get_qualified_module(id);
                     setter_interior.push(Line(format!(
                         "self.builder.set_data_field::<u16>({offset}, value as u16)"
                     )));
@@ -989,21 +989,21 @@ fn generate_setter(
                         setter_interior.push(
                             Line(format!(
                                 "<{} as ::capnp::traits::SetPointerBuilder>::set_pointer_builder(self.builder.reborrow().get_pointer_field({}), value, false)",
-                                typ.type_string(gen, Leaf::Reader("'_"))?,
+                                typ.type_string(ctx, Leaf::Reader("'_"))?,
                                 offset)));
                         (
-                            Some(typ.type_string(gen, Leaf::Reader("'_"))?),
-                            Some(typ.type_string(gen, Leaf::Builder("'a"))?),
+                            Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
+                            Some(typ.type_string(ctx, Leaf::Builder("'a"))?),
                         )
                     } else {
                         setter_interior.push(
                             Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
                         (
-                            Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'_"))?),
+                            Some(reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?),
                             Some(
                                 reg_field
                                     .get_type()?
-                                    .type_string(gen, Leaf::Builder("'a"))?,
+                                    .type_string(ctx, Leaf::Builder("'a"))?,
                             ),
                         )
                     }
@@ -1012,7 +1012,7 @@ fn generate_setter(
                     setter_interior.push(Line(format!(
                         "self.builder.reborrow().get_pointer_field({offset}).set_capability(value.client.hook);"
                     )));
-                    (Some(typ.type_string(gen, Leaf::Client)?), None)
+                    (Some(typ.type_string(ctx, Leaf::Client)?), None)
                 }
                 type_::AnyPointer(_) => {
                     if typ.is_parameter()? {
@@ -1020,7 +1020,7 @@ fn generate_setter(
                         setter_interior.push(Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
                         return_result = true;
 
-                        let builder_type = typ.type_string(gen, Leaf::Builder("'a"))?;
+                        let builder_type = typ.type_string(ctx, Leaf::Builder("'a"))?;
 
                         result.push(Line("#[inline]".to_string()));
                         result.push(Line(format!(
@@ -1032,7 +1032,7 @@ fn generate_setter(
                         result.push(Line("}".to_string()));
 
                         (
-                            Some(typ.type_string(gen, Leaf::Reader("'_"))?),
+                            Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
                             Some(builder_type),
                         )
                     } else {
@@ -1073,20 +1073,20 @@ fn generate_setter(
 }
 
 fn used_params_of_group(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     group_id: u64,
     used_params: &mut HashSet<String>,
 ) -> capnp::Result<()> {
-    let node = gen.node_map[&group_id];
+    let node = ctx.node_map[&group_id];
     match node.which()? {
         schema_capnp::node::Struct(st) => {
             for field in st.get_fields()? {
                 match field.which()? {
                     schema_capnp::field::Group(group) => {
-                        used_params_of_group(gen, group.get_type_id(), used_params)?;
+                        used_params_of_group(ctx, group.get_type_id(), used_params)?;
                     }
                     schema_capnp::field::Slot(slot) => {
-                        used_params_of_type(gen, slot.get_type()?, used_params)?;
+                        used_params_of_type(ctx, slot.get_type()?, used_params)?;
                     }
                 }
             }
@@ -1097,7 +1097,7 @@ fn used_params_of_group(
 }
 
 fn used_params_of_type(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     ty: schema_capnp::type_::Reader,
     used_params: &mut HashSet<String>,
 ) -> capnp::Result<()> {
@@ -1105,27 +1105,27 @@ fn used_params_of_type(
     match ty.which()? {
         type_::List(ls) => {
             let et = ls.get_element_type()?;
-            used_params_of_type(gen, et, used_params)?;
+            used_params_of_type(ctx, et, used_params)?;
         }
         type_::Enum(e) => {
             let node_id = e.get_type_id();
             let brand = e.get_brand()?;
-            used_params_of_brand(gen, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, node_id, brand, used_params)?;
         }
         type_::Struct(s) => {
             let node_id = s.get_type_id();
             let brand = s.get_brand()?;
-            used_params_of_brand(gen, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, node_id, brand, used_params)?;
         }
         type_::Interface(i) => {
             let node_id = i.get_type_id();
             let brand = i.get_brand()?;
-            used_params_of_brand(gen, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, node_id, brand, used_params)?;
         }
 
         type_::AnyPointer(ap) => {
             if let type_::any_pointer::Parameter(def) = ap.which()? {
-                let the_struct = &gen.node_map[&def.get_scope_id()];
+                let the_struct = &ctx.node_map[&def.get_scope_id()];
                 let parameters = the_struct.get_parameters()?;
                 let parameter = parameters.get(u32::from(def.get_parameter_index()));
                 let parameter_name = parameter.get_name()?;
@@ -1138,7 +1138,7 @@ fn used_params_of_type(
 }
 
 fn used_params_of_brand(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     node_id: u64,
     brand: schema_capnp::brand::Reader,
     used_params: &mut HashSet<String>,
@@ -1152,7 +1152,7 @@ fn used_params_of_brand(
     let brand_scopes = brand_scopes; // freeze
     let mut current_node_id = node_id;
     loop {
-        let Some(current_node) = gen.node_map.get(&current_node_id) else { break };
+        let Some(current_node) = ctx.node_map.get(&current_node_id) else { break };
         let params = current_node.get_parameters()?;
         match brand_scopes.get(&current_node_id) {
             None => (),
@@ -1169,7 +1169,7 @@ fn used_params_of_brand(
                         match binding.which()? {
                             brand::binding::Unbound(()) => (),
                             brand::binding::Type(t) => {
-                                used_params_of_type(gen, t?, used_params)?;
+                                used_params_of_type(ctx, t?, used_params)?;
                             }
                         }
                     }
@@ -1183,7 +1183,7 @@ fn used_params_of_brand(
 
 // return (the 'Which' enum, the 'which()' accessor, typedef, default_decls)
 fn generate_union(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     discriminant_offset: u32,
     fields: &[schema_capnp::field::Reader],
     is_reader: bool,
@@ -1220,7 +1220,7 @@ fn generate_union(
         let field_name = get_field_name(*field)?;
         let enumerant_name = capitalize_first_letter(field_name);
 
-        let (ty, get, maybe_default_decl) = getter_text(gen, field, is_reader, false)?;
+        let (ty, get, maybe_default_decl) = getter_text(ctx, field, is_reader, false)?;
         if let Some(default_decl) = maybe_default_decl {
             default_decls.push(default_decl)
         }
@@ -1238,13 +1238,13 @@ fn generate_union(
 
         let ty1 = match field.which() {
             Ok(field::Group(group)) => {
-                used_params_of_group(gen, group.get_type_id(), &mut used_params)?;
+                used_params_of_group(ctx, group.get_type_id(), &mut used_params)?;
                 ty_args.push(ty);
                 new_ty_param(&mut ty_params)
             }
             Ok(field::Slot(reg_field)) => {
                 let fty = reg_field.get_type()?;
-                used_params_of_type(gen, fty, &mut used_params)?;
+                used_params_of_type(ctx, fty, &mut used_params)?;
                 match fty.which() {
                     Ok(
                         type_::Text(())
@@ -1389,7 +1389,7 @@ fn generate_haser(
 }
 
 fn generate_pipeline_getter(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     field: schema_capnp::field::Reader,
 ) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::{field, type_};
@@ -1398,14 +1398,14 @@ fn generate_pipeline_getter(
 
     match field.which()? {
         field::Group(group) => {
-            let params = get_params(gen, group.get_type_id())?;
+            let params = get_params(ctx, group.get_type_id())?;
             let params_string = if params.is_empty() {
                 "".to_string()
             } else {
                 format!("<{}>", params.join(","))
             };
 
-            let the_mod = gen.get_qualified_module(group.get_type_id());
+            let the_mod = ctx.get_qualified_module(group.get_type_id());
             Ok(Branch(vec![
                 Line(format!(
                     "pub fn get_{}(&self) -> {}::Pipeline{} {{",
@@ -1427,7 +1427,7 @@ fn generate_pipeline_getter(
                     Ok(Branch(vec![
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
-                                     typ.type_string(gen, Leaf::Pipeline)?)),
+                                     typ.type_string(ctx, Leaf::Pipeline)?)),
                         Indent(Box::new(Line(
                             format!("::capnp::capability::FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
                                     reg_field.get_offset())))),
@@ -1437,7 +1437,7 @@ fn generate_pipeline_getter(
                     Ok(Branch(vec![
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
-                                     typ.type_string(gen, Leaf::Client)?)),
+                                     typ.type_string(ctx, Leaf::Client)?)),
                         Indent(Box::new(Line(
                             format!("::capnp::capability::FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
                                     reg_field.get_offset())))),
@@ -1454,14 +1454,14 @@ fn generate_pipeline_getter(
 // We need this to work around the fact that Rust does not allow typedefs
 // with unused type parameters.
 fn get_ty_params_of_brand(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     brand: crate::schema_capnp::brand::Reader,
 ) -> ::capnp::Result<String> {
     let mut acc = HashSet::new();
-    get_ty_params_of_brand_helper(gen, &mut acc, brand)?;
+    get_ty_params_of_brand_helper(ctx, &mut acc, brand)?;
     let mut result = String::new();
     for (scope_id, parameter_index) in acc.into_iter() {
-        let node = gen.node_map[&scope_id];
+        let node = ctx.node_map[&scope_id];
         let p = node.get_parameters()?.get(u32::from(parameter_index));
         result.push_str(p.get_name()?);
         result.push(',');
@@ -1471,7 +1471,7 @@ fn get_ty_params_of_brand(
 }
 
 fn get_ty_params_of_type_helper(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     accumulator: &mut HashSet<(u64, u16)>,
     typ: crate::schema_capnp::type_::Reader,
 ) -> ::capnp::Result<()> {
@@ -1503,23 +1503,23 @@ fn get_ty_params_of_type_helper(
             }
         }
         type_::List(list) => {
-            get_ty_params_of_type_helper(gen, accumulator, list.get_element_type()?)?
+            get_ty_params_of_type_helper(ctx, accumulator, list.get_element_type()?)?
         }
         type_::Enum(e) => {
-            get_ty_params_of_brand_helper(gen, accumulator, e.get_brand()?)?;
+            get_ty_params_of_brand_helper(ctx, accumulator, e.get_brand()?)?;
         }
         type_::Struct(s) => {
-            get_ty_params_of_brand_helper(gen, accumulator, s.get_brand()?)?;
+            get_ty_params_of_brand_helper(ctx, accumulator, s.get_brand()?)?;
         }
         type_::Interface(interf) => {
-            get_ty_params_of_brand_helper(gen, accumulator, interf.get_brand()?)?;
+            get_ty_params_of_brand_helper(ctx, accumulator, interf.get_brand()?)?;
         }
     }
     Ok(())
 }
 
 fn get_ty_params_of_brand_helper(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     accumulator: &mut HashSet<(u64, u16)>,
     brand: crate::schema_capnp::brand::Reader,
 ) -> ::capnp::Result<()> {
@@ -1531,13 +1531,13 @@ fn get_ty_params_of_brand_helper(
                     match binding.which()? {
                         crate::schema_capnp::brand::binding::Unbound(()) => {}
                         crate::schema_capnp::brand::binding::Type(t) => {
-                            get_ty_params_of_type_helper(gen, accumulator, t?)?
+                            get_ty_params_of_type_helper(ctx, accumulator, t?)?
                         }
                     }
                 }
             }
             crate::schema_capnp::brand::scope::Inherit(()) => {
-                let parameters = gen.node_map[&scope_id].get_parameters()?;
+                let parameters = ctx.node_map[&scope_id].get_parameters()?;
                 for idx in 0..parameters.len() {
                     accumulator.insert((scope_id, idx as u16));
                 }
@@ -1548,7 +1548,7 @@ fn get_ty_params_of_brand_helper(
 }
 
 fn generate_node(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     node_id: u64,
     node_name: &str,
 ) -> ::capnp::Result<FormattedText> {
@@ -1557,11 +1557,11 @@ fn generate_node(
     let mut output: Vec<FormattedText> = Vec::new();
     let mut nested_output: Vec<FormattedText> = Vec::new();
 
-    let node_reader = &gen.node_map[&node_id];
+    let node_reader = &ctx.node_map[&node_id];
     let nested_nodes = node_reader.get_nested_nodes()?;
     for nested_node in nested_nodes {
         let id = nested_node.get_id();
-        nested_output.push(generate_node(gen, id, gen.get_last_name(id)?)?);
+        nested_output.push(generate_node(ctx, id, ctx.get_last_name(id)?)?);
     }
 
     match node_reader.which()? {
@@ -1569,7 +1569,7 @@ fn generate_node(
             output.push(Branch(nested_output));
         }
         node::Struct(struct_reader) => {
-            let params = node_reader.parameters_texts(gen);
+            let params = node_reader.parameters_texts(ctx);
             output.push(BlankLine);
 
             let is_generic = node_reader.get_is_generic();
@@ -1610,8 +1610,8 @@ fn generate_node(
                 let is_union_field = discriminant_value != field::NO_DISCRIMINANT;
 
                 if !is_union_field {
-                    pipeline_impl_interior.push(generate_pipeline_getter(gen, field)?);
-                    let (ty, get, default_decl) = getter_text(gen, &field, true, true)?;
+                    pipeline_impl_interior.push(generate_pipeline_getter(ctx, field)?);
+                    let (ty, get, default_decl) = getter_text(ctx, &field, true, true)?;
                     if let Some(default) = default_decl {
                         private_mod_interior.push(default.clone());
                     }
@@ -1622,7 +1622,7 @@ fn generate_node(
                         Line("}".to_string()),
                     ]));
 
-                    let (ty_b, get_b, _) = getter_text(gen, &field, false, true)?;
+                    let (ty_b, get_b, _) = getter_text(ctx, &field, false, true)?;
                     builder_members.push(Branch(vec![
                         Line("#[inline]".to_string()),
                         Line(format!("pub fn get_{styled_name}(self) {ty_b} {{")),
@@ -1634,7 +1634,7 @@ fn generate_node(
                 }
 
                 builder_members.push(generate_setter(
-                    gen,
+                    ctx,
                     discriminant_offset,
                     &styled_name,
                     &field,
@@ -1655,14 +1655,14 @@ fn generate_node(
 
                 if let Ok(field::Group(group)) = field.which() {
                     let id = group.get_type_id();
-                    let text = generate_node(gen, id, gen.get_last_name(id)?)?;
+                    let text = generate_node(ctx, id, ctx.get_last_name(id)?)?;
                     nested_output.push(text);
                 }
             }
 
             if discriminant_count > 0 {
                 let (which_enums1, union_getter, typedef, mut default_decls) =
-                    generate_union(gen, discriminant_offset, &union_fields, true, &params)?;
+                    generate_union(ctx, discriminant_offset, &union_fields, true, &params)?;
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
@@ -1670,7 +1670,7 @@ fn generate_node(
                 private_mod_interior.append(&mut default_decls);
 
                 let (_, union_getter, typedef, _) =
-                    generate_union(gen, discriminant_offset, &union_fields, false, &params)?;
+                    generate_union(ctx, discriminant_offset, &union_fields, false, &params)?;
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
 
@@ -1924,7 +1924,7 @@ fn generate_node(
         }
 
         node::Enum(enum_reader) => {
-            let last_name = gen.get_last_name(node_id)?;
+            let last_name = ctx.get_last_name(node_id)?;
             output.push(BlankLine);
 
             let mut members = Vec::new();
@@ -1989,12 +1989,12 @@ fn generate_node(
         }
 
         node::Interface(interface) => {
-            let params = node_reader.parameters_texts(gen);
+            let params = node_reader.parameters_texts(ctx);
             output.push(BlankLine);
 
             let is_generic = node_reader.get_is_generic();
 
-            let names = &gen.scope_map[&node_id];
+            let names = &ctx.scope_map[&node_id];
             let mut client_impl_interior = Vec::new();
             let mut server_interior = Vec::new();
             let mut mod_interior = Vec::new();
@@ -2019,21 +2019,21 @@ fn generate_node(
                 let name = method.get_name()?;
 
                 let param_id = method.get_param_struct_type();
-                let param_node = &gen.node_map[&param_id];
+                let param_node = &ctx.node_map[&param_id];
                 let (param_scopes, params_ty_params) = if param_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{name}Params"));
-                    nested_output.push(generate_node(gen, param_id, &local_name)?);
+                    nested_output.push(generate_node(ctx, param_id, &local_name)?);
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
                     (
-                        gen.scope_map[&param_node.get_id()].clone(),
-                        get_ty_params_of_brand(gen, method.get_param_brand()?)?,
+                        ctx.scope_map[&param_node.get_id()].clone(),
+                        get_ty_params_of_brand(ctx, method.get_param_brand()?)?,
                     )
                 };
                 let param_type = do_branding(
-                    gen,
+                    ctx,
                     param_id,
                     method.get_param_brand()?,
                     Leaf::Owned,
@@ -2041,21 +2041,21 @@ fn generate_node(
                 )?;
 
                 let result_id = method.get_result_struct_type();
-                let result_node = &gen.node_map[&result_id];
+                let result_node = &ctx.node_map[&result_id];
                 let (result_scopes, results_ty_params) = if result_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{name}Results"));
-                    nested_output.push(generate_node(gen, result_id, &local_name)?);
+                    nested_output.push(generate_node(ctx, result_id, &local_name)?);
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
                     (
-                        gen.scope_map[&result_node.get_id()].clone(),
-                        get_ty_params_of_brand(gen, method.get_result_brand()?)?,
+                        ctx.scope_map[&result_node.get_id()].clone(),
+                        get_ty_params_of_brand(ctx, method.get_result_brand()?)?,
                     )
                 };
                 let result_type = do_branding(
-                    gen,
+                    ctx,
                     result_id,
                     method.get_result_brand()?,
                     Leaf::Owned,
@@ -2110,14 +2110,14 @@ fn generate_node(
                 fn find_super_interfaces<'a>(
                     interface: crate::schema_capnp::node::interface::Reader<'a>,
                     all_extends: &mut Vec<<crate::schema_capnp::superclass::Owned as capnp::traits::OwnedStruct>::Reader<'a>>,
-                    gen: &GeneratorContext<'a>,
+                    ctx: &GeneratorContext<'a>,
                 ) -> ::capnp::Result<()> {
                     let extends = interface.get_superclasses()?;
                     for superclass in extends {
                         if let node::Interface(interface) =
-                            gen.node_map[&superclass.get_id()].which()?
+                            ctx.node_map[&superclass.get_id()].which()?
                         {
-                            find_super_interfaces(interface, all_extends, gen)?;
+                            find_super_interfaces(interface, all_extends, ctx)?;
                         }
                         all_extends.push(superclass);
                     }
@@ -2125,17 +2125,17 @@ fn generate_node(
                 }
 
                 let mut extends = Vec::new();
-                find_super_interfaces(interface, &mut extends, gen)?;
+                find_super_interfaces(interface, &mut extends, ctx)?;
                 for interface in &extends {
                     let type_id = interface.get_id();
                     let brand = interface.get_brand()?;
-                    let the_mod = gen.get_qualified_module(type_id);
+                    let the_mod = ctx.get_qualified_module(type_id);
 
                     base_dispatch_arms.push(Line(format!(
                         "0x{type_id:x} => {}::dispatch_call_internal(&mut self.server, method_id, params, results),",
                         do_branding(
-                            gen, type_id, brand, Leaf::ServerDispatch, &the_mod)?)));
-                    base_traits.push(do_branding(gen, type_id, brand, Leaf::Server, &the_mod)?);
+                            ctx, type_id, brand, Leaf::ServerDispatch, &the_mod)?)));
+                    base_traits.push(do_branding(ctx, type_id, brand, Leaf::Server, &the_mod)?);
                 }
                 if !extends.is_empty() {
                     format!(": {}", base_traits.join(" + "))
@@ -2367,7 +2367,7 @@ fn generate_node(
         }
 
         node::Const(c) => {
-            let styled_name = snake_to_upper_case(gen.get_last_name(node_id)?);
+            let styled_name = snake_to_upper_case(ctx.get_last_name(node_id)?);
 
             let typ = c.get_type()?;
             let formatted_text = match (typ.which()?, c.get_value()?.which()?) {
@@ -2411,14 +2411,14 @@ fn generate_node(
                 }
 
                 (type_::Enum(e), value::Enum(v)) => {
-                    if let Some(node) = gen.node_map.get(&e.get_type_id()) {
+                    if let Some(node) = ctx.node_map.get(&e.get_type_id()) {
                         match node.which()? {
                             node::Enum(e) => {
                                 let enumerants = e.get_enumerants()?;
                                 if let Some(enumerant) = enumerants.try_get(u32::from(v)) {
                                     let variant =
                                         capitalize_first_letter(get_enumerant_name(enumerant)?);
-                                    let type_string = typ.type_string(gen, Leaf::Owned)?;
+                                    let type_string = typ.type_string(ctx, Leaf::Owned)?;
                                     Line(format!(
                                         "pub const {}: {} = {}::{};",
                                         styled_name, &type_string, &type_string, variant
@@ -2452,10 +2452,10 @@ fn generate_node(
                 }
 
                 (type_::List(_), value::List(v)) => {
-                    generate_pointer_constant(gen, &styled_name, typ, v)?
+                    generate_pointer_constant(ctx, &styled_name, typ, v)?
                 }
                 (type_::Struct(_), value::Struct(v)) => {
-                    generate_pointer_constant(gen, &styled_name, typ, v)?
+                    generate_pointer_constant(ctx, &styled_name, typ, v)?
                 }
 
                 (type_::Interface(_t), value::Interface(())) => {
