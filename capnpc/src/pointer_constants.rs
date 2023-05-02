@@ -48,7 +48,7 @@ pub fn word_array_declaration(
     for index in 0..(words.len() / 8) {
         let bytes = &words[(index * 8)..(index + 1) * 8];
         words_lines.push(Line(format!(
-            "capnp::word({}, {}, {}, {}, {}, {}, {}, {}),",
+            "::capnp::word({}, {}, {}, {}, {}, {}, {}, {}),",
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]
         )));
     }

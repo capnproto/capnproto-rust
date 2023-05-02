@@ -1,3 +1,6 @@
+### v0.16.5
+- Use `core::marker` instead of `std::marker` for pointer constants, for no_std compat.
+
 ### v0.16.4
 - Generate explicit Clone and Copy impls for Reader structs.
 - Fully-qualify `::capnp::Word` in generated code.
