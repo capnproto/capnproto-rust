@@ -162,7 +162,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 while let Some(()) = rx.next().await {
                     let subscribers1 = subscribers.clone();
                     let subs = &mut subscribers.borrow_mut().subscribers;
-                    for (&idx, mut subscriber) in subs.iter_mut() {
+                    for (&idx, subscriber) in subs.iter_mut() {
                         if subscriber.requests_in_flight < 5 {
                             subscriber.requests_in_flight += 1;
                             let mut request = subscriber.client.push_message_request();
