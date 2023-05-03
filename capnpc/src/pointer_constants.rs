@@ -56,7 +56,7 @@ pub fn word_array_declaration(
     let vis = if options.public { "pub " } else { "" };
     Ok(Branch(vec![
         Line(format!(
-            "{}static {}: [capnp::Word; {}] = [",
+            "{}static {}: [::capnp::Word; {}] = [",
             vis,
             name,
             words.len() / 8
@@ -67,7 +67,7 @@ pub fn word_array_declaration(
 }
 
 pub fn generate_pointer_constant(
-    gen: &GeneratorContext,
+    ctx: &GeneratorContext,
     styled_name: &str,
     typ: type_::Reader,
     value: any_pointer::Reader,
@@ -76,7 +76,7 @@ pub fn generate_pointer_constant(
         Line(format!(
             "pub static {}: ::capnp::constant::Reader<{}> = {{",
             styled_name,
-            typ.type_string(gen, Leaf::Owned)?
+            typ.type_string(ctx, Leaf::Owned)?
         )),
         Indent(Box::new(Branch(vec![
             word_array_declaration(
