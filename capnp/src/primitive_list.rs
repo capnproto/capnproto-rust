@@ -157,6 +157,7 @@ where
     }
 
     pub fn set(&mut self, index: u32, value: T) {
+        assert!(index < self.len());
         PrimitiveElement::set(&self.builder, index, value);
     }
 

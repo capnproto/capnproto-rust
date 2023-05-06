@@ -185,6 +185,7 @@ where
     where
         T::Reader<'b>: crate::traits::IntoInternalStructReader<'b>,
     {
+        assert!(index < self.len());
         use crate::traits::IntoInternalStructReader;
         self.builder
             .reborrow()
