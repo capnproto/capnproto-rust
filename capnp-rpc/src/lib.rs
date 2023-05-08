@@ -316,20 +316,18 @@ where
     )))
 }
 
+#[deprecated(since = "0.17.0", note = "use CapabilityServerSet instead")]
+pub type WeakCapabilityServerSet<S, C> = CapabilityServerSet<S, C>;
+
 /// Allows a server to recognize its own capabilities when passed back to it, and obtain the
-/// underlying Server objects associated with them.
-/// Note that `CapabilityServerSet` holds references to every `Server` passed to it,
-/// and the only way to drop them is to drop the entire `CapabilityServerSet`.
-/// The `WeakCapabilityServerSet` struct below is a (better) alternative that only holds
-/// weak references. Its semantics match the capnproto-c++ version of `CapabilityServerSet`.
-///
-/// TODO(v0.17): remove this `CapabilityServerSet` implementation and rename
-/// `WeakCapabilityServerSet` to `CapabilityServerSet`.
+/// underlying Server objects associated with them. Holds only weak references to Server objects
+/// allowing Server objects to be dropped when dropped by the remote client. Call the `gc` method
+/// to reclaim memory used for Server objects that have been dropped.
 pub struct CapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
 {
-    caps: std::collections::HashMap<usize, Rc<RefCell<C::Dispatch>>>,
+    caps: std::collections::HashMap<usize, Weak<RefCell<C::Dispatch>>>,
 }
 
 impl<S, C> Default for CapabilityServerSet<S, C>
@@ -344,75 +342,6 @@ where
 }
 
 impl<S, C> CapabilityServerSet<S, C>
-where
-    C: capnp::capability::FromServer<S>,
-{
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Adds a new capability to the set and returns a client backed by it.
-    pub fn new_client(&mut self, s: S) -> C {
-        let dispatch = <C as capnp::capability::FromServer<S>>::from_server(s);
-        let wrapped = Rc::new(RefCell::new(dispatch));
-        let ptr = wrapped.as_ptr() as usize;
-        self.caps.insert(ptr, wrapped.clone());
-        capnp::capability::FromClientHook::new(Box::new(local::Client::from_rc(wrapped)))
-    }
-
-    /// Looks up a capability and returns its underlying server object, if found.
-    /// Fully resolves the capability before looking it up.
-    pub async fn get_local_server(&self, client: &C) -> Option<&Rc<RefCell<C::Dispatch>>>
-    where
-        C: capnp::capability::FromClientHook,
-    {
-        let resolved: C = capnp::capability::get_resolved_cap(
-            capnp::capability::FromClientHook::new(client.as_client_hook().add_ref()),
-        )
-        .await;
-        let hook = resolved.into_client_hook();
-        let ptr = hook.get_ptr();
-        self.caps.get(&ptr)
-    }
-
-    /// Looks up a capability and returns its underlying server object, if found.
-    /// Does *not* attempt to resolve the capability first, so you will usually want
-    /// to call `get_resolved_cap()` before calling this. The advantage of this method
-    /// over `get_local_server()` is that this one is synchronous and borrows `self`
-    /// over a shorter span (which can be very important if `self` is inside a `RefCell`).
-    pub fn get_local_server_of_resolved(&self, client: &C) -> Option<&Rc<RefCell<C::Dispatch>>>
-    where
-        C: capnp::capability::FromClientHook,
-    {
-        let hook = client.as_client_hook();
-        let ptr = hook.get_ptr();
-        self.caps.get(&ptr)
-    }
-}
-
-/// Allows a server to recognize its own capabilities when passed back to it, and obtain the
-/// underlying Server objects associated with them. Holds only weak references to Server objects
-/// allowing Server objects to be dropped when dropped by the remote client. Call the `gc` method
-/// to reclaim memory used for Server objects that have been dropped.
-pub struct WeakCapabilityServerSet<S, C>
-where
-    C: capnp::capability::FromServer<S>,
-{
-    caps: std::collections::HashMap<usize, Weak<RefCell<C::Dispatch>>>,
-}
-
-impl<S, C> Default for WeakCapabilityServerSet<S, C>
-where
-    C: capnp::capability::FromServer<S>,
-{
-    fn default() -> Self {
-        Self {
-            caps: std::default::Default::default(),
-        }
-    }
-}
-
-impl<S, C> WeakCapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
 {

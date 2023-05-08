@@ -916,11 +916,11 @@ fn capability_list() {
 fn capability_server_set() {
     use crate::impls;
     use crate::test_capnp::test_interface;
-    use capnp_rpc::WeakCapabilityServerSet;
-    let mut set1: WeakCapabilityServerSet<impls::TestInterface, test_interface::Client> =
-        WeakCapabilityServerSet::new();
-    let mut set2: WeakCapabilityServerSet<impls::TestInterface, test_interface::Client> =
-        WeakCapabilityServerSet::new();
+    use capnp_rpc::CapabilityServerSet;
+    let mut set1: CapabilityServerSet<impls::TestInterface, test_interface::Client> =
+        CapabilityServerSet::new();
+    let mut set2: CapabilityServerSet<impls::TestInterface, test_interface::Client> =
+        CapabilityServerSet::new();
 
     let client_standalone = capnp_rpc::new_client(impls::TestInterface::new());
 
