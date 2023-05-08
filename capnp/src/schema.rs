@@ -394,7 +394,7 @@ impl AnnotationList {
     }
 
     pub fn get(self, index: u32) -> Annotation {
-        let proto = self.annotations.get(index as u32);
+        let proto = self.annotations.get(index);
         let ty = (self.get_annotation_type)(self.child_index, index);
         Annotation { proto, ty }
     }

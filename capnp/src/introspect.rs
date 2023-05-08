@@ -235,8 +235,7 @@ pub struct RawBrandedStructSchema {
 
 impl core::cmp::PartialEq for RawBrandedStructSchema {
     fn eq(&self, other: &Self) -> bool {
-        self.generic as *const _ == other.generic as *const _
-            && self.field_types == other.field_types
+        core::ptr::eq(self.generic, other.generic) && self.field_types == other.field_types
         // don't need to compare annotation_types.
         // that field is equal iff field_types is.
     }
@@ -270,7 +269,7 @@ pub struct RawEnumSchema {
 
 impl core::cmp::PartialEq for RawEnumSchema {
     fn eq(&self, other: &Self) -> bool {
-        self.encoded_node as *const _ == other.encoded_node as *const _
+        ::core::ptr::eq(self.encoded_node, other.encoded_node)
     }
 }
 
