@@ -62,6 +62,7 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 - [canonicalization](https://capnproto.org/encoding.html#canonicalization)
 - [`Result`-based error handling](https://dwrensha.github.io/capnproto-rust/2015/03/21/error-handling-revisited.html)
 - [`no_std` support](https://dwrensha.github.io/capnproto-rust/2020/06/06/no-std-support.html)
+- [reflection](https://dwrensha.github.io/capnproto-rust/2023/05/08/run-time-reflection.html)
 
 ## Crates
 
@@ -88,4 +89,4 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 ## Unimplemented / Future Work
 
 - [orphans](https://capnproto.org/cxx.html#orphans)
-- [dynamic reflection](https://capnproto.org/cxx.html#dynamic-reflection)
+
