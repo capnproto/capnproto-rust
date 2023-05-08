@@ -46,9 +46,9 @@ where
 {
     /// Retrieve the value.
     pub fn get(&self) -> Result<<T as Owned>::Reader<'static>> {
-        any_pointer::Reader::new(PointerReader::get_root_unchecked(
-            self.words.as_ptr() as *const u8
-        ))
+        any_pointer::Reader::new(unsafe {
+            PointerReader::get_root_unchecked(self.words.as_ptr() as *const u8)
+        })
         .get_as()
     }
 }

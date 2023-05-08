@@ -57,12 +57,12 @@ pub trait FromPointerReader<'a>: Sized {
 /// cannot be used for anything interesting on its own; the `foo::Owned` type is useful
 /// nonetheless as a type parameter, e.g. for a generic container that owns a Cap'n Proto
 /// message of type `T: capnp::traits::Owned`.
-pub trait Owned {
+pub trait Owned: crate::introspect::Introspect {
     type Reader<'a>: FromPointerReader<'a> + SetPointerBuilder;
     type Builder<'a>: FromPointerBuilder<'a>;
 }
 
-pub trait OwnedStruct {
+pub trait OwnedStruct: crate::introspect::Introspect {
     type Reader<'a>: From<StructReader<'a>> + SetPointerBuilder + IntoInternalStructReader<'a>;
     type Builder<'a>: From<StructBuilder<'a>> + HasStructSize;
 }
@@ -157,6 +157,70 @@ impl<U, T: IndexMove<u32, U>> ::core::iter::ExactSizeIterator for ListIter<T, U>
 }
 
 impl<U, T: IndexMove<u32, U>> ::core::iter::DoubleEndedIterator for ListIter<T, U> {
+    fn next_back(&mut self) -> ::core::option::Option<U> {
+        if self.size > self.index {
+            self.size -= 1;
+            Some(self.list.index_move(self.size))
+        } else {
+            None
+        }
+    }
+}
+
+pub struct ShortListIter<T, U> {
+    marker: PhantomData<U>,
+    list: T,
+    index: u16,
+    size: u16,
+}
+
+impl<T, U> ShortListIter<T, U> {
+    pub fn new(list: T, size: u16) -> Self {
+        Self {
+            list,
+            index: 0,
+            size,
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<U, T: IndexMove<u16, U>> ::core::iter::Iterator for ShortListIter<T, U> {
+    type Item = U;
+    fn next(&mut self) -> ::core::option::Option<U> {
+        if self.index < self.size {
+            let result = self.list.index_move(self.index);
+            self.index += 1;
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.size as usize, Some(self.size as usize))
+    }
+
+    fn nth(&mut self, p: usize) -> Option<U> {
+        if self.index + (p as u16) < self.size {
+            self.index += p as u16;
+            let result = self.list.index_move(self.index);
+            self.index += 1;
+            Some(result)
+        } else {
+            self.index = self.size;
+            None
+        }
+    }
+}
+
+impl<U, T: IndexMove<u16, U>> ::core::iter::ExactSizeIterator for ShortListIter<T, U> {
+    fn len(&self) -> usize {
+        self.size as usize
+    }
+}
+
+impl<U, T: IndexMove<u16, U>> ::core::iter::DoubleEndedIterator for ShortListIter<T, U> {
     fn next_back(&mut self) -> ::core::option::Option<U> {
         if self.size > self.index {
             self.size -= 1;

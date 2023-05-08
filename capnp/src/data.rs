@@ -32,6 +32,12 @@ impl crate::traits::Owned for Owned {
     type Builder<'a> = Builder<'a>;
 }
 
+impl crate::introspect::Introspect for Owned {
+    fn introspect() -> crate::introspect::Type {
+        crate::introspect::TypeVariant::Data.into()
+    }
+}
+
 pub type Reader<'a> = &'a [u8];
 
 pub(crate) unsafe fn reader_from_raw_parts<'a>(p: *const u8, len: u32) -> Reader<'a> {
@@ -73,5 +79,17 @@ impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
     ) -> Result<()> {
         pointer.set_data(value);
         Ok(())
+    }
+}
+
+impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
+    fn from(d: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
+        crate::dynamic_value::Reader::Data(d)
+    }
+}
+
+impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
+    fn from(d: Builder<'a>) -> crate::dynamic_value::Builder<'a> {
+        crate::dynamic_value::Builder::Data(d)
     }
 }

@@ -21,6 +21,7 @@
 
 //! List of lists.
 
+use crate::introspect;
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
 use crate::Result;
@@ -31,6 +32,15 @@ where
     T: crate::traits::Owned,
 {
     marker: ::core::marker::PhantomData<T>,
+}
+
+impl<T> introspect::Introspect for Owned<T>
+where
+    T: introspect::Introspect + crate::traits::Owned,
+{
+    fn introspect() -> introspect::Type {
+        introspect::Type::list_of(T::introspect())
+    }
 }
 
 impl<T> crate::traits::Owned for Owned<T>
@@ -267,5 +277,23 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<'a, T: crate::traits::Owned> From<Reader<'a, T>> for crate::dynamic_value::Reader<'a> {
+    fn from(t: Reader<'a, T>) -> crate::dynamic_value::Reader<'a> {
+        crate::dynamic_value::Reader::List(crate::dynamic_list::Reader::new(
+            t.reader,
+            T::introspect(),
+        ))
+    }
+}
+
+impl<'a, T: crate::traits::Owned> From<Builder<'a, T>> for crate::dynamic_value::Builder<'a> {
+    fn from(t: Builder<'a, T>) -> crate::dynamic_value::Builder<'a> {
+        crate::dynamic_value::Builder::List(crate::dynamic_list::Builder::new(
+            t.builder,
+            T::introspect(),
+        ))
     }
 }

@@ -1,0 +1,38 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+        <rect x="0" y="0" width="512" height="512" fill="rgb(34, 215, 181)" />
+<defs><clipPath id="clip-0"><rect x="0" y="0" width="512" height="512"/></clipPath></defs>
+<g clip-path="url(#clip-0)">
+<line x1="61.541192556106864" y1="100.50368592685169" x2="183.82744212732166" y2="350.46325865204443" stroke="rgb(34, 215, 181)" stroke-width="2.814863530968623" stroke-linecap="round" clip-path="url(#clip-0)"/>
+<line x1="273.15677341427977" y1="278.8501620517776" x2="482.22630366971305" y2="361.5420881016499" stroke="rgb(124, 164, 245)" stroke-width="2.481881109110988" stroke-linecap="round" clip-path="url(#clip-0)"/>
+<line x1="454.71902828869526" y1="247.96587095532385" x2="199.49373847086065" y2="1.948775999459599" stroke="rgb(37, 35, 37)" stroke-width="2.0589302207852613" stroke-linecap="round" clip-path="url(#clip-0)"/>
+<line x1="425.43087615398395" y1="220.67823752461464" x2="360.33262972865367" y2="313.9071631632042" stroke="rgb(34, 215, 181)" stroke-width="6.395254797489027" stroke-linecap="round" clip-path="url(#clip-0)"/>
+<circle cx="81.23503971228877" cy="380.80396289230805" r="136.7183446223821" fill="rgb(17, 177, 134)" clip-path="url(#clip-0)"/>
+<circle cx="281.53616152988064" cy="35.379800626568" r="91.50464744723938" fill="rgb(137, 116, 89)" clip-path="url(#clip-0)"/>
+<circle cx="431.5260729661718" cy="221.99850607941926" r="16.19350545703157" fill="rgb(231, 96, 29)" clip-path="url(#clip-0)"/>
+<rect x="367.7683008916015" y="300.77652095275005" width="50.931506116469166" height="40.95887576288254" fill="rgb(231, 96, 29)" />
+<defs><clipPath id="clip-1"><rect x="367.7683008916015" y="300.77652095275005" width="50.931506116469166" height="40.95887576288254"/></clipPath></defs>
+<g clip-path="url(#clip-1)">
+<line x1="412.1436429535303" y1="316.4969962078458" x2="371.47249425911315" y2="332.7603656236199" stroke="rgb(137, 116, 89)" stroke-width="0.5407714683807618" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<line x1="368.4753859433208" y1="306.996662785987" x2="371.54038502633347" y2="320.5894996098792" stroke="rgb(124, 164, 245)" stroke-width="0.3384703124774557" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<line x1="414.8149431762881" y1="303.81132341683156" x2="386.3509357246172" y2="302.95173950986094" stroke="rgb(124, 164, 245)" stroke-width="0.3486491885646415" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<line x1="413.0251354521221" y1="315.1886258425029" x2="405.7510942901167" y2="310.18870602382003" stroke="rgb(137, 116, 89)" stroke-width="0.6093416525563888" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<circle cx="375.5080897199525" cy="309.95563877224816" r="2.312872378295138" fill="rgb(137, 116, 89)" clip-path="url(#clip-1)"/>
+<circle cx="415.48798366254346" cy="307.75390496589944" r="9.932178553287331" fill="rgb(124, 164, 245)" clip-path="url(#clip-1)"/>
+<circle cx="369.33413845165364" cy="316.64325255134764" r="6.449760719909203" fill="rgb(17, 177, 134)" clip-path="url(#clip-1)"/>
+<rect x="372.90755867937156" y="294.9535677458859" width="23.46017385875216" height="18.358564209123177" fill="rgb(37, 35, 37)" />
+<defs><clipPath id="clip-2"><rect x="372.90755867937156" y="294.9535677458859" width="23.46017385875216" height="18.358564209123177"/></clipPath></defs>
+<g clip-path="url(#clip-2)">
+<circle cx="374.28165154348335" cy="308.41921981167735" r="3.2966868976815014" fill="rgb(124, 164, 245)" clip-path="url(#clip-2)"/>
+<rect x="371.896201602255" y="293.0872096203813" width="13.0329423445595" height="4.820910498216321" fill="rgb(137, 116, 89)" />
+<defs><clipPath id="clip-3"><rect x="371.896201602255" y="293.0872096203813" width="13.0329423445595" height="4.820910498216321"/></clipPath></defs>
+<g clip-path="url(#clip-3)">
+</g>
+<rect x="385.68145665413095" y="307.0369215910091" width="6.55548562148113" height="14.169299438888054" fill="rgb(231, 96, 29)" />
+<defs><clipPath id="clip-4"><rect x="385.68145665413095" y="307.0369215910091" width="6.55548562148113" height="14.169299438888054"/></clipPath></defs>
+<g clip-path="url(#clip-4)">
+</g>
+</g>
+</g>
+</g>
+
+       </svg>

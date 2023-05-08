@@ -21,42 +21,51 @@
 use capnp::{any_pointer, message};
 
 use crate::codegen::FormattedText::{Branch, Indent, Line};
-use crate::codegen::{FormattedText, GeneratorContext};
+use crate::codegen::{fmt, FormattedText, GeneratorContext};
 use crate::codegen_types::{Leaf, RustTypeInfo};
-use crate::schema_capnp::type_;
+use capnp::schema_capnp::type_;
 
 #[derive(Clone, Copy)]
 pub struct WordArrayDeclarationOptions {
     pub public: bool,
-    pub omit_first_word: bool,
 }
 
-pub fn word_array_declaration(
+fn word_array_declaration_aux<T: ::capnp::traits::SetPointerBuilder>(
+    ctx: &GeneratorContext,
     name: &str,
-    value: any_pointer::Reader,
+    value: T,
+    total_size: ::capnp::MessageSize,
     options: WordArrayDeclarationOptions,
 ) -> ::capnp::Result<FormattedText> {
-    let allocator = message::HeapAllocator::new()
-        .first_segment_words(value.target_size()?.word_count as u32 + 1);
+    let allocator =
+        message::HeapAllocator::new().first_segment_words(total_size.word_count as u32 + 1);
     let mut message = message::Builder::new(allocator);
     message.set_root(value)?;
-    let mut words = message.get_segments_for_output()[0];
-    if options.omit_first_word {
-        words = &words[8..]
-    }
+    let words = message.get_segments_for_output()[0];
     let mut words_lines = Vec::new();
     for index in 0..(words.len() / 8) {
         let bytes = &words[(index * 8)..(index + 1) * 8];
-        words_lines.push(Line(format!(
-            "::capnp::word({}, {}, {}, {}, {}, {}, {}, {}),",
-            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]
+        words_lines.push(Line(fmt!(
+            ctx,
+            "{capnp}::word({}, {}, {}, {}, {}, {}, {}, {}),",
+            bytes[0],
+            bytes[1],
+            bytes[2],
+            bytes[3],
+            bytes[4],
+            bytes[5],
+            bytes[6],
+            bytes[7]
         )));
     }
 
+    // `static` instead of `const` because these arrays can be large
+    // and consts get inlined at each usage.
     let vis = if options.public { "pub " } else { "" };
     Ok(Branch(vec![
-        Line(format!(
-            "{}static {}: [::capnp::Word; {}] = [",
+        Line(fmt!(
+            ctx,
+            "{}static {}: [{capnp}::Word; {}] = [",
             vis,
             name,
             words.len() / 8
@@ -66,6 +75,24 @@ pub fn word_array_declaration(
     ]))
 }
 
+pub fn word_array_declaration(
+    ctx: &GeneratorContext,
+    name: &str,
+    value: any_pointer::Reader,
+    options: WordArrayDeclarationOptions,
+) -> ::capnp::Result<FormattedText> {
+    word_array_declaration_aux(ctx, name, value, value.target_size()?, options)
+}
+
+pub fn node_word_array_declaration(
+    ctx: &GeneratorContext,
+    name: &str,
+    value: capnp::schema_capnp::node::Reader,
+    options: WordArrayDeclarationOptions,
+) -> ::capnp::Result<FormattedText> {
+    word_array_declaration_aux(ctx, name, value, value.total_size()?, options)
+}
+
 pub fn generate_pointer_constant(
     ctx: &GeneratorContext,
     styled_name: &str,
@@ -73,21 +100,20 @@ pub fn generate_pointer_constant(
     value: any_pointer::Reader,
 ) -> ::capnp::Result<FormattedText> {
     Ok(Branch(vec![
-        Line(format!(
-            "pub static {}: ::capnp::constant::Reader<{}> = {{",
+        Line(fmt!(
+            ctx,
+            "pub static {}: {capnp}::constant::Reader<{}> = {{",
             styled_name,
             typ.type_string(ctx, Leaf::Owned)?
         )),
         Indent(Box::new(Branch(vec![
             word_array_declaration(
+                ctx,
                 "WORDS",
                 value,
-                WordArrayDeclarationOptions {
-                    public: false,
-                    omit_first_word: false,
-                },
+                WordArrayDeclarationOptions { public: false },
             )?,
-            Line("::capnp::constant::Reader {".into()),
+            Line(fmt!(ctx, "{capnp}::constant::Reader {{")),
             Indent(Box::new(Branch(vec![
                 Line("phantom: ::core::marker::PhantomData,".into()),
                 Line("words: &WORDS,".into()),

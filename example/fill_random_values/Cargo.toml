@@ -1,0 +1,28 @@
+[package]
+
+name = "fill_random_values"
+version = "0.0.0"
+license = "MIT"
+description = "library for generating random capnp data"
+edition = "2021"
+
+readme = "README.md"
+
+keywords = ["encoding", "protocol", "serialization"]
+
+[dependencies]
+rand = "0.8.5"
+
+[dependencies.capnp]
+path = "../../capnp"
+
+[build-dependencies.capnpc]
+path = "../../capnpc"
+
+[[bin]]
+name = "fill_addressbook"
+path = "fill_addressbook.rs"
+
+[[bin]]
+name = "fill_shapes"
+path = "fill_shapes.rs"

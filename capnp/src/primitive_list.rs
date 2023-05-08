@@ -23,6 +23,7 @@
 
 use core::marker;
 
+use crate::introspect;
 use crate::private::layout::{
     data_bits_per_element, ListBuilder, ListReader, PointerBuilder, PointerReader, PrimitiveElement,
 };
@@ -34,9 +35,18 @@ pub struct Owned<T> {
     marker: marker::PhantomData<T>,
 }
 
+impl<T> introspect::Introspect for Owned<T>
+where
+    T: introspect::Introspect,
+{
+    fn introspect() -> introspect::Type {
+        introspect::Type::list_of(T::introspect())
+    }
+}
+
 impl<T> crate::traits::Owned for Owned<T>
 where
-    T: PrimitiveElement,
+    T: PrimitiveElement + introspect::Introspect,
 {
     type Reader<'a> = Reader<'a, T>;
     type Builder<'a> = Builder<'a, T>;
@@ -243,5 +253,27 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Reader<'a, T>>
+    for crate::dynamic_value::Reader<'a>
+{
+    fn from(t: Reader<'a, T>) -> crate::dynamic_value::Reader<'a> {
+        crate::dynamic_value::Reader::List(crate::dynamic_list::Reader::new(
+            t.reader,
+            T::introspect(),
+        ))
+    }
+}
+
+impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Builder<'a, T>>
+    for crate::dynamic_value::Builder<'a>
+{
+    fn from(t: Builder<'a, T>) -> crate::dynamic_value::Builder<'a> {
+        crate::dynamic_value::Builder::List(crate::dynamic_list::Builder::new(
+            t.builder,
+            T::introspect(),
+        ))
     }
 }

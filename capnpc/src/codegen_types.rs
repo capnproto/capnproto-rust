@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use crate::codegen::GeneratorContext;
-use crate::schema_capnp::{brand, node, type_};
+use crate::codegen::{fmt, GeneratorContext};
+use capnp::schema_capnp::{brand, node, type_};
 use capnp::Error;
 use std::collections::hash_map::HashMap;
 
@@ -33,6 +33,7 @@ pub enum Leaf {
     Server,
     ServerDispatch,
     Pipeline,
+    GetType,
 }
 
 impl ::std::fmt::Display for Leaf {
@@ -45,6 +46,7 @@ impl ::std::fmt::Display for Leaf {
             Self::Server => "Server".to_string(),
             Self::ServerDispatch => "ServerDispatch".to_string(),
             Self::Pipeline => "Pipeline".to_string(),
+            Self::GetType => "get_type".to_string(),
         };
         ::std::fmt::Display::fmt(&display_string, fmt)
     }
@@ -59,6 +61,7 @@ impl Leaf {
             Self::Client => "Client",
             Self::Server => "Server",
             Self::ServerDispatch => "ServerDispatch",
+            Self::GetType => "get_type",
             Self::Pipeline => "Pipeline",
         }
     }
@@ -70,6 +73,7 @@ impl Leaf {
             | &Self::Client
             | &Self::Server
             | &Self::ServerDispatch
+            | &Self::GetType
             | &Self::Pipeline => false,
         }
     }
@@ -110,19 +114,19 @@ impl<'a> RustNodeInfo for node::Reader<'a> {
             let where_clause = "where ".to_string()
                 + &*(params
                     .iter()
-                    .map(|param| format!("{param}: ::capnp::traits::Owned"))
+                    .map(|param| fmt!(ctx, "{param}: {capnp}::traits::Owned"))
                     .collect::<Vec<String>>()
                     .join(", ")
                     + " ");
             let where_clause_with_static = "where ".to_string()
                 + &*(params
                     .iter()
-                    .map(|param| format!("{param}:'static + ::capnp::traits::Owned"))
+                    .map(|param| fmt!(ctx, "{param}:'static + {capnp}::traits::Owned"))
                     .collect::<Vec<String>>()
                     .join(", ")
                     + " ");
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{param}: ::capnp::traits::Pipelined, <{param} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline")
+                fmt!(ctx, "{param}: {capnp}::traits::Pipelined, <{param} as {capnp}::traits::Pipelined>::Pipeline: {capnp}::capability::FromTypelessPipeline")
             }).collect::<Vec<String>>().join(", ") + " ");
             let phantom_data_type = if params.len() == 1 {
                 // omit parens to avoid linter error
@@ -182,8 +186,8 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             type_::Uint64(()) => Ok("u64".to_string()),
             type_::Float32(()) => Ok("f32".to_string()),
             type_::Float64(()) => Ok("f64".to_string()),
-            type_::Text(()) => Ok(format!("::capnp::text::{module}")),
-            type_::Data(()) => Ok(format!("::capnp::data::{module}")),
+            type_::Text(()) => Ok(fmt!(ctx, "{capnp}::text::{module}")),
+            type_::Data(()) => Ok(fmt!(ctx, "{capnp}::data::{module}")),
             type_::Struct(st) => do_branding(
                 ctx,
                 st.get_type_id(),
@@ -203,22 +207,25 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 match element_type.which()? {
                     type_::Struct(_) => {
                         let inner = element_type.type_string(ctx, Leaf::Owned)?;
-                        Ok(format!(
-                            "::capnp::struct_list::{}<{lifetime_comma}{inner}>",
+                        Ok(fmt!(
+                            ctx,
+                            "{capnp}::struct_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
                         ))
                     }
                     type_::Enum(_) => {
                         let inner = element_type.type_string(ctx, Leaf::Owned)?;
-                        Ok(format!(
-                            "::capnp::enum_list::{}<{lifetime_comma}{inner}>",
+                        Ok(fmt!(
+                            ctx,
+                            "{capnp}::enum_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
                         ))
                     }
                     type_::List(_) => {
                         let inner = element_type.type_string(ctx, Leaf::Owned)?;
-                        Ok(format!(
-                            "::capnp::list_list::{}<{lifetime_comma}{inner}>",
+                        Ok(fmt!(
+                            ctx,
+                            "{capnp}::list_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
                         ))
                     }
@@ -226,8 +233,9 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     type_::Data(()) => Ok(format!("::capnp::data_list::{module}")),
                     type_::Interface(_) => {
                         let inner = element_type.type_string(ctx, Leaf::Client)?;
-                        Ok(format!(
-                            "::capnp::capability_list::{}<{lifetime_comma}{inner}>",
+                        Ok(fmt!(
+                            ctx,
+                            "{capnp}::capability_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
                         ))
                     }
@@ -236,8 +244,9 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     }
                     _ => {
                         let inner = element_type.type_string(ctx, Leaf::Owned)?;
-                        Ok(format!(
-                            "::capnp::primitive_list::{}<{lifetime_comma}{inner}>",
+                        Ok(fmt!(
+                            ctx,
+                            "{capnp}::primitive_list::{}<{lifetime_comma}{inner}>",
                             module.bare_name()
                         ))
                     }
@@ -252,14 +261,17 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     let parameter_name = parameter.get_name()?;
                     match module {
                         Leaf::Owned => Ok(parameter_name.to_string()),
-                        Leaf::Reader(lifetime) => Ok(format!(
-                            "<{parameter_name} as ::capnp::traits::Owned>::Reader<{lifetime}>"
+                        Leaf::Reader(lifetime) => Ok(fmt!(
+                            ctx,
+                            "<{parameter_name} as {capnp}::traits::Owned>::Reader<{lifetime}>"
                         )),
-                        Leaf::Builder(lifetime) => Ok(format!(
-                            "<{parameter_name} as ::capnp::traits::Owned>::Builder<{lifetime}>"
+                        Leaf::Builder(lifetime) => Ok(fmt!(
+                            ctx,
+                            "<{parameter_name} as {capnp}::traits::Owned>::Builder<{lifetime}>"
                         )),
-                        Leaf::Pipeline => Ok(format!(
-                            "<{parameter_name} as ::capnp::traits::Pipelined>::Pipeline"
+                        Leaf::Pipeline => Ok(fmt!(
+                            ctx,
+                            "<{parameter_name} as {capnp}::traits::Pipelined>::Pipeline"
                         )),
                         _ => Err(Error::unimplemented(
                             "unimplemented any_pointer leaf".to_string(),
@@ -268,12 +280,12 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                 }
                 _ => match module {
                     Leaf::Reader(lifetime) => {
-                        Ok(format!("::capnp::any_pointer::Reader<{lifetime}>"))
+                        Ok(fmt!(ctx, "{capnp}::any_pointer::Reader<{lifetime}>"))
                     }
                     Leaf::Builder(lifetime) => {
-                        Ok(format!("::capnp::any_pointer::Builder<{lifetime}>"))
+                        Ok(fmt!(ctx, "{capnp}::any_pointer::Builder<{lifetime}>"))
                     }
-                    _ => Ok(format!("::capnp::any_pointer::{module}")),
+                    _ => Ok(fmt!(ctx, "{capnp}::any_pointer::{module}")),
                 },
             },
         }
@@ -344,7 +356,7 @@ pub fn do_branding(
         match brand_scopes.get(&current_node_id) {
             None => {
                 for _ in params {
-                    arguments.push("::capnp::any_pointer::Owned".to_string());
+                    arguments.push(fmt!(ctx, "{capnp}::any_pointer::Owned"));
                 }
             }
             Some(scope) => match scope.which()? {
@@ -359,7 +371,7 @@ pub fn do_branding(
                     for binding in bindings_list {
                         match binding.which()? {
                             brand::binding::Unbound(()) => {
-                                arguments.push("::capnp::any_pointer::Owned".to_string());
+                                arguments.push(fmt!(ctx, "{capnp}::any_pointer::Owned"));
                             }
                             brand::binding::Type(t) => {
                                 arguments.push(t?.type_string(ctx, Leaf::Owned)?);
@@ -393,7 +405,7 @@ pub fn do_branding(
         "".to_string()
     };
 
-    let maybe_colons = if leaf == Leaf::ServerDispatch {
+    let maybe_colons = if leaf == Leaf::ServerDispatch || leaf == Leaf::GetType {
         "::"
     } else {
         ""

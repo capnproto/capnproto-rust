@@ -309,3 +309,528 @@ check_test_message_impl!(test_all_types::Reader);
 check_test_message_impl!(test_all_types::Builder);
 check_test_message_impl!(test_defaults::Reader);
 check_test_message_impl!(test_defaults::Builder);
+
+pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'_>) {
+    builder.set_named("voidField", ().into()).unwrap();
+    builder.set_named("boolField", true.into()).unwrap();
+    builder.set_named("int8Field", (-123i8).into()).unwrap();
+    builder.set_named("int16Field", (-12345i16).into()).unwrap();
+    builder
+        .set_named("int32Field", (-12345678i32).into())
+        .unwrap();
+    builder
+        .set_named("int64Field", (-123456789012345i64).into())
+        .unwrap();
+    builder.set_named("uInt8Field", (234u8).into()).unwrap();
+    builder.set_named("uInt16Field", (45678u16).into()).unwrap();
+    builder
+        .set_named("uInt32Field", (3456789012u32).into())
+        .unwrap();
+    builder
+        .set_named("uInt64Field", (12345678901234567890u64).into())
+        .unwrap();
+    builder
+        .set_named("float32Field", (1234.5f32).into())
+        .unwrap();
+    builder
+        .set_named("float64Field", (-123e45f64).into())
+        .unwrap();
+    builder.set_named("textField", "foo".into()).unwrap();
+    builder.set_named("dataField", b"bar"[..].into()).unwrap();
+    {
+        let mut substruct = builder
+            .reborrow()
+            .init_named("structField")
+            .unwrap()
+            .downcast::<::capnp::dynamic_struct::Builder<'_>>();
+        substruct.set_named("voidField", ().into()).unwrap();
+        substruct.set_named("boolField", true.into()).unwrap();
+        substruct.set_named("int8Field", (-12i8).into()).unwrap();
+        substruct.set_named("int16Field", (3456i16).into()).unwrap();
+    }
+    builder
+        .set_named("enumField", TestEnum::Corge.into())
+        .unwrap();
+    builder.reborrow().initn_named("voidList", 3).unwrap();
+    {
+        let mut bool_list = builder
+            .reborrow()
+            .initn_named("boolList", 4)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        bool_list.set(0, true.into()).unwrap();
+        bool_list.set(1, false.into()).unwrap();
+        bool_list.set(2, false.into()).unwrap();
+        bool_list.set(3, true.into()).unwrap();
+    }
+    {
+        let mut int8_list = builder
+            .reborrow()
+            .initn_named("int8List", 2)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        int8_list.set(0, 111i8.into()).unwrap();
+        int8_list.set(1, (-111i8).into()).unwrap();
+    }
+    // ...
+    {
+        let mut text_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .initn_named("textList", 3)
+            .unwrap()
+            .downcast();
+        text_list.set(0, "plugh".into()).unwrap();
+        text_list.set(1, "xyzzy".into()).unwrap();
+        text_list.set(2, "thud".into()).unwrap();
+    }
+
+    {
+        let mut struct_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .initn_named("structList", 3)
+            .unwrap()
+            .downcast();
+        struct_list
+            .reborrow()
+            .get(0)
+            .unwrap()
+            .downcast::<capnp::dynamic_struct::Builder<'_>>()
+            .set_named("textField", "structlist 1".into())
+            .unwrap();
+        struct_list
+            .reborrow()
+            .get(1)
+            .unwrap()
+            .downcast::<capnp::dynamic_struct::Builder<'_>>()
+            .set_named("textField", "structlist 2".into())
+            .unwrap();
+        struct_list
+            .get(2)
+            .unwrap()
+            .downcast::<capnp::dynamic_struct::Builder<'_>>()
+            .set_named("textField", "structlist 3".into())
+            .unwrap();
+    }
+}
+
+pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
+    assert_eq!((), reader.get_named("voidField").unwrap().downcast());
+    assert_eq!(
+        true,
+        reader.get_named("boolField").unwrap().downcast::<bool>()
+    );
+    assert_eq!(-123i8, reader.get_named("int8Field").unwrap().downcast());
+    assert_eq!(
+        -12345i16,
+        reader.get_named("int16Field").unwrap().downcast()
+    );
+    assert_eq!(
+        -12345678i32,
+        reader.get_named("int32Field").unwrap().downcast()
+    );
+    assert_eq!(
+        -123456789012345i64,
+        reader.get_named("int64Field").unwrap().downcast()
+    );
+    assert_eq!(234u8, reader.get_named("uInt8Field").unwrap().downcast());
+    assert_eq!(
+        45678u16,
+        reader.get_named("uInt16Field").unwrap().downcast()
+    );
+    assert_eq!(
+        3456789012u32,
+        reader.get_named("uInt32Field").unwrap().downcast()
+    );
+    assert_eq!(
+        12345678901234567890u64,
+        reader.get_named("uInt64Field").unwrap().downcast()
+    );
+    assert_eq!(
+        1234.5f32,
+        reader.get_named("float32Field").unwrap().downcast()
+    );
+    assert_eq!(
+        -123e45f64,
+        reader.get_named("float64Field").unwrap().downcast()
+    );
+    assert_eq!(
+        "foo",
+        reader
+            .get_named("textField")
+            .unwrap()
+            .downcast::<capnp::text::Reader<'_>>()
+    );
+    assert_eq!(
+        &b"bar"[..],
+        reader
+            .get_named("dataField")
+            .unwrap()
+            .downcast::<capnp::data::Reader<'_>>()
+    );
+    {
+        let substruct: capnp::dynamic_struct::Reader<'_> =
+            reader.get_named("structField").unwrap().downcast();
+        substruct.get_named("voidField").unwrap();
+        assert_eq!(
+            true,
+            substruct.get_named("boolField").unwrap().downcast::<bool>()
+        );
+        assert_eq!(-12i8, substruct.get_named("int8Field").unwrap().downcast());
+        assert_eq!(
+            3456i16,
+            substruct.get_named("int16Field").unwrap().downcast()
+        );
+    }
+    assert_eq!(
+        "corge",
+        reader
+            .get_named("enumField")
+            .unwrap()
+            .downcast::<capnp::dynamic_value::Enum>()
+            .get_enumerant()
+            .unwrap()
+            .unwrap()
+            .get_proto()
+            .get_name()
+            .unwrap()
+    );
+    {
+        let bool_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("boolList").unwrap().downcast();
+        assert_eq!(4, bool_list.len());
+        assert_eq!(true, bool_list.get(0).unwrap().downcast());
+        assert_eq!(false, bool_list.get(1).unwrap().downcast());
+        assert_eq!(false, bool_list.get(2).unwrap().downcast());
+        assert_eq!(true, bool_list.get(3).unwrap().downcast());
+    }
+    {
+        let int8_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("int8List").unwrap().downcast();
+        assert_eq!(2, int8_list.len());
+        assert_eq!(111i8, int8_list.get(0).unwrap().downcast());
+        assert_eq!(-111i8, int8_list.get(1).unwrap().downcast());
+    }
+
+    {
+        let text_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("textList").unwrap().downcast();
+        assert_eq!(3, text_list.len());
+        assert_eq!(
+            "plugh",
+            text_list
+                .get(0)
+                .unwrap()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+        assert_eq!(
+            "xyzzy",
+            text_list
+                .get(1)
+                .unwrap()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+        assert_eq!(
+            "thud",
+            text_list
+                .get(2)
+                .unwrap()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+    }
+
+    {
+        let struct_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("structList").unwrap().downcast();
+        assert_eq!(3, struct_list.len());
+        assert_eq!(
+            "structlist 1",
+            struct_list
+                .get(0)
+                .unwrap()
+                .downcast::<capnp::dynamic_struct::Reader<'_>>()
+                .get_named("textField")
+                .unwrap()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+        assert_eq!(
+            "structlist 2",
+            struct_list
+                .get(1)
+                .unwrap()
+                .downcast::<capnp::dynamic_struct::Reader<'_>>()
+                .get_named("textField")
+                .unwrap()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+        assert_eq!(
+            "structlist 3",
+            struct_list
+                .get(2)
+                .unwrap()
+                .downcast::<capnp::dynamic_struct::Reader<'_>>()
+                .get_named("textField")
+                .unwrap()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+    }
+}
+
+pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Builder<'_>) {
+    assert_eq!(
+        (),
+        builder
+            .reborrow()
+            .get_named("voidField")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        true,
+        builder
+            .reborrow()
+            .get_named("boolField")
+            .unwrap()
+            .downcast::<bool>()
+    );
+    assert_eq!(
+        -123i8,
+        builder
+            .reborrow()
+            .get_named("int8Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        -12345i16,
+        builder
+            .reborrow()
+            .get_named("int16Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        -12345678i32,
+        builder
+            .reborrow()
+            .get_named("int32Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        -123456789012345i64,
+        builder
+            .reborrow()
+            .get_named("int64Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        234u8,
+        builder
+            .reborrow()
+            .get_named("uInt8Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        45678u16,
+        builder
+            .reborrow()
+            .get_named("uInt16Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        3456789012u32,
+        builder
+            .reborrow()
+            .get_named("uInt32Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        12345678901234567890u64,
+        builder
+            .reborrow()
+            .get_named("uInt64Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        1234.5f32,
+        builder
+            .reborrow()
+            .get_named("float32Field")
+            .unwrap()
+            .downcast()
+    );
+    assert_eq!(
+        -123e45f64,
+        builder
+            .reborrow()
+            .get_named("float64Field")
+            .unwrap()
+            .downcast()
+    );
+
+    assert_eq!(
+        "foo",
+        builder
+            .reborrow()
+            .get_named("textField")
+            .unwrap()
+            .into_reader()
+            .downcast::<capnp::text::Reader<'_>>()
+    );
+    assert_eq!(
+        &b"bar"[..],
+        builder
+            .reborrow()
+            .get_named("dataField")
+            .unwrap()
+            .into_reader()
+            .downcast::<capnp::data::Reader<'_>>()
+    );
+
+    {
+        let mut substruct: capnp::dynamic_struct::Builder<'_> = builder
+            .reborrow()
+            .get_named("structField")
+            .unwrap()
+            .downcast();
+        substruct.reborrow().get_named("voidField").unwrap();
+        assert_eq!(
+            true,
+            substruct
+                .reborrow()
+                .get_named("boolField")
+                .unwrap()
+                .downcast::<bool>()
+        );
+        assert_eq!(
+            -12i8,
+            substruct
+                .reborrow()
+                .get_named("int8Field")
+                .unwrap()
+                .downcast()
+        );
+        assert_eq!(
+            3456i16,
+            substruct
+                .reborrow()
+                .get_named("int16Field")
+                .unwrap()
+                .downcast()
+        );
+    }
+    assert_eq!(
+        "corge",
+        builder
+            .reborrow()
+            .get_named("enumField")
+            .unwrap()
+            .downcast::<capnp::dynamic_value::Enum>()
+            .get_enumerant()
+            .unwrap()
+            .unwrap()
+            .get_proto()
+            .get_name()
+            .unwrap()
+    );
+
+    {
+        let mut bool_list: capnp::dynamic_list::Builder<'_> =
+            builder.reborrow().get_named("boolList").unwrap().downcast();
+        assert_eq!(4, bool_list.len());
+        assert_eq!(true, bool_list.reborrow().get(0).unwrap().downcast());
+        assert_eq!(false, bool_list.reborrow().get(1).unwrap().downcast());
+        assert_eq!(false, bool_list.reborrow().get(2).unwrap().downcast());
+        assert_eq!(true, bool_list.reborrow().get(3).unwrap().downcast());
+    }
+
+    {
+        let mut int8_list: capnp::dynamic_list::Builder<'_> =
+            builder.reborrow().get_named("int8List").unwrap().downcast();
+        assert_eq!(2, int8_list.len());
+        assert_eq!(111i8, int8_list.reborrow().get(0).unwrap().downcast());
+        assert_eq!(-111i8, int8_list.reborrow().get(1).unwrap().downcast());
+    }
+
+    {
+        let mut text_list: capnp::dynamic_list::Builder<'_> =
+            builder.reborrow().get_named("textList").unwrap().downcast();
+        assert_eq!(3, text_list.len());
+        assert_eq!(
+            "plugh",
+            text_list
+                .reborrow()
+                .get(0)
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+        assert_eq!(
+            "xyzzy",
+            text_list
+                .reborrow()
+                .get(1)
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+        assert_eq!(
+            "thud",
+            text_list
+                .reborrow()
+                .get(2)
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+    }
+    {
+        let mut struct_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("structList")
+            .unwrap()
+            .downcast();
+        assert_eq!(3, struct_list.len());
+        assert_eq!(
+            "structlist 1",
+            struct_list
+                .reborrow()
+                .get(0)
+                .unwrap()
+                .downcast::<capnp::dynamic_struct::Builder<'_>>()
+                .get_named("textField")
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+        assert_eq!(
+            "structlist 2",
+            struct_list
+                .reborrow()
+                .get(1)
+                .unwrap()
+                .downcast::<capnp::dynamic_struct::Builder<'_>>()
+                .get_named("textField")
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+        assert_eq!(
+            "structlist 3",
+            struct_list
+                .reborrow()
+                .get(2)
+                .unwrap()
+                .downcast::<capnp::dynamic_struct::Builder<'_>>()
+                .get_named("textField")
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::text::Reader<'_>>()
+        );
+    }
+}

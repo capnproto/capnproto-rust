@@ -32,6 +32,10 @@
 #[macro_use]
 extern crate alloc;
 
+/// Code generated from
+/// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
+pub mod schema_capnp;
+
 pub mod any_pointer;
 pub mod any_pointer_list;
 pub mod capability;
@@ -39,15 +43,21 @@ pub mod capability_list;
 pub mod constant;
 pub mod data;
 pub mod data_list;
+pub mod dynamic_list;
+pub mod dynamic_struct;
+pub mod dynamic_value;
 pub mod enum_list;
+pub mod introspect;
 pub mod io;
 pub mod list_list;
 pub mod message;
 pub mod primitive_list;
 pub mod private;
 pub mod raw;
+pub mod schema;
 pub mod serialize;
 pub mod serialize_packed;
+pub(crate) mod stringify;
 pub mod struct_list;
 pub mod text;
 pub mod text_list;

@@ -2880,7 +2880,7 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_root_unchecked<'b>(location: *const u8) -> PointerReader<'b> {
+    pub unsafe fn get_root_unchecked<'b>(location: *const u8) -> PointerReader<'b> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,

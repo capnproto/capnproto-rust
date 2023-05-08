@@ -35,6 +35,12 @@ impl crate::traits::Owned for Owned {
     type Builder<'a> = Builder<'a>;
 }
 
+impl crate::introspect::Introspect for Owned {
+    fn introspect() -> crate::introspect::Type {
+        crate::introspect::Type::list_of(crate::introspect::TypeVariant::AnyPointer.into())
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Reader<'a> {
     pub reader: ListReader<'a>,
@@ -180,5 +186,23 @@ impl<'a> core::iter::IntoIterator for Reader<'a> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
+    fn from(t: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
+        crate::dynamic_value::Reader::List(crate::dynamic_list::Reader::new(
+            t.reader,
+            <crate::any_pointer::Owned as crate::introspect::Introspect>::introspect(),
+        ))
+    }
+}
+
+impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
+    fn from(t: Builder<'a>) -> crate::dynamic_value::Builder<'a> {
+        crate::dynamic_value::Builder::List(crate::dynamic_list::Builder::new(
+            t.builder,
+            <crate::any_pointer::Owned as crate::introspect::Introspect>::introspect(),
+        ))
     }
 }
