@@ -1,3 +1,6 @@
+## v0.17.0
+- Rename `WeakCapabilityServerSet` to `CapabilityServerSet` and remove the old implmentation.
+
 ## v0.16.2
 - Add WeakCapabilityServerSet, intended to eventually replace CapabilityServerSet.
 

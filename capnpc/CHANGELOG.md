@@ -1,3 +1,7 @@
+## v0.17.0
+- Add support for reflection.
+- Implement `Debug` for all generated struct `Reader` types.
+
 ### v0.16.5
 - Use `core::marker` instead of `std::marker` for pointer constants, for no_std compat.
 

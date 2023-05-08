@@ -1,3 +1,6 @@
+## v0.17.0
+- Add support for reflection. See dynamic_value.rs and schema.rs.
+
 ## v0.16.1
 - Fix "stacked borrow" errors found by miri.
 
