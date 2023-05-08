@@ -1681,7 +1681,7 @@ fn generate_members_by_discriminant(
     }
     union_member_indexes.sort();
 
-    let mut nonunion_string: String = "pub static NONUNION_MEMBERS : &'static [u16] = &[".into();
+    let mut nonunion_string: String = "pub static NONUNION_MEMBERS : &[u16] = &[".into();
     for idx in 0..nonunion_member_indexes.len() {
         nonunion_string += &format!("{}", nonunion_member_indexes[idx]);
         if idx + 1 < nonunion_member_indexes.len() {
@@ -1690,8 +1690,7 @@ fn generate_members_by_discriminant(
     }
     nonunion_string += "];";
 
-    let mut members_by_disc: String =
-        "pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[".into();
+    let mut members_by_disc: String = "pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[".into();
     for idx in 0..union_member_indexes.len() {
         let (disc, index) = union_member_indexes[idx];
         assert_eq!(idx, disc as usize);
@@ -1870,8 +1869,8 @@ fn generate_node(
                 Line(fmt!(ctx,"pub static RAW_SCHEMA: {capnp}::introspect::RawStructSchema = {capnp}::introspect::RawStructSchema {{")),
                 Indent(Box::new(Branch(vec![
                     Line("encoded_node: &ENCODED_NODE,".into()),
-                    Line("nonunion_members: &NONUNION_MEMBERS,".into()),
-                    Line("members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,".into()),
+                    Line("nonunion_members: NONUNION_MEMBERS,".into()),
+                    Line("members_by_discriminant: MEMBERS_BY_DISCRIMINANT,".into()),
                 ]))),
                 Line("};".into()),
             ]));

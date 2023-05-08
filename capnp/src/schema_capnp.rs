@@ -654,11 +654,11 @@ pub mod node {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3,4,5,12,13];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[6,7,8,9,10,11];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3,4,5,12,13];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[6,7,8,9,10,11];
     pub const TYPE_ID: u64 = 0xe682_ab4c_f923_a417;
   }
   pub enum Which<A0,A1,A2,A3,A4> {
@@ -870,11 +870,11 @@ pub mod node {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xb952_1bcc_f10f_a3b1;
     }
   }
@@ -1105,11 +1105,11 @@ pub mod node {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xdebf_55bb_fa0f_c242;
     }
   }
@@ -1388,11 +1388,11 @@ pub mod node {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xf38e_1de3_0413_57ae;
     }
 
@@ -1596,11 +1596,11 @@ pub mod node {
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
-          nonunion_members: &NONUNION_MEMBERS,
-          members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+          nonunion_members: NONUNION_MEMBERS,
+          members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
         };
-        pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-        pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+        pub static NONUNION_MEMBERS : &[u16] = &[0];
+        pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
         pub const TYPE_ID: u64 = 0xc2ba_9038_898e_1fa2;
       }
     }
@@ -1983,11 +1983,11 @@ pub mod node {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3,4,5,6];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3,4,5,6];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0x9ea0_b19b_37fb_4435;
     }
   }
@@ -2193,11 +2193,11 @@ pub mod node {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xb54a_b336_4333_f598;
     }
   }
@@ -2448,11 +2448,11 @@ pub mod node {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xe827_53cf_f0c2_218f;
     }
   }
@@ -2699,11 +2699,11 @@ pub mod node {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xb18a_a5ac_7a0d_9420;
     }
   }
@@ -3259,11 +3259,11 @@ pub mod node {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3,4,5,6,7,8,9,10,11,12];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3,4,5,6,7,8,9,10,11,12];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xec16_19d4_400a_0290;
     }
   }
@@ -3667,11 +3667,11 @@ pub mod field {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3,6];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[4,5];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3,6];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[4,5];
     pub const TYPE_ID: u64 = 0x9aad_50a4_1f4a_f45f;
   }
   pub enum Which<A0,A1> {
@@ -3983,11 +3983,11 @@ pub mod field {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xc423_0547_6bb4_746f;
     }
   }
@@ -4177,11 +4177,11 @@ pub mod field {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xcafc_cddb_68db_1d11;
     }
   }
@@ -4420,11 +4420,11 @@ pub mod field {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1];
+      pub static NONUNION_MEMBERS : &[u16] = &[];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1];
       pub const TYPE_ID: u64 = 0xbb90_d5c2_8787_0be6;
     }
     pub enum Which {
@@ -4707,11 +4707,11 @@ pub mod enumerant {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x978a_7ceb_dc54_9a4d;
   }
 }
@@ -4944,11 +4944,11 @@ pub mod superclass {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xa996_2a9e_d0a4_d7f8;
   }
 }
@@ -5417,11 +5417,11 @@ pub mod method {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3,4,5,6,7];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3,4,5,6,7];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x9500_cce2_3b33_4d80;
   }
 }
@@ -6151,11 +6151,11 @@ pub mod type_ {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+    pub static NONUNION_MEMBERS : &[u16] = &[];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
     pub const TYPE_ID: u64 = 0xd073_78ed_e1f9_cc60;
   }
   pub enum Which<A0,A1,A2,A3,A4> {
@@ -6382,11 +6382,11 @@ pub mod type_ {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0x87e7_3925_0a60_ea97;
     }
   }
@@ -6618,11 +6618,11 @@ pub mod type_ {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0x9e0e_7871_1a7f_87a9;
     }
   }
@@ -6855,11 +6855,11 @@ pub mod type_ {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xac3a_6f60_ef4c_c6d3;
     }
   }
@@ -7092,11 +7092,11 @@ pub mod type_ {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xed8b_ca69_f7fb_0cbf;
     }
   }
@@ -7352,11 +7352,11 @@ pub mod type_ {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1,2];
+      pub static NONUNION_MEMBERS : &[u16] = &[];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1,2];
       pub const TYPE_ID: u64 = 0xc257_3fe8_a23e_49f1;
     }
     pub enum Which<A0,A1,A2> {
@@ -7661,11 +7661,11 @@ pub mod type_ {
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
-          nonunion_members: &NONUNION_MEMBERS,
-          members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+          nonunion_members: NONUNION_MEMBERS,
+          members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
         };
-        pub static NONUNION_MEMBERS : &'static [u16] = &[];
-        pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1,2,3];
+        pub static NONUNION_MEMBERS : &[u16] = &[];
+        pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1,2,3];
         pub const TYPE_ID: u64 = 0x8e3b_5f79_fe59_3656;
       }
       pub enum Which {
@@ -7893,11 +7893,11 @@ pub mod type_ {
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
-          nonunion_members: &NONUNION_MEMBERS,
-          members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+          nonunion_members: NONUNION_MEMBERS,
+          members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
         };
-        pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-        pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+        pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+        pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
         pub const TYPE_ID: u64 = 0x9dd1_f724_f461_4a85;
       }
     }
@@ -8091,11 +8091,11 @@ pub mod type_ {
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
-          nonunion_members: &NONUNION_MEMBERS,
-          members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+          nonunion_members: NONUNION_MEMBERS,
+          members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
         };
-        pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-        pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+        pub static NONUNION_MEMBERS : &[u16] = &[0];
+        pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
         pub const TYPE_ID: u64 = 0xbaef_c912_0c56_e274;
       }
     }
@@ -8309,11 +8309,11 @@ pub mod brand {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x9034_55f0_6065_422b;
   }
 
@@ -8597,11 +8597,11 @@ pub mod brand {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[1,2];
+      pub static NONUNION_MEMBERS : &[u16] = &[0];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[1,2];
       pub const TYPE_ID: u64 = 0xabd7_3485_a963_6bc9;
     }
     pub enum Which<A0> {
@@ -8860,11 +8860,11 @@ pub mod brand {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1];
+      pub static NONUNION_MEMBERS : &[u16] = &[];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1];
       pub const TYPE_ID: u64 = 0xc863_cd16_969e_e7fc;
     }
     pub enum Which<A0> {
@@ -9702,11 +9702,11 @@ pub mod value {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+    pub static NONUNION_MEMBERS : &[u16] = &[];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
     pub const TYPE_ID: u64 = 0xce23_dcd2_d7b0_0c9b;
   }
   pub enum Which<A0,A1,A2,A3,A4> {
@@ -10005,11 +10005,11 @@ pub mod annotation {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xf1c8_950d_ab25_7542;
   }
 }
@@ -10362,11 +10362,11 @@ pub mod capnp_version {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xd85d_305b_7d83_9963;
   }
 }
@@ -10712,11 +10712,11 @@ pub mod code_generator_request {
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xbfc5_46f6_210a_d7ce;
   }
 
@@ -10996,11 +10996,11 @@ pub mod code_generator_request {
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+      pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
       pub const TYPE_ID: u64 = 0xcfea_0eb0_2e81_0062;
     }
 
@@ -11233,11 +11233,11 @@ pub mod code_generator_request {
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
-          nonunion_members: &NONUNION_MEMBERS,
-          members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+          nonunion_members: NONUNION_MEMBERS,
+          members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
         };
-        pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-        pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+        pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+        pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
         pub const TYPE_ID: u64 = 0xae50_4193_1223_57e5;
       }
     }
