@@ -1524,20 +1524,25 @@ fn generate_get_field_types(
             }
         }
     }
-    branches.push(Line(
-        "_ => panic!(\"invalid field index {}\", index),".into(),
-    ));
+    let body = if branches.is_empty() {
+        Line("panic!(\"invalid field index {}\", index)".into())
+    } else {
+        branches.push(Line(
+            "_ => panic!(\"invalid field index {}\", index),".into(),
+        ));
+        Branch(vec![
+            Line("match index {".into()),
+            Indent(Box::new(Branch(branches))),
+            Line("}".into()),
+        ])
+    };
     if !node_reader.get_is_generic() {
         Ok(Branch(vec![
             Line(fmt!(
                 ctx,
                 "pub fn get_field_types(index: u16) -> {capnp}::introspect::Type {{"
             )),
-            Indent(Box::new(Branch(vec![
-                Line("match index {".into()),
-                Indent(Box::new(Branch(branches))),
-                Line("}".into()),
-            ]))),
+            Indent(Box::new(body)),
             Line("}".into()),
         ]))
     } else {
@@ -1549,11 +1554,7 @@ fn generate_get_field_types(
                 params.params,
                 params.where_clause
             )),
-            Indent(Box::new(Branch(vec![
-                Line("match index {".into()),
-                Indent(Box::new(Branch(branches))),
-                Line("}".into()),
-            ]))),
+            Indent(Box::new(body)),
             Line("}".into()),
         ]))
     }

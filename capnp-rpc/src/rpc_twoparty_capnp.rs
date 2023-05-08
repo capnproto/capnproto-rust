@@ -598,9 +598,7 @@ pub mod recipient_id {
       ::capnp::word(0, 0, 0, 0, 1, 0, 1, 0),
     ];
     pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
-      match index {
-        _ => panic!("invalid field index {}", index),
-      }
+      panic!("invalid field index {}", index)
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
       panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
@@ -763,9 +761,7 @@ pub mod third_party_cap_id {
       ::capnp::word(0, 0, 0, 0, 1, 0, 1, 0),
     ];
     pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
-      match index {
-        _ => panic!("invalid field index {}", index),
-      }
+      panic!("invalid field index {}", index)
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
       panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
