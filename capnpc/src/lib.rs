@@ -67,10 +67,6 @@
 //!   capnp compile -orust:$OUT_DIR --src-prefix=schema schema/foo.capnp schema/bar.capnp
 //! ```
 
-/// Code generated from
-/// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
-pub mod schema_capnp;
-
 pub mod codegen;
 pub mod codegen_types;
 mod pointer_constants;

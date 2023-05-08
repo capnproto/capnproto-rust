@@ -33,6 +33,12 @@ impl crate::traits::Owned for Owned {
     type Builder<'a> = Builder<'a>;
 }
 
+impl crate::introspect::Introspect for Owned {
+    fn introspect() -> crate::introspect::Type {
+        crate::introspect::TypeVariant::Text.into()
+    }
+}
+
 pub type Reader<'a> = &'a str;
 
 pub fn new_reader(v: &[u8]) -> Result<Reader<'_>> {
@@ -87,6 +93,17 @@ impl<'a> Builder<'a> {
         }
         self.pos = 0;
     }
+
+    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder {
+            bytes: self.bytes,
+            pos: self.pos,
+        }
+    }
+
+    pub fn into_reader(self) -> Reader<'a> {
+        str::from_utf8(self.bytes).unwrap()
+    }
 }
 
 impl<'a> ops::Deref for Builder<'a> {
@@ -131,5 +148,17 @@ impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
     ) -> Result<()> {
         pointer.set_text(value);
         Ok(())
+    }
+}
+
+impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
+    fn from(t: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
+        crate::dynamic_value::Reader::Text(t)
+    }
+}
+
+impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
+    fn from(t: Builder<'a>) -> crate::dynamic_value::Builder<'a> {
+        crate::dynamic_value::Builder::Text(t)
     }
 }

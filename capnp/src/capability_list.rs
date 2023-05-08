@@ -37,6 +37,15 @@ where
     marker: PhantomData<T>,
 }
 
+impl<T> crate::introspect::Introspect for Owned<T>
+where
+    T: FromClientHook,
+{
+    fn introspect() -> crate::introspect::Type {
+        crate::introspect::Type::list_of(crate::introspect::TypeVariant::Capability.into())
+    }
+}
+
 impl<T> crate::traits::Owned for Owned<T>
 where
     T: FromClientHook,
@@ -268,5 +277,23 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<'a, T: FromClientHook> From<Reader<'a, T>> for crate::dynamic_value::Reader<'a> {
+    fn from(t: Reader<'a, T>) -> crate::dynamic_value::Reader<'a> {
+        crate::dynamic_value::Reader::List(crate::dynamic_list::Reader::new(
+            t.reader,
+            crate::introspect::TypeVariant::Capability.into(),
+        ))
+    }
+}
+
+impl<'a, T: FromClientHook> From<Builder<'a, T>> for crate::dynamic_value::Builder<'a> {
+    fn from(t: Builder<'a, T>) -> crate::dynamic_value::Builder<'a> {
+        crate::dynamic_value::Builder::List(crate::dynamic_list::Builder::new(
+            t.builder,
+            crate::introspect::TypeVariant::Capability.into(),
+        ))
     }
 }

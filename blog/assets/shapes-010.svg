@@ -1,0 +1,19 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+        <rect x="0" y="0" width="512" height="512" fill="rgb(129, 210, 124)" />
+<defs><clipPath id="clip-0"><rect x="0" y="0" width="512" height="512"/></clipPath></defs>
+<g clip-path="url(#clip-0)">
+<circle cx="152.43369355425472" cy="481.6025193434739" r="64.54767226012127" fill="rgb(213, 144, 20)" clip-path="url(#clip-0)"/>
+<circle cx="84.15003530326703" cy="307.5977852797578" r="137.70613749643505" fill="rgb(43, 178, 49)" clip-path="url(#clip-0)"/>
+<circle cx="103.45126868313099" cy="334.89385418912605" r="168.34173601904524" fill="rgb(56, 79, 107)" clip-path="url(#clip-0)"/>
+<circle cx="282.0113684527961" cy="80.45062589300142" r="89.40551011272542" fill="rgb(153, 200, 74)" clip-path="url(#clip-0)"/>
+<rect x="154.65965149169523" y="69.97990620522506" width="417.10040736901453" height="397.4709371562386" fill="rgb(77, 39, 92)" />
+<defs><clipPath id="clip-1"><rect x="154.65965149169523" y="69.97990620522506" width="417.10040736901453" height="397.4709371562386"/></clipPath></defs>
+<g clip-path="url(#clip-1)">
+<line x1="255.62167226736227" y1="453.2434266895032" x2="204.96075320291465" y2="264.8310912028021" stroke="rgb(20, 142, 109)" stroke-width="3.695873980527174" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<line x1="234.96573992237535" y1="256.08535291767737" x2="174.42385366911773" y2="348.82738218225415" stroke="rgb(243, 77, 55)" stroke-width="5.0301463095624745" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<circle cx="450.3262475905573" cy="269.8829917619063" r="101.78136868517204" fill="rgb(208, 37, 207)" clip-path="url(#clip-1)"/>
+<circle cx="351.85929232116086" cy="175.90267024492968" r="66.15297280009366" fill="rgb(221, 156, 20)" clip-path="url(#clip-1)"/>
+</g>
+</g>
+
+       </svg>

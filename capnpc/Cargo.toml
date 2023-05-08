@@ -18,6 +18,12 @@ keywords = ["encoding", "protocol", "serialization"]
 name = "capnpc-rust"
 path = "src/capnpc-rust.rs"
 
+[[bin]]
+
+name = "capnpc-rust-bootstrap"
+path = "src/capnpc-rust-bootstrap.rs"
+
+
 [dependencies.capnp]
 version = "0.16.0"
 path = "../capnp"

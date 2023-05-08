@@ -1,0 +1,20 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+        <rect x="0" y="0" width="512" height="512" fill="rgb(137, 116, 89)" />
+<defs><clipPath id="clip-0"><rect x="0" y="0" width="512" height="512"/></clipPath></defs>
+<g clip-path="url(#clip-0)">
+<line x1="2.5004445932137287" y1="254.6990727198965" x2="342.32055611870317" y2="384.5034833159306" stroke="rgb(137, 116, 89)" stroke-width="0.49479410529810053" stroke-linecap="round" clip-path="url(#clip-0)"/>
+<circle cx="121.14357485128045" cy="376.8102781205896" r="76.82182518776851" fill="rgb(34, 215, 181)" clip-path="url(#clip-0)"/>
+<rect x="181.26852015650675" y="304.14910474619506" width="337.49838153262664" height="69.33021517748375" fill="rgb(231, 96, 29)" />
+<defs><clipPath id="clip-1"><rect x="181.26852015650675" y="304.14910474619506" width="337.49838153262664" height="69.33021517748375"/></clipPath></defs>
+<g clip-path="url(#clip-1)">
+<line x1="471.97108870572924" y1="348.8428745940384" x2="515.4161591221348" y2="304.37966243654483" stroke="rgb(124, 164, 245)" stroke-width="2.7487888055123904" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<line x1="357.7959506089579" y1="326.85886856072085" x2="396.2831887597931" y2="323.5485221022373" stroke="rgb(231, 96, 29)" stroke-width="2.964600485787604" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<line x1="237.30508581328428" y1="333.41655897067164" x2="387.4887913817127" y2="364.8484522216031" stroke="rgb(137, 116, 89)" stroke-width="0.5421014759292221" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<line x1="384.3838626142802" y1="320.3430103085407" x2="503.03449281583346" y2="358.92001183122005" stroke="rgb(17, 177, 134)" stroke-width="0.5187378664304678" stroke-linecap="round" clip-path="url(#clip-1)"/>
+<circle cx="442.34418192132364" cy="349.545472588246" r="85.08412366850324" fill="rgb(37, 35, 37)" clip-path="url(#clip-1)"/>
+<circle cx="221.94793213940977" cy="344.2763154448611" r="72.16736899476668" fill="rgb(137, 116, 89)" clip-path="url(#clip-1)"/>
+<circle cx="250.89879703757833" cy="366.932499358049" r="55.592189971718156" fill="rgb(231, 96, 29)" clip-path="url(#clip-1)"/>
+</g>
+</g>
+
+       </svg>

@@ -23,6 +23,7 @@
 
 use core::marker::PhantomData;
 
+use crate::introspect;
 use crate::private::layout::{
     InlineComposite, ListBuilder, ListReader, PointerBuilder, PointerReader,
 };
@@ -35,6 +36,15 @@ where
     T: crate::traits::OwnedStruct,
 {
     marker: PhantomData<T>,
+}
+
+impl<T> introspect::Introspect for Owned<T>
+where
+    T: introspect::Introspect + crate::traits::OwnedStruct,
+{
+    fn introspect() -> introspect::Type {
+        introspect::Type::list_of(T::introspect())
+    }
 }
 
 impl<T> crate::traits::Owned for Owned<T>
@@ -271,5 +281,23 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<'a, T: crate::traits::OwnedStruct> From<Reader<'a, T>> for crate::dynamic_value::Reader<'a> {
+    fn from(t: Reader<'a, T>) -> crate::dynamic_value::Reader<'a> {
+        crate::dynamic_value::Reader::List(crate::dynamic_list::Reader::new(
+            t.reader,
+            T::introspect(),
+        ))
+    }
+}
+
+impl<'a, T: crate::traits::OwnedStruct> From<Builder<'a, T>> for crate::dynamic_value::Builder<'a> {
+    fn from(t: Builder<'a, T>) -> crate::dynamic_value::Builder<'a> {
+        crate::dynamic_value::Builder::List(crate::dynamic_list::Builder::new(
+            t.builder,
+            T::introspect(),
+        ))
     }
 }

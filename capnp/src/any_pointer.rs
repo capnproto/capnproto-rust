@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! Dynamically typed value.
+//! Untyped pointer that can be cast to any struct, list, or capability type.
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -38,13 +38,19 @@ impl crate::traits::Owned for Owned {
     type Builder<'a> = Builder<'a>;
 }
 
+impl crate::introspect::Introspect for Owned {
+    fn introspect() -> crate::introspect::Type {
+        crate::introspect::TypeVariant::AnyPointer.into()
+    }
+}
+
 impl crate::traits::Pipelined for Owned {
     type Pipeline = Pipeline;
 }
 
 #[derive(Copy, Clone)]
 pub struct Reader<'a> {
-    reader: PointerReader<'a>,
+    pub(crate) reader: PointerReader<'a>,
 }
 
 impl<'a> Reader<'a> {
@@ -242,6 +248,18 @@ impl Pipeline {
 impl crate::capability::FromTypelessPipeline for Pipeline {
     fn new(typeless: Pipeline) -> Self {
         typeless
+    }
+}
+
+impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
+    fn from(a: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
+        crate::dynamic_value::Reader::AnyPointer(a)
+    }
+}
+
+impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
+    fn from(a: Builder<'a>) -> crate::dynamic_value::Builder<'a> {
+        crate::dynamic_value::Builder::AnyPointer(a)
     }
 }
 
