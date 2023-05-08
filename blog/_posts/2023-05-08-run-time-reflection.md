@@ -53,8 +53,9 @@ in pull request [#390](https://github.com/capnproto/capnproto-rust/pull/390).
 However, now that we have reflection, we can avoid generating so much single-purpose
 code. Instead, our `Debug` implementation for each struct immediately
 delegates to a shared implementation that knows how to deal with
-*any* Cap'n Proto struct type. See capnp/src/stringify.rs if you are
-curious about what the code looks like.
+*any* Cap'n Proto struct type. See
+[stringify.rs](https://github.com/capnproto/capnproto-rust/blob/f7c86befe11b27f33c2a45957d402abff2b9e347/capnp/src/stringify.rs)
+if you are curious about what the code looks like.
 
 Using reflection in this way does have a (small)
 run-time cost, as it requires
