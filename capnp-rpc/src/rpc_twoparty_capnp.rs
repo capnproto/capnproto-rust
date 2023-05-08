@@ -62,9 +62,7 @@ pub static ENCODED_NODE: [::capnp::Word; 25] = [
   ::capnp::word(99, 108, 105, 101, 110, 116, 0, 0),
 ];
 pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-  match (child_index, index) {
-    _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-  }
+  panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
 }
 }
 
@@ -248,17 +246,15 @@ pub mod vat_id {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xd20b_909f_ee73_3a8e;
   }
 }
@@ -443,17 +439,15 @@ pub mod provision_id {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xb88d_09a9_c5f3_9817;
   }
 }
@@ -609,17 +603,15 @@ pub mod recipient_id {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x89f3_89b6_fd40_82c1;
   }
 }
@@ -776,17 +768,15 @@ pub mod third_party_cap_id {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xb47f_4979_672c_b59d;
   }
 }
@@ -1028,17 +1018,15 @@ pub mod join_key_part {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x95b2_9059_097f_ca83;
   }
 }
@@ -1293,17 +1281,15 @@ pub mod join_result {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x9d26_3a36_30b7_ebee;
   }
 }

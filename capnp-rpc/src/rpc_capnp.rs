@@ -811,17 +811,15 @@ pub mod message {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1,2,3,4,5,6,7,8,9,10,11,12,13];
+    pub static NONUNION_MEMBERS : &[u16] = &[];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1,2,3,4,5,6,7,8,9,10,11,12,13];
     pub const TYPE_ID: u64 = 0x91b7_9f1f_808d_b032;
   }
   pub enum Which<A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13> {
@@ -1067,17 +1065,15 @@ pub mod bootstrap {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xe94c_cf80_3117_6ec4;
   }
 }
@@ -1462,17 +1458,15 @@ pub mod call {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3,4,5,6];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3,4,5,6];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x836a_53ce_789d_4cd4;
   }
 
@@ -1746,17 +1740,15 @@ pub mod call {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1,2];
+      pub static NONUNION_MEMBERS : &[u16] = &[];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1,2];
       pub const TYPE_ID: u64 = 0xdae8_b0f6_1aab_5f99;
     }
     pub enum Which<A0> {
@@ -2227,17 +2219,15 @@ pub mod return_ {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[2,3,4,5,6,7];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[2,3,4,5,6,7];
     pub const TYPE_ID: u64 = 0x9e19_b28d_3db3_573a;
   }
   pub enum Which<A0,A1,A2> {
@@ -2462,17 +2452,15 @@ pub mod finish {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xd37d_2eb2_c2f8_0e63;
   }
 }
@@ -2764,17 +2752,15 @@ pub mod resolve {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[1,2];
+    pub static NONUNION_MEMBERS : &[u16] = &[0];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[1,2];
     pub const TYPE_ID: u64 = 0xbbc2_9655_fa89_086e;
   }
   pub enum Which<A0,A1> {
@@ -2993,17 +2979,15 @@ pub mod release {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xad1a_6c0d_7dd0_7497;
   }
 }
@@ -3228,17 +3212,15 @@ pub mod disembargo {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xf964_368b_0fbd_3711;
   }
 
@@ -3533,17 +3515,15 @@ pub mod disembargo {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1,2,3];
+      pub static NONUNION_MEMBERS : &[u16] = &[];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1,2,3];
       pub const TYPE_ID: u64 = 0xd562_b4df_655b_dd4d;
     }
     pub enum Which {
@@ -3822,17 +3802,15 @@ pub mod provide {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x9c6a_046b_fbc1_ac5a;
   }
 }
@@ -4087,17 +4065,15 @@ pub mod accept {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xd4c9_b562_9055_4016;
   }
 }
@@ -4365,17 +4341,15 @@ pub mod join {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xfbe1_9804_90e0_01af;
   }
 }
@@ -4624,17 +4598,15 @@ pub mod message_target {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1];
+    pub static NONUNION_MEMBERS : &[u16] = &[];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1];
     pub const TYPE_ID: u64 = 0x95bc_1454_5813_fbc1;
   }
   pub enum Which<A0> {
@@ -4882,17 +4854,15 @@ pub mod payload {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0x9a0e_6122_3d96_743b;
   }
 }
@@ -5312,17 +5282,15 @@ pub mod cap_descriptor {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[6];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1,2,3,4,5];
+    pub static NONUNION_MEMBERS : &[u16] = &[6];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1,2,3,4,5];
     pub const TYPE_ID: u64 = 0x8523_ddc4_0b86_b8b0;
   }
   pub enum Which<A0,A1> {
@@ -5566,17 +5534,15 @@ pub mod promised_answer {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xd800_b1d6_cd6f_1ca0;
   }
 
@@ -5808,17 +5774,15 @@ pub mod promised_answer {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
-        nonunion_members: &NONUNION_MEMBERS,
-        members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+        nonunion_members: NONUNION_MEMBERS,
+        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
       };
-      pub static NONUNION_MEMBERS : &'static [u16] = &[];
-      pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[0,1];
+      pub static NONUNION_MEMBERS : &[u16] = &[];
+      pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[0,1];
       pub const TYPE_ID: u64 = 0xf316_9444_1556_9081;
     }
     pub enum Which {
@@ -6052,17 +6016,15 @@ pub mod third_party_cap_descriptor {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xd370_07fd_e1f0_027d;
   }
 }
@@ -6389,17 +6351,15 @@ pub mod exception {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: ::capnp::introspect::RawStructSchema = ::capnp::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
-      nonunion_members: &NONUNION_MEMBERS,
-      members_by_discriminant: &MEMBERS_BY_DISCRIMINANT,
+      nonunion_members: NONUNION_MEMBERS,
+      members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
     };
-    pub static NONUNION_MEMBERS : &'static [u16] = &[0,1,2,3,4];
-    pub static MEMBERS_BY_DISCRIMINANT : &'static [u16] = &[];
+    pub static NONUNION_MEMBERS : &[u16] = &[0,1,2,3,4];
+    pub static MEMBERS_BY_DISCRIMINANT : &[u16] = &[];
     pub const TYPE_ID: u64 = 0xd625_b706_3acf_691a;
   }
 
@@ -6478,9 +6438,7 @@ pub mod exception {
     ::capnp::word(101, 110, 116, 101, 100, 0, 0, 0),
   ];
   pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> ::capnp::introspect::Type {
-    match (child_index, index) {
-      _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-    }
+    panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
   }
   }
 }

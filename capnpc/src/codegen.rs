@@ -1629,18 +1629,23 @@ fn generate_get_annotation_types(
         _ => (),
     }
 
-    branches.push(Line(
-        "_ => panic!(\"invalid annotation indices ({:?}, {}) \", child_index, index),".into(),
-    ));
+    let body = if branches.is_empty() {
+        Line("panic!(\"invalid annotation indices ({:?}, {}) \", child_index, index)".into())
+    } else {
+        branches.push(Line(
+            "_ => panic!(\"invalid annotation indices ({:?}, {}) \", child_index, index),".into(),
+        ));
+        Indent(Box::new(Branch(vec![
+            Line("match (child_index, index) {".into()),
+            Indent(Box::new(Branch(branches))),
+            Line("}".into()),
+        ])))
+    };
 
     if !node_reader.get_is_generic() {
         Ok(Branch(vec![
             Line(fmt!(ctx,"pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> {capnp}::introspect::Type {{")),
-            Indent(Box::new(Branch(vec![
-                Line("match (child_index, index) {".into()),
-                Indent(Box::new(Branch(branches))),
-                Line("}".into())
-            ]))),
+            Indent(Box::new(body)),
             Line("}".into()),
         ]))
     } else {
@@ -1650,11 +1655,7 @@ fn generate_get_annotation_types(
                 "pub fn get_annotation_types<{0}>(child_index: Option<u16>, index: u32) -> {capnp}::introspect::Type {1} {{",
                 params.params, params.where_clause
             )),
-            Indent(Box::new(Branch(vec![
-                Line("match (child_index, index) {".into()),
-                Indent(Box::new(Branch(branches))),
-                Line("}".into()),
-            ]))),
+            Indent(Box::new(body)),
             Line("}".into()),
         ]))
     }

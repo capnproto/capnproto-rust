@@ -648,9 +648,7 @@ pub mod node {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -864,9 +862,7 @@ pub mod node {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -1099,9 +1095,7 @@ pub mod node {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -1382,9 +1376,7 @@ pub mod node {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -1590,9 +1582,7 @@ pub mod node {
           }
         }
         pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-          match (child_index, index) {
-            _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-          }
+          panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
@@ -1977,9 +1967,7 @@ pub mod node {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -2187,9 +2175,7 @@ pub mod node {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -2442,9 +2428,7 @@ pub mod node {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -2693,9 +2677,7 @@ pub mod node {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -3253,9 +3235,7 @@ pub mod node {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -3661,9 +3641,7 @@ pub mod field {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -3977,9 +3955,7 @@ pub mod field {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -4171,9 +4147,7 @@ pub mod field {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -4414,9 +4388,7 @@ pub mod field {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -4701,9 +4673,7 @@ pub mod enumerant {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -4938,9 +4908,7 @@ pub mod superclass {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -5411,9 +5379,7 @@ pub mod method {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -6145,9 +6111,7 @@ pub mod type_ {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -6376,9 +6340,7 @@ pub mod type_ {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -6612,9 +6574,7 @@ pub mod type_ {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -6849,9 +6809,7 @@ pub mod type_ {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -7086,9 +7044,7 @@ pub mod type_ {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -7346,9 +7302,7 @@ pub mod type_ {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -7655,9 +7609,7 @@ pub mod type_ {
           }
         }
         pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-          match (child_index, index) {
-            _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-          }
+          panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
@@ -7887,9 +7839,7 @@ pub mod type_ {
           }
         }
         pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-          match (child_index, index) {
-            _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-          }
+          panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
@@ -8085,9 +8035,7 @@ pub mod type_ {
           }
         }
         pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-          match (child_index, index) {
-            _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-          }
+          panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
@@ -8303,9 +8251,7 @@ pub mod brand {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -8591,9 +8537,7 @@ pub mod brand {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -8854,9 +8798,7 @@ pub mod brand {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -9696,9 +9638,7 @@ pub mod value {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -9999,9 +9939,7 @@ pub mod annotation {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -10114,9 +10052,7 @@ pub static ENCODED_NODE: [crate::Word; 54] = [
   crate::word(109, 112, 111, 115, 105, 116, 101, 0),
 ];
 pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-  match (child_index, index) {
-    _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-  }
+  panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
 }
 }
 
@@ -10356,9 +10292,7 @@ pub mod capnp_version {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -10706,9 +10640,7 @@ pub mod code_generator_request {
       }
     }
     pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-      match (child_index, index) {
-        _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-      }
+      panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
     }
     pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
       encoded_node: &ENCODED_NODE,
@@ -10990,9 +10922,7 @@ pub mod code_generator_request {
         }
       }
       pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-        match (child_index, index) {
-          _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-        }
+        panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
       }
       pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
         encoded_node: &ENCODED_NODE,
@@ -11227,9 +11157,7 @@ pub mod code_generator_request {
           }
         }
         pub fn get_annotation_types(child_index: Option<u16>, index: u32) -> crate::introspect::Type {
-          match (child_index, index) {
-            _ => panic!("invalid annotation indices ({:?}, {}) ", child_index, index),
-          }
+          panic!("invalid annotation indices ({:?}, {}) ", child_index, index)
         }
         pub static RAW_SCHEMA: crate::introspect::RawStructSchema = crate::introspect::RawStructSchema {
           encoded_node: &ENCODED_NODE,
