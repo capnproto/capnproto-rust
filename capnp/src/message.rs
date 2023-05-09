@@ -443,6 +443,12 @@ where
         root.init_as()
     }
 
+    /// Initializes the root as a value of the given list type, with the given length.
+    pub fn initn_root<'a, T: FromPointerBuilder<'a>>(&'a mut self, length: u32) -> T {
+        let root = self.get_root_internal();
+        root.initn_as(length)
+    }
+
     /// Gets the root, interpreting it as the given type.
     pub fn get_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
         let root = self.get_root_internal();
@@ -564,6 +570,10 @@ where
 
     pub fn init_root(&mut self) -> T::Builder<'_> {
         self.message.init_root()
+    }
+
+    pub fn initn_root(&mut self, length: u32) -> T::Builder<'_> {
+        self.message.initn_root(length)
     }
 
     pub fn get_root(&mut self) -> Result<T::Builder<'_>> {
