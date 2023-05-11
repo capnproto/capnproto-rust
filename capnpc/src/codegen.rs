@@ -1006,9 +1006,20 @@ fn generate_setter(
                 type_::Enum(e) => {
                     let id = e.get_type_id();
                     let the_mod = ctx.get_qualified_module(id);
-                    setter_interior.push(Line(format!(
-                        "self.builder.set_data_field::<u16>({offset}, value as u16)"
-                    )));
+                    if !reg_field.get_had_explicit_default() {
+                        setter_interior.push(Line(format!(
+                            "self.builder.set_data_field::<u16>({offset}, value as u16);"
+                        )));
+                    } else {
+                        match reg_field.get_default_value()?.which()? {
+                            schema_capnp::value::Enum(d) => {
+                                setter_interior.push(Line(format!(
+                                    "self.builder.set_data_field_mask::<u16>({offset}, value as u16, {d});"
+                                )));
+                            }
+                            _ => return Err(Error::failed("enum default not an Enum".to_string())),
+                        }
+                    };
                     (Some(the_mod), None)
                 }
                 type_::Struct(_) => {
