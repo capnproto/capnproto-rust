@@ -492,7 +492,7 @@ mod tests {
 
     #[test]
     fn test_defaults() {
-        use crate::test_capnp::test_defaults;
+        use crate::test_capnp::{test_defaults, TestEnum};
 
         {
             let message = message::Builder::new_default();
@@ -524,6 +524,7 @@ mod tests {
             test_defaults.set_u_int64_field(123456789012345);
             test_defaults.set_float32_field(7890.123);
             test_defaults.set_float64_field(5e55);
+            test_defaults.set_enum_field(TestEnum::Baz);
 
             {
                 let mut sub_builder = test_defaults.reborrow().get_struct_field().unwrap();
@@ -544,6 +545,10 @@ mod tests {
             );
             assert_eq!(test_defaults.reborrow().get_float32_field(), 7890.123);
             assert_eq!(test_defaults.reborrow().get_float64_field(), 5e55);
+            assert_eq!(
+                test_defaults.reborrow().get_enum_field().unwrap(),
+                TestEnum::Baz
+            );
 
             {
                 let sub_builder = test_defaults.reborrow().get_struct_field().unwrap();
