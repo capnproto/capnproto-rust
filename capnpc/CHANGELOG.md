@@ -1,4 +1,7 @@
-## v0.17.0
+### v0.17.1
+- Fix setters of enum fields with defaults.
+
+### v0.17.0
 - Add support for reflection.
 - Implement `Debug` for all generated struct `Reader` types.
 
