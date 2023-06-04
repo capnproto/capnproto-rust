@@ -6210,7 +6210,7 @@ pub mod exception {
     }
     #[inline]
     pub fn set_type(&mut self, value: crate::rpc_capnp::exception::Type)  {
-      self.builder.set_data_field::<u16>(2, value as u16)
+      self.builder.set_data_field::<u16>(2, value as u16);
     }
     #[inline]
     pub fn get_trace(self) -> ::capnp::Result<::capnp::text::Builder<'a>> {

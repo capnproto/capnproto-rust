@@ -191,7 +191,7 @@ pub mod vat_id {
     }
     #[inline]
     pub fn set_side(&mut self, value: crate::rpc_twoparty_capnp::Side)  {
-      self.builder.set_data_field::<u16>(0, value as u16)
+      self.builder.set_data_field::<u16>(0, value as u16);
     }
   }
 
