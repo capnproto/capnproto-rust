@@ -21,7 +21,7 @@
 use capnp::{any_pointer, message};
 
 use crate::codegen::FormattedText::{Branch, Indent, Line};
-use crate::codegen::{fmt, FormattedText, GeneratorContext};
+use crate::codegen::{fmt, indent, line, FormattedText, GeneratorContext};
 use crate::codegen_types::{Leaf, RustTypeInfo};
 use capnp::schema_capnp::type_;
 
@@ -70,8 +70,8 @@ fn word_array_declaration_aux<T: ::capnp::traits::SetPointerBuilder>(
             name,
             words.len() / 8
         )),
-        Indent(Box::new(Branch(words_lines))),
-        Line("];".to_string()),
+        indent(Branch(words_lines)),
+        line("];"),
     ]))
 }
 
@@ -120,6 +120,6 @@ pub fn generate_pointer_constant(
             ]))),
             Line("}".into()),
         ]))),
-        Line("};".to_string()),
+        line("};"),
     ]))
 }
