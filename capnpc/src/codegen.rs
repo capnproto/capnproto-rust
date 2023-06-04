@@ -489,6 +489,7 @@ fn module_name(camel_case: &str) -> String {
 // Annotation IDs, as defined in rust.capnp.
 const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
 const PARENT_MODULE_ANNOTATION_ID: u64 = 0xabee386cd1450364;
+const GET_OPTION_ANNOTATION_ID: u64 = 0xabfef22c4ee1964e;
 
 fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp::Result<&str> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
@@ -551,6 +552,35 @@ fn capnp_name_to_rust_name(capnp_name: &str, name_kind: NameKind) -> String {
         NameKind::Module => module_name(capnp_name),
         NameKind::Verbatim => capnp_name.to_string(),
     }
+}
+
+fn should_get_option(field: schema_capnp::field::Reader) -> capnp::Result<bool> {
+    use capnp::schema_capnp::*;
+
+    let enabled = field
+        .get_annotations()?
+        .iter()
+        .any(|a| a.get_id() == GET_OPTION_ANNOTATION_ID);
+
+    if enabled {
+        let supported = match field.which()? {
+            field::Which::Group(_) => false,
+            field::Which::Slot(reg_field) => {
+                matches!(
+                    reg_field.get_type()?.which()?,
+                    type_::Text(()) | type_::Data(()) | type_::List(_) | type_::Struct(_),
+                )
+            }
+        };
+        if !supported {
+            return Err(capnp::Error::failed(
+                "rust.getOption annotation is only supported on Text, Data, List, and struct fields"
+                    .to_string(),
+            ));
+        }
+    }
+
+    Ok(enabled)
 }
 
 fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<String>> {
@@ -676,13 +706,20 @@ pub fn getter_text(
             }
 
             let raw_type = reg_field.get_type()?;
-            let typ = raw_type.type_string(ctx, module)?;
+            let inner_type = raw_type.type_string(ctx, module)?;
             let default_value = reg_field.get_default_value()?;
             let default = default_value.which()?;
             let default_name = format!(
                 "DEFAULT_{}",
                 snake_to_upper_case(&camel_to_snake_case(get_field_name(*field)?))
             );
+            let should_get_option = should_get_option(*field)?;
+
+            let typ = if should_get_option && is_reader {
+                format!("Option<{}>", inner_type)
+            } else {
+                inner_type
+            };
 
             let mut result_type = match raw_type.which()? {
                 type_::Enum(_) => fmt!(ctx, "::core::result::Result<{typ},{capnp}::NotInSchema>"),
@@ -759,8 +796,22 @@ pub fn getter_text(
                     };
 
                     if is_reader {
+                        if should_get_option {
+                            let mut interior = Vec::new();
+                            interior.push(Line(format!("let ptr = self.{member}.get_pointer_field({offset});")));
+                            interior.push(Line("if ptr.is_null() {".to_string()));
+                            interior.push(Indent(Box::new(Line("Ok(None)".to_string()))));
+                            interior.push(Line("} else {".to_string()));
+                            interior.push(Indent(
+                                Box::new(Line(fmt!(ctx,
+                                    "{capnp}::traits::FromPointerReader::get_from_pointer(&ptr, None).map(Some)")))
+                            ));
+                            interior.push(Line("}".to_string()));
+                            Branch(interior)
+                        } else {
                         Line(fmt!(ctx,
                             "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), {default})"))
+                        }
                     } else {
                         Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})"))
                     }
@@ -780,6 +831,7 @@ pub fn getter_text(
                 }
                 _ => return Err(Error::failed("default value was of wrong type".to_string())),
             };
+
             Ok((result_type, getter_code, default_decl))
         }
     }

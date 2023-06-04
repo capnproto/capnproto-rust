@@ -724,6 +724,52 @@ mod tests {
     }
 
     #[test]
+    fn test_field_as_option() -> capnp::Result<()> {
+        use crate::test_capnp::test_field_get_option as subject;
+
+        let mut message_set = message::Builder::new_default();
+        let mut message_unset = message::Builder::new_default();
+
+        let mut test_set = message_set.init_root::<subject::Builder<'_>>();
+        let test_unset = message_unset.init_root::<subject::Builder<'_>>();
+
+        test_set.set_text("foo");
+        test_set.set_data(&[42]);
+        {
+            let mut b = test_set.reborrow().init_list(3);
+            b.set(0, 1);
+            b.set(1, 2);
+            b.set(2, 3);
+        }
+        test_set.reborrow().init_empty_struct();
+        test_set.reborrow().init_simple_struct().set_field("buzz");
+
+        let set_reader = test_set.into_reader();
+        let unset_reader = test_unset.into_reader();
+
+        assert!(unset_reader.get_text()?.is_none());
+        assert_eq!(set_reader.get_text()?, Some("foo"));
+
+        assert!(unset_reader.get_data()?.is_none());
+        assert_eq!(set_reader.get_data()?, Some(&[42][..]));
+
+        assert!(unset_reader.get_list()?.is_none());
+        let r = set_reader.get_list()?.expect("is some");
+        assert_eq!(r.get(0), 1);
+        assert_eq!(r.get(1), 2);
+        assert_eq!(r.get(2), 3);
+
+        assert!(unset_reader.get_empty_struct()?.is_none());
+        assert!(set_reader.get_empty_struct()?.is_some());
+
+        assert!(unset_reader.get_simple_struct()?.is_none());
+        let r = set_reader.get_simple_struct()?.expect("is some");
+        assert_eq!(r.get_field()?, Some("buzz"));
+
+        Ok(())
+    }
+
+    #[test]
     fn test_generic_one_parameter() {
         use crate::test_capnp::brand_once;
 

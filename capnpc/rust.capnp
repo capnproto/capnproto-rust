@@ -26,3 +26,20 @@ annotation parentModule @0xabee386cd1450364 (file) :Text;
 #      }
 #    }
 #  }
+
+annotation getOption @0xabfef22c4ee1964e (field) :Void;
+# Whether the generated code should return an Option. Supported on Text, Data,
+# List, and struct fields.
+#
+# Given
+#
+#     struct Test {
+#         field @0 :Text $Rust.getOption;
+#     }
+#
+# you get getters like so
+#
+#     assert_eq!(struct_with.get_field(), Some("foo"));
+#     assert_eq!(struct_without.get_field(), None));
+#
+# The setters are unchanged to match the Rust convention.

@@ -446,6 +446,19 @@ struct TestNewUnionVersion {
   }
 }
 
+struct TestFieldGetOption {
+  text @0 :Text $Rust.getOption;
+  data @1 :Data $Rust.getOption;
+  list @2 :List(UInt8) $Rust.getOption;
+  emptyStruct @3 :EmptyStruct $Rust.getOption;
+  simpleStruct @4 :SimpleStruct $Rust.getOption;
+
+  struct EmptyStruct {}
+  struct SimpleStruct {
+    field @0 :Text $Rust.getOption;
+  }
+}
+
 struct TestGenerics(Foo, Bar) {
   foo @0 :Foo;
   bar @1 :Bar;
