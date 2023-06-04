@@ -321,20 +321,26 @@ impl CompilerCommand {
     }
 }
 
-#[test]
-#[cfg_attr(miri, ignore)]
-fn compiler_command_new_no_out_dir() {
-    let error = CompilerCommand::new().run().unwrap_err().description;
-    assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
-}
+// NOTE: Because these checks require removing OUT_DIR I put them all in one
+// test so they runs synchronously. If you add other checks that depend on the
+// environment variable you'll probably want to put them in this same test.
 
 #[test]
 #[cfg_attr(miri, ignore)]
-fn compiler_command_with_output_path_no_out_dir() {
+fn test_compiler_command() {
+    std::env::remove_var("OUT_DIR");
+
+    // Check without OUT_DIR
     let error = CompilerCommand::new()
-        .output_path("foo")
         .run()
-        .unwrap_err()
+        .expect_err("without OUT_DIR should fail")
         .description;
-    assert!(error.starts_with("Error while trying to execute `capnp compile`"));
+    assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
+
+    // Check with output_path
+    CompilerCommand::new()
+        .file("rust.capnp")
+        .output_path(env!("OUT_DIR"))
+        .run()
+        .expect("with output_path should succeed");
 }
