@@ -1765,7 +1765,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_preferred_list_encoding(&mut self, value: crate::schema_capnp::ElementSize)  {
-        self.builder.set_data_field::<u16>(13, value as u16)
+        self.builder.set_data_field::<u16>(13, value as u16);
       }
       #[inline]
       pub fn get_is_group(self) -> bool {
