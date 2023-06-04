@@ -2056,11 +2056,8 @@ mod tests {
         use capnp::serialize;
         use std::fs;
 
-        let raw_code_gen_request = fs::read(
-            std::env::var("OUT_DIR").expect("OUT_DIR env var is not set")
-                + "/raw_code_gen_request.bin",
-        )
-        .expect("Failed to open raw code gen request file");
+        let raw_code_gen_request = fs::read(concat!(env!("OUT_DIR"), "/raw_code_gen_request.bin"))
+            .expect("Failed to open raw code gen request file");
 
         let reader =
             serialize::read_message(raw_code_gen_request.as_slice(), ReaderOptions::new()).unwrap();
