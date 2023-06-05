@@ -71,6 +71,13 @@ pub mod test_in_src_prefix_dir_capnp {
     include!(concat!(env!("OUT_DIR"), "/test_in_src_prefix_dir_capnp.rs"));
 }
 
+pub mod test_output_path_capnp {
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/inner-output-path/test_output_path_capnp.rs"
+    ));
+}
+
 #[cfg(test)]
 mod test_util;
 

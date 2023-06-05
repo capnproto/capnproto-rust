@@ -22,4 +22,15 @@ fn main() {
         ])
         .run()
         .expect("compiling schema");
+
+    let mut output_path =
+        std::path::PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR env var is not set"));
+
+    // `capnp compile` will create this directory
+    output_path.push("inner-output-path");
+    capnpc::CompilerCommand::new()
+        .file("test-output-path.capnp")
+        .output_path(output_path)
+        .run()
+        .expect("compiling schema")
 }
