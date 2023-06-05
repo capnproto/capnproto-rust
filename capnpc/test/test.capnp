@@ -591,6 +591,32 @@ struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
       inner2Text = (baz = "text", innerBound = (foo = (int16Field = 123))));
 }
 
+struct TestValueTypes {
+  field @0 :StringValue;
+  optionalField @1 :StringValue $Rust.getOption;
+  orphanField @2 :OrphanValue;
+
+  unionField :union $Rust.valueType {
+    a @3 :UInt8;
+    b @4 :UInt8;
+  }
+
+  groupField :group $Rust.valueType {
+    a @5 :UInt8;
+    b @6 :UInt8;
+  }
+
+  struct StringValue $Rust.valueType {
+    data @0 :Text;
+  }
+
+  # Shows we can convert to Rust types we didn't define ourselves.
+  struct OrphanValue $Rust.valueType {
+    a @0 :UInt8;
+    b @1 :UInt8;
+  }
+}
+
 struct TestEmptyStruct {}
 
 struct TestConstants {

@@ -47,6 +47,16 @@ pub trait FromPointerReader<'a>: Sized {
     ) -> Result<Self>;
 }
 
+/// See the `valueType` annotation in [`rust.capnp`][rust.capnp].
+///
+/// [rust.capnp]: https://github.com/capnproto/capnproto-rust/blob/master/capnpc/rust.capnp
+pub trait ValueType: Owned {
+    type Type: Sized;
+
+    fn read(reader: Self::Reader<'_>) -> Result<Self::Type>;
+    fn build(builder: Self::Builder<'_>, value: Self::Type) -> Result<()>;
+}
+
 /// A trait to encode relationships between readers and builders.
 ///
 /// If `Foo` is a Cap'n Proto struct and `Bar` is a Rust-native struct, then

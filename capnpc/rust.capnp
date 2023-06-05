@@ -43,3 +43,6 @@ annotation getOption @0xabfef22c4ee1964e (field) :Void;
 #     assert_eq!(struct_without.get_field(), None));
 #
 # The setters are unchanged to match the Rust convention.
+
+annotation valueType @0xe6a91b805f553e8f (struct, union, group) :Void;
+# TODO (daniel): Document

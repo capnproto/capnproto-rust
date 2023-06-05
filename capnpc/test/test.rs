@@ -1044,6 +1044,111 @@ mod tests {
     }
 
     #[test]
+    fn test_value_types() -> capnp::Result<()> {
+        use crate::test_capnp::test_value_types as subject;
+
+        #[derive(Debug, PartialEq, Eq, Clone)]
+        pub struct StringNewtype(String);
+
+        #[derive(Debug, PartialEq, Eq, Clone)]
+        pub enum UnionNewtype {
+            A(u8),
+            B(u8),
+        }
+
+        #[derive(Debug, PartialEq, Eq, Clone)]
+        pub struct PairNewtype(u8, u8);
+
+        impl capnp::traits::ValueType for subject::union_field::Owned {
+            type Type = UnionNewtype;
+
+            fn read(reader: Self::Reader<'_>) -> capnp::Result<Self::Type> {
+                use subject::union_field::Which;
+                match reader.which()? {
+                    Which::A(a) => Ok(UnionNewtype::A(a)),
+                    Which::B(b) => Ok(UnionNewtype::B(b)),
+                }
+            }
+
+            fn build(mut builder: Self::Builder<'_>, value: Self::Type) -> capnp::Result<()> {
+                match value {
+                    UnionNewtype::A(a) => builder.set_a(a),
+                    UnionNewtype::B(b) => builder.set_b(b),
+                }
+                Ok(())
+            }
+        }
+
+        impl capnp::traits::ValueType for subject::group_field::Owned {
+            type Type = PairNewtype;
+
+            fn read(reader: Self::Reader<'_>) -> capnp::Result<Self::Type> {
+                Ok(PairNewtype(reader.get_a(), reader.get_b()))
+            }
+
+            fn build(
+                mut builder: Self::Builder<'_>,
+                PairNewtype(a, b): Self::Type,
+            ) -> capnp::Result<()> {
+                builder.set_a(a);
+                builder.set_b(b);
+                Ok(())
+            }
+        }
+
+        impl capnp::traits::ValueType for subject::string_value::Owned {
+            type Type = StringNewtype;
+
+            fn read(reader: Self::Reader<'_>) -> capnp::Result<Self::Type> {
+                let data = reader.get_data()?;
+                Ok(StringNewtype(data.to_string()))
+            }
+
+            fn build(mut builder: Self::Builder<'_>, value: Self::Type) -> capnp::Result<()> {
+                builder.set_data(&value.0);
+                Ok(())
+            }
+        }
+
+        impl capnp::traits::ValueType for subject::orphan_value::Owned {
+            type Type = (u8, u8);
+
+            fn read(reader: Self::Reader<'_>) -> capnp::Result<Self::Type> {
+                Ok((reader.get_a(), reader.get_b()))
+            }
+
+            fn build(mut builder: Self::Builder<'_>, (a, b): Self::Type) -> capnp::Result<()> {
+                builder.set_a(a);
+                builder.set_b(b);
+                Ok(())
+            }
+        }
+
+        let string_value = StringNewtype("hello world".to_string());
+        let orphan_value = (1, 2);
+        let union_value = UnionNewtype::A(17);
+        let pair_value = PairNewtype(3, 4);
+
+        let mut message = message::Builder::new_default();
+        let mut builder = message.init_root::<subject::Builder<'_>>();
+
+        builder.set_field(string_value.clone())?;
+        builder.set_optional_field(string_value.clone())?;
+        builder.set_orphan_field(orphan_value.clone())?;
+        builder.set_union_field(union_value.clone())?;
+        builder.set_group_field(pair_value.clone())?;
+
+        let reader = builder.reborrow_as_reader();
+        assert_eq!(reader.get_field()?, string_value);
+        assert_eq!(reader.get_optional_field()?, Some(string_value));
+        assert_eq!(reader.get_orphan_field()?, orphan_value);
+        assert_eq!(reader.get_union_field()?, union_value);
+        assert_eq!(reader.get_group_field()?, pair_value);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_constants() {
         use crate::test_capnp::{test_constants, TestEnum};
         assert_eq!(test_constants::BOOL_CONST, true);
