@@ -452,6 +452,7 @@ struct TestFieldGetOption {
   list @2 :List(UInt8) $Rust.getOption;
   emptyStruct @3 :EmptyStruct $Rust.getOption;
   simpleStruct @4 :SimpleStruct $Rust.getOption;
+  any @5 :AnyPointer $Rust.getOption;
 
   struct EmptyStruct {}
   struct SimpleStruct {

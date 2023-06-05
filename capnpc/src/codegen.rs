@@ -565,17 +565,14 @@ fn should_get_option(field: schema_capnp::field::Reader) -> capnp::Result<bool> 
     if enabled {
         let supported = match field.which()? {
             field::Which::Group(_) => false,
-            field::Which::Slot(reg_field) => {
-                matches!(
-                    reg_field.get_type()?.which()?,
-                    type_::Text(()) | type_::Data(()) | type_::List(_) | type_::Struct(_),
-                )
+            field::Which::Slot(field) => {
+                let ty = field.get_type()?;
+                ty.is_pointer()? && !matches!(ty.which()?, type_::Interface(_))
             }
         };
         if !supported {
             return Err(capnp::Error::failed(
-                "rust.getOption annotation is only supported on Text, Data, List, and struct fields"
-                    .to_string(),
+                "rust.getOption annotation is only supported on pointer fields (support for optional interfaces isn't implemented yet)".to_string(),
             ));
         }
     }
@@ -695,13 +692,11 @@ pub fn getter_text(
                 offset: usize,
                 default: T,
                 zero: T,
-            ) -> FormattedText {
+            ) -> String {
                 if default == zero {
-                    Line(format!("self.{member}.get_data_field::<{typ}>({offset})"))
+                    format!("self.{member}.get_data_field::<{typ}>({offset})")
                 } else {
-                    Line(format!(
-                        "self.{member}.get_data_field_mask::<{typ}>({offset}, {default})"
-                    ))
+                    format!("self.{member}.get_data_field_mask::<{typ}>({offset}, {default})")
                 }
             }
 
@@ -721,18 +716,22 @@ pub fn getter_text(
                 inner_type
             };
 
-            let mut result_type = match raw_type.which()? {
-                type_::Enum(_) => fmt!(ctx, "::core::result::Result<{typ},{capnp}::NotInSchema>"),
-                type_::AnyPointer(_) if !raw_type.is_parameter()? => typ.clone(),
-                type_::Interface(_) => {
+            let (is_fallible, mut result_type) = match raw_type.which()? {
+                type_::Enum(_) => (
+                    true,
+                    fmt!(ctx, "::core::result::Result<{typ},{capnp}::NotInSchema>"),
+                ),
+                type_::AnyPointer(_) if !raw_type.is_parameter()? => (false, typ.clone()),
+                type_::Interface(_) => (
+                    true,
                     fmt!(
                         ctx,
                         "{capnp}::Result<{}>",
                         raw_type.type_string(ctx, Leaf::Client)?
-                    )
-                }
-                _ if raw_type.is_prim()? => typ.clone(),
-                _ => fmt!(ctx, "{capnp}::Result<{typ}>"),
+                    ),
+                ),
+                _ if raw_type.is_prim()? => (false, typ.clone()),
+                _ => (true, fmt!(ctx, "{capnp}::Result<{typ}>")),
             };
 
             if is_fn {
@@ -743,19 +742,19 @@ pub fn getter_text(
                 }
             }
 
-            let getter_code = match (raw_type.which()?, default) {
+            let getter_fragment = match (raw_type.which()?, default) {
                 (type_::Void(()), value::Void(())) => {
                     if is_fn {
-                        Line("".to_string())
+                        "".to_string()
                     } else {
-                        Line("()".to_string())
+                        "()".to_string()
                     }
-                },
+                }
                 (type_::Bool(()), value::Bool(b)) => {
                     if b {
-                        Line(format!("self.{member}.get_bool_field_mask({offset}, true)"))
+                        format!("self.{member}.get_bool_field_mask({offset}, true)")
                     } else {
-                        Line(format!("self.{member}.get_bool_field({offset})"))
+                        format!("self.{member}.get_bool_field({offset})")
                     }
                 }
                 (type_::Int8(()), value::Int8(i)) => primitive_case(&typ, &member, offset, i, 0),
@@ -763,73 +762,87 @@ pub fn getter_text(
                 (type_::Int32(()), value::Int32(i)) => primitive_case(&typ, &member, offset, i, 0),
                 (type_::Int64(()), value::Int64(i)) => primitive_case(&typ, &member, offset, i, 0),
                 (type_::Uint8(()), value::Uint8(i)) => primitive_case(&typ, &member, offset, i, 0),
-                (type_::Uint16(()), value::Uint16(i)) => primitive_case(&typ, &member, offset, i, 0),
-                (type_::Uint32(()), value::Uint32(i)) => primitive_case(&typ, &member, offset, i, 0),
-                (type_::Uint64(()), value::Uint64(i)) => primitive_case(&typ, &member, offset, i, 0),
-                (type_::Float32(()), value::Float32(f)) =>
-                    primitive_case(&typ, &member, offset, f.to_bits(), 0),
-                (type_::Float64(()), value::Float64(f)) =>
-                    primitive_case(&typ, &member, offset, f.to_bits(), 0),
+                (type_::Uint16(()), value::Uint16(i)) => {
+                    primitive_case(&typ, &member, offset, i, 0)
+                }
+                (type_::Uint32(()), value::Uint32(i)) => {
+                    primitive_case(&typ, &member, offset, i, 0)
+                }
+                (type_::Uint64(()), value::Uint64(i)) => {
+                    primitive_case(&typ, &member, offset, i, 0)
+                }
+                (type_::Float32(()), value::Float32(f)) => {
+                    primitive_case(&typ, &member, offset, f.to_bits(), 0)
+                }
+                (type_::Float64(()), value::Float64(f)) => {
+                    primitive_case(&typ, &member, offset, f.to_bits(), 0)
+                }
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
-                        Line(format!("::core::convert::TryInto::try_into(self.{member}.get_data_field::<u16>({offset}))"))
+                        format!("::core::convert::TryInto::try_into(self.{member}.get_data_field::<u16>({offset}))")
                     } else {
-                        Line(
-                            format!(
-                                "::core::convert::TryInto::try_into(self.{member}.get_data_field_mask::<u16>({offset}, {d}))"))
+                        format!(
+                                "::core::convert::TryInto::try_into(self.{member}.get_data_field_mask::<u16>({offset}, {d}))")
                     }
                 }
 
-                (type_::Text(()), value::Text(_)) |
-                (type_::Data(()), value::Data(_)) |
-                (type_::List(_), value::List(_)) |
-                (type_::Struct(_), value::Struct(_)) => {
+                (type_::Text(()), value::Text(_))
+                | (type_::Data(()), value::Data(_))
+                | (type_::List(_), value::List(_))
+                | (type_::Struct(_), value::Struct(_)) => {
                     let default = if reg_field.get_had_explicit_default() {
                         default_decl = Some(crate::pointer_constants::word_array_declaration(
                             ctx,
                             &default_name,
                             ::capnp::raw::get_struct_pointer_section(default_value).get(0),
-                            crate::pointer_constants::WordArrayDeclarationOptions {public: true})?);
+                            crate::pointer_constants::WordArrayDeclarationOptions { public: true },
+                        )?);
                         format!("Some(&_private::{default_name}[..])")
                     } else {
-                        "::core::option::Option::None".to_string()
+                        "None".to_string()
                     };
 
                     if is_reader {
-                        if should_get_option {
-                            let mut interior = Vec::new();
-                            interior.push(Line(format!("let ptr = self.{member}.get_pointer_field({offset});")));
-                            interior.push(Line("if ptr.is_null() {".to_string()));
-                            interior.push(Indent(Box::new(Line("Ok(None)".to_string()))));
-                            interior.push(Line("} else {".to_string()));
-                            interior.push(Indent(
-                                Box::new(Line(fmt!(ctx,
-                                    "{capnp}::traits::FromPointerReader::get_from_pointer(&ptr, None).map(Some)")))
-                            ));
-                            interior.push(Line("}".to_string()));
-                            Branch(interior)
-                        } else {
-                        Line(fmt!(ctx,
-                            "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), {default})"))
-                        }
+                        fmt!(ctx,
+                            "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), {default})")
                     } else {
-                        Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})"))
+                        fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})")
                     }
                 }
 
                 (type_::Interface(_), value::Interface(_)) => {
-                    Line(fmt!(ctx,"match self.{member}.get_pointer_field({offset}).get_capability() {{ ::core::result::Result::Ok(c) => ::core::result::Result::Ok({capnp}::capability::FromClientHook::new(c)), ::core::result::Result::Err(e) => ::core::result::Result::Err(e)}}"))
+                    fmt!(ctx,"match self.{member}.get_pointer_field({offset}).get_capability() {{ ::core::result::Result::Ok(c) => ::core::result::Result::Ok({capnp}::capability::FromClientHook::new(c)), ::core::result::Result::Err(e) => ::core::result::Result::Err(e)}}")
                 }
                 (type_::AnyPointer(_), value::AnyPointer(_)) => {
                     if !raw_type.is_parameter()? {
-                        Line(fmt!(ctx,"{capnp}::any_pointer::{module_string}::new(self.{member}.get_pointer_field({offset}))"))
+                        fmt!(ctx,"{capnp}::any_pointer::{module_string}::new(self.{member}.get_pointer_field({offset}))")
                     } else if is_reader {
-                        Line(fmt!(ctx,"{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), ::core::option::Option::None)"))
+                        fmt!(ctx,"{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), ::core::option::Option::None)")
                     } else {
-                        Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), ::core::option::Option::None)"))
+                        fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), ::core::option::Option::None)")
                     }
                 }
                 _ => return Err(Error::failed("default value was of wrong type".to_string())),
+            };
+
+            let getter_code = if should_get_option && is_reader {
+                Branch(vec![
+                    Line(format!(
+                        "if self.{member}.get_pointer_field({offset}).is_null() {{"
+                    )),
+                    Indent(Box::new(Line(
+                        if is_fallible { "Ok(None)" } else { "None" }.to_string(),
+                    ))),
+                    Line("} else {".to_string()),
+                    Indent(Box::new(Line(if is_fallible {
+                        format!("{getter_fragment}.map(Some)")
+                    } else {
+                        format!("Some({getter_fragment})")
+                    }))),
+                    Line("}".to_string()),
+                ])
+            } else {
+                Line(getter_fragment)
             };
 
             Ok((result_type, getter_code, default_decl))

@@ -28,8 +28,8 @@ annotation parentModule @0xabee386cd1450364 (file) :Text;
 #  }
 
 annotation getOption @0xabfef22c4ee1964e (field) :Void;
-# Whether the generated code should return an Option. Supported on Text, Data,
-# List, and struct fields.
+# Whether the generated code should return an Option. Supported on pointer
+# fields.
 #
 # Given
 #

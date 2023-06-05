@@ -743,6 +743,10 @@ mod tests {
         }
         test_set.reborrow().init_empty_struct();
         test_set.reborrow().init_simple_struct().set_field("buzz");
+        {
+            let mut b = test_set.reborrow().init_any();
+            b.set_as("dyn")?;
+        }
 
         let set_reader = test_set.into_reader();
         let unset_reader = test_unset.into_reader();
@@ -765,6 +769,9 @@ mod tests {
         assert!(unset_reader.get_simple_struct()?.is_none());
         let r = set_reader.get_simple_struct()?.expect("is some");
         assert_eq!(r.get_field()?, Some("buzz"));
+
+        assert!(unset_reader.get_any().is_none());
+        assert!(set_reader.get_any().is_some());
 
         Ok(())
     }

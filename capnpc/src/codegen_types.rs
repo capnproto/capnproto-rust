@@ -97,6 +97,7 @@ pub trait RustNodeInfo {
 // this is a collection of helpers acting on a "Type" (someplace where a Type is used, not defined)
 pub trait RustTypeInfo {
     fn is_prim(&self) -> Result<bool, Error>;
+    fn is_pointer(&self) -> Result<bool, Error>;
     fn is_parameter(&self) -> Result<bool, Error>;
     fn is_branded(&self) -> Result<bool, Error>;
     fn type_string(&self, ctx: &GeneratorContext, module: Leaf) -> Result<String, Error>;
@@ -329,6 +330,19 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
             | type_::Bool(()) => Ok(true),
             _ => Ok(false),
         }
+    }
+
+    #[inline(always)]
+    fn is_pointer(&self) -> Result<bool, Error> {
+        Ok(matches!(
+            self.which()?,
+            type_::Text(())
+                | type_::Data(())
+                | type_::List(_)
+                | type_::Struct(_)
+                | type_::Interface(_)
+                | type_::AnyPointer(_)
+        ))
     }
 }
 
