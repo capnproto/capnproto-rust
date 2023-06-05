@@ -828,7 +828,7 @@ pub fn getter_text(
             let getter_code = if should_get_option && is_reader {
                 Branch(vec![
                     Line(format!(
-                        "if self.{member}.get_pointer_field({offset}).is_null() {{"
+                        "if self.{member}.is_pointer_field_null({offset}) {{"
                     )),
                     Indent(Box::new(Line(
                         if is_fallible { "Ok(None)" } else { "None" }.to_string(),
