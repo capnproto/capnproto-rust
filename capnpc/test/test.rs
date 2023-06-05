@@ -724,7 +724,7 @@ mod tests {
     }
 
     #[test]
-    fn test_field_as_option() -> capnp::Result<()> {
+    fn test_field_get_option() -> capnp::Result<()> {
         use crate::test_capnp::test_field_get_option as subject;
 
         let mut message_set = message::Builder::new_default();
