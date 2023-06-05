@@ -797,9 +797,9 @@ pub fn getter_text(
                             ::capnp::raw::get_struct_pointer_section(default_value).get(0),
                             crate::pointer_constants::WordArrayDeclarationOptions { public: true },
                         )?);
-                        format!("Some(&_private::{default_name}[..])")
+                        format!("::core::option::Option::Some(&_private::{default_name}[..])")
                     } else {
-                        "None".to_string()
+                        "::core::option::Option::None".to_string()
                     };
 
                     if is_reader {
@@ -831,13 +831,18 @@ pub fn getter_text(
                         "if self.{member}.is_pointer_field_null({offset}) {{"
                     )),
                     Indent(Box::new(Line(
-                        if is_fallible { "Ok(None)" } else { "None" }.to_string(),
+                        if is_fallible {
+                            "core::result::Result::Ok(core::option::Option::None)"
+                        } else {
+                            "::core::option::Option::None"
+                        }
+                        .to_string(),
                     ))),
                     Line("} else {".to_string()),
                     Indent(Box::new(Line(if is_fallible {
-                        format!("{getter_fragment}.map(Some)")
+                        format!("{getter_fragment}.map(::core::option::Option::Some)")
                     } else {
-                        format!("Some({getter_fragment})")
+                        format!("::core::option::Option::Some({getter_fragment})")
                     }))),
                     Line("}".to_string()),
                 ])
@@ -2519,7 +2524,7 @@ fn generate_node(
                 )));
 
                 client_impl_interior.push(Indent(Box::new(Line(format!(
-                    "self.client.new_call(_private::TYPE_ID, {ordinal}, None)"
+                    "self.client.new_call(_private::TYPE_ID, {ordinal}, ::core::option::Option::None)"
                 )))));
                 client_impl_interior.push(Line("}".to_string()));
 
