@@ -489,7 +489,7 @@ fn module_name(camel_case: &str) -> String {
 // Annotation IDs, as defined in rust.capnp.
 const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
 const PARENT_MODULE_ANNOTATION_ID: u64 = 0xabee386cd1450364;
-const GET_OPTION_ANNOTATION_ID: u64 = 0xabfef22c4ee1964e;
+const OPTION_ANNOTATION_ID: u64 = 0xabfef22c4ee1964e;
 
 fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp::Result<&str> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
@@ -554,13 +554,13 @@ fn capnp_name_to_rust_name(capnp_name: &str, name_kind: NameKind) -> String {
     }
 }
 
-fn should_get_option(field: schema_capnp::field::Reader) -> capnp::Result<bool> {
+fn is_option_field(field: schema_capnp::field::Reader) -> capnp::Result<bool> {
     use capnp::schema_capnp::*;
 
     let enabled = field
         .get_annotations()?
         .iter()
-        .any(|a| a.get_id() == GET_OPTION_ANNOTATION_ID);
+        .any(|a| a.get_id() == OPTION_ANNOTATION_ID);
 
     if enabled {
         let supported = match field.which()? {
@@ -572,7 +572,7 @@ fn should_get_option(field: schema_capnp::field::Reader) -> capnp::Result<bool> 
         };
         if !supported {
             return Err(capnp::Error::failed(
-                "rust.getOption annotation is only supported on pointer fields (support for optional interfaces isn't implemented yet)".to_string(),
+                "$Rust.option annotation only supported on pointer fields (support for optional interfaces isn't implemented yet)".to_string(),
             ));
         }
     }
@@ -708,7 +708,7 @@ pub fn getter_text(
                 "DEFAULT_{}",
                 snake_to_upper_case(&camel_to_snake_case(get_field_name(*field)?))
             );
-            let should_get_option = should_get_option(*field)?;
+            let should_get_option = is_option_field(*field)?;
 
             let typ = if should_get_option {
                 format!("Option<{}>", inner_type)
