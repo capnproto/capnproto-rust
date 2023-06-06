@@ -680,6 +680,7 @@ pub mod test {
         .is_failure());
     }
 
+    #[cfg_attr(miri, ignore)]
     #[test]
     fn check_packed_round_trip_async() {
         quickcheck(round_trip as fn(usize, usize, Vec<Vec<capnp::Word>>) -> TestResult);

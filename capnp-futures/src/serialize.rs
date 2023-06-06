@@ -640,6 +640,7 @@ pub mod test {
         }
     }
 
+    #[cfg_attr(miri, ignore)] // Miri takes a long time with quickcheck
     #[test]
     fn check_round_trip_async() {
         fn round_trip(
