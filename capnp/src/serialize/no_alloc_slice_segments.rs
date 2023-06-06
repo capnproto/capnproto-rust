@@ -319,7 +319,7 @@ mod tests {
     use crate::{
         message::{ReaderOptions, ReaderSegments},
         serialize::{self, no_alloc_slice_segments::calculate_data_offset},
-        OutputSegments, Word,
+        word, OutputSegments, Word,
     };
 
     use super::{
@@ -465,15 +465,16 @@ mod tests {
     #[test]
     fn test_no_alloc_buffer_segments_message_postfix() {
         let output_segments = OutputSegments::SingleSegment([&[1, 2, 3, 4, 5, 6, 7, 8]]);
-        let mut buf = vec![];
-        serialize::write_message_segments(&mut buf, &output_segments).unwrap();
-        buf.extend_from_slice(&[11, 12, 13, 14, 15, 16]);
+        let mut buf = Word::allocate_zeroed_vec(2);
+        serialize::write_message_segments(Word::words_to_bytes_mut(&mut buf), &output_segments)
+            .unwrap();
+        buf.push(word(11, 12, 13, 14, 15, 16, 0, 0));
 
-        let remaining = &mut buf.as_slice();
+        let remaining = &mut Word::words_to_bytes(&buf);
         NoAllocSliceSegments::try_new(remaining, ReaderOptions::new()).unwrap();
 
         // Confirm that slice pointer was advanced to data past first message
-        assert_eq!(*remaining, &[11, 12, 13, 14, 15, 16]);
+        assert_eq!(*remaining, &[11, 12, 13, 14, 15, 16, 0, 0]);
     }
 
     #[test]

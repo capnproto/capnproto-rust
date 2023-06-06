@@ -89,7 +89,7 @@ mod tests {
     use crate::test_util::{init_test_message, CheckTestMessage};
     use capnp::message::ReaderOptions;
     use capnp::message::{self, TypedBuilder, TypedReader};
-    use capnp::{primitive_list, text};
+    use capnp::{primitive_list, text, Word};
 
     // like the unstable std::assert_matches::assert_matches but doesn't
     // require $left implement Debug
@@ -2123,11 +2123,16 @@ mod tests {
         CheckTestMessage::check_test_message(typed_builder.get_root().unwrap());
         CheckTestMessage::check_test_message(typed_builder.get_root_as_reader().unwrap());
 
-        let mut buffer = vec![];
-        capnp::serialize::write_message(&mut buffer, typed_builder.borrow_inner()).unwrap();
+        let mut buffer = Word::allocate_zeroed_vec(512);
+
+        capnp::serialize::write_message(
+            Word::words_to_bytes_mut(&mut buffer),
+            typed_builder.borrow_inner(),
+        )
+        .unwrap();
 
         let reader = capnp::serialize::read_message_from_flat_slice(
-            &mut buffer.as_slice(),
+            &mut Word::words_to_bytes(&buffer),
             ReaderOptions::new(),
         )
         .unwrap();
@@ -2145,11 +2150,16 @@ mod tests {
         CheckTestMessage::check_test_message(typed_builder.get_root().unwrap());
         CheckTestMessage::check_test_message(typed_builder.get_root_as_reader().unwrap());
 
-        let mut buffer = vec![];
-        capnp::serialize::write_message(&mut buffer, typed_builder.borrow_inner()).unwrap();
+        let mut buffer = Word::allocate_zeroed_vec(512);
+
+        capnp::serialize::write_message(
+            Word::words_to_bytes_mut(&mut buffer),
+            typed_builder.borrow_inner(),
+        )
+        .unwrap();
 
         let reader = capnp::serialize::read_message_from_flat_slice_no_alloc(
-            &mut buffer.as_slice(),
+            &mut Word::words_to_bytes(&buffer),
             ReaderOptions::new(),
         )
         .unwrap();
