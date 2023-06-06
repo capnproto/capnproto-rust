@@ -710,7 +710,7 @@ pub fn getter_text(
             );
             let should_get_option = should_get_option(*field)?;
 
-            let typ = if should_get_option && is_reader {
+            let typ = if should_get_option {
                 format!("Option<{}>", inner_type)
             } else {
                 inner_type
@@ -825,7 +825,7 @@ pub fn getter_text(
                 _ => return Err(Error::failed("default value was of wrong type".to_string())),
             };
 
-            let getter_code = if should_get_option && is_reader {
+            let getter_code = if should_get_option {
                 Branch(vec![
                     Line(format!(
                         "if self.{member}.is_pointer_field_null({offset}) {{"

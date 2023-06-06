@@ -82,6 +82,22 @@ mod tests {
     use crate::test_util::{init_test_message, CheckTestMessage};
     use capnp::message::ReaderOptions;
     use capnp::message::{self, TypedBuilder, TypedReader};
+    use capnp::{primitive_list, text};
+
+    // like the unstable std::assert_matches::assert_matches but doesn't
+    // require $left implement Debug
+    macro_rules! assert_matches {
+        ($left:expr, $pattern:pat_param) => {
+            match $left {
+                $pattern => {}
+                _ => panic!(
+                    "assertion failed: {:?} does not match {:?}",
+                    stringify!($left),
+                    stringify!($pattern),
+                ),
+            }
+        };
+    }
 
     #[test]
     fn test_prim_list() {
@@ -731,7 +747,9 @@ mod tests {
         let mut message_unset = message::Builder::new_default();
 
         let mut test_set = message_set.init_root::<subject::Builder<'_>>();
-        let test_unset = message_unset.init_root::<subject::Builder<'_>>();
+        let mut test_unset = message_unset.init_root::<subject::Builder<'_>>();
+
+        // Check setters
 
         test_set.set_text("foo");
         test_set.set_data(&[42]);
@@ -747,6 +765,34 @@ mod tests {
             let mut b = test_set.reborrow().init_any();
             b.set_as("dyn")?;
         }
+
+        // Check builder getters
+
+        assert_matches!(test_set.reborrow().get_text()?, Some(text::Builder { .. }));
+        assert!(test_unset.reborrow().get_text()?.is_none());
+
+        assert_matches!(test_set.reborrow().get_data()?, Some(&mut [..]));
+        assert!(test_unset.reborrow().get_data()?.is_none());
+
+        assert_matches!(
+            test_set.reborrow().get_list()?,
+            Some(primitive_list::Builder { .. })
+        );
+        assert!(test_unset.reborrow().get_list()?.is_none());
+
+        assert_matches!(
+            test_set.reborrow().get_empty_struct()?,
+            Some(subject::empty_struct::Builder { .. })
+        );
+        assert!(test_unset.reborrow().get_empty_struct()?.is_none());
+
+        assert_matches!(
+            test_set.reborrow().get_simple_struct()?,
+            Some(subject::simple_struct::Builder { .. })
+        );
+        assert!(test_unset.reborrow().get_simple_struct()?.is_none());
+
+        // Check reader getters
 
         let set_reader = test_set.into_reader();
         let unset_reader = test_unset.into_reader();
