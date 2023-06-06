@@ -59,6 +59,39 @@ jobs:
     - name: Run benchmark
       run: ./target/release/run_all_benchmarks target/release/benchmark
 
+  miri:
+    name: "Miri"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: miri
+
+      - name: Setup miri
+        run: cargo miri setup
+
+      - name: Install Cap'n Proto
+        run: |
+            export DEBIAN_FRONTEND=noninteractive
+            sudo apt-get install -y capnproto libcapnp-dev
+
+      - name: Test default features
+        run: cargo miri test --package capnp --package capnpc-test
+
+      - name: Test no default features
+        run: cargo miri test --package capnp --package capnpc-test --no-default-features
+
+      - name: Test sync_reader
+        run: cargo miri test --package capnp --package capnpc-test --features sync_reader
+
+      - name: Test unaligned
+        run: cargo miri test --package capnp --package capnpc-test --features unaligned
+
   minrust:
     name: minrust
     runs-on: ubuntu-latest
