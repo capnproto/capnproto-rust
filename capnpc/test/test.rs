@@ -89,6 +89,22 @@ mod tests {
     use crate::test_util::{init_test_message, CheckTestMessage};
     use capnp::message::ReaderOptions;
     use capnp::message::{self, TypedBuilder, TypedReader};
+    use capnp::{primitive_list, text};
+
+    // like the unstable std::assert_matches::assert_matches but doesn't
+    // require $left implement Debug
+    macro_rules! assert_matches {
+        ($left:expr, $pattern:pat_param) => {
+            match $left {
+                $pattern => {}
+                _ => panic!(
+                    "assertion failed: {:?} does not match {:?}",
+                    stringify!($left),
+                    stringify!($pattern),
+                ),
+            }
+        };
+    }
 
     #[test]
     fn test_prim_list() {
@@ -728,6 +744,89 @@ mod tests {
                 .get_uint32_field(),
             42
         );
+    }
+
+    #[test]
+    fn test_field_get_option() -> capnp::Result<()> {
+        use crate::test_capnp::test_field_get_option as subject;
+
+        let mut message_set = message::Builder::new_default();
+        let mut message_unset = message::Builder::new_default();
+
+        let mut test_set = message_set.init_root::<subject::Builder<'_>>();
+        let mut test_unset = message_unset.init_root::<subject::Builder<'_>>();
+
+        // Check setters
+
+        test_set.set_text("foo");
+        test_set.set_data(&[42]);
+        {
+            let mut b = test_set.reborrow().init_list(3);
+            b.set(0, 1);
+            b.set(1, 2);
+            b.set(2, 3);
+        }
+        test_set.reborrow().init_empty_struct();
+        test_set.reborrow().init_simple_struct().set_field("buzz");
+        {
+            let mut b = test_set.reborrow().init_any();
+            b.set_as("dyn")?;
+        }
+
+        // Check builder getters
+
+        assert_matches!(test_set.reborrow().get_text()?, Some(text::Builder { .. }));
+        assert!(test_unset.reborrow().get_text()?.is_none());
+
+        assert_matches!(test_set.reborrow().get_data()?, Some(&mut [..]));
+        assert!(test_unset.reborrow().get_data()?.is_none());
+
+        assert_matches!(
+            test_set.reborrow().get_list()?,
+            Some(primitive_list::Builder { .. })
+        );
+        assert!(test_unset.reborrow().get_list()?.is_none());
+
+        assert_matches!(
+            test_set.reborrow().get_empty_struct()?,
+            Some(subject::empty_struct::Builder { .. })
+        );
+        assert!(test_unset.reborrow().get_empty_struct()?.is_none());
+
+        assert_matches!(
+            test_set.reborrow().get_simple_struct()?,
+            Some(subject::simple_struct::Builder { .. })
+        );
+        assert!(test_unset.reborrow().get_simple_struct()?.is_none());
+
+        // Check reader getters
+
+        let set_reader = test_set.into_reader();
+        let unset_reader = test_unset.into_reader();
+
+        assert!(unset_reader.get_text()?.is_none());
+        assert_eq!(set_reader.get_text()?, Some("foo"));
+
+        assert!(unset_reader.get_data()?.is_none());
+        assert_eq!(set_reader.get_data()?, Some(&[42][..]));
+
+        assert!(unset_reader.get_list()?.is_none());
+        let r = set_reader.get_list()?.expect("is some");
+        assert_eq!(r.get(0), 1);
+        assert_eq!(r.get(1), 2);
+        assert_eq!(r.get(2), 3);
+
+        assert!(unset_reader.get_empty_struct()?.is_none());
+        assert!(set_reader.get_empty_struct()?.is_some());
+
+        assert!(unset_reader.get_simple_struct()?.is_none());
+        let r = set_reader.get_simple_struct()?.expect("is some");
+        assert_eq!(r.get_field()?, Some("buzz"));
+
+        assert!(unset_reader.get_any().is_none());
+        assert!(set_reader.get_any().is_some());
+
+        Ok(())
     }
 
     #[test]

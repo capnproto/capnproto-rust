@@ -3479,6 +3479,15 @@ impl<'a> StructReader<'a> {
         }
     }
 
+    #[inline]
+    pub fn is_pointer_field_null(&self, ptr_index: WirePointerCount) -> bool {
+        if ptr_index < self.pointer_count as WirePointerCount {
+            unsafe { (*self.pointers.add(ptr_index)).is_null() }
+        } else {
+            true
+        }
+    }
+
     pub fn total_size(&self) -> Result<MessageSize> {
         let mut result = MessageSize {
             word_count: u64::from(wire_helpers::round_bits_up_to_words(u64::from(

@@ -26,3 +26,26 @@ annotation parentModule @0xabee386cd1450364 (file) :Text;
 #      }
 #    }
 #  }
+
+annotation option @0xabfef22c4ee1964e (field) :Void;
+# Make the generated getters return Option<T> instead of T. Supported on
+# pointer types (e.g. structs, lists, and blobs).
+#
+# Capnp pointer types are nullable. Normally get_field will return the default
+# value if the field isn't set. With this annotation you get Some(...) when
+# the field is set and None when it isn't.
+#
+# Given
+#
+#     struct Test {
+#         field @0 :Text $Rust.option;
+#     }
+#
+# you get getters like so
+#
+#     assert_eq!(struct_with.get_field(), Some("foo"));
+#     assert_eq!(struct_without.get_field(), None));
+#
+# The setters are unchanged to match the Rust convention.
+#
+# Note: Support for this annotation on interfaces isn't implemented yet.
