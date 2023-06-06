@@ -159,9 +159,9 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn target(&self) -> *const u8 {
-        let this_addr: *const u8 = self as *const _ as *const _;
-        unsafe { this_addr.offset(8 * (1 + ((self.offset_and_kind.get() as i32) >> 2)) as isize) }
+    pub fn target(ptr: *const Self) -> *const u8 {
+        let this_addr: *const u8 = ptr as *const _;
+        unsafe { this_addr.offset(8 * (1 + (((*ptr).offset_and_kind.get() as i32) >> 2)) as isize) }
     }
 
     // At one point, we had `&self` here instead of `ptr: *const Self`, but miri
@@ -874,7 +874,7 @@ mod wire_helpers {
                     ptr::write_bytes(dst, 0, 1);
                     (ptr::null_mut(), dst, segment_id)
                 } else {
-                    let src_ptr = (*src).target();
+                    let src_ptr = WirePointer::target(src);
                     let (dst_ptr, dst, segment_id) = allocate(
                         arena,
                         dst,
@@ -909,7 +909,7 @@ mod wire_helpers {
                         u64::from((*src).list_element_count())
                             * u64::from(data_bits_per_element((*src).list_element_size())),
                     );
-                    let src_ptr = (*src).target();
+                    let src_ptr = WirePointer::target(src);
                     let (dst_ptr, dst, segment_id) =
                         allocate(arena, dst, segment_id, word_count, WirePointerKind::List);
                     ptr::copy_nonoverlapping(
@@ -925,7 +925,7 @@ mod wire_helpers {
                 }
 
                 ElementSize::Pointer => {
-                    let src_refs: *const WirePointer = (*src).target() as _;
+                    let src_refs: *const WirePointer = WirePointer::target(src) as _;
                     let (dst_refs, dst, segment_id) = allocate(
                         arena,
                         dst,
@@ -947,7 +947,7 @@ mod wire_helpers {
                     (dst_refs, dst, segment_id)
                 }
                 ElementSize::InlineComposite => {
-                    let src_ptr = (*src).target();
+                    let src_ptr = WirePointer::target(src);
                     let (dst_ptr, dst, segment_id) = allocate(
                         arena,
                         dst,
