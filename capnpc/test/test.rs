@@ -2157,6 +2157,7 @@ mod tests {
         CheckTestMessage::check_test_message(message_reader.get().unwrap());
     }
 
+    #[cfg_attr(miri, ignore)]
     #[test]
     fn test_raw_code_generator_request_path() {
         use capnp::serialize;
