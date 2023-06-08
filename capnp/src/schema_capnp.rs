@@ -165,9 +165,15 @@ pub mod node {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -754,9 +760,15 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -963,9 +975,15 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -1204,9 +1222,15 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -1472,9 +1496,15 @@ pub mod node {
         }
       }
 
+      impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+        fn from(builder: Builder<'a,>) -> Self {
+          crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
         fn from(builder: Builder<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Builder::from(builder))
         }
       }
 
@@ -1704,9 +1734,15 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -2064,9 +2100,15 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -2280,9 +2322,15 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -2533,9 +2581,15 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -2822,9 +2876,15 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -3371,9 +3431,15 @@ pub mod field {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -3760,9 +3826,15 @@ pub mod field {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -4048,9 +4120,15 @@ pub mod field {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -4254,9 +4332,15 @@ pub mod field {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -4504,9 +4588,15 @@ pub mod enumerant {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -4774,9 +4864,15 @@ pub mod superclass {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -5049,9 +5145,15 @@ pub mod method {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -5571,9 +5673,15 @@ pub mod type_ {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -6230,9 +6338,15 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -6441,9 +6555,15 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -6675,9 +6795,15 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -6910,9 +7036,15 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -7156,9 +7288,15 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -7425,9 +7563,15 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+        fn from(builder: Builder<'a,>) -> Self {
+          crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
         fn from(builder: Builder<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Builder::from(builder))
         }
       }
 
@@ -7714,9 +7858,15 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+        fn from(builder: Builder<'a,>) -> Self {
+          crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
         fn from(builder: Builder<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Builder::from(builder))
         }
       }
 
@@ -7932,9 +8082,15 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+        fn from(builder: Builder<'a,>) -> Self {
+          crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
         fn from(builder: Builder<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Builder::from(builder))
         }
       }
 
@@ -8134,9 +8290,15 @@ pub mod brand {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -8366,9 +8528,15 @@ pub mod brand {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -8655,9 +8823,15 @@ pub mod brand {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -9022,9 +9196,15 @@ pub mod value {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -9770,9 +9950,15 @@ pub mod annotation {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -10144,9 +10330,15 @@ pub mod capnp_version {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -10413,9 +10605,15 @@ pub mod code_generator_request {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -10748,9 +10946,15 @@ pub mod code_generator_request {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -11022,9 +11226,15 @@ pub mod code_generator_request {
         }
       }
 
+      impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_struct::Builder<'a>  {
+        fn from(builder: Builder<'a,>) -> Self {
+          crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
         fn from(builder: Builder<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Builder::new(builder.builder, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Builder::from(builder))
         }
       }
 

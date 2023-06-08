@@ -2137,12 +2137,21 @@ fn generate_node(
                         Line("}".to_string())]))),
                 Line("}".to_string()),
                 BlankLine,
+                Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<Reader<'a,{0}>> for {capnp}::dynamic_struct::Reader<'a> {1} {{",
+                            params.params, params.where_clause)),
+                Indent(
+                    Box::new(Branch(vec![
+                        Line(format!("fn from(reader: Reader<'a,{0}>) -> Self {{", params.params)),
+                        Indent(Box::new(Line(fmt!(ctx,"{capnp}::dynamic_struct::Reader::new(reader.reader, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}}))", params.params)))),
+                        Line("}".to_string())]))),
+                Line("}".to_string()),
+                BlankLine,
                 Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<Reader<'a,{0}>> for {capnp}::dynamic_value::Reader<'a> {1} {{",
                             params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
                         Line(format!("fn from(reader: Reader<'a,{0}>) -> Self {{", params.params)),
-                        Indent(Box::new(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Reader::new(reader.reader, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})))", params.params)))),
+                        Indent(Box::new(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Reader::from(reader))")))),
                         Line("}".to_string())]))),
                 Line("}".to_string()),
                 BlankLine,
@@ -2227,12 +2236,21 @@ fn generate_node(
                         Line("}".to_string())]))),
                 Line("}".to_string()),
                 BlankLine,
+                Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<Builder<'a,{0}>> for {capnp}::dynamic_struct::Builder<'a> {1} {{",
+                            params.params, params.where_clause)),
+                Indent(
+                    Box::new(Branch(vec![
+                        Line(format!("fn from(builder: Builder<'a,{0}>) -> Self {{", params.params)),
+                        Indent(Box::new(Line(fmt!(ctx,"{capnp}::dynamic_struct::Builder::new(builder.builder, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}}))", params.params)))),
+                        Line("}".to_string())]))),
+                Line("}".to_string()),
+                BlankLine,
                 Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<Builder<'a,{0}>> for {capnp}::dynamic_value::Builder<'a> {1} {{",
                             params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
                         Line(format!("fn from(builder: Builder<'a,{0}>) -> Self {{", params.params)),
-                        Indent(Box::new(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Builder::new(builder.builder, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})))", params.params)))),
+                        Indent(Box::new(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Builder::from(builder))")))),
                         Line("}".to_string())]))),
                 Line("}".to_string()),
                 BlankLine,

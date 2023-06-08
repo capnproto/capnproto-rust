@@ -227,9 +227,15 @@ pub mod message {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -930,9 +936,15 @@ pub mod bootstrap {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -1190,9 +1202,15 @@ pub mod call {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -1574,9 +1592,15 @@ pub mod call {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -1898,9 +1922,15 @@ pub mod return_ {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -2326,9 +2356,15 @@ pub mod finish {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -2573,9 +2609,15 @@ pub mod resolve {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -2855,9 +2897,15 @@ pub mod release {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -3080,9 +3128,15 @@ pub mod disembargo {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -3328,9 +3382,15 @@ pub mod disembargo {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -3633,9 +3693,15 @@ pub mod provide {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -3907,9 +3973,15 @@ pub mod accept {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -4174,9 +4246,15 @@ pub mod join {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -4453,9 +4531,15 @@ pub mod message_target {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -4709,9 +4793,15 @@ pub mod payload {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -4995,9 +5085,15 @@ pub mod cap_descriptor {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -5393,9 +5489,15 @@ pub mod promised_answer {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -5640,9 +5742,15 @@ pub mod promised_answer {
       }
     }
 
+    impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+      fn from(builder: Builder<'a,>) -> Self {
+        ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
-        Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
       }
     }
 
@@ -5882,9 +5990,15 @@ pub mod third_party_cap_descriptor {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
@@ -6133,9 +6247,15 @@ pub mod exception {
     }
   }
 
+  impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_struct::Builder<'a>  {
+    fn from(builder: Builder<'a,>) -> Self {
+      ::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Builder::new(builder.builder, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
     }
   }
 
