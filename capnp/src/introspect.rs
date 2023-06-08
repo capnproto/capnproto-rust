@@ -13,7 +13,7 @@ pub trait Introspect {
 /// optimized to avoid heap allocation.
 ///
 /// To examine a `Type`, you should call the `which()` method.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Type {
     /// The type, minus any outer `List( )`.
     base: BaseType,
@@ -106,7 +106,7 @@ impl Type {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 /// A `Type` unfolded one level. Suitable for pattern matching. Can be trivially
 /// converted to `Type` via the `From`/`Into` traits.
 pub enum TypeVariant {

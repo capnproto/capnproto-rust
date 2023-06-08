@@ -2297,6 +2297,15 @@ fn generate_node(
                 Indent(Box::new(Branch(builder_members))),
                 Line("}".to_string()),
                 BlankLine,
+                Line(format!("impl <'a,{0}> ::core::fmt::Debug for Builder<'a,{0}> {1} {{",
+                            params.params, params.where_clause)),
+                Indent(
+                    Box::new(Branch(vec![
+                        Line("fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {".into()),
+                        Indent(Box::new(Line(fmt!(ctx,"core::fmt::Debug::fmt(&::core::convert::Into::<{capnp}::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)")))),
+                        Line("}".to_string())]))),
+                Line("}".to_string()),
+                BlankLine,
                 (if is_generic {
                     Branch(vec![
                         Line(format!("pub struct Pipeline{bracketed_params} {{")),
