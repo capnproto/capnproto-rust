@@ -15,7 +15,10 @@ readme = "README.md"
 keywords = ["encoding", "protocol", "serialization"]
 
 [dependencies]
+base64 = { version = "0.21.2", optional = true }
+hex = { version = "0.4.3", optional = true }
 quickcheck = { version = "1", optional = true }
+serde_json = { version = "1.0.96", optional = true }
 
 [dev-dependencies]
 quickcheck = "1"
@@ -37,3 +40,6 @@ std = []
 # message readers to be `Sync`. Note that AtomicUsize is not supported by all
 # rustc targets.
 sync_reader = []
+
+# Enable dynamic JSON serialization/deserialization
+json = ["std", "serde_json", "hex", "base64"]

@@ -23,6 +23,77 @@
 @0x99d187209d25cee7;
 
 using Rust = import "rust.capnp";
+using Json = import "/capnp/compat/json.capnp";
+
+struct SimpleUnnamedUnion {
+  union {
+    unset @0 :Void;
+    variant @1 :UInt8;
+  }
+}
+
+struct SimpleNamedUnion {
+  value :union {
+    unset @0 :Void;
+    variant @1 :UInt8;
+    otherVariant @2 :UInt8;
+  }
+}
+
+struct SimpleList {
+  field @0 :List(SimpleStruct);
+}
+
+struct SimpleStruct {
+  field @0 :UInt8;
+}
+
+struct SimpleNestedStruct {
+  field @0 :Inner;
+
+  struct Inner {
+    nested @0 :Bool;
+  }
+}
+
+struct JsonData {
+  hex @0 :Data $Json.hex;
+  base64 @1 :Data $Json.base64;
+  hexList @2 :List(Data) $Json.hex;
+}
+
+struct JsonRename {
+  group :group $Json.name("renamed-group") {
+    field @0 :Enum $Json.name("renamed-field");
+  }
+
+  aUnion :union $Json.name("renamed-union") {
+    unset @1 :Void;
+    set @2 :UInt8;
+  }
+
+  enum Enum {
+    unset @0;
+    set @1 $Json.name("renamed-enumerant");
+  }
+}
+
+struct UnrecognizedEnum {
+  field @0 :SubsetEnum;
+}
+
+struct RecognizedEnum {
+  field @0 :SupersetEnum;
+}
+
+enum SubsetEnum {
+  shared @0;
+}
+
+enum SupersetEnum {
+  shared @0;
+  unique @1;
+}
 
 struct TestPrimList {
     uint8List  @0 : List(UInt8);
@@ -126,7 +197,7 @@ struct TestAllTypes {
   float32Field   @10 : Float32;
   float64Field   @11 : Float64;
   textField      @12 : Text;
-  dataField      @13 : Data;
+  dataField      @13 : Data $Json.base64;
   structField    @14 : TestAllTypes;
   enumField      @15 : TestEnum;
   interfaceField @16 : EmptyInterface;
@@ -144,7 +215,7 @@ struct TestAllTypes {
   float32List   @27 : List(Float32);
   float64List   @28 : List(Float64);
   textList      @29 : List(Text);
-  dataList      @30 : List(Data);
+  dataList      @30 : List(Data) $Json.hex;
   structList    @31 : List(TestAllTypes);
   enumList      @32 : List(TestEnum);
   interfaceList @33 : List(EmptyInterface);

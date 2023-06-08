@@ -49,6 +49,8 @@ pub mod dynamic_value;
 pub mod enum_list;
 pub mod introspect;
 pub mod io;
+#[cfg(feature = "json")]
+pub mod json;
 pub mod list_list;
 pub mod message;
 pub mod primitive_list;

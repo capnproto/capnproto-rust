@@ -1,0 +1,8 @@
+{
+    "rust-analyzer.cargo.features": [
+        "json"
+    ],
+    "rust-analyzer.check.features": [
+        "json"
+    ],
+}
