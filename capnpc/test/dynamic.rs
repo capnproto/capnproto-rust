@@ -71,7 +71,7 @@ fn test_unions() {
             "u0f1s32",
             u.which().unwrap().unwrap().get_proto().get_name().unwrap()
         );
-        assert_eq!(1234567i32, u.get_named("u0f1s32").unwrap().downcast());
+        assert_eq!(1234567, u.get_named("u0f1s32").unwrap().downcast::<i32>());
     }
     {
         let u: dynamic_struct::Reader<'_> = dynamic.get_named("union1").unwrap().downcast();
@@ -86,13 +86,13 @@ fn test_unions() {
         let u: dynamic_struct::Reader<'_> = dynamic.get_named("union2").unwrap().downcast();
         let w = u.which().unwrap().unwrap();
         assert_eq!("u2f0s1", w.get_proto().get_name().unwrap());
-        assert_eq!(true, u.get(w).unwrap().downcast());
+        assert_eq!(true, u.get(w).unwrap().downcast::<bool>());
     }
     {
         let u: dynamic_struct::Reader<'_> = dynamic.get_named("union3").unwrap().downcast();
         let w = u.which().unwrap().unwrap();
         assert_eq!("u3f0s64", w.get_proto().get_name().unwrap());
-        assert_eq!(1234567890123456789i64, u.get(w).unwrap().downcast());
+        assert_eq!(1234567890123456789, u.get(w).unwrap().downcast::<i64>());
     }
 
     // Again, as a builder.
@@ -111,7 +111,7 @@ fn test_unions() {
                 .get_name()
                 .unwrap()
         );
-        assert_eq!(1234567i32, u.get_named("u0f1s32").unwrap().downcast());
+        assert_eq!(1234567, u.get_named("u0f1s32").unwrap().downcast::<i32>());
     }
     {
         let mut u: dynamic_struct::Builder<'_> =
@@ -131,14 +131,14 @@ fn test_unions() {
             dynamic.reborrow().get_named("union2").unwrap().downcast();
         let w = u.reborrow().which().unwrap().unwrap();
         assert_eq!("u2f0s1", w.get_proto().get_name().unwrap());
-        assert_eq!(true, u.get(w).unwrap().downcast());
+        assert_eq!(true, u.get(w).unwrap().downcast::<bool>());
     }
     {
         let mut u: dynamic_struct::Builder<'_> =
             dynamic.reborrow().get_named("union3").unwrap().downcast();
         let w = u.reborrow().which().unwrap().unwrap();
         assert_eq!("u3f0s64", w.get_proto().get_name().unwrap());
-        assert_eq!(1234567890123456789i64, u.get(w).unwrap().downcast());
+        assert_eq!(1234567890123456789, u.get(w).unwrap().downcast::<i64>());
     }
 }
 
@@ -224,9 +224,9 @@ fn test_complex_list() {
     assert_eq!(prim_list_list.len(), 2);
     let prim_list: dynamic_list::Reader<'_> = prim_list_list.get(0).unwrap().downcast();
     assert_eq!(prim_list.len(), 3);
-    assert_eq!(5i32, prim_list.get(0).unwrap().downcast());
-    assert_eq!(6i32, prim_list.get(1).unwrap().downcast());
-    assert_eq!(7i32, prim_list.get(2).unwrap().downcast());
+    assert_eq!(5, prim_list.get(0).unwrap().downcast::<i32>());
+    assert_eq!(6, prim_list.get(1).unwrap().downcast::<i32>());
+    assert_eq!(7, prim_list.get(2).unwrap().downcast::<i32>());
 }
 
 #[test]

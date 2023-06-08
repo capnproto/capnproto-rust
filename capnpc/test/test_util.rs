@@ -419,39 +419,45 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
         true,
         reader.get_named("boolField").unwrap().downcast::<bool>()
     );
-    assert_eq!(-123i8, reader.get_named("int8Field").unwrap().downcast());
     assert_eq!(
-        -12345i16,
-        reader.get_named("int16Field").unwrap().downcast()
+        -123,
+        reader.get_named("int8Field").unwrap().downcast::<i8>()
     );
     assert_eq!(
-        -12345678i32,
-        reader.get_named("int32Field").unwrap().downcast()
+        -12345,
+        reader.get_named("int16Field").unwrap().downcast::<i16>()
     );
     assert_eq!(
-        -123456789012345i64,
-        reader.get_named("int64Field").unwrap().downcast()
-    );
-    assert_eq!(234u8, reader.get_named("uInt8Field").unwrap().downcast());
-    assert_eq!(
-        45678u16,
-        reader.get_named("uInt16Field").unwrap().downcast()
+        -12345678,
+        reader.get_named("int32Field").unwrap().downcast::<i32>()
     );
     assert_eq!(
-        3456789012u32,
-        reader.get_named("uInt32Field").unwrap().downcast()
+        -123456789012345,
+        reader.get_named("int64Field").unwrap().downcast::<i64>()
     );
     assert_eq!(
-        12345678901234567890u64,
-        reader.get_named("uInt64Field").unwrap().downcast()
+        234,
+        reader.get_named("uInt8Field").unwrap().downcast::<u8>()
     );
     assert_eq!(
-        1234.5f32,
-        reader.get_named("float32Field").unwrap().downcast()
+        45678,
+        reader.get_named("uInt16Field").unwrap().downcast::<u16>()
     );
     assert_eq!(
-        -123e45f64,
-        reader.get_named("float64Field").unwrap().downcast()
+        3456789012,
+        reader.get_named("uInt32Field").unwrap().downcast::<u32>()
+    );
+    assert_eq!(
+        12345678901234567890,
+        reader.get_named("uInt64Field").unwrap().downcast::<u64>()
+    );
+    assert_eq!(
+        1234.5,
+        reader.get_named("float32Field").unwrap().downcast::<f32>()
+    );
+    assert_eq!(
+        -123e45,
+        reader.get_named("float64Field").unwrap().downcast::<f64>()
     );
     assert_eq!(
         "foo",
@@ -475,10 +481,13 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
             true,
             substruct.get_named("boolField").unwrap().downcast::<bool>()
         );
-        assert_eq!(-12i8, substruct.get_named("int8Field").unwrap().downcast());
         assert_eq!(
-            3456i16,
-            substruct.get_named("int16Field").unwrap().downcast()
+            -12,
+            substruct.get_named("int8Field").unwrap().downcast::<i8>()
+        );
+        assert_eq!(
+            3456,
+            substruct.get_named("int16Field").unwrap().downcast::<i16>()
         );
     }
     assert_eq!(
@@ -498,17 +507,17 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
         let bool_list: capnp::dynamic_list::Reader<'_> =
             reader.get_named("boolList").unwrap().downcast();
         assert_eq!(4, bool_list.len());
-        assert_eq!(true, bool_list.get(0).unwrap().downcast());
-        assert_eq!(false, bool_list.get(1).unwrap().downcast());
-        assert_eq!(false, bool_list.get(2).unwrap().downcast());
-        assert_eq!(true, bool_list.get(3).unwrap().downcast());
+        assert_eq!(true, bool_list.get(0).unwrap().downcast::<bool>());
+        assert_eq!(false, bool_list.get(1).unwrap().downcast::<bool>());
+        assert_eq!(false, bool_list.get(2).unwrap().downcast::<bool>());
+        assert_eq!(true, bool_list.get(3).unwrap().downcast::<bool>());
     }
     {
         let int8_list: capnp::dynamic_list::Reader<'_> =
             reader.get_named("int8List").unwrap().downcast();
         assert_eq!(2, int8_list.len());
-        assert_eq!(111i8, int8_list.get(0).unwrap().downcast());
-        assert_eq!(-111i8, int8_list.get(1).unwrap().downcast());
+        assert_eq!(111, int8_list.get(0).unwrap().downcast::<i8>());
+        assert_eq!(-111, int8_list.get(1).unwrap().downcast::<i8>());
     }
 
     {
@@ -593,84 +602,84 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
             .downcast::<bool>()
     );
     assert_eq!(
-        -123i8,
+        -123,
         builder
             .reborrow()
             .get_named("int8Field")
             .unwrap()
-            .downcast()
+            .downcast::<i8>()
     );
     assert_eq!(
-        -12345i16,
+        -12345,
         builder
             .reborrow()
             .get_named("int16Field")
             .unwrap()
-            .downcast()
+            .downcast::<i16>()
     );
     assert_eq!(
-        -12345678i32,
+        -12345678,
         builder
             .reborrow()
             .get_named("int32Field")
             .unwrap()
-            .downcast()
+            .downcast::<i32>()
     );
     assert_eq!(
-        -123456789012345i64,
+        -123456789012345,
         builder
             .reborrow()
             .get_named("int64Field")
             .unwrap()
-            .downcast()
+            .downcast::<i64>()
     );
     assert_eq!(
-        234u8,
+        234,
         builder
             .reborrow()
             .get_named("uInt8Field")
             .unwrap()
-            .downcast()
+            .downcast::<u8>()
     );
     assert_eq!(
-        45678u16,
+        45678,
         builder
             .reborrow()
             .get_named("uInt16Field")
             .unwrap()
-            .downcast()
+            .downcast::<u16>()
     );
     assert_eq!(
-        3456789012u32,
+        3456789012,
         builder
             .reborrow()
             .get_named("uInt32Field")
             .unwrap()
-            .downcast()
+            .downcast::<u32>()
     );
     assert_eq!(
-        12345678901234567890u64,
+        12345678901234567890,
         builder
             .reborrow()
             .get_named("uInt64Field")
             .unwrap()
-            .downcast()
+            .downcast::<u64>()
     );
     assert_eq!(
-        1234.5f32,
+        1234.5,
         builder
             .reborrow()
             .get_named("float32Field")
             .unwrap()
-            .downcast()
+            .downcast::<f32>()
     );
     assert_eq!(
-        -123e45f64,
+        -123e45,
         builder
             .reborrow()
             .get_named("float64Field")
             .unwrap()
-            .downcast()
+            .downcast::<f64>()
     );
 
     assert_eq!(
@@ -708,20 +717,20 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .downcast::<bool>()
         );
         assert_eq!(
-            -12i8,
+            -12,
             substruct
                 .reborrow()
                 .get_named("int8Field")
                 .unwrap()
-                .downcast()
+                .downcast::<i8>()
         );
         assert_eq!(
-            3456i16,
+            3456,
             substruct
                 .reborrow()
                 .get_named("int16Field")
                 .unwrap()
-                .downcast()
+                .downcast::<i16>()
         );
     }
     assert_eq!(
@@ -743,18 +752,30 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
         let mut bool_list: capnp::dynamic_list::Builder<'_> =
             builder.reborrow().get_named("boolList").unwrap().downcast();
         assert_eq!(4, bool_list.len());
-        assert_eq!(true, bool_list.reborrow().get(0).unwrap().downcast());
-        assert_eq!(false, bool_list.reborrow().get(1).unwrap().downcast());
-        assert_eq!(false, bool_list.reborrow().get(2).unwrap().downcast());
-        assert_eq!(true, bool_list.reborrow().get(3).unwrap().downcast());
+        assert_eq!(
+            true,
+            bool_list.reborrow().get(0).unwrap().downcast::<bool>()
+        );
+        assert_eq!(
+            false,
+            bool_list.reborrow().get(1).unwrap().downcast::<bool>()
+        );
+        assert_eq!(
+            false,
+            bool_list.reborrow().get(2).unwrap().downcast::<bool>()
+        );
+        assert_eq!(
+            true,
+            bool_list.reborrow().get(3).unwrap().downcast::<bool>()
+        );
     }
 
     {
         let mut int8_list: capnp::dynamic_list::Builder<'_> =
             builder.reborrow().get_named("int8List").unwrap().downcast();
         assert_eq!(2, int8_list.len());
-        assert_eq!(111i8, int8_list.reborrow().get(0).unwrap().downcast());
-        assert_eq!(-111i8, int8_list.reborrow().get(1).unwrap().downcast());
+        assert_eq!(111, int8_list.reborrow().get(0).unwrap().downcast::<i8>());
+        assert_eq!(-111, int8_list.reborrow().get(1).unwrap().downcast::<i8>());
     }
 
     {
