@@ -107,6 +107,31 @@ mod tests {
     }
 
     #[test]
+    fn test_downcast_to_struct() {
+        use crate::test_capnp::test_prim_list;
+
+        let mut message = message::Builder::new_default();
+        let mut root = message.init_root::<test_prim_list::Builder<'_>>();
+
+        let root_dyn_mut: capnp::dynamic_value::Builder<'_> = root.reborrow().into();
+        let _: test_prim_list::Builder<'_> = root_dyn_mut.downcast();
+
+        let root_dyn: capnp::dynamic_value::Reader<'_> = root.reborrow_as_reader().into();
+        let _: test_prim_list::Reader<'_> = root_dyn.downcast();
+    }
+
+    #[test]
+    #[should_panic(expected = "error downcasting to test.capnp:TestBlob")]
+    fn downcast_to_wrong_struct_panics() {
+        use crate::test_capnp::{test_blob, test_prim_list};
+
+        let mut message = message::Builder::new_default();
+        let root = message.init_root::<test_prim_list::Builder<'_>>();
+        let root_dyn: capnp::dynamic_value::Reader<'_> = root.reborrow_as_reader().into();
+        let _: test_blob::Reader<'_> = root_dyn.downcast();
+    }
+
+    #[test]
     fn test_prim_list() {
         use crate::test_capnp::test_prim_list;
 

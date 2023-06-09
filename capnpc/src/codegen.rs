@@ -2155,6 +2155,17 @@ fn generate_node(
                         Line("}".to_string())]))),
                 Line("}".to_string()),
                 BlankLine,
+                Line(fmt!(ctx, "impl <'a,{0}> {capnp}::dynamic_value::DowncastReader<'a> for Reader<'a,{0}> {1} {{", params.params, params.where_clause)),
+                Indent(Box::new(Branch(vec![
+                    Line(fmt!(ctx, "fn downcast_reader(reader: {capnp}::dynamic_value::Reader<'a>) -> Self {{")),
+                    Indent(Box::new(Branch(vec![
+                        Line(fmt!(ctx, "let reader = {capnp}::private::layout::struct_reader_downcast_helper::<Owned<{0}>>(reader);", params.params)),
+                        Line("Reader::from(reader)".to_string()),
+                    ]))),
+                    Line("}".to_string()),
+                ]))),
+                Line("}".to_string()),
+                BlankLine,
                 Line(format!("impl <'a,{0}> ::core::fmt::Debug for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
                 Indent(
@@ -2252,6 +2263,18 @@ fn generate_node(
                         Line(format!("fn from(builder: Builder<'a,{0}>) -> Self {{", params.params)),
                         Indent(Box::new(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Builder::from(builder))")))),
                         Line("}".to_string())]))),
+                Line("}".to_string()),
+                BlankLine,
+
+                Line(fmt!(ctx, "impl <'a,{0}> {capnp}::dynamic_value::DowncastBuilder<'a> for Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
+                Indent(Box::new(Branch(vec![
+                    Line(fmt!(ctx, "fn downcast_builder(builder: {capnp}::dynamic_value::Builder<'a>) -> Self {{")),
+                    Indent(Box::new(Branch(vec![
+                        Line(fmt!(ctx, "let builder = {capnp}::private::layout::struct_builder_downcast_helper::<Owned<{0}>>(builder);", params.params)),
+                        Line("Builder::from(builder)".to_string()),
+                    ]))),
+                    Line("}".to_string()),
+                ]))),
                 Line("}".to_string()),
                 BlankLine,
 

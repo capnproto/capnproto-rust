@@ -27,14 +27,50 @@ use core::mem;
 use core::ptr;
 
 use crate::data;
+use crate::dynamic_value;
+use crate::introspect::TypeVariant;
 use crate::private::arena::{BuilderArena, NullArena, ReaderArena, SegmentId};
 use crate::private::capability::ClientHook;
 use crate::private::mask::Mask;
 use crate::private::primitive::{Primitive, WireValue};
 use crate::private::units::*;
 use crate::private::zero;
+use crate::schema::StructSchema;
 use crate::text;
+use crate::traits::Owned;
 use crate::{MessageSize, Result};
+
+pub fn struct_reader_downcast_helper<O: Owned>(
+    reader: dynamic_value::Reader<'_>,
+) -> StructReader<'_> {
+    let TypeVariant::Struct(target) = O::introspect().which() else { unreachable!() };
+    let dynamic_value::Reader::Struct(reader) = reader else {
+        panic!("error downcasting to {}",StructSchema::new(target).display_name().unwrap());
+    };
+    if reader.get_schema().raw != target {
+        panic!(
+            "error downcasting to {}",
+            StructSchema::new(target).display_name().unwrap()
+        );
+    }
+    reader.reader
+}
+
+pub fn struct_builder_downcast_helper<O: Owned>(
+    builder: dynamic_value::Builder<'_>,
+) -> StructBuilder<'_> {
+    let TypeVariant::Struct(target) = O::introspect().which() else { unreachable!() };
+    let dynamic_value::Builder::Struct(builder) = builder else {
+        panic!("error downcasting to {}",StructSchema::new(target).display_name().unwrap());
+    };
+    if builder.get_schema().raw != target {
+        panic!(
+            "error downcasting to {}",
+            StructSchema::new(target).display_name().unwrap()
+        );
+    }
+    builder.builder
+}
 
 pub use self::ElementSize::{
     Bit, Byte, EightBytes, FourBytes, InlineComposite, Pointer, TwoBytes, Void,

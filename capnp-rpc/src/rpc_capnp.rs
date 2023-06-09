@@ -28,9 +28,22 @@ pub mod message {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -236,6 +249,13 @@ pub mod message {
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -551,6 +571,12 @@ pub mod message {
         }
         x => ::core::result::Result::Err(::capnp::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -871,9 +897,22 @@ pub mod bootstrap {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -948,6 +987,13 @@ pub mod bootstrap {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -1002,6 +1048,12 @@ pub mod bootstrap {
     #[inline]
     pub fn has_deprecated_object_id(&self) -> bool {
       !self.builder.is_pointer_field_null(0)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -1113,9 +1165,22 @@ pub mod call {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -1211,6 +1276,13 @@ pub mod call {
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -1320,6 +1392,12 @@ pub mod call {
     #[inline]
     pub fn set_allow_third_party_tail_call(&mut self, value: bool)  {
       self.builder.set_bool_field(128, value);
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -1513,9 +1591,22 @@ pub mod call {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+        let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -1604,6 +1695,13 @@ pub mod call {
       }
     }
 
+    impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+        let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
         self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -1677,6 +1775,12 @@ pub mod call {
           }
           x => ::core::result::Result::Err(::capnp::NotInSchema(x))
         }
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -1810,9 +1914,22 @@ pub mod return_ {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -1931,6 +2048,13 @@ pub mod return_ {
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -2073,6 +2197,12 @@ pub mod return_ {
         }
         x => ::core::result::Result::Err(::capnp::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -2295,9 +2425,22 @@ pub mod finish {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -2368,6 +2511,13 @@ pub mod finish {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -2416,6 +2566,12 @@ pub mod finish {
     #[inline]
     pub fn set_release_result_caps(&mut self, value: bool)  {
       self.builder.set_bool_field_mask(32, value, true);
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -2526,9 +2682,22 @@ pub mod resolve {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -2621,6 +2790,13 @@ pub mod resolve {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -2707,6 +2883,12 @@ pub mod resolve {
         }
         x => ::core::result::Result::Err(::capnp::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -2836,9 +3018,22 @@ pub mod release {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -2909,6 +3104,13 @@ pub mod release {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -2957,6 +3159,12 @@ pub mod release {
     #[inline]
     pub fn set_reference_count(&mut self, value: u32)  {
       self.builder.set_data_field::<u32>(1, value);
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -3063,9 +3271,22 @@ pub mod disembargo {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -3140,6 +3361,13 @@ pub mod disembargo {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -3198,6 +3426,12 @@ pub mod disembargo {
       self.builder.set_data_field::<u16>(2, 0);
       self.builder.set_data_field::<u32>(0, 0u32);
       self.builder.into()
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -3303,9 +3537,22 @@ pub mod disembargo {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+        let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -3394,6 +3641,13 @@ pub mod disembargo {
       }
     }
 
+    impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+        let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
         self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -3471,6 +3725,12 @@ pub mod disembargo {
           }
           x => ::core::result::Result::Err(::capnp::NotInSchema(x))
         }
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -3620,9 +3880,22 @@ pub mod provide {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -3705,6 +3978,13 @@ pub mod provide {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -3775,6 +4055,12 @@ pub mod provide {
     #[inline]
     pub fn has_recipient(&self) -> bool {
       !self.builder.is_pointer_field_null(1)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -3904,9 +4190,22 @@ pub mod accept {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -3985,6 +4284,13 @@ pub mod accept {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -4047,6 +4353,12 @@ pub mod accept {
     #[inline]
     pub fn set_embargo(&mut self, value: bool)  {
       self.builder.set_bool_field(32, value);
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -4173,9 +4485,22 @@ pub mod join {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -4258,6 +4583,13 @@ pub mod join {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -4328,6 +4660,12 @@ pub mod join {
     #[inline]
     pub fn has_key_part(&self) -> bool {
       !self.builder.is_pointer_field_null(1)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -4457,9 +4795,22 @@ pub mod message_target {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -4543,6 +4894,13 @@ pub mod message_target {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -4611,6 +4969,12 @@ pub mod message_target {
         }
         x => ::core::result::Result::Err(::capnp::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -4724,9 +5088,22 @@ pub mod payload {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -4805,6 +5182,13 @@ pub mod payload {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -4867,6 +5251,12 @@ pub mod payload {
     #[inline]
     pub fn has_cap_table(&self) -> bool {
       !self.builder.is_pointer_field_null(1)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -4982,9 +5372,22 @@ pub mod cap_descriptor {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -5094,6 +5497,13 @@ pub mod cap_descriptor {
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -5222,6 +5632,12 @@ pub mod cap_descriptor {
         }
         x => ::core::result::Result::Err(::capnp::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -5424,9 +5840,22 @@ pub mod promised_answer {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -5501,6 +5930,13 @@ pub mod promised_answer {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -5557,6 +5993,12 @@ pub mod promised_answer {
     #[inline]
     pub fn has_transform(&self) -> bool {
       !self.builder.is_pointer_field_null(0)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -5673,9 +6115,22 @@ pub mod promised_answer {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+        let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -5754,6 +6209,13 @@ pub mod promised_answer {
       }
     }
 
+    impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+        let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
         self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -5811,6 +6273,12 @@ pub mod promised_answer {
           }
           x => ::core::result::Result::Err(::capnp::NotInSchema(x))
         }
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -5925,9 +6393,22 @@ pub mod third_party_cap_descriptor {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -6002,6 +6483,13 @@ pub mod third_party_cap_descriptor {
     }
   }
 
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> ::capnp::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {
       self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))
@@ -6056,6 +6544,12 @@ pub mod third_party_cap_descriptor {
     #[inline]
     pub fn set_vine_id(&mut self, value: u32)  {
       self.builder.set_data_field::<u32>(0, value);
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -6166,9 +6660,22 @@ pub mod exception {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      ::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for ::capnp::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(::capnp::dynamic_struct::Reader::new(reader.reader, ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(::capnp::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: ::capnp::dynamic_value::Reader<'a>) -> Self {
+      let reader = ::capnp::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -6256,6 +6763,13 @@ pub mod exception {
   impl <'a,> ::core::convert::From<Builder<'a,>> for ::capnp::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(::capnp::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> ::capnp::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: ::capnp::dynamic_value::Builder<'a>) -> Self {
+      let builder = ::capnp::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -6347,6 +6861,12 @@ pub mod exception {
     #[inline]
     pub fn has_trace(&self) -> bool {
       !self.builder.is_pointer_field_null(1)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<::capnp::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 

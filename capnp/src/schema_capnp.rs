@@ -28,9 +28,22 @@ pub mod node {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -174,6 +187,13 @@ pub mod node {
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(crate::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -395,6 +415,12 @@ pub mod node {
         }
         x => ::core::result::Result::Err(crate::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -699,9 +725,22 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -772,6 +811,13 @@ pub mod node {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -820,6 +866,12 @@ pub mod node {
       #[inline]
       pub fn has_name(&self) -> bool {
         !self.builder.is_pointer_field_null(0)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -910,9 +962,22 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -987,6 +1052,13 @@ pub mod node {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -1043,6 +1115,12 @@ pub mod node {
       #[inline]
       pub fn set_id(&mut self, value: u64)  {
         self.builder.set_data_field::<u64>(0, value);
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -1149,9 +1227,22 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -1234,6 +1325,13 @@ pub mod node {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -1306,6 +1404,12 @@ pub mod node {
       #[inline]
       pub fn has_members(&self) -> bool {
         !self.builder.is_pointer_field_null(1)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -1435,9 +1539,22 @@ pub mod node {
         }
       }
 
+      impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+        fn from(reader: Reader<'a,>) -> Self {
+          crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
         fn from(reader: Reader<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Reader::from(reader))
+        }
+      }
+
+      impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+        fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+          let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+          Reader::from(reader)
         }
       }
 
@@ -1508,6 +1625,13 @@ pub mod node {
         }
       }
 
+      impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+        fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+          let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+          Builder::from(builder)
+        }
+      }
+
       impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
         fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
           self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -1556,6 +1680,12 @@ pub mod node {
         #[inline]
         pub fn has_doc_comment(&self) -> bool {
           !self.builder.is_pointer_field_null(0)
+        }
+      }
+
+      impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+          core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
         }
       }
 
@@ -1649,9 +1779,22 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -1743,6 +1886,13 @@ pub mod node {
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
         Self::Struct(crate::dynamic_struct::Builder::from(builder))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
       }
     }
 
@@ -1842,6 +1992,12 @@ pub mod node {
       #[inline]
       pub fn has_fields(&self) -> bool {
         !self.builder.is_pointer_field_null(3)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -2039,9 +2195,22 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -2112,6 +2281,13 @@ pub mod node {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -2160,6 +2336,12 @@ pub mod node {
       #[inline]
       pub fn has_enumerants(&self) -> bool {
         !self.builder.is_pointer_field_null(3)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -2253,9 +2435,22 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -2334,6 +2529,13 @@ pub mod node {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -2398,6 +2600,12 @@ pub mod node {
       #[inline]
       pub fn has_superclasses(&self) -> bool {
         !self.builder.is_pointer_field_null(4)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -2512,9 +2720,22 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -2593,6 +2814,13 @@ pub mod node {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -2657,6 +2885,12 @@ pub mod node {
       #[inline]
       pub fn has_value(&self) -> bool {
         !self.builder.is_pointer_field_null(4)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -2767,9 +3001,22 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -2885,6 +3132,13 @@ pub mod node {
     impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
       fn from(builder: Builder<'a,>) -> Self {
         Self::Struct(crate::dynamic_struct::Builder::from(builder))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
       }
     }
 
@@ -3032,6 +3286,12 @@ pub mod node {
       #[inline]
       pub fn set_targets_annotation(&mut self, value: bool)  {
         self.builder.set_bool_field(123, value);
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -3334,9 +3594,22 @@ pub mod field {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -3440,6 +3713,13 @@ pub mod field {
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(crate::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -3564,6 +3844,12 @@ pub mod field {
         }
         x => ::core::result::Result::Err(crate::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -3749,9 +4035,22 @@ pub mod field {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -3838,6 +4137,13 @@ pub mod field {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -3918,6 +4224,12 @@ pub mod field {
       #[inline]
       pub fn set_had_explicit_default(&mut self, value: bool)  {
         self.builder.set_bool_field(128, value);
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -4063,9 +4375,22 @@ pub mod field {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -4132,6 +4457,13 @@ pub mod field {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -4172,6 +4504,12 @@ pub mod field {
       #[inline]
       pub fn set_type_id(&mut self, value: u64)  {
         self.builder.set_data_field::<u64>(2, value);
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -4263,9 +4601,22 @@ pub mod field {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -4344,6 +4695,13 @@ pub mod field {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -4401,6 +4759,12 @@ pub mod field {
           }
           x => ::core::result::Result::Err(crate::NotInSchema(x))
         }
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -4515,9 +4879,22 @@ pub mod enumerant {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -4600,6 +4977,13 @@ pub mod enumerant {
     }
   }
 
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
       self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -4672,6 +5056,12 @@ pub mod enumerant {
     #[inline]
     pub fn has_annotations(&self) -> bool {
       !self.builder.is_pointer_field_null(1)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -4799,9 +5189,22 @@ pub mod superclass {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -4876,6 +5279,13 @@ pub mod superclass {
     }
   }
 
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
       self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -4932,6 +5342,12 @@ pub mod superclass {
     #[inline]
     pub fn has_brand(&self) -> bool {
       !self.builder.is_pointer_field_null(0)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -5040,9 +5456,22 @@ pub mod method {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -5154,6 +5583,13 @@ pub mod method {
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(crate::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -5293,6 +5729,12 @@ pub mod method {
     #[inline]
     pub fn has_implicit_parameters(&self) -> bool {
       !self.builder.is_pointer_field_null(4)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -5519,9 +5961,22 @@ pub mod type_ {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -5682,6 +6137,13 @@ pub mod type_ {
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(crate::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -5911,6 +6373,12 @@ pub mod type_ {
         }
         x => ::core::result::Result::Err(crate::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -6277,9 +6745,22 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -6350,6 +6831,13 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -6398,6 +6886,12 @@ pub mod type_ {
       #[inline]
       pub fn has_element_type(&self) -> bool {
         !self.builder.is_pointer_field_null(0)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -6490,9 +6984,22 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -6567,6 +7074,13 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -6623,6 +7137,12 @@ pub mod type_ {
       #[inline]
       pub fn has_brand(&self) -> bool {
         !self.builder.is_pointer_field_null(0)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -6730,9 +7250,22 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -6807,6 +7340,13 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -6863,6 +7403,12 @@ pub mod type_ {
       #[inline]
       pub fn has_brand(&self) -> bool {
         !self.builder.is_pointer_field_null(0)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -6971,9 +7517,22 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -7048,6 +7607,13 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -7104,6 +7670,12 @@ pub mod type_ {
       #[inline]
       pub fn has_brand(&self) -> bool {
         !self.builder.is_pointer_field_null(0)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -7214,9 +7786,22 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -7300,6 +7885,13 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -7372,6 +7964,12 @@ pub mod type_ {
           }
           x => ::core::result::Result::Err(crate::NotInSchema(x))
         }
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -7484,9 +8082,22 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+        fn from(reader: Reader<'a,>) -> Self {
+          crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
         fn from(reader: Reader<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Reader::from(reader))
+        }
+      }
+
+      impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+        fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+          let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+          Reader::from(reader)
         }
       }
 
@@ -7575,6 +8186,13 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+        fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+          let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+          Builder::from(builder)
+        }
+      }
+
       impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
         fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
           self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -7649,6 +8267,12 @@ pub mod type_ {
             }
             x => ::core::result::Result::Err(crate::NotInSchema(x))
           }
+        }
+      }
+
+      impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+          core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
         }
       }
 
@@ -7797,9 +8421,22 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+        fn from(reader: Reader<'a,>) -> Self {
+          crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
         fn from(reader: Reader<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Reader::from(reader))
+        }
+      }
+
+      impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+        fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+          let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+          Reader::from(reader)
         }
       }
 
@@ -7870,6 +8507,13 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+        fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+          let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+          Builder::from(builder)
+        }
+      }
+
       impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
         fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
           self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -7918,6 +8562,12 @@ pub mod type_ {
         #[inline]
         pub fn set_parameter_index(&mut self, value: u16)  {
           self.builder.set_data_field::<u16>(5, value);
+        }
+      }
+
+      impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+          core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
         }
       }
 
@@ -8025,9 +8675,22 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+        fn from(reader: Reader<'a,>) -> Self {
+          crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
         fn from(reader: Reader<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Reader::from(reader))
+        }
+      }
+
+      impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+        fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+          let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+          Reader::from(reader)
         }
       }
 
@@ -8094,6 +8757,13 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+        fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+          let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+          Builder::from(builder)
+        }
+      }
+
       impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
         fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
           self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -8134,6 +8804,12 @@ pub mod type_ {
         #[inline]
         pub fn set_parameter_index(&mut self, value: u16)  {
           self.builder.set_data_field::<u16>(5, value);
+        }
+      }
+
+      impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+          core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
         }
       }
 
@@ -8229,9 +8905,22 @@ pub mod brand {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -8302,6 +8991,13 @@ pub mod brand {
     }
   }
 
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
       self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -8350,6 +9046,12 @@ pub mod brand {
     #[inline]
     pub fn has_scopes(&self) -> bool {
       !self.builder.is_pointer_field_null(0)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -8450,9 +9152,22 @@ pub mod brand {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -8540,6 +9255,13 @@ pub mod brand {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -8615,6 +9337,12 @@ pub mod brand {
           }
           x => ::core::result::Result::Err(crate::NotInSchema(x))
         }
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -8749,9 +9477,22 @@ pub mod brand {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -8835,6 +9576,13 @@ pub mod brand {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -8902,6 +9650,12 @@ pub mod brand {
           }
           x => ::core::result::Result::Err(crate::NotInSchema(x))
         }
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -9017,9 +9771,22 @@ pub mod value {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -9205,6 +9972,13 @@ pub mod value {
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(crate::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -9475,6 +10249,12 @@ pub mod value {
         }
         x => ::core::result::Result::Err(crate::NotInSchema(x))
       }
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -9877,9 +10657,22 @@ pub mod annotation {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -9962,6 +10755,13 @@ pub mod annotation {
     }
   }
 
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
       self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -10034,6 +10834,12 @@ pub mod annotation {
     #[inline]
     pub fn has_brand(&self) -> bool {
       !self.builder.is_pointer_field_null(1)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -10265,9 +11071,22 @@ pub mod capnp_version {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -10342,6 +11161,13 @@ pub mod capnp_version {
     }
   }
 
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
+    }
+  }
+
   impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
       self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -10398,6 +11224,12 @@ pub mod capnp_version {
     #[inline]
     pub fn set_micro(&mut self, value: u8)  {
       self.builder.set_data_field::<u8>(3, value);
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -10520,9 +11352,22 @@ pub mod code_generator_request {
     }
   }
 
+  impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+    fn from(reader: Reader<'a,>) -> Self {
+      crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+    }
+  }
+
   impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
     fn from(reader: Reader<'a,>) -> Self {
-      Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+      Self::Struct(crate::dynamic_struct::Reader::from(reader))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+    fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+      let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+      Reader::from(reader)
     }
   }
 
@@ -10614,6 +11459,13 @@ pub mod code_generator_request {
   impl <'a,> ::core::convert::From<Builder<'a,>> for crate::dynamic_value::Builder<'a>  {
     fn from(builder: Builder<'a,>) -> Self {
       Self::Struct(crate::dynamic_struct::Builder::from(builder))
+    }
+  }
+
+  impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+    fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+      let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+      Builder::from(builder)
     }
   }
 
@@ -10713,6 +11565,12 @@ pub mod code_generator_request {
     #[inline]
     pub fn has_source_info(&self) -> bool {
       !self.builder.is_pointer_field_null(3)
+    }
+  }
+
+  impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+      core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
     }
   }
 
@@ -10873,9 +11731,22 @@ pub mod code_generator_request {
       }
     }
 
+    impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+      fn from(reader: Reader<'a,>) -> Self {
+        crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+      }
+    }
+
     impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
       fn from(reader: Reader<'a,>) -> Self {
-        Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+        Self::Struct(crate::dynamic_struct::Reader::from(reader))
+      }
+    }
+
+    impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+      fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+        let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+        Reader::from(reader)
       }
     }
 
@@ -10958,6 +11829,13 @@ pub mod code_generator_request {
       }
     }
 
+    impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+      fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+        let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+        Builder::from(builder)
+      }
+    }
+
     impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
       fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -11030,6 +11908,12 @@ pub mod code_generator_request {
       #[inline]
       pub fn has_imports(&self) -> bool {
         !self.builder.is_pointer_field_null(1)
+      }
+    }
+
+    impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+      fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+        core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
       }
     }
 
@@ -11161,9 +12045,22 @@ pub mod code_generator_request {
         }
       }
 
+      impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_struct::Reader<'a>  {
+        fn from(reader: Reader<'a,>) -> Self {
+          crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>}))
+        }
+      }
+
       impl <'a,> ::core::convert::From<Reader<'a,>> for crate::dynamic_value::Reader<'a>  {
         fn from(reader: Reader<'a,>) -> Self {
-          Self::Struct(crate::dynamic_struct::Reader::new(reader.reader, crate::schema::StructSchema::new(crate::introspect::RawBrandedStructSchema { generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<>, annotation_types: _private::get_annotation_types::<>})))
+          Self::Struct(crate::dynamic_struct::Reader::from(reader))
+        }
+      }
+
+      impl <'a,> crate::dynamic_value::DowncastReader<'a> for Reader<'a,>  {
+        fn downcast_reader(reader: crate::dynamic_value::Reader<'a>) -> Self {
+          let reader = crate::private::layout::struct_reader_downcast_helper::<Owned<>>(reader);
+          Reader::from(reader)
         }
       }
 
@@ -11238,6 +12135,13 @@ pub mod code_generator_request {
         }
       }
 
+      impl <'a,> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a,>  {
+        fn downcast_builder(builder: crate::dynamic_value::Builder<'a>) -> Self {
+          let builder = crate::private::layout::struct_builder_downcast_helper::<Owned<>>(builder);
+          Builder::from(builder)
+        }
+      }
+
       impl <'a,> crate::traits::ImbueMut<'a> for Builder<'a,>  {
         fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
           self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table))
@@ -11294,6 +12198,12 @@ pub mod code_generator_request {
         #[inline]
         pub fn has_name(&self) -> bool {
           !self.builder.is_pointer_field_null(0)
+        }
+      }
+
+      impl <'a,> ::core::fmt::Debug for Builder<'a,>  {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {
+          core::fmt::Debug::fmt(&::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow_as_reader()), f)
         }
       }
 

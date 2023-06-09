@@ -236,7 +236,7 @@ impl<'a> Reader<'a> {
 
 /// A mutable dynamically-typed struct.
 pub struct Builder<'a> {
-    builder: layout::StructBuilder<'a>,
+    pub(crate) builder: layout::StructBuilder<'a>,
     schema: StructSchema,
 }
 
