@@ -1,3 +1,6 @@
+## v0.17.1
+- Fix type mismatch copy/paste bug in dynamic_list::Builder::set().
+
 ## v0.17.0
 - Add support for reflection. See dynamic_value.rs and schema.rs.
 
