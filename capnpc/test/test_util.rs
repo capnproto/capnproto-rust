@@ -385,6 +385,17 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
     }
 
     {
+        let mut data_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .initn_named("dataList", 3)
+            .unwrap()
+            .downcast();
+        data_list.set(0, b"oops"[..].into()).unwrap();
+        data_list.set(1, b"exhausted"[..].into()).unwrap();
+        data_list.set(2, b"rfc3092"[..].into()).unwrap();
+    }
+
+    {
         let mut struct_list: capnp::dynamic_list::Builder<'_> = builder
             .reborrow()
             .initn_named("structList", 3)
@@ -535,6 +546,33 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
                 .get(2)
                 .unwrap()
                 .downcast::<capnp::text::Reader<'_>>()
+        );
+    }
+
+    {
+        let data_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("dataList").unwrap().downcast();
+        assert_eq!(3, data_list.len());
+        assert_eq!(
+            b"oops",
+            data_list
+                .get(0)
+                .unwrap()
+                .downcast::<capnp::data::Reader<'_>>()
+        );
+        assert_eq!(
+            b"exhausted",
+            data_list
+                .get(1)
+                .unwrap()
+                .downcast::<capnp::data::Reader<'_>>()
+        );
+        assert_eq!(
+            b"rfc3092",
+            data_list
+                .get(2)
+                .unwrap()
+                .downcast::<capnp::data::Reader<'_>>()
         );
     }
 
@@ -787,6 +825,38 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+        );
+    }
+    {
+        let mut data_list: capnp::dynamic_list::Builder<'_> =
+            builder.reborrow().get_named("dataList").unwrap().downcast();
+        assert_eq!(3, data_list.len());
+        assert_eq!(
+            b"oops",
+            data_list
+                .reborrow()
+                .get(0)
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::data::Reader<'_>>()
+        );
+        assert_eq!(
+            b"exhausted",
+            data_list
+                .reborrow()
+                .get(1)
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::data::Reader<'_>>()
+        );
+        assert_eq!(
+            b"rfc3092",
+            data_list
+                .reborrow()
+                .get(2)
+                .unwrap()
+                .into_reader()
+                .downcast::<capnp::data::Reader<'_>>()
         );
     }
     {
