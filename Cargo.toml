@@ -2,6 +2,12 @@
 rust-version = "1.65.0"
 
 [workspace]
+
+# TODO(0.18): switch to `resolver = "2"`, and update capnpc/Cargo.toml to
+# include the `std` feature of the capnp crate.
+# This possible now that https://github.com/rust-lang/cargo/pull/7820 has landed.
+resolver = "1"
+
 members = [
     # main crates, published on crates.io
     "capnp",
