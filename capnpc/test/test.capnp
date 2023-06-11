@@ -24,6 +24,15 @@
 
 using Rust = import "rust.capnp";
 
+struct FieldSubsetIndexesCorrectly {
+  common @2 :Text;
+
+  union {
+    unset @0 :Void;
+    variant @1 :UInt8;
+  }
+}
+
 struct TestPrimList {
     uint8List  @0 : List(UInt8);
     int8List   @1 : List(Int8);

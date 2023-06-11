@@ -107,6 +107,22 @@ mod tests {
     }
 
     #[test]
+    fn field_subset_indexes_corrently() {
+        use crate::test_capnp::field_subset_indexes_correctly;
+        use capnp::{
+            introspect::{Introspect, TypeVariant},
+            schema::StructSchema,
+        };
+
+        let TypeVariant::Struct(schema) = field_subset_indexes_correctly::Owned::introspect().which() else { unreachable!() };
+        let schema = StructSchema::new(schema);
+
+        let subset = schema.get_non_union_fields().unwrap();
+        let field = subset.get(0);
+        assert_matches!(field.get_type().which(), TypeVariant::Text);
+    }
+
+    #[test]
     fn test_prim_list() {
         use crate::test_capnp::test_prim_list;
 
