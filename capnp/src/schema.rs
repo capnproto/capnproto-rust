@@ -204,8 +204,9 @@ impl FieldSubset {
     }
 
     pub fn get(self, index: u16) -> Field {
+        let index = self.indices[index as usize];
         Field {
-            proto: self.fields.get(self.indices[index as usize] as u32),
+            proto: self.fields.get(index as u32),
             index,
             parent: self.parent,
         }
