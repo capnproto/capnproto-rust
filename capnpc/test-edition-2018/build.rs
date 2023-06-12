@@ -1,6 +1,6 @@
 fn main() {
     capnpc::CompilerCommand::new()
-        .link_override(0xe6f94f52f7be8fe2, "external_crate")
+        .crate_provides("external_crate", [0xe6f94f52f7be8fe2])
         .file("../test/test.capnp")
         .src_prefix("../test/")
         .run()

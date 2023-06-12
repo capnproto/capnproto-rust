@@ -122,7 +122,7 @@ pub struct CompilerCommand {
     output_path: Option<PathBuf>,
     default_parent_module: Vec<String>,
     raw_code_generator_request_path: Option<PathBuf>,
-    link_map: HashMap<u64, String>,
+    crate_provides_map: HashMap<u64, String>,
 }
 
 impl CompilerCommand {
@@ -160,22 +160,72 @@ impl CompilerCommand {
         self
     }
 
-    /// Specify that the generated code for an imported file can be found in
-    /// an external crate.
+    /// Specify that `crate_name` provides generated code for `files`.
+    ///
+    /// This means that when your schema refers to types defined in `files` we
+    /// will generate Rust code that uses identifiers in `crate_name`.
     ///
     /// # Arguments
     ///
-    /// * `file` - The capnp id of the file that will be imported
-    /// * `crate_name` - The name of the external crate
+    /// - `crate_name`: The Rust identifier of the crate
+    /// - `files`: the Capnp file ids the crate provides generated code for
     ///
     /// # When to use
     ///
-    /// You only need this when your generated code needs to refer to types
-    /// in the external crate. If you just want to use an annotation and the
+    /// You only need this when your generated code needs to refer to types in
+    /// the external crate. If you just want to use an annotation and the
     /// argument to that annotation is a builtin type (e.g. `$Json.name`) this
     /// isn't necessary.
-    pub fn link_override(&mut self, file: u64, crate_name: impl Into<String>) -> &mut Self {
-        self.link_map.insert(file, crate_name.into());
+    ///
+    /// # Example
+    ///
+    /// If you write a schema like so
+    ///
+    /// ```capnp
+    /// // my_schema.capnp
+    ///
+    /// using Json = import "/capnp/compat/json.capnp";
+    ///
+    /// struct Foo {
+    ///     value @0 :Json.Value;
+    /// }
+    /// ```
+    ///
+    /// you'd look at [json.capnp][json.capnp] to see its capnp id.
+    ///
+    /// ```capnp
+    /// // json.capnp
+    ///
+    /// # Copyright (c) 2015 Sandstorm Development Group, Inc. and contributors ...
+    /// @0x8ef99297a43a5e34;
+    /// ```
+    ///
+    /// If you want the `foo::Builder::get_value` method generated for your
+    /// schema to return a `capnp_json::json_capnp::value::Reader` you'd add a
+    /// dependency on `capnp_json` to your `Cargo.toml` and specify it provides
+    /// `json.capnp` in your `build.rs`.
+    ///
+    /// ```rust,no_run
+    /// // build.rs
+    ///
+    /// capnpc::CompilerCommand::new()
+    ///     .crate_provides("json_capnp", [0x8ef99297a43a5e34])
+    ///     .file("my_schema.capnp")
+    ///     .run()
+    ///     .unwrap();
+    /// ```
+    ///
+    /// [json.capnp]:
+    ///     https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/compat/json.capnp
+    pub fn crate_provides(
+        &mut self,
+        crate_name: impl Into<String>,
+        files: impl IntoIterator<Item = u64>,
+    ) -> &mut Self {
+        let crate_name = crate_name.into();
+        for file in files.into_iter() {
+            self.crate_provides_map.insert(file, crate_name.clone());
+        }
         self
     }
 
@@ -331,7 +381,7 @@ impl CompilerCommand {
         code_generation_command
             .output_directory(output_path)
             .default_parent_module(self.default_parent_module.clone())
-            .link_overrides(self.link_map.clone());
+            .crates_provide_map(self.crate_provides_map.clone());
         if let Some(raw_code_generator_request_path) = &self.raw_code_generator_request_path {
             code_generation_command
                 .raw_code_generator_request_path(raw_code_generator_request_path.clone());

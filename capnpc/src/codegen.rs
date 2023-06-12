@@ -38,7 +38,7 @@ pub struct CodeGenerationCommand {
     default_parent_module: Vec<String>,
     raw_code_generator_request_path: Option<PathBuf>,
     capnp_root: String,
-    link_map: HashMap<u64, String>,
+    crates_provide_map: HashMap<u64, String>,
 }
 
 impl Default for CodeGenerationCommand {
@@ -48,7 +48,7 @@ impl Default for CodeGenerationCommand {
             default_parent_module: Vec::new(),
             raw_code_generator_request_path: None,
             capnp_root: "::capnp".into(),
-            link_map: HashMap::new(),
+            crates_provide_map: HashMap::new(),
         }
     }
 }
@@ -95,12 +95,16 @@ impl CodeGenerationCommand {
         self
     }
 
-    /// Sets the link override map
+    /// Sets the crate provides map.
     ///
-    /// The link override map is a map from file id to external crate name.
-    /// See [`CompilerCommand::link_override`] for more details.
-    pub fn link_overrides(&mut self, link_map: HashMap<u64, String>) -> &mut Self {
-        self.link_map = link_map;
+    /// # Arguments
+    ///
+    /// - `map` - A map from capnp file id to the crate name that provides the
+    ///     corresponding generated code.
+    ///
+    /// See [`crate::CompilerCommand::crate_provides`] for more details.
+    pub fn crates_provide_map(&mut self, map: HashMap<u64, String>) -> &mut Self {
+        self.crates_provide_map = map;
         self
     }
 
@@ -221,7 +225,7 @@ impl<'a> GeneratorContext<'a> {
             capnp_root: code_generation_command.capnp_root.clone(),
         };
 
-        let link_map = &code_generation_command.link_map;
+        let crates_provide = &code_generation_command.crates_provide_map;
 
         for node in ctx.request.get_nodes()? {
             ctx.node_map.insert(node.get_id(), node);
@@ -253,7 +257,8 @@ impl<'a> GeneratorContext<'a> {
                     "{}_capnp",
                     path_to_stem_string(importpath)?.replace('-', "_")
                 );
-                let parent_module_scope = if let Some(krate) = link_map.get(&import.get_id()) {
+                let parent_module_scope = if let Some(krate) = crates_provide.get(&import.get_id())
+                {
                     vec![format!("::{krate}")]
                 } else {
                     default_parent_module_scope.clone()
