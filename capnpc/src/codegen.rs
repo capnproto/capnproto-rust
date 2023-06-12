@@ -443,8 +443,14 @@ pub enum FormattedText {
     BlankLine,
 }
 
-pub fn indent(inner: FormattedText) -> FormattedText {
-    Indent(Box::new(inner))
+impl From<Vec<FormattedText>> for FormattedText {
+    fn from(value: Vec<FormattedText>) -> Self {
+        Branch(value)
+    }
+}
+
+pub fn indent(inner: impl Into<FormattedText>) -> FormattedText {
+    Indent(Box::new(inner.into()))
 }
 
 pub fn line(inner: impl ToString) -> FormattedText {
@@ -1145,7 +1151,7 @@ fn generate_setter(
                         result.push(Line(format!(
                             "pub fn initn_{styled_name}(self, length: u32) -> {builder_type} {{"
                         )));
-                        result.push(indent(Branch(initn_interior)));
+                        result.push(indent(initn_interior));
                         result.push(indent(
                             Line(fmt!(ctx,"{capnp}::any_pointer::Builder::new(self.builder.get_pointer_field({offset})).initn_as(length)")))
                         );
@@ -1176,7 +1182,7 @@ fn generate_setter(
         result.push(Line(format!(
             "pub fn set_{styled_name}(&mut self, {setter_param}: {reader_type}) {return_type} {{"
         )));
-        result.push(indent(Branch(setter_interior)));
+        result.push(indent(setter_interior));
         result.push(line("}"));
     }
     if let Some(builder_type) = maybe_builder_type {
@@ -1186,7 +1192,7 @@ fn generate_setter(
         result.push(Line(format!(
             "pub fn init_{styled_name}({mutable}self, {args}) -> {builder_type} {{"
         )));
-        result.push(indent(Branch(initter_interior)));
+        result.push(indent(initter_interior));
         result.push(line("}"));
     }
     Ok(Branch(result))
@@ -1402,7 +1408,7 @@ fn generate_union(
 
     interior.push(Branch(vec![
         Line(format!("pub enum {enum_name} {{")),
-        indent(Branch(enum_interior)),
+        indent(enum_interior),
         line("}"),
     ]));
 
@@ -1443,13 +1449,13 @@ fn generate_union(
         Line(fmt!(ctx,
             "pub fn which(self) -> ::core::result::Result<{concrete_type}, {capnp}::NotInSchema> {{"
         )),
-        indent(Branch(vec![
+        indent(vec![
             Line(format!(
                 "match self.{field_name}.get_data_field::<u16>({doffset}) {{"
             )),
-            indent(Branch(getter_interior)),
+            indent(getter_interior),
             line("}"),
-        ])),
+        ]),
         line("}"),
     ]);
 
@@ -1499,7 +1505,7 @@ fn generate_haser(
                 }
                 result.push(line("#[inline]"));
                 result.push(Line(format!("pub fn has_{styled_name}(&self) -> bool {{")));
-                result.push(indent(Branch(interior)));
+                result.push(indent(interior));
                 result.push(line("}"));
             }
             _ => {}
@@ -1616,7 +1622,7 @@ fn generate_get_field_types(
         ));
         Branch(vec![
             Line("match index {".into()),
-            indent(Branch(branches)),
+            indent(branches),
             Line("}".into()),
         ])
     };
@@ -1720,11 +1726,11 @@ fn generate_get_annotation_types(
         branches.push(Line(
             "_ => panic!(\"invalid annotation indices ({:?}, {}) \", child_index, index),".into(),
         ));
-        indent(Branch(vec![
+        indent(vec![
             Line("match (child_index, index) {".into()),
-            indent(Branch(branches)),
+            indent(branches),
             Line("}".into()),
-        ]))
+        ])
     };
 
     if !node_reader.get_is_generic() {
@@ -1953,11 +1959,11 @@ fn generate_node(
             // and we can check equality of `RawStructSchema` values by comparing pointers.
             private_mod_interior.push(Branch(vec![
                 Line(fmt!(ctx,"pub static RAW_SCHEMA: {capnp}::introspect::RawStructSchema = {capnp}::introspect::RawStructSchema {{")),
-                indent(Branch(vec![
+                indent(vec![
                     Line("encoded_node: &ENCODED_NODE,".into()),
                     Line("nonunion_members: NONUNION_MEMBERS,".into()),
                     Line("members_by_discriminant: MEMBERS_BY_DISCRIMINANT,".into()),
-                ])),
+                ]),
                 Line("};".into()),
             ]));
 
@@ -2064,14 +2070,14 @@ fn generate_node(
             let from_pointer_builder_impl =
                 Branch(vec![
                     Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::FromPointerBuilder<'a> for Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
-                    indent(Branch(vec![
+                    indent(vec![
                         Line(fmt!(ctx,"fn init_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, _size: u32) -> Self {{")),
                         indent(Line(fmt!(ctx,"builder.init_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE).into()"))),
                         line("}"),
                         Line(fmt!(ctx,"fn get_from_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [{capnp}::Word]>) -> {capnp}::Result<Self> {{")),
                         indent(Line(fmt!(ctx,"::core::result::Result::Ok(builder.get_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE, default)?.into())"))),
                         line("}")
-                    ])),
+                    ]),
                     line("}"),
                     BlankLine]);
 
@@ -2108,10 +2114,10 @@ fn generate_node(
                 } else {
                     Branch(vec![
                         Line(format!("pub struct Reader<'a,{}> {} {{", params.params, params.where_clause)),
-                        indent(Branch(vec![
+                        indent(vec![
                             Line(fmt!(ctx,"reader: {capnp}::private::layout::StructReader<'a>,")),
                             Line(params.phantom_data_type.clone()),
-                        ])),
+                        ]),
                         line("}")
                     ])
                 }),
@@ -2128,74 +2134,74 @@ fn generate_node(
                 Branch(vec![
                         Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::HasTypeId for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
-                        indent(Branch(vec![line("const TYPE_ID: u64 = _private::TYPE_ID;")])),
+                        indent(vec![line("const TYPE_ID: u64 = _private::TYPE_ID;")]),
                     line("}")]),
                 Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<{capnp}::private::layout::StructReader<'a>> for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                     Line(fmt!(ctx,"fn from(reader: {capnp}::private::layout::StructReader<'a>) -> Self {{")),
                     indent(Line(format!("Self {{ reader, {} }}", params.phantom_data_value))),
                     line("}")
-                ])),
+                ]),
                 line("}"),
                 BlankLine,
                 Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<Reader<'a,{0}>> for {capnp}::dynamic_value::Reader<'a> {1} {{",
                             params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                     Line(format!("fn from(reader: Reader<'a,{0}>) -> Self {{", params.params)),
                     indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Reader::new(reader.reader, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})))", params.params))),
                     line("}")
-                ])),
+                ]),
                 line("}"),
                 BlankLine,
                 Line(format!("impl <'a,{0}> ::core::fmt::Debug for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                     Line("fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {".into()),
                     indent(Line(fmt!(ctx,"core::fmt::Debug::fmt(&::core::convert::Into::<{capnp}::dynamic_value::Reader<'_>>::into(*self), f)"))),
                     line("}")
-                ])),
+                ]),
                 line("}"),
 
                 BlankLine,
 
                 Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::FromPointerReader<'a> for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                     Line(fmt!(ctx,"fn get_from_pointer(reader: &{capnp}::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [{capnp}::Word]>) -> {capnp}::Result<Self> {{")),
                     indent(line("::core::result::Result::Ok(reader.get_struct(default)?.into())")),
                     line("}")
-                ])),
+                ]),
                 line("}"),
                 BlankLine,
                 Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::IntoInternalStructReader<'a> for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                     Line(fmt!(ctx,"fn into_internal_struct_reader(self) -> {capnp}::private::layout::StructReader<'a> {{")),
                     indent(line("self.reader")),
                     line("}")
-                ])),
+                ]),
                 line("}"),
                 BlankLine,
                 Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::Imbue<'a> for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                     Line(fmt!(ctx,"fn imbue(&mut self, cap_table: &'a {capnp}::private::layout::CapTable) {{")),
                     indent(Line(fmt!(ctx,"self.reader.imbue({capnp}::private::layout::CapTableReader::Plain(cap_table))"))),
                     line("}")
-                ])),
+                ]),
                 line("}"),
                 BlankLine,
                 Line(format!("impl <'a,{0}> Reader<'a,{0}> {1} {{", params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                         Line(format!("pub fn reborrow(&self) -> Reader<'_,{}> {{",params.params)),
                         indent(line("Self { .. *self }")),
                         line("}"),
                         BlankLine,
                         Line(fmt!(ctx,"pub fn total_size(&self) -> {capnp}::Result<{capnp}::MessageSize> {{")),
                         indent(line("self.reader.total_size()")),
-                        line("}")])),
-                indent(Branch(reader_members)),
+                        line("}")]),
+                indent(reader_members),
                 line("}"),
                 BlankLine,
                 (if !is_generic {
@@ -2204,10 +2210,10 @@ fn generate_node(
                     Branch(vec![
                         Line(format!("pub struct Builder<'a,{}> {} {{",
                                      params.params, params.where_clause)),
-                            indent(Branch(vec![
+                            indent(vec![
                             Line(fmt!(ctx, "builder: {capnp}::private::layout::StructBuilder<'a>,")),
                             Line(params.phantom_data_type.clone()),
-                        ])),
+                        ]),
                         line("}")
                     ])
                 }),
@@ -2215,36 +2221,36 @@ fn generate_node(
                 Branch(vec![
                     Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::HasTypeId for Builder<'a,{0}> {1} {{",
                                  params.params, params.where_clause)),
-                    indent(Branch(vec![
-                        line("const TYPE_ID: u64 = _private::TYPE_ID;")])),
+                    indent(vec![
+                        line("const TYPE_ID: u64 = _private::TYPE_ID;")]),
                     line("}")
                 ]),
                 Line(fmt!(ctx,
                     "impl <'a,{0}> ::core::convert::From<{capnp}::private::layout::StructBuilder<'a>> for Builder<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                         Line(fmt!(ctx,"fn from(builder: {capnp}::private::layout::StructBuilder<'a>) -> Self {{")),
                         indent(Line(format!("Self {{ builder, {} }}", params.phantom_data_value))),
                         line("}")
-                ])),
+                ]),
                 line("}"),
                 BlankLine,
                 Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<Builder<'a,{0}>> for {capnp}::dynamic_value::Builder<'a> {1} {{",
                             params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                         Line(format!("fn from(builder: Builder<'a,{0}>) -> Self {{", params.params)),
                         indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Builder::new(builder.builder, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})))", params.params))),
                         line("}")
-                ])),
+                ]),
                 line("}"),
                 BlankLine,
 
                 Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::ImbueMut<'a> for Builder<'a,{0}> {1} {{",
                              params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                         Line(fmt!(ctx,"fn imbue_mut(&mut self, cap_table: &'a mut {capnp}::private::layout::CapTable) {{")),
                         indent(Line(fmt!(ctx,"self.builder.imbue({capnp}::private::layout::CapTableBuilder::Plain(cap_table))"))),
-                        line("}")])),
+                        line("}")]),
                 line("}"),
                 BlankLine,
 
@@ -2256,7 +2262,7 @@ fn generate_node(
                 line("}"),
                 BlankLine,
                 Line(format!("impl <'a,{0}> Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                         Line(format!("pub fn into_reader(self) -> Reader<'a,{}> {{", params.params)),
                         indent(line("self.builder.into_reader().into()")),
                         line("}"),
@@ -2275,42 +2281,42 @@ fn generate_node(
                         Line(fmt!(ctx,"pub fn total_size(&self) -> {capnp}::Result<{capnp}::MessageSize> {{")),
                         indent(line("self.builder.as_reader().total_size()")),
                         line("}")
-                        ])),
-                indent(Branch(builder_members)),
+                        ]),
+                indent(builder_members),
                 line("}"),
                 BlankLine,
                 (if is_generic {
                     Branch(vec![
                         Line(format!("pub struct Pipeline{bracketed_params} {{")),
-                        indent(Branch(vec![
+                        indent(vec![
                             Line(fmt!(ctx,"_typeless: {capnp}::any_pointer::Pipeline,")),
                             Line(params.phantom_data_type),
-                        ])),
+                        ]),
                         line("}")
                     ])
                 } else {
                     Line(fmt!(ctx,"pub struct Pipeline {{ _typeless: {capnp}::any_pointer::Pipeline }}"))
                 }),
                 Line(fmt!(ctx,"impl{bracketed_params} {capnp}::capability::FromTypelessPipeline for Pipeline{bracketed_params} {{")),
-                indent(Branch(vec![
+                indent(vec![
                         Line(fmt!(ctx,"fn new(typeless: {capnp}::any_pointer::Pipeline) -> Self {{")),
                         indent(Line(format!("Self {{ _typeless: typeless, {} }}", params.phantom_data_value))),
-                        line("}")])),
+                        line("}")]),
                 line("}"),
                 Line(format!("impl{0} Pipeline{0} {1} {{", bracketed_params,
                              params.pipeline_where_clause)),
-                indent(Branch(pipeline_impl_interior)),
+                indent(pipeline_impl_interior),
                 line("}"),
                 line("mod _private {"),
-                indent(Branch(private_mod_interior)),
+                indent(private_mod_interior),
                 line("}"),
             ];
 
-            output.push(indent(Branch(vec![
+            output.push(indent(vec![
                 Branch(accessors),
                 Branch(which_enums),
                 Branch(nested_output),
-            ])));
+            ]));
             output.push(line("}"));
         }
 
@@ -2338,7 +2344,7 @@ fn generate_node(
                 line("#[repr(u16)]"),
                 line("#[derive(Clone, Copy, Debug, PartialEq, Eq)]"),
                 Line(format!("pub enum {last_name} {{")),
-                indent(Branch(members)),
+                indent(members),
                 line("}"),
             ]));
 
@@ -2366,17 +2372,17 @@ fn generate_node(
                 indent(Line(
                     fmt!(ctx,"type Error = {capnp}::NotInSchema;"),
                 )),
-                indent(Branch(vec![
+                indent(vec![
                     Line(
                         format!("fn try_from(value: u16) -> ::core::result::Result<Self, <{last_name} as ::core::convert::TryFrom<u16>>::Error> {{")
                     ),
-                    indent(Branch(vec![
+                    indent(vec![
                         line("match value {"),
-                        indent(Branch(match_branches)),
+                        indent(match_branches),
                         line("}"),
-                    ])),
+                    ]),
                     line("}"),
-                ])),
+                ]),
                 line("}"),
                 Line(format!("impl From<{last_name}> for u16 {{")),
                 indent(line("#[inline]")),
@@ -2625,23 +2631,22 @@ fn generate_node(
             mod_interior.push(Branch(vec![
                 Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::FromPointerReader<'a> for Client<{0}> {1} {{",
                     params.params, params.where_clause)),
-                indent(Branch(vec![
+                indent(vec![
                         Line(fmt!(ctx,"fn get_from_pointer(reader: &{capnp}::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [{capnp}::Word]>) -> {capnp}::Result<Self> {{")),
                         indent(Line(fmt!(ctx,"::core::result::Result::Ok({capnp}::capability::FromClientHook::new(reader.get_capability()?))"))),
-                        line("}")])),
+                        line("}")]),
                 line("}")]));
 
             mod_interior.push(Branch(vec![
                 Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::FromPointerBuilder<'a> for Client<{0}> {1} {{",
                              params.params, params.where_clause)),
-                indent(
-                        Branch(vec![
+                indent(vec![
                             Line(fmt!(ctx,"fn init_pointer(_builder: {capnp}::private::layout::PointerBuilder<'a>, _size: u32) -> Self {{")),
                             indent(line("unimplemented!()")),
                             line("}"),
                             Line(fmt!(ctx,"fn get_from_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [{capnp}::Word]>) -> {capnp}::Result<Self> {{")),
                             indent(Line(fmt!(ctx,"::core::result::Result::Ok({capnp}::capability::FromClientHook::new(builder.get_capability()?))"))),
-                            line("}")])),
+                            line("}")]),
                 line("}"),
                 BlankLine]));
 
@@ -2649,14 +2654,13 @@ fn generate_node(
                 Line(fmt!(ctx,
                     "impl <{0}> {capnp}::traits::SetPointerBuilder for Client<{0}> {1} {{",
                     params.params, params.where_clause)),
-                indent(
-                        Branch(vec![
+                indent(vec![
                             Line(fmt!(ctx,"fn set_pointer_builder(mut pointer: {capnp}::private::layout::PointerBuilder<'_>, from: Self, _canonicalize: bool) -> {capnp}::Result<()> {{")),
                             indent(Line("pointer.set_capability(from.client.hook);".to_string())),
                             indent(Line("::core::result::Result::Ok(())".to_string())),
                             line("}")
                         ]
-                )),
+                ),
                 line("}")]));
 
             mod_interior.push(Branch(vec![
@@ -2681,7 +2685,7 @@ fn generate_node(
                 Line(format!(
                     "impl {bracketed_params} Client{bracketed_params} {{"
                 )),
-                indent(Branch(client_impl_interior)),
+                indent(client_impl_interior),
                 line("}"),
             ]));
 
@@ -2690,7 +2694,7 @@ fn generate_node(
                     "pub trait Server<{}> {} {} {{",
                     params.params, server_base, params.where_clause
                 )),
-                indent(Branch(server_interior)),
+                indent(server_interior),
                 line("}"),
             ]));
 
@@ -2700,11 +2704,11 @@ fn generate_node(
                     params.params
                 )),
                 indent(line("pub server: _T,")),
-                indent(Branch(if is_generic {
+                indent(if is_generic {
                     vec![Line(params.phantom_data_type.clone())]
                 } else {
                     vec![]
-                })),
+                }),
                 line("}"),
             ]));
 
@@ -2712,12 +2716,12 @@ fn generate_node(
                 Line(
                     fmt!(ctx,"impl <_S: Server{1} + 'static, {0}> {capnp}::capability::FromServer<_S> for Client{1} {2}  {{",
                             params.params, bracketed_params, params.where_clause_with_static)),
-                indent(Branch(vec![
+                indent(vec![
                     Line(format!("type Dispatch = ServerDispatch<_S, {}>;", params.params)),
                     Line(format!("fn from_server(s: _S) -> ServerDispatch<_S, {}> {{", params.params)),
                     indent(Line(format!("ServerDispatch {{ server: s, {} }}", params.phantom_data_value))),
                     line("}"),
-                ])),
+                ]),
                 line("}"),
             ]));
 
@@ -2754,7 +2758,7 @@ fn generate_node(
                     indent(Line(fmt!(ctx,"fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::Promise<(), {capnp}::Error> {{"))),
                     indent(indent(line("match interface_id {"))),
                     indent(indent(indent(line("_private::TYPE_ID => Self::dispatch_call_internal(&mut self.server, method_id, params, results),")))),
-                    indent(indent(indent(Branch(base_dispatch_arms)))),
+                    indent(indent(indent(base_dispatch_arms))),
                     indent(indent(indent(Line(fmt!(ctx,"_ => {{ {capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"Method not implemented.\".to_string())) }}"))))),
                     indent(indent(line("}"))),
                     indent(line("}")),
@@ -2769,7 +2773,7 @@ fn generate_node(
                     }),
                     indent(Line(fmt!(ctx,"pub fn dispatch_call_internal(server: &mut _T, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::Promise<(), {capnp}::Error> {{"))),
                     indent(indent(line("match method_id {"))),
-                    indent(indent(indent(Branch(dispatch_arms)))),
+                    indent(indent(indent(dispatch_arms))),
                     indent(indent(indent(Line(fmt!(ctx,"_ => {{ ::capnp::capability::Promise::err({capnp}::Error::unimplemented(\"Method not implemented.\".to_string())) }}"))))),
                     indent(indent(line("}"))),
                     indent(line("}")),
@@ -2777,7 +2781,7 @@ fn generate_node(
 
             mod_interior.push(Branch(vec![
                 line("pub mod _private {"),
-                indent(Branch(private_mod_interior)),
+                indent(private_mod_interior),
                 line("}"),
             ]));
 
@@ -2793,7 +2797,7 @@ fn generate_node(
             } else {
                 output.push(Line(format!("pub mod {node_name} {{")));
             }
-            output.push(indent(Branch(mod_interior)));
+            output.push(indent(mod_interior));
             output.push(line("}"));
         }
 
@@ -2920,7 +2924,7 @@ fn generate_node(
             }
             output.push(Branch(vec![
                 Line(format!("pub mod {} {{", last_name)),
-                indent(Branch(interior)),
+                indent(interior),
                 Line("}".into()),
             ]));
         }
