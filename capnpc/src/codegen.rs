@@ -895,38 +895,62 @@ fn zero_fields_of_group(
                         match typ {
                             type_::Void(()) => {}
                             type_::Bool(()) => {
-                                let line = Line(format!("self.builder.set_bool_field({}, false);",
-                                                        slot.get_offset()));
+                                let line = Line(format!(
+                                    "self.builder.set_bool_field({}, false);",
+                                    slot.get_offset()
+                                ));
                                 // PERF could dedup more efficiently
-                                if !result.contains(&line) { result.push(line) }
+                                if !result.contains(&line) {
+                                    result.push(line)
+                                }
                             }
-                            type_::Int8(()) |
-                            type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
-                            type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
-                            type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
+                            type_::Int8(())
+                            | type_::Int16(())
+                            | type_::Int32(())
+                            | type_::Int64(())
+                            | type_::Uint8(())
+                            | type_::Uint16(())
+                            | type_::Uint32(())
+                            | type_::Uint64(())
+                            | type_::Float32(())
+                            | type_::Float64(()) => {
                                 let line = Line(format!(
                                     "self.builder.set_data_field::<{0}>({1}, 0{0});",
                                     slot.get_type()?.type_string(ctx, Leaf::Builder("'a"))?,
-                                    slot.get_offset()));
+                                    slot.get_offset()
+                                ));
                                 // PERF could dedup more efficiently
-                                if !result.contains(&line) { result.push(line) }
+                                if !result.contains(&line) {
+                                    result.push(line)
+                                }
                             }
                             type_::Enum(_) => {
-                                let line = Line(format!("self.builder.set_data_field::<u16>({}, 0u16);",
-                                                        slot.get_offset()));
+                                let line = Line(format!(
+                                    "self.builder.set_data_field::<u16>({}, 0u16);",
+                                    slot.get_offset()
+                                ));
                                 // PERF could dedup more efficiently
-                                if !result.contains(&line) { result.push(line) }
-                            }
-                            type_::Struct(_) | type_::List(_) | type_::Text(()) | type_::Data(()) |
-                            type_::AnyPointer(_) |
-                            type_::Interface(_)
-                                => { // Is this the right thing to do for interfaces?
-                                    let line = Line(format!("self.builder.reborrow().get_pointer_field({}).clear();",
-                                                            slot.get_offset()));
-                                    *clear = true;
-                                    // PERF could dedup more efficiently
-                                    if !result.contains(&line) { result.push(line) }
+                                if !result.contains(&line) {
+                                    result.push(line)
                                 }
+                            }
+                            type_::Struct(_)
+                            | type_::List(_)
+                            | type_::Text(())
+                            | type_::Data(())
+                            | type_::AnyPointer(_)
+                            | type_::Interface(_) => {
+                                // Is this the right thing to do for interfaces?
+                                let line = Line(format!(
+                                    "self.builder.reborrow().get_pointer_field({}).clear();",
+                                    slot.get_offset()
+                                ));
+                                *clear = true;
+                                // PERF could dedup more efficiently
+                                if !result.contains(&line) {
+                                    result.push(line)
+                                }
+                            }
                         }
                     }
                 }
