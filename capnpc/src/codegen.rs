@@ -919,8 +919,8 @@ fn zero_fields_of_group(
                             }
                             type_::Struct(_) | type_::List(_) | type_::Text(()) | type_::Data(()) |
                             type_::AnyPointer(_) |
-                            type_::Interface(_) // Is this the right thing to do for interfaces?
-                                => {
+                            type_::Interface(_)
+                                => { // Is this the right thing to do for interfaces?
                                     let line = Line(format!("self.builder.reborrow().get_pointer_field({}).clear();",
                                                             slot.get_offset()));
                                     *clear = true;
