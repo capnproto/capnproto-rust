@@ -54,6 +54,7 @@ pub mod message;
 pub mod primitive_list;
 pub mod private;
 pub mod raw;
+pub mod rust_capnp;
 pub mod schema;
 pub mod serialize;
 pub mod serialize_packed;

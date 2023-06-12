@@ -1,0 +1,12 @@
+[package]
+name = "external-crate"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+capnp = { version = "0.17.1", path = "../../../capnp" }
+
+[build-dependencies]
+capnpc = { version = "0.17.1", path = "../.." }
