@@ -1,5 +1,6 @@
 fn main() {
     capnpc::CompilerCommand::new()
+        .link_override(0xe6f94f52f7be8fe2, "external_crate")
         .file("test.capnp")
         .file("in-submodule.capnp")
         .file("in-other-submodule.capnp")

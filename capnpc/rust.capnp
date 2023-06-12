@@ -27,32 +27,6 @@ annotation parentModule @0xabee386cd1450364 (file) :Text;
 #    }
 #  }
 
-annotation imports @0xc3b9fe42a83105cd (file) :List(Import);
-# Allows specifying that the generated code for an import is located in another
-# crate.
-#
-# You only need this if your code uses imported types whose generated code is
-# in another crate. You can only use this annotation once in all the files
-# compiled together.
-#
-#    using Json = import "/capnp/compat/json.capnp";
-#
-#    $Rust.imports([
-#        (path = "/capnp/compat/json.capnp", crate = "capnp_json")
-#    ]);
-
-struct Import {
-    path @0 :Text;
-    crate @1 :Text;
-}
-
-annotation crate @0xc1763f46d790815c (file) :Text;
-# The Rust crate that provides the generated code.
-#
-# You need this if you're providing a library to be used by other crates. If
-# you're only using the generated code in your own crate then you don't need to
-# change from the default.
-
 annotation option @0xabfef22c4ee1964e (field) :Void;
 # Make the generated getters return Option<T> instead of T. Supported on
 # pointer types (e.g. structs, lists, and blobs).

@@ -71,7 +71,10 @@ pub mod codegen;
 pub mod codegen_types;
 mod pointer_constants;
 
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 // Copied from capnp/src/lib.rs, where this conversion lives behind the "std" feature flag,
 // which we don't want to depend on here.
@@ -119,6 +122,7 @@ pub struct CompilerCommand {
     output_path: Option<PathBuf>,
     default_parent_module: Vec<String>,
     raw_code_generator_request_path: Option<PathBuf>,
+    link_map: HashMap<u64, String>,
 }
 
 impl CompilerCommand {
@@ -153,6 +157,25 @@ impl CompilerCommand {
         P: AsRef<Path>,
     {
         self.import_paths.push(dir.as_ref().to_path_buf());
+        self
+    }
+
+    /// Specify that the generated code for an imported file can be found in
+    /// an external crate.
+    ///
+    /// # Arguments
+    ///
+    /// * `file` - The capnp id of the file that will be imported
+    /// * `crate_name` - The name of the external crate
+    ///
+    /// # When to use
+    ///
+    /// You only need this when your generated code needs to refer to types
+    /// in the external crate. If you just want to use an annotation and the
+    /// argument to that annotation is a builtin type (e.g. `$Json.name`) this
+    /// isn't necessary.
+    pub fn link_override(&mut self, file: u64, crate_name: impl Into<String>) -> &mut Self {
+        self.link_map.insert(file, crate_name.into());
         self
     }
 
@@ -307,7 +330,8 @@ impl CompilerCommand {
         let mut code_generation_command = crate::codegen::CodeGenerationCommand::new();
         code_generation_command
             .output_directory(output_path)
-            .default_parent_module(self.default_parent_module.clone());
+            .default_parent_module(self.default_parent_module.clone())
+            .link_overrides(self.link_map.clone());
         if let Some(raw_code_generator_request_path) = &self.raw_code_generator_request_path {
             code_generation_command
                 .raw_code_generator_request_path(raw_code_generator_request_path.clone());

@@ -23,9 +23,9 @@ use std::collections;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use capnp;
+use capnp::schema_capnp;
 use capnp::Error;
-use capnp::{self, rust_capnp};
-use capnp::{schema_capnp, struct_list};
 
 use self::FormattedText::{BlankLine, Branch, Indent, Line};
 use crate::codegen_types::{do_branding, Leaf, RustNodeInfo, RustTypeInfo, TypeParameterTexts};
@@ -38,6 +38,7 @@ pub struct CodeGenerationCommand {
     default_parent_module: Vec<String>,
     raw_code_generator_request_path: Option<PathBuf>,
     capnp_root: String,
+    link_map: HashMap<u64, String>,
 }
 
 impl Default for CodeGenerationCommand {
@@ -47,6 +48,7 @@ impl Default for CodeGenerationCommand {
             default_parent_module: Vec::new(),
             raw_code_generator_request_path: None,
             capnp_root: "::capnp".into(),
+            link_map: HashMap::new(),
         }
     }
 }
@@ -90,6 +92,15 @@ impl CodeGenerationCommand {
         P: AsRef<Path>,
     {
         self.raw_code_generator_request_path = Some(path.as_ref().to_path_buf());
+        self
+    }
+
+    /// Sets the link override map
+    ///
+    /// The link override map is a map from file id to external crate name.
+    /// See [`CompilerCommand::link_override`] for more details.
+    pub fn link_overrides(&mut self, link_map: HashMap<u64, String>) -> &mut Self {
+        self.link_map = link_map;
         self
     }
 
@@ -210,6 +221,8 @@ impl<'a> GeneratorContext<'a> {
             capnp_root: code_generation_command.capnp_root.clone(),
         };
 
+        let link_map = &code_generation_command.link_map;
+
         for node in ctx.request.get_nodes()? {
             ctx.node_map.insert(node.get_id(), node);
             ctx.node_parents.insert(node.get_id(), node.get_scope_id());
@@ -231,39 +244,16 @@ impl<'a> GeneratorContext<'a> {
             }
         }
 
-        let mut rust_imports = None;
-        for requested_file in ctx.request.get_requested_files()? {
-            let node = ctx
-                .node_map
-                .get(&requested_file.get_id())
-                .ok_or(Error::failed("file node not found".into()))?
-                .reborrow();
-            let fname = requested_file.get_filename()?;
-
-            if let Some(file_imports) = get_rust_imports(node)? {
-                if let Some((prev_fname, _)) = rust_imports {
-                    return Err(Error::failed(format!(
-                        "Conflicting Rust.imports annotations in {prev_fname} and {fname}. \
-                        You can only use the annotation once across all the files compiled together"
-                    )));
-                } else {
-                    rust_imports = Some((fname.to_string(), file_imports));
-                }
-            }
-        }
-        let rust_imports = rust_imports.map(|(_fname, map)| map).unwrap_or_default();
-
         for requested_file in ctx.request.get_requested_files()? {
             let id = requested_file.get_id();
 
             for import in requested_file.get_imports()? {
-                let raw_path = import.get_name()?;
-                let importpath = ::std::path::Path::new(raw_path);
+                let importpath = ::std::path::Path::new(import.get_name()?);
                 let root_name: String = format!(
                     "{}_capnp",
                     path_to_stem_string(importpath)?.replace('-', "_")
                 );
-                let parent_module_scope = if let Some(krate) = rust_imports.get(raw_path) {
+                let parent_module_scope = if let Some(krate) = link_map.get(&import.get_id()) {
                     vec![format!("::{krate}")]
                 } else {
                     default_parent_module_scope.clone()
@@ -382,27 +372,6 @@ macro_rules! fmt(
 );
 
 pub(crate) use fmt;
-
-fn get_rust_imports(
-    file: schema_capnp::node::Reader,
-) -> capnp::Result<Option<HashMap<String, String>>> {
-    for annot in file.get_annotations()? {
-        if annot.get_id() == rust_capnp::imports::ID {
-            let schema_capnp::value::Which::List(ptr) = annot.get_value()?.which()? else {
-                return Err(Error::failed("Rust.imports not a list".into()));
-            };
-            let list = ptr.get_as::<struct_list::Reader<rust_capnp::import::Owned>>()?;
-            let mut map = HashMap::new();
-            for import in list {
-                let path = import.get_path()?;
-                let krate = import.get_crate()?;
-                map.insert(path.to_string(), krate.to_string());
-            }
-            return Ok(Some(map));
-        }
-    }
-    Ok(None)
-}
 
 fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<String> {
     match path.as_ref().file_stem() {
