@@ -31,7 +31,7 @@ struct UseExternalAnnotation $External.annot(field = "foo") {
   field @0 :Text;
 }
 
-struct FieldSubsetIndexesCorrectly{
+struct FieldSubsetIndexesCorrectly {
   common @2 :Text;
 
   union {
