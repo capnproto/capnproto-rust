@@ -3,17 +3,15 @@
 use anyhow::bail;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use std::str::FromStr;
 use std::{
     env, fs,
-    io::Read,
     path::{Component, Path, PathBuf},
 };
 use syn::parse::Parser;
-use syn::{parse_macro_input, Expr, ExprArray, LitStr, Token};
-use tempfile::NamedTempFile;
-use tempfile::{tempdir, TempDir};
+use syn::{LitStr, Token};
+use tempfile::tempdir;
 use walkdir::WalkDir;
 use wax::{BuildError, Glob, Pattern};
 
@@ -21,35 +19,18 @@ include!(concat!(env!("OUT_DIR"), "/binary_decision.rs"));
 
 #[proc_macro]
 pub fn capnp_import(input: TokenStream) -> TokenStream {
-    // let paths = parse_macro_input!(input as ExprArray);
-    // let x: Vec<String> = paths
-    //     .elems
-    //     .iter()
-    //     .map(|path| {
-    //         path.into_token_stream()
-    //             .to_string()
-    //             .trim_matches('\"')
-    //             .to_string()
-    //     })
-    //     .collect();
-
-    // considered alternative
-    //let paths = parse_macro_input!(input as syn::Expr);
-    //let x: syn::punctuated::IntoIter<syn::Expr> = match paths {
-    //    syn::Expr::Array(ExprArray { elems, .. }) => elems.into_iter(),
-    //    _ => panic!("Couldn't parse capnp_import contents for {}", input),
-    //};
-
-    // Another alternative
     let parser = syn::punctuated::Punctuated::<LitStr, Token![,]>::parse_separated_nonempty;
-    let paths = parser.parse(input).unwrap();
-    let x: Vec<String> = paths.into_iter().map(|item| item.value()).collect();
-    let result = process_inner(&x).unwrap();
+    let path_patterns = parser.parse(input).unwrap();
+    let path_patterns = path_patterns.into_iter().map(|item| item.value());
+    let result = process_inner(path_patterns).unwrap();
     result.into()
 }
 
-fn process_inner<T: AsRef<str>>(path_patterns: &[T]) -> anyhow::Result<TokenStream2> {
-    // TODO Make it IntoIter
+fn process_inner<I>(path_patterns: I) -> anyhow::Result<TokenStream2>
+where
+    I: IntoIterator,
+    I::Item: AsRef<str>,
+{
     let cmdpath = CAPNP_BIN_PATH;
     let mut helperfile = TokenStream2::new();
     let output_dir = tempdir()?;
@@ -62,7 +43,7 @@ fn process_inner<T: AsRef<str>>(path_patterns: &[T]) -> anyhow::Result<TokenStre
     // TryInto<Pattern isn't implemented for String. So, we turn the strings into owned Globs
     // (which clones the string internally)
     let globs: Result<Vec<Glob<'static>>, BuildError<'static>> = path_patterns
-        .iter()
+        .into_iter()
         .map(|s| {
             Glob::new(s.as_ref())
                 .map_err(BuildError::into_owned)
