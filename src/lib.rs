@@ -1,19 +1,15 @@
 //! Download and/or build official Cap-n-Proto compiler (capnp) release for the current OS and architecture
 
-use anyhow::bail;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use std::str::FromStr;
-use std::{
-    env, fs,
-    path::{Component, Path, PathBuf},
-};
+use std::{env, fs, path::Path};
 use syn::parse::Parser;
 use syn::{LitStr, Token};
 use tempfile::tempdir;
 use walkdir::WalkDir;
-use wax::{BuildError, Glob, Pattern};
+use wax::{BuildError, Walk};
 
 include!(concat!(env!("OUT_DIR"), "/binary_decision.rs"));
 
@@ -38,115 +34,61 @@ where
     let mut cmd = capnpc::CompilerCommand::new();
     cmd.capnp_executable(cmdpath);
     cmd.output_path(&output_dir);
-    // any() wants to borrow the list of strings we give it, but we can't pass in path_patterns
-    // because the borrw checker doesn't like it. We also can't pass in Vec<String> because
-    // TryInto<Pattern isn't implemented for String. So, we turn the strings into owned Globs
-    // (which clones the string internally)
-    let globs: Result<Vec<Glob<'static>>, BuildError<'static>> = path_patterns
+    let globs = path_patterns
         .into_iter()
-        .map(|s| {
-            Glob::new(s.as_ref())
+        .flat_map(|s| {
+            wax::walk(s.as_ref(), ".")
                 .map_err(BuildError::into_owned)
-                .map(Glob::into_owned)
+                .map(Walk::into_owned)
         })
-        .collect();
-    let combined_globs = wax::any::<Glob, _>(globs?)?;
-
-    for entry_result in WalkDir::new(".") {
-        let entry = entry_result?;
-        let path = normalize_path(entry.path()); // Remove the current directory indicator
-
-        println!("Processing path: {:?}", path.to_str());
-        if path.is_file() && combined_globs.is_match(path.as_path()) {
-            println!("Processing {:?}", path);
-            cmd.file(path);
-            //helperfile.extend(append_path(&mut cmd, &path));
+        .flatten();
+    for entry_result in globs {
+        let entry = entry_result?.into_path();
+        println!("Processing path: {:?}", entry.to_str());
+        if entry.is_file() {
+            println!("Processing {:?}", entry);
+            cmd.file(entry);
         }
     }
-
-    if let Err(e) = cmd.run() {
-        bail!(e.to_string());
-    }
-
+    cmd.run()?;
     for entry in WalkDir::new(output_dir.path()) {
-        let e = entry.unwrap().into_path();
-        if e.is_file() {
-            println!("File created: {:?}", e);
-            let contents = TokenStream2::from_str(&fs::read_to_string(&e).unwrap()).unwrap();
-            let module_name = format_ident!("{}", e.file_stem().unwrap().to_str().unwrap());
-            let w = quote! {
-                mod #module_name {
-                    #contents
-                }
-            };
-            helperfile.extend(w);
+        let file_path = entry.unwrap().into_path();
+        if file_path.is_file() {
+            println!("File created: {:?}", file_path);
+            helperfile.extend(append_path(&file_path)?);
         }
     }
 
     return Ok(helperfile);
 }
 
-// fn process(path_patterns: &[&str]) -> anyhow::Result<()> {
-//     let target_dir = env::var("OUT_DIR").unwrap();
-//     fs::write(
-//         target_dir + "/capnp_include.rs",
-//         process_inner(path_patterns)?,
-//     )?;
-//     Ok(())
-// }
-
-fn append_path(
-    cmd: &mut capnpc::CompilerCommand,
-    file_path: &Path,
-) -> anyhow::Result<TokenStream2> {
-    cmd.file(file_path);
-
-    let file_stem = file_path.file_stem().unwrap().to_str().unwrap();
-    let file_extension = file_path.extension().unwrap().to_str().unwrap();
-    let module_name = format_ident!("{}_{}", file_stem, file_extension);
-    let rust_module_path = file_path
-        .with_file_name(format!("{}.rs", module_name))
-        .to_string_lossy()
-        .replace('\\', "/");
-
+fn append_path(file_path: &Path) -> anyhow::Result<TokenStream2> {
+    let file_stem = file_path.file_stem().unwrap().to_str().unwrap(); //TODO unwraps due to Options - convert to Result instead
+    let contents = TokenStream2::from_str(&fs::read_to_string(&file_path)?).unwrap(); //TODO This one unwrap due to not being thread-safe and something about Rc
+    let module_name = format_ident!("{}", file_stem);
     let helperfile = quote! {
         mod #module_name {
-            include!(concat!(env!("CARGO_MANIFEST_DIR"), #rust_module_path));
+            #contents
         }
     };
     Ok(helperfile)
 }
 
-fn normalize_path(path: &Path) -> PathBuf {
-    path.components()
-        .filter(|x| match x {
-            Component::Normal(_) => true,
-            _ => false,
-        })
-        .collect()
+#[test]
+fn basic_file_test() -> anyhow::Result<()> {
+    //println!("{:?}", std::env::current_dir().unwrap());
+    let contents = process_inner(["tests/example.capnp"])?.to_string();
+    assert!(contents.starts_with("mod example_capnp {"));
+    assert!(contents.ends_with("}"));
+    Ok(())
 }
 
-// #[test]
-// fn basic_file_test() -> anyhow::Result<()> {
-//     println!("{:?}", std::env::current_dir().unwrap());
-//     let file = NamedTempFile::new().unwrap();
-//     let path = file.into_temp_path();
-//     assert_eq!(
-//         process_inner(&["tests/example.capnp"], path)?,
-//         "// This file is autogenerated by capnp-fetch\n\n\nmod example_capnp {\ninclude!(concat!(env!(\"OUT_DIR\"), \"/tests/example_capnp.rs\"));\n}"
-//     );
-//     Ok(())
-// }
-
-// #[test]
-// fn glob_test() -> anyhow::Result<()> {
-//     println!("{:?}", std::env::current_dir().unwrap());
-//     let file = NamedTempFile::new().unwrap();
-//     let path = file.into_temp_path();
-
-//     assert_eq!(
-//         process_inner(&["tests/**/*.capnp"], path)?,
-//         "// This file is autogenerated by capnp-fetch\n\n\nmod example_capnp {\ninclude!(concat!(env!(\"OUT_DIR\"), \"/tests/example_capnp.rs\"));\n}\n\nmod example_capnp {\ninclude!(concat!(env!(\"OUT_DIR\"), \"/tests/folder-test/example_capnp.rs\"));\n}"
-//     );
-//     Ok(())
-// }
+#[test]
+fn glob_test() -> anyhow::Result<()> {
+    // TODO This test produces two copies of modules named the same, which is invalid
+    //println!("{:?}", std::env::current_dir().unwrap());
+    let contents = process_inner(["tests/**/*.capnp"])?.to_string();
+    assert!(contents.starts_with("mod example_capnp {"));
+    assert!(contents.ends_with("}"));
+    Ok(())
+}
