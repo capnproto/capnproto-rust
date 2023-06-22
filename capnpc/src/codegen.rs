@@ -38,6 +38,7 @@ pub struct CodeGenerationCommand {
     default_parent_module: Vec<String>,
     raw_code_generator_request_path: Option<PathBuf>,
     capnp_root: String,
+    crates_provide_map: HashMap<u64, String>,
 }
 
 impl Default for CodeGenerationCommand {
@@ -47,6 +48,7 @@ impl Default for CodeGenerationCommand {
             default_parent_module: Vec::new(),
             raw_code_generator_request_path: None,
             capnp_root: "::capnp".into(),
+            crates_provide_map: HashMap::new(),
         }
     }
 }
@@ -90,6 +92,19 @@ impl CodeGenerationCommand {
         P: AsRef<Path>,
     {
         self.raw_code_generator_request_path = Some(path.as_ref().to_path_buf());
+        self
+    }
+
+    /// Sets the crate provides map.
+    ///
+    /// # Arguments
+    ///
+    /// - `map` - A map from capnp file id to the crate name that provides the
+    ///     corresponding generated code.
+    ///
+    /// See [`crate::CompilerCommand::crate_provides`] for more details.
+    pub fn crates_provide_map(&mut self, map: HashMap<u64, String>) -> &mut Self {
+        self.crates_provide_map = map;
         self
     }
 
@@ -210,6 +225,8 @@ impl<'a> GeneratorContext<'a> {
             capnp_root: code_generation_command.capnp_root.clone(),
         };
 
+        let crates_provide = &code_generation_command.crates_provide_map;
+
         for node in ctx.request.get_nodes()? {
             ctx.node_map.insert(node.get_id(), node);
             ctx.node_parents.insert(node.get_id(), node.get_scope_id());
@@ -240,8 +257,15 @@ impl<'a> GeneratorContext<'a> {
                     "{}_capnp",
                     path_to_stem_string(importpath)?.replace('-', "_")
                 );
+                let parent_module_scope = if let Some(krate) = crates_provide.get(&import.get_id())
+                {
+                    vec![format!("::{krate}")]
+                } else {
+                    default_parent_module_scope.clone()
+                };
+
                 ctx.populate_scope_map(
-                    default_parent_module_scope.clone(),
+                    parent_module_scope,
                     root_name,
                     NameKind::Verbatim,
                     import.get_id(),
@@ -284,7 +308,9 @@ impl<'a> GeneratorContext<'a> {
             if annotation.get_id() == NAME_ANNOTATION_ID {
                 current_node_name = name_annotation_value(annotation)?.to_string();
             } else if annotation.get_id() == PARENT_MODULE_ANNOTATION_ID {
-                ancestor_scope_names = vec!["crate".to_string()];
+                let head = ancestor_scope_names[0].clone();
+                ancestor_scope_names.clear();
+                ancestor_scope_names.push(head);
                 ancestor_scope_names.append(&mut get_parent_module(annotation)?);
             }
         }

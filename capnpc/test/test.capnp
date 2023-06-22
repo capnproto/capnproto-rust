@@ -23,6 +23,13 @@
 @0x99d187209d25cee7;
 
 using Rust = import "rust.capnp";
+using External = import "./external-crate/external.capnp";
+
+# The test case is that this builds. This ensure we're able to refer to a struct
+# (external_capnp::opts) in the generated code.
+struct UseExternalAnnotation $External.annot(field = "foo") {
+  field @0 :Text;
+}
 
 struct FieldSubsetIndexesCorrectly {
   common @2 :Text;

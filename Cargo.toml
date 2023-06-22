@@ -19,6 +19,7 @@ members = [
     "async-byte-channel",
     "benchmark",
     "capnpc/test",
+    "capnpc/test/external-crate",
     "capnpc/test-edition-2015",
     "capnpc/test-edition-2018",
     "capnpc/test-edition-2021",
