@@ -3,16 +3,20 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::{env, fs, path::Path};
 use syn::parse::Parser;
 use syn::{LitStr, Token};
-use tempfile::tempdir;
+use tempfile::{tempdir, TempDir};
 use walkdir::WalkDir;
 use wax::{BuildError, Walk};
 
 include!(concat!(env!("OUT_DIR"), "/binary_decision.rs"));
 
+/// `capnp_import!(pattern_1, pattern_2, ..., pattern_n)` compiles all the .capnp files at the locations of those files
+/// and replaces itself with the resulting contents wrapped in appropriate module structure.
+/// Resulting rust files from that compilation are then deleted.
 #[proc_macro]
 pub fn capnp_import(input: TokenStream) -> TokenStream {
     let parser = syn::punctuated::Punctuated::<LitStr, Token![,]>::parse_separated_nonempty;
@@ -27,13 +31,8 @@ where
     I: IntoIterator,
     I::Item: AsRef<str>,
 {
-    let cmdpath = CAPNP_BIN_PATH;
-    let mut helperfile = TokenStream2::new();
-    let output_dir = tempdir()?;
+    let output_dir: TempDir = tempdir()?;
 
-    let mut cmd = capnpc::CompilerCommand::new();
-    cmd.capnp_executable(cmdpath);
-    cmd.output_path(&output_dir);
     let globs = path_patterns
         .into_iter()
         .flat_map(|s| {
@@ -42,53 +41,152 @@ where
                 .map(Walk::into_owned)
         })
         .flatten();
+
     for entry_result in globs {
-        let entry = entry_result?.into_path();
-        println!("Processing path: {:?}", entry.to_str());
+        let entry: PathBuf = entry_result?.into_path();
+        //dbg!(&entry);
         if entry.is_file() {
-            println!("Processing {:?}", entry);
-            cmd.file(entry);
+            compile_capnp_file(&entry, &output_dir)?;
         }
     }
-    cmd.run()?;
-    for entry in WalkDir::new(output_dir.path()) {
-        let file_path = entry.unwrap().into_path();
-        if file_path.is_file() {
-            println!("File created: {:?}", file_path);
-            helperfile.extend(append_path(&file_path)?);
-        }
-    }
-
-    return Ok(helperfile);
-}
-
-fn append_path(file_path: &Path) -> anyhow::Result<TokenStream2> {
-    let file_stem = file_path.file_stem().unwrap().to_str().unwrap(); //TODO unwraps due to Options - convert to Result instead
-    let contents = TokenStream2::from_str(&fs::read_to_string(&file_path)?).unwrap(); //TODO This one unwrap due to not being thread-safe and something about Rc
-    let module_name = format_ident!("{}", file_stem);
-    let helperfile = quote! {
-        mod #module_name {
-            #contents
-        }
-    };
+    let helperfile = construct_module_tree(output_dir.path(), true)?;
     Ok(helperfile)
+    // When TempDir goes out of scope, it gets deleted
 }
 
-#[test]
-fn basic_file_test() -> anyhow::Result<()> {
-    //println!("{:?}", std::env::current_dir().unwrap());
-    let contents = process_inner(["tests/example.capnp"])?.to_string();
-    assert!(contents.starts_with("mod example_capnp {"));
-    assert!(contents.ends_with("}"));
+/// Takes a path of a .capnp file, compiles that file and returns the result to the `output_dir`.
+/// For example: `compile_capnp_file(Path::new("a/b/c.capnp"), Path::new("/d"))` would output `/d/a/b/c_capnp.rs` file,
+/// with `["a".into(), "b".into()]` being applied to `default_parent_module`, which makes contents of the file accessible with `a::b::c_capnp` module path.
+fn compile_capnp_file<P>(file_path: &Path, output_dir: P) -> anyhow::Result<()>
+where
+    P: AsRef<Path>,
+{
+    //assert!(file_path.is_file());
+    let cmdpath = CAPNP_BIN_PATH;
+    let mut cmd = capnpc::CompilerCommand::new();
+    cmd.capnp_executable(cmdpath);
+    cmd.output_path(output_dir);
+    let module_path = file_path
+        .components()
+        .skip(1)
+        .map(|component| {
+            component
+                .as_os_str()
+                .to_str()
+                .unwrap()
+                .to_string()
+                .replace("-", "_")
+                .replace(" ", "_")
+        })
+        .take_while(|name| !name.ends_with(".capnp"))
+        .collect::<Vec<String>>();
+    //dbg!(&module_path);
+    cmd.default_parent_module(module_path);
+    cmd.file(file_path);
+    cmd.run()?;
+
     Ok(())
 }
 
-#[test]
-fn glob_test() -> anyhow::Result<()> {
-    // TODO This test produces two copies of modules named the same, which is invalid
-    //println!("{:?}", std::env::current_dir().unwrap());
-    let contents = process_inner(["tests/**/*.capnp"])?.to_string();
-    assert!(contents.starts_with("mod example_capnp {"));
-    assert!(contents.ends_with("}"));
-    Ok(())
+/// Recursively goes through a directory tree and contents of rust files in it and wraps them in modules based on files they're in and their location.
+/// If skip_root is true it doesn't construct a top-level module (useful when it's something like .tmp-foobar)
+fn construct_module_tree(root: &Path, skip_root: bool) -> anyhow::Result<TokenStream2> {
+    //dbg!(root);
+    if root.is_file() {
+        // Read file contents and return as module
+        let contents = TokenStream2::from_str(&fs::read_to_string(&root)?).unwrap();
+        let module_name = format_ident!(
+            "{}",
+            root.file_stem()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .replace("-", "_")
+                .replace(" ", "_")
+        );
+        let res = quote! {
+            pub mod #module_name {
+                #contents
+            }
+        };
+        //dbg!(res.to_string());
+        return Ok(res);
+    } else if root.is_dir() {
+        let mut contents = TokenStream2::new();
+        for element in WalkDir::new(root).min_depth(1).max_depth(1) {
+            contents.extend(construct_module_tree(element?.path(), false)?);
+        }
+        if skip_root {
+            //dbg!(contents.to_string());
+            return Ok(contents);
+        }
+        let module_name = root
+            .components()
+            .last()
+            .unwrap()
+            .as_os_str()
+            .to_str()
+            .unwrap()
+            .replace("-", "_")
+            .replace(" ", "_");
+        let module_name = format_ident!("{}", module_name);
+        let res = quote! {
+            pub mod #module_name {
+                #contents
+            }
+        };
+        //dbg!(res.to_string());
+        return Ok(res);
+    } else {
+        Ok(TokenStream2::new())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use super::*;
+    use anyhow::anyhow;
+
+    #[test]
+    fn basic_file_test() -> anyhow::Result<()> {
+        //println!("{:?}", std::env::current_dir().unwrap());
+        let contents = process_inner(["tests/example.capnp"])?.to_string();
+        assert!(contents.starts_with("pub mod tests { pub mod example_capnp {"));
+        //assert!(contents.starts_with("mod example_capnp {"));
+        assert!(contents.ends_with("}"));
+        Ok(())
+    }
+
+    #[test]
+    fn glob_test() -> anyhow::Result<()> {
+        let contents = process_inner(["tests/**/*.capnp"])?;
+        // We expect a following structure (in some order):
+        // pub mod tests {
+        //     pub mod example_capnp {
+        //         ..
+        //     }
+        //     pub mod folder_test {
+        //         ..
+        //     }
+        // }
+        let tests_module: syn::ItemMod = syn::parse2(contents)?;
+        assert_eq!(tests_module.ident, "tests");
+        let submodule_idents: HashSet<String> = tests_module
+            .content
+            .ok_or(anyhow!("tests module shouldn't be empty"))?
+            .1
+            .into_iter()
+            .map(|submodule| match submodule {
+                syn::Item::Mod(module) => module.ident.to_string(),
+                _ => panic!("tests module only has submodules"),
+            })
+            .collect();
+        assert_eq!(
+            submodule_idents,
+            HashSet::from(["example_capnp".to_string(), "folder_test".to_string()])
+        );
+        Ok(())
+    }
 }
