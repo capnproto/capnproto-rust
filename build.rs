@@ -86,7 +86,7 @@ fn main() -> anyhow::Result<()> {
 #[allow(dead_code)]
 fn commandhandle() -> anyhow::Result<tempfile::TempDir> {{
     use std::io::Write;
-    #[cfg(all(target_os = \"linux\", target_os = \"macos\"))]
+    #[cfg(any(target_os = \"linux\", target_os = \"macos\"))]
     use std::os::unix::fs::OpenOptionsExt;
     use tempfile::tempdir;
 
@@ -94,7 +94,7 @@ fn commandhandle() -> anyhow::Result<tempfile::TempDir> {{
 
     let tempdir = tempdir()?;
 
-    #[cfg(all(target_os = \"linux\", target_os = \"macos\"))]
+    #[cfg(any(target_os = \"linux\", target_os = \"macos\"))]
     let mut handle = 
         std::fs::OpenOptions::new()
         .write(true)
@@ -104,6 +104,9 @@ fn commandhandle() -> anyhow::Result<tempfile::TempDir> {{
 
     #[cfg(target_os = \"windows\")]
     let mut handle = std::fs::OpenOptions::new().write(true).create(true).open(tempdir.path().join(\"capnp\"))?;
+
+    #[cfg(not(any(target_os = \"linux\", target_os = \"macos\", target_os = \"windows\")))]
+    compile_error!(\"capnp-import does not support your operating system!\");
 
     handle.write_all(file_contents)?;
 
@@ -142,14 +145,15 @@ fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
 
     // place the capnproto binary in $OUT_DIR, next to where binary_decision.rs
     // is intended to go
-    #[cfg(target_os = "windows")]
-    return Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
-        "bin/capnp.exe",
-    )));
-    #[cfg(all(target_os = "linux", target_os = "macos"))]
-    return Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
-        "bin/capnp",
-    )));
-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    compile_error!("capnp-import does not support your operating system!");
+    if cfg!(target_os = "windows") {
+        Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
+            "bin/capnp.exe",
+        )))
+    } else if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+        Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
+            "bin/capnp",
+        )))
+    } else {
+        panic!("Sorry, capnp-import does not support your operating system.");
+    }
 }
