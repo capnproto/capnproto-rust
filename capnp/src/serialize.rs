@@ -27,14 +27,13 @@ mod no_alloc_slice_segments;
 pub use no_alloc_slice_segments::NoAllocSliceSegments;
 
 use crate::io::{Read, Write};
-use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::ops::Deref;
 
 use crate::message;
 use crate::private::units::BYTES_PER_WORD;
-use crate::{Error, Result};
+use crate::{Error, ErrorKind, Result};
 
 pub const SEGMENTS_COUNT_LIMIT: usize = 512;
 
@@ -76,17 +75,16 @@ pub fn read_message_from_flat_slice<'a>(
     let mut bytes = *slice;
     let orig_bytes_len = bytes.len();
     let Some(segment_lengths_builder) = read_segment_table(&mut bytes, options)? else {
-        return Err(Error::failed("empty slice".to_string()));
+        return Err(Error::from_kind(ErrorKind::EmptySlice))
     };
     let segment_table_bytes_len = orig_bytes_len - bytes.len();
     assert_eq!(segment_table_bytes_len % BYTES_PER_WORD, 0);
     let num_words = segment_lengths_builder.total_words();
     let body_bytes = &all_bytes[segment_table_bytes_len..];
     if num_words > (body_bytes.len() / BYTES_PER_WORD) {
-        Err(Error::failed(format!(
-            "Message ends prematurely. Header claimed {} words, but message only has {} words.",
+        Err(Error::from_kind(ErrorKind::MessageEndsPrematurely(
             num_words,
-            body_bytes.len() / BYTES_PER_WORD
+            body_bytes.len() / BYTES_PER_WORD,
         )))
     } else {
         *slice = &body_bytes[(num_words * BYTES_PER_WORD)..];
@@ -101,7 +99,7 @@ pub fn read_message_from_flat_slice<'a>(
 /// The slice is allowed to extend beyond the end of the message. On success, updates `slice` to point
 /// to the remaining bytes beyond the end of the message.
 ///
-/// Unlike read_message_from_flat_slice_no_alloc it does not do heap allocation (except for error message)
+/// Unlike read_message_from_flat_slice_no_alloc it does not do heap allocation
 ///
 /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `slice`.
 /// Otherwise, `slice` must be 8-byte aligned (attempts to read the message will trigger errors).
@@ -138,7 +136,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
         let mut segment_bytes = &*buffer;
 
         let Some(segment_table) = read_segment_table(&mut segment_bytes, options)? else {
-            return Err(Error::failed("empty buffer".to_string()));
+            return Err(Error::from_kind(ErrorKind::EmptyBuffer))
         };
         let segment_table_bytes_len = buffer.len() - segment_bytes.len();
 
@@ -279,7 +277,7 @@ where
     R: Read,
 {
     let Some(owned_segments_builder) = read_segment_table(&mut read, options)? else {
-        return Err(Error::failed("Premature end of file".to_string()));
+        return Err(Error::from_kind(ErrorKind::PrematureEndOfFile))
     };
     read_segments(
         &mut read,
@@ -335,9 +333,13 @@ where
     let segment_count = u32::from_le_bytes(buf[0..4].try_into().unwrap()).wrapping_add(1) as usize;
 
     if segment_count >= SEGMENTS_COUNT_LIMIT {
-        return Err(Error::failed(format!("Too many segments: {segment_count}")));
+        return Err(Error::from_kind(ErrorKind::InvalidNumberOfSegments(
+            segment_count,
+        )));
     } else if segment_count == 0 {
-        return Err(Error::failed(format!("Too few segments: {segment_count}")));
+        return Err(Error::from_kind(ErrorKind::InvalidNumberOfSegments(
+            segment_count,
+        )));
     }
 
     let mut segment_lengths_builder = SegmentLengthsBuilder::with_capacity(segment_count);
@@ -368,10 +370,8 @@ where
     // size to make the receiver allocate excessive space and possibly crash.
     if let Some(limit) = options.traversal_limit_in_words {
         if segment_lengths_builder.total_words() > limit {
-            return Err(Error::failed(format!(
-                "Message has {} words, which is too large. To increase the limit on the \
-                         receiving end, see capnp::message::ReaderOptions.",
-                segment_lengths_builder.total_words()
+            return Err(Error::from_kind(ErrorKind::MessageTooLarge(
+                segment_lengths_builder.total_words(),
             )));
         }
     }

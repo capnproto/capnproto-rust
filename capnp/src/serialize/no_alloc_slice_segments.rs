@@ -1,12 +1,9 @@
 use core::convert::TryInto;
 
-use alloc::string::ToString;
-
 use crate::message::ReaderOptions;
 use crate::message::ReaderSegments;
 use crate::private::units::BYTES_PER_WORD;
-use crate::Error;
-use crate::Result;
+use crate::{Error, ErrorKind, Result};
 
 use super::SEGMENTS_COUNT_LIMIT;
 
@@ -46,8 +43,8 @@ impl<'b> NoAllocSliceSegments<'b> {
         let segments_count = u32_to_segments_count(read_u32_le(&mut remaining)?)?;
 
         if segments_count >= SEGMENTS_COUNT_LIMIT {
-            return Err(Error::failed(format!(
-                "Too many segments: {segments_count}"
+            return Err(Error::from_kind(ErrorKind::InvalidNumberOfSegments(
+                segments_count,
             )));
         }
 
@@ -59,12 +56,7 @@ impl<'b> NoAllocSliceSegments<'b> {
 
             total_segments_length_bytes = total_segments_length_bytes
                 .checked_add(segment_length_in_bytes)
-                .ok_or_else(|| {
-                    Error::failed(
-                        "Message is too large; it's size cannot be represented in usize."
-                            .to_string(),
-                    )
-                })?;
+                .ok_or_else(|| Error::from_kind(ErrorKind::MessageSizeOverflow))?;
         }
 
         // Don't accept a message which the receiver couldn't possibly traverse without hitting the
@@ -73,9 +65,8 @@ impl<'b> NoAllocSliceSegments<'b> {
         if let Some(limit) = options.traversal_limit_in_words {
             let total_segments_length_words = total_segments_length_bytes / 8;
             if total_segments_length_words > limit {
-                return Err(Error::failed(format!(
-                    "Message has {total_segments_length_words} words, which is too large. To increase the limit on the \
-                             receiving end, see capnp::message::ReaderOptions."
+                return Err(Error::from_kind(ErrorKind::MessageTooLarge(
+                    total_segments_length_words,
                 )));
             }
         }
@@ -86,11 +77,8 @@ impl<'b> NoAllocSliceSegments<'b> {
             let _padding = read_u32_le(&mut remaining)?;
         }
 
-        let expected_data_offset = calculate_data_offset(segments_count).ok_or_else(|| {
-            Error::failed(
-                "Message is too large; it's size cannot be represented in usize".to_string(),
-            )
-        })?;
+        let expected_data_offset = calculate_data_offset(segments_count)
+            .ok_or_else(|| Error::from_kind(ErrorKind::MessageSizeOverflow))?;
 
         let consumed_bytes = slice.len() - remaining.len();
 
@@ -103,10 +91,9 @@ impl<'b> NoAllocSliceSegments<'b> {
         // is malformed. It looks like it's ok to have extra bytes in the end, according to
         // of `SliceSegments` implementation.
         if remaining.len() < total_segments_length_bytes {
-            return Err(Error::failed(format!(
-                "Message ends prematurely. Header claimed {} words, but message only has {} words.",
+            return Err(Error::from_kind(ErrorKind::MessageEndsPrematurely(
                 total_segments_length_bytes / BYTES_PER_WORD,
-                remaining.len() / BYTES_PER_WORD
+                remaining.len() / BYTES_PER_WORD,
             )));
         }
 
@@ -196,11 +183,8 @@ fn verify_alignment(ptr: *const u8) -> Result<()> {
     if ptr.align_offset(BYTES_PER_WORD) == 0 {
         Ok(())
     } else {
-        Err(Error::failed(
-            "Message was not aligned by 8 bytes boundary. \
-            Either ensure that message is properly aligned or compile \
-            `capnp` crate with \"unaligned\" feature enabled."
-                .to_string(),
+        Err(Error::from_kind(
+            ErrorKind::MessageNotAlignedBy8BytesBoundary,
         ))
     }
 }
@@ -209,7 +193,10 @@ fn verify_alignment(ptr: *const u8) -> Result<()> {
 /// Returns Error if there are not enough bytes to read u32
 fn read_u32_le(slice: &mut &[u8]) -> Result<u32> {
     if slice.len() < U32_LEN_IN_BYTES {
-        return Err(Error::disconnected("Message ended too soon".to_string()));
+        return Err(Error::from_kind(ErrorKind::MessageEndsPrematurely(
+            U32_LEN_IN_BYTES,
+            slice.len(),
+        )));
     }
 
     // Panic safety: we just confirmed that `slice` has at least `U32_LEN_IN_BYTES` so nothing
@@ -230,13 +217,7 @@ fn u32_to_segments_count(val: u32) -> Result<usize> {
     // We need to do +1 to value read from the stream.
     let result = result.and_then(|v: usize| v.checked_add(1));
 
-    result.ok_or_else(|| {
-        Error::failed(
-            "Cannot represent 4 byte length as `usize`. This may indicate that you are \
-            running on 8 or 16 bit platform or message is too large."
-                .to_string(),
-        )
-    })
+    result.ok_or_else(|| Error::from_kind(ErrorKind::FourByteLengthTooBigForUSize))
 }
 
 /// Converts 32 bit vlaue which represents encoded segment length to usize segment length in bytes
@@ -246,13 +227,7 @@ fn u32_to_segment_length_bytes(val: u32) -> Result<usize> {
 
     let length_in_bytes = length_in_words.and_then(|l| l.checked_mul(BYTES_PER_WORD));
 
-    length_in_bytes.ok_or_else(|| {
-        Error::failed(
-            "Cannot represent 4 byte segment length as usize. This may indicate that \
-            you are running on 8 or 16 bit platform or segment is too large"
-                .to_string(),
-        )
-    })
+    length_in_bytes.ok_or_else(|| Error::from_kind(ErrorKind::FourByteSegmentLengthTooBigForUSize))
 }
 
 /// Calculates expected offset of the message data (beginning of first segment)

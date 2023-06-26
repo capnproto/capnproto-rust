@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use alloc::string::String;
 use alloc::vec::Vec;
 use core::slice;
 use core::u64;
@@ -27,7 +26,7 @@ use crate::message;
 use crate::message::{Allocator, ReaderSegments};
 use crate::private::read_limiter::ReadLimiter;
 use crate::private::units::*;
-use crate::{Error, OutputSegments, Result};
+use crate::{Error, ErrorKind, OutputSegments, Result};
 
 pub type SegmentId = u32;
 
@@ -93,16 +92,13 @@ where
                 #[cfg(not(feature = "unaligned"))]
                 {
                     if seg.as_ptr() as usize % BYTES_PER_WORD != 0 {
-                        return Err(Error::failed(
-                            String::from("Detected unaligned segment. You must either ensure all of your \
-                                          segments are 8-byte aligned, or you must enable the \"unaligned\" \
-                                          feature in the capnp crate")));
+                        return Err(Error::from_kind(ErrorKind::UnalignedSegment));
                     }
                 }
 
                 Ok((seg.as_ptr(), (seg.len() / BYTES_PER_WORD) as u32))
             }
-            None => Err(Error::failed(format!("Invalid segment id: {id}"))),
+            None => Err(Error::from_kind(ErrorKind::InvalidSegmentId(id))),
         }
     }
 
@@ -119,9 +115,9 @@ where
         let start_idx = start as usize;
         if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size
         {
-            Err(Error::failed(String::from(
-                "message contained out-of-bounds pointer",
-            )))
+            Err(Error::from_kind(
+                ErrorKind::MessageContainsOutOfBoundsPointer,
+            ))
         } else {
             unsafe { Ok(start.offset(offset as isize)) }
         }
@@ -135,9 +131,9 @@ where
         let size = size_in_words * BYTES_PER_WORD;
 
         if !(start >= this_start && start - this_start + size <= this_size) {
-            Err(Error::failed(String::from(
-                "message contained out-of-bounds pointer",
-            )))
+            Err(Error::from_kind(
+                ErrorKind::MessageContainsOutOfBoundsPointer,
+            ))
         } else {
             self.read_limiter.can_read(size_in_words)
         }
@@ -381,7 +377,7 @@ pub struct NullArena;
 
 impl ReaderArena for NullArena {
     fn get_segment(&self, _id: u32) -> Result<(*const u8, u32)> {
-        Err(Error::failed(String::from("tried to read from null arena")))
+        Err(Error::from_kind(ErrorKind::TriedToReadFromNullArena))
     }
 
     unsafe fn check_offset(

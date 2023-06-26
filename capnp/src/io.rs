@@ -1,9 +1,7 @@
 //! Custom I/O traits that roughly mirror `std::io::{Read, BufRead, Write}`.
 //! This extra layer of indirection enables support of no-std environments.
 
-use alloc::string::ToString;
-
-use crate::Result;
+use crate::{Error, ErrorKind, Result};
 
 /// A rough approximation of std::io::Read.
 pub trait Read {
@@ -26,9 +24,7 @@ pub trait Read {
             }
         }
         if !buf.is_empty() {
-            Err(crate::Error::failed(
-                "failed to fill the whole buffer".to_string(),
-            ))
+            Err(Error::from_kind(ErrorKind::FailedToFillTheWholeBuffer))
         } else {
             Ok(())
         }
@@ -92,13 +88,14 @@ mod std_impls {
 #[cfg(not(feature = "std"))]
 mod no_std_impls {
     use crate::io::{BufRead, Read, Write};
-    use crate::{Error, Result};
+    use crate::{Error, ErrorKind, Result};
+    #[cfg(feature = "alloc")]
     use alloc::string::ToString;
 
     impl<'a> Write for &'a mut [u8] {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
             if buf.len() > self.len() {
-                return Err(Error::failed("buffer is not large enough".to_string()));
+                return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough));
             }
             let amt = buf.len();
             let (a, b) = core::mem::take(self).split_at_mut(amt);

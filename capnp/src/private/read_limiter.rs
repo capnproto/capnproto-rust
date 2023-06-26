@@ -24,8 +24,7 @@ pub use sync::ReadLimiter;
 
 #[cfg(feature = "sync_reader")]
 mod sync {
-    use crate::{Error, Result};
-    use alloc::string::String;
+    use crate::{Error, ErrorKind, Result};
     use core::sync::atomic::{AtomicUsize, Ordering};
 
     pub struct ReadLimiter {
@@ -57,7 +56,7 @@ mod sync {
 
             let current = self.limit.load(Ordering::Relaxed);
             if amount > current && self.error_on_limit_exceeded {
-                return Err(Error::failed(String::from("read limit exceeded")));
+                return Err(Error::from_kind(ErrorKind::ReadLimitExceeded));
             } else {
                 // The common case is current >= amount. Note that we only branch once in that case.
                 // If we combined the fields into an Option<AtomicUsize>, we would
@@ -75,8 +74,7 @@ pub use unsync::ReadLimiter;
 
 #[cfg(not(feature = "sync_reader"))]
 mod unsync {
-    use crate::{Error, Result};
-    use alloc::string::String;
+    use crate::{Error, ErrorKind, Result};
     use core::cell::Cell;
 
     pub struct ReadLimiter {
@@ -102,7 +100,7 @@ mod unsync {
         pub fn can_read(&self, amount: usize) -> Result<()> {
             let current = self.limit.get();
             if amount > current && self.error_on_limit_exceeded {
-                Err(Error::failed(String::from("read limit exceeded")))
+                Err(Error::from_kind(ErrorKind::ReadLimitExceeded))
             } else {
                 // The common case is current >= amount. Note that we only branch once in that case.
                 // If we combined the fields into an Option<Cell<usize>>, we would

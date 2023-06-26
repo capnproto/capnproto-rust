@@ -70,10 +70,12 @@ impl StructSchema {
         if let Some(field) = self.find_field_by_name(name)? {
             Ok(field)
         } else {
-            Err(crate::Error::failed(format!(
-                "field \"{}\" not found",
-                name
-            )))
+            // error needs to be mutable only when the alloc feature is enabled
+            #[allow(unused_mut)]
+            let mut error = crate::Error::from_kind(crate::ErrorKind::FieldNotFound);
+            #[cfg(feature = "alloc")]
+            error.extra(name.to_string());
+            Err(error)
         }
     }
 

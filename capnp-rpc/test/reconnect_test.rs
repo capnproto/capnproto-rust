@@ -101,8 +101,8 @@ macro_rules! assert_err {
         let e1 = $e1;
         let e2 = $e2;
         assert_eq!(e1.kind, e2.kind);
-        if !e1.description.ends_with(&e2.description) {
-            assert_eq!(e1.description, e2.description);
+        if !e1.extra.ends_with(&e2.extra) {
+            assert_eq!(e1.extra, e2.extra);
         }
     };
 }
