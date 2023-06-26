@@ -25,9 +25,9 @@ convert_case = "0.6"
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "2.0", features = ["full"] }
-tempfile = "3.5"
 wax = "0.5.0"
 walkdir = "2"
+tempfile = "3.6"
 
 [build-dependencies]
 relative-path = "1.7.2"

@@ -73,18 +73,44 @@ fn main() -> anyhow::Result<()> {
 
         // when capnproto accepts our PR, windows can fetch bin artifacts from it.
         // until then, we must build capnproto ourselves.
-        capnp_path = Some(build_with_cmake(&out_dir)?);
+
+        let built_bin = build_with_cmake(&out_dir)?;
+
+        capnp_path = Some(built_bin);
     }
 
-    // export the location of the finalized binary to a place that the lib.rs can find it
-    // this might cause problems later, but we'd need artefact deps that allow arbitrary
-    // non-rust artefacts to fix it
     fs::write(
-        out_dir.join("binary_decision.rs"),
+        out_dir.join("extract_bin.rs"),
         format!(
-            "const CAPNP_BIN_PATH: &str = \"{}/{}\";",
+            "
+#[allow(dead_code)]
+fn commandhandle() -> anyhow::Result<tempfile::TempDir> {{
+    use std::io::Write;
+    #[cfg(target_os = \"linux\")]
+    use std::os::unix::fs::OpenOptionsExt;
+    use tempfile::tempdir;
+
+    let file_contents = include_bytes!(\"{}/{}\");
+
+    let tempdir = tempdir()?;
+
+    #[cfg(target_os = \"linux\")]
+    let mut handle = 
+        std::fs::OpenOptions::new()
+        .write(true)
+        .mode(0o770)
+        .create(true)
+        .open(tempdir.path().join(\"capnp\"))?;
+
+    #[cfg(target_os = \"windows\")]
+    let mut handle = std::fs::OpenOptions::new().write(true).create(true).open(tempdir.path().join(\"capnp\"))?;
+
+    handle.write_all(file_contents)?;
+
+    Ok(tempdir)
+}}",
             out_dir.to_string_lossy().replace('\\', "/"),
-            capnp_path.unwrap()
+            capnp_path.unwrap(),
         ),
     )?;
 
