@@ -8,6 +8,9 @@ use std::{
     process::Command,
 };
 
+#[cfg(feature = "deny-net-fetch")]
+use anyhow::bail;
+
 // update this whenever you change the subtree pointer
 const CAPNP_VERSION: &str = "0.11.0";
 
