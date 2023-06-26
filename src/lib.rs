@@ -1,5 +1,7 @@
 //! Download and/or build official Cap-n-Proto compiler (capnp) release for the current OS and architecture
 
+use anyhow::anyhow;
+use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
@@ -69,15 +71,7 @@ where
     let module_path = file_path
         .components()
         .skip(1)
-        .map(|component| {
-            component
-                .as_os_str()
-                .to_str()
-                .unwrap()
-                .to_string()
-                .replace("-", "_")
-                .replace(" ", "_")
-        })
+        .map(|component| component.as_os_str().to_str().unwrap().to_case(Case::Snake))
         .take_while(|name| !name.ends_with(".capnp"))
         .collect::<Vec<String>>();
     //dbg!(&module_path);
@@ -94,15 +88,15 @@ fn construct_module_tree(root: &Path, skip_root: bool) -> anyhow::Result<TokenSt
     //dbg!(root);
     if root.is_file() {
         // Read file contents and return as module
-        let contents = TokenStream2::from_str(&fs::read_to_string(&root)?).unwrap();
+        let contents = TokenStream2::from_str(&fs::read_to_string(&root)?)
+            .map_err(|_| anyhow!("Couldn't get file contents as TokenStream"))?;
         let module_name = format_ident!(
             "{}",
             root.file_stem()
-                .unwrap()
+                .ok_or(anyhow!("Module name can't be empty"))?
                 .to_str()
-                .unwrap()
-                .replace("-", "_")
-                .replace(" ", "_")
+                .ok_or(anyhow!("Module name must be valid UTF-8"))?
+                .to_case(Case::Snake)
         );
         let res = quote! {
             pub mod #module_name {
@@ -123,12 +117,11 @@ fn construct_module_tree(root: &Path, skip_root: bool) -> anyhow::Result<TokenSt
         let module_name = root
             .components()
             .last()
-            .unwrap()
+            .ok_or(anyhow!("Module name can't be empty"))?
             .as_os_str()
             .to_str()
-            .unwrap()
-            .replace("-", "_")
-            .replace(" ", "_");
+            .ok_or(anyhow!("Module name must be valid UTF-8"))?
+            .to_case(Case::Snake);
         let module_name = format_ident!("{}", module_name);
         let res = quote! {
             pub mod #module_name {
@@ -144,17 +137,14 @@ fn construct_module_tree(root: &Path, skip_root: bool) -> anyhow::Result<TokenSt
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::*;
-    use anyhow::anyhow;
+    use std::collections::HashSet;
 
     #[test]
     fn basic_file_test() -> anyhow::Result<()> {
         //println!("{:?}", std::env::current_dir().unwrap());
         let contents = process_inner(["tests/example.capnp"])?.to_string();
         assert!(contents.starts_with("pub mod tests { pub mod example_capnp {"));
-        //assert!(contents.starts_with("mod example_capnp {"));
         assert!(contents.ends_with("}"));
         Ok(())
     }
