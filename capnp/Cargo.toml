@@ -21,7 +21,8 @@ quickcheck = { version = "1", optional = true }
 quickcheck = "1"
 
 [features]
-default = ["std"]
+alloc = []
+default = ["std", "alloc"]
 
 rpc_try = []
 

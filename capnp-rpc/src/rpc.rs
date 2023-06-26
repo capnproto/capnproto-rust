@@ -355,12 +355,16 @@ fn to_pipeline_ops(
 }
 
 fn from_error(error: &Error, mut builder: exception::Builder) {
-    builder.set_reason(&error.description);
+    builder.set_reason(&error.to_string());
     let typ = match error.kind {
         ::capnp::ErrorKind::Failed => exception::Type::Failed,
         ::capnp::ErrorKind::Overloaded => exception::Type::Overloaded,
         ::capnp::ErrorKind::Disconnected => exception::Type::Disconnected,
         ::capnp::ErrorKind::Unimplemented => exception::Type::Unimplemented,
+        ::capnp::ErrorKind::SettingDynamicCapabilitiesIsUnsupported => {
+            exception::Type::Unimplemented
+        }
+        _ => exception::Type::Failed,
     };
     builder.set_type(typ);
 }
@@ -378,7 +382,7 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
         _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
     };
     Error {
-        description: format!("remote exception: {reason}"),
+        extra: format!("remote exception: {reason}"),
         kind,
     }
 }

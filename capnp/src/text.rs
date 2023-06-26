@@ -23,7 +23,7 @@
 
 use core::{convert, ops, str};
 
-use crate::{Error, Result};
+use crate::{Error, ErrorKind, Result};
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
@@ -44,7 +44,7 @@ pub type Reader<'a> = &'a str;
 pub fn new_reader(v: &[u8]) -> Result<Reader<'_>> {
     match str::from_utf8(v) {
         Ok(v) => Ok(v),
-        Err(e) => Err(Error::failed(format!("Text contains non-utf8 data: {e:?}"))),
+        Err(e) => Err(Error::from_kind(ErrorKind::TextContainsNonUtf8Data(e))),
     }
 }
 
@@ -66,7 +66,7 @@ impl<'a> Builder<'a> {
     pub fn new(bytes: &mut [u8], pos: u32) -> Result<Builder<'_>> {
         if pos != 0 {
             if let Err(e) = str::from_utf8(bytes) {
-                return Err(Error::failed(format!("Text contains non-utf8 data: {e:?}")));
+                return Err(Error::from_kind(ErrorKind::TextContainsNonUtf8Data(e)));
             }
         }
         Ok(Builder {

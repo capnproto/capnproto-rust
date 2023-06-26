@@ -59,7 +59,7 @@ impl<'a> Reader<'a> {
             }
             (value::Interface(()), TypeVariant::Capability) => Ok(Capability.into()),
             (value::AnyPointer(a), TypeVariant::AnyPointer) => Ok(a.into()),
-            _ => Err(crate::Error::failed("type mismatch".into())),
+            _ => Err(crate::Error::from_kind(crate::ErrorKind::TypeMismatch)),
         }
     }
 

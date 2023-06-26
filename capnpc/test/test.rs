@@ -1590,7 +1590,7 @@ mod tests {
         match message.get_root::<crate::test_capnp::test_all_types::Reader<'_>>() {
             Ok(_) => panic!("expected out-of-bounds error"),
             Err(e) => {
-                assert_eq!(e.description, "message contained out-of-bounds pointer")
+                assert_eq!(&e.to_string(), "Message contains out-of-bounds pointer")
             }
         }
     }
@@ -1623,7 +1623,7 @@ mod tests {
         match message.get_root::<crate::test_capnp::test_all_types::Reader<'_>>() {
             Ok(_) => panic!("expected out-of-bounds error"),
             Err(e) => {
-                assert_eq!(e.description, "message contained out-of-bounds pointer")
+                assert_eq!(e.to_string(), "Message contains out-of-bounds pointer")
             }
         }
     }
@@ -1688,7 +1688,7 @@ mod tests {
         match root.total_size() {
             Err(e) => assert_eq!(
                 "InlineComposite list's elements overrun its word count.",
-                e.description
+                &e.to_string()
             ),
             _ => panic!("did not get expected error"),
         }
@@ -1706,7 +1706,7 @@ mod tests {
         match builder_root.get_any_pointer_field().set_as(root) {
             Err(e) => assert_eq!(
                 "InlineComposite list's elements overrun its word count.",
-                e.description
+                &e.to_string()
             ),
             _ => panic!("did not get expected error"),
         }
@@ -1829,7 +1829,7 @@ mod tests {
             *ReaderOptions::new().traversal_limit_in_words(Some(2)),
         );
         match reader.get_root::<test_all_types::Reader<'_>>() {
-            Err(e) => assert_eq!(e.description, "read limit exceeded"),
+            Err(e) => assert_eq!(&e.to_string(), "Read limit exceeded"),
             Ok(_) => panic!("expected error"),
         }
     }

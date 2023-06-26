@@ -4,7 +4,7 @@ use crate::dynamic_value;
 use crate::introspect::{Type, TypeVariant};
 use crate::private::layout::{self, PrimitiveElement};
 use crate::traits::{IndexMove, ListIter};
-use crate::Result;
+use crate::{Error, ErrorKind, Result};
 
 /// A read-only dynamically-typed list.
 #[derive(Copy, Clone)]
@@ -321,13 +321,13 @@ impl<'a> Builder<'a> {
                 .reborrow()
                 .get_pointer_element(index)
                 .set_list(&list.reader, false),
-            (TypeVariant::AnyPointer, _) => Err(crate::Error::failed(
-                "List(AnyPointer) not supported".into(),
-            )),
-            (TypeVariant::Capability, dynamic_value::Reader::Capability(_)) => Err(
-                crate::Error::failed("List(Capability) not supported".into()),
-            ),
-            (_, _) => Err(crate::Error::failed("Type mismatch".into())),
+            (TypeVariant::AnyPointer, _) => {
+                Err(Error::from_kind(ErrorKind::ListAnyPointerNotSupported))
+            }
+            (TypeVariant::Capability, dynamic_value::Reader::Capability(_)) => {
+                Err(Error::from_kind(ErrorKind::ListCapabilityNotSupported))
+            }
+            (_, _) => Err(Error::from_kind(ErrorKind::TypeMismatch)),
         }
     }
 
@@ -348,9 +348,7 @@ impl<'a> Builder<'a> {
             | TypeVariant::Float64
             | TypeVariant::Enum(_)
             | TypeVariant::Struct(_)
-            | TypeVariant::Capability => {
-                Err(crate::Error::failed("Expected a list or blob.".into()))
-            }
+            | TypeVariant::Capability => Err(Error::from_kind(ErrorKind::ExpectedAListOrBlob)),
             TypeVariant::Text => Ok(self
                 .builder
                 .get_pointer_element(index)
@@ -378,9 +376,7 @@ impl<'a> Builder<'a> {
                 )
                 .into()),
             },
-            TypeVariant::AnyPointer => Err(crate::Error::failed(
-                "List(AnyPointer) not supported.".into(),
-            )),
+            TypeVariant::AnyPointer => Err(Error::from_kind(ErrorKind::ListAnyPointerNotSupported)),
         }
     }
 }

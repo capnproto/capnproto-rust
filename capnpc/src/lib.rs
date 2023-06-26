@@ -90,7 +90,7 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
         _ => capnp::ErrorKind::Failed,
     };
     capnp::Error {
-        description: format!("{err}"),
+        extra: format!("{err}"),
         kind,
     }
 }
@@ -399,6 +399,6 @@ impl CompilerCommand {
 #[cfg_attr(miri, ignore)]
 fn compiler_command_new_no_out_dir() {
     std::env::remove_var("OUT_DIR");
-    let error = CompilerCommand::new().run().unwrap_err().description;
+    let error = CompilerCommand::new().run().unwrap_err().extra;
     assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
 }

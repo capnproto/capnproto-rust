@@ -4,8 +4,8 @@ use crate::introspect::TypeVariant;
 use crate::private::layout;
 use crate::schema::{Field, StructSchema};
 use crate::schema_capnp::{field, node, value};
-use crate::Result;
 use crate::{dynamic_list, dynamic_value};
+use crate::{Error, ErrorKind, Result};
 
 fn has_discriminant_value(reader: field::Reader) -> bool {
     reader.get_discriminant_value() != field::NO_DISCRIMINANT
@@ -18,7 +18,7 @@ pub(crate) fn struct_size_from_schema(schema: StructSchema) -> Result<layout::St
             pointers: s.get_pointer_count(),
         })
     } else {
-        Err(crate::Error::failed("not a struct".into()))
+        Err(Error::from_kind(ErrorKind::NotAStruct))
     }
 }
 
@@ -160,16 +160,14 @@ impl<'a> Reader<'a> {
                     (TypeVariant::Capability, value::Interface(())) => {
                         Ok(dynamic_value::Reader::Capability(dynamic_value::Capability))
                     }
-                    _ => Err(crate::Error::failed("field and default mismatch".into())),
+                    _ => Err(Error::from_kind(ErrorKind::FieldAndDefaultMismatch)),
                 }
             }
             field::Group(_) => {
                 if let TypeVariant::Struct(schema) = ty.which() {
                     Ok(Reader::new(self.reader, schema.into()).into())
                 } else {
-                    Err(crate::Error::failed(
-                        "group field but type is not Struct".into(),
-                    ))
+                    Err(Error::from_kind(ErrorKind::GroupFieldButTypeIsNotStruct))
                 }
             }
         }
@@ -184,7 +182,7 @@ impl<'a> Reader<'a> {
     /// Otherwise, returns None.
     pub fn which(&self) -> Result<Option<Field>> {
         let node::Struct(st) = self.schema.get_proto().which()? else {
-            return Err(crate::Error::failed("not a struct".into()))
+            return Err(Error::from_kind(ErrorKind::NotAStruct))
         };
         if st.get_discriminant_count() == 0 {
             Ok(None)
@@ -202,7 +200,7 @@ impl<'a> Reader<'a> {
         let proto = field.get_proto();
         if has_discriminant_value(proto) {
             let node::Struct(st) = self.schema.get_proto().which()? else {
-                return Err(crate::Error::failed("not a struct".into()))
+                return Err(Error::from_kind(ErrorKind::NotAStruct))
             };
 
             let discrim = self
@@ -392,16 +390,14 @@ impl<'a> Builder<'a> {
                     (TypeVariant::Capability, value::Interface(())) => Ok(
                         dynamic_value::Builder::Capability(dynamic_value::Capability),
                     ),
-                    _ => Err(crate::Error::failed("field and default mismatch".into())),
+                    _ => Err(Error::from_kind(ErrorKind::FieldAndDefaultMismatch)),
                 }
             }
             field::Group(_) => {
                 if let TypeVariant::Struct(schema) = ty.which() {
                     Ok(Builder::new(self.builder, schema.into()).into())
                 } else {
-                    Err(crate::Error::failed(
-                        "group field but type is not Struct".into(),
-                    ))
+                    Err(Error::from_kind(ErrorKind::GroupFieldButTypeIsNotStruct))
                 }
             }
         }
@@ -414,7 +410,7 @@ impl<'a> Builder<'a> {
 
     pub fn which(&self) -> Result<Option<Field>> {
         let node::Struct(st) = self.schema.get_proto().which()? else {
-            return Err(crate::Error::failed("not a struct".into()))
+            return Err(Error::from_kind(ErrorKind::NotAStruct))
         };
         if st.get_discriminant_count() == 0 {
             Ok(None)
@@ -518,28 +514,26 @@ impl<'a> Builder<'a> {
                             dynamic_value::Reader::Data(t) => target.set_as(t),
                             dynamic_value::Reader::Struct(s) => target.set_as(s),
                             dynamic_value::Reader::List(l) => target.set_as(l),
-                            dynamic_value::Reader::Capability(_) => {
-                                Err(crate::Error::unimplemented(
-                                    "setting dynamic capabilities is unsupported".into(),
-                                ))
-                            }
-                            _ => Err(crate::Error::failed(
-                                "cannot set AnyPointer field to a primitive value".into(),
+                            dynamic_value::Reader::Capability(_) => Err(Error::from_kind(
+                                ErrorKind::SettingDynamicCapabilitiesIsUnsupported,
+                            )),
+                            _ => Err(Error::from_kind(
+                                ErrorKind::CannotSetAnyPointerFieldToAPrimitiveValue,
                             )),
                         }
                     }
-                    (TypeVariant::Capability, _, _) => Err(crate::Error::unimplemented(
-                        "setting dynamic capabilities is unsupported".into(),
+                    (TypeVariant::Capability, _, _) => Err(Error::from_kind(
+                        ErrorKind::SettingDynamicCapabilitiesIsUnsupported,
                     )),
-                    _ => Err(crate::Error::failed("type mismatch".into())),
+                    _ => Err(Error::from_kind(ErrorKind::TypeMismatch)),
                 }
             }
             field::Group(_group) => {
                 let dynamic_value::Reader::Struct(src) = value else {
-                    return Err(crate::Error::failed("not a struct".into()))
+                    return Err(Error::from_kind(ErrorKind::NotAStruct))
                 };
                 let dynamic_value::Builder::Struct(mut dst) = self.reborrow().init(field)? else {
-                    return Err(crate::Error::failed("not a struct".into()))
+                    return Err(Error::from_kind(ErrorKind::NotAStruct))
                 };
                 if let Some(union_field) = src.which()? {
                     dst.set(union_field, src.get(union_field)?)?;
@@ -583,15 +577,15 @@ impl<'a> Builder<'a> {
                         p.clear();
                         Ok(crate::any_pointer::Builder::new(p).into())
                     }
-                    _ => Err(crate::Error::failed(
-                        "init() is only valid for struct and AnyPointer fields".into(),
+                    _ => Err(Error::from_kind(
+                        ErrorKind::InitIsOnlyValidForStructAndAnyPointerFields,
                     )),
                 }
             }
             field::Group(_) => {
                 self.clear(field)?;
                 let TypeVariant::Struct(schema) = ty.which() else {
-                    return Err(crate::Error::failed("not a struct".into()))
+                    return Err(Error::from_kind(ErrorKind::NotAStruct))
                 };
                 Ok((Builder::new(self.builder, schema.into())).into())
             }
@@ -638,13 +632,13 @@ impl<'a> Builder<'a> {
                         .init_data(size)
                         .into()),
 
-                    _ => Err(crate::Error::failed(
-                        "initn() is only valid for list, text, or data fields".into(),
+                    _ => Err(Error::from_kind(
+                        ErrorKind::InitnIsOnlyValidForListTextOrDataFields,
                     )),
                 }
             }
-            field::Group(_) => Err(crate::Error::failed(
-                "initn() is only valid for list, text, or data fields".into(),
+            field::Group(_) => Err(Error::from_kind(
+                ErrorKind::InitnIsOnlyValidForListTextOrDataFields,
             )),
         }
     }
@@ -689,7 +683,7 @@ impl<'a> Builder<'a> {
             }
             field::Group(_) => {
                 let TypeVariant::Struct(schema) = ty.which() else {
-                    return Err(crate::Error::failed("not a struct".into()))
+                    return Err(Error::from_kind(ErrorKind::NotAStruct))
                 };
                 let mut group = Builder::new(self.builder.reborrow(), schema.into());
 
@@ -716,7 +710,7 @@ impl<'a> Builder<'a> {
     fn set_in_union(&mut self, field: Field) -> Result<()> {
         if has_discriminant_value(field.get_proto()) {
             let node::Struct(st) = self.schema.get_proto().which()? else {
-                return Err(crate::Error::failed("not a struct".into()))
+                return Err(Error::from_kind(ErrorKind::NotAStruct))
             };
             self.builder.set_data_field::<u16>(
                 st.get_discriminant_offset() as usize,
