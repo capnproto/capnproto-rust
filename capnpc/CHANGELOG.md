@@ -1,3 +1,7 @@
+## v0.17.2
+- Add the `$Rust.option` annotation for declaring fields to be optional.
+- Add `CompilerCommand::crate_provides()`, allowing cross-crate imports.
+
 ## v0.17.1
 - Fix setters of enum fields with defaults.
 
