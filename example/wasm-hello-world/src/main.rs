@@ -37,9 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let segment_size = output_segments[0].len();
         assert!(memory.view(&store).size().bytes().0 >= START_BYTE + segment_size);
         let view = memory.view(&store);
-        for ii in 0..output_segments[0].len() {
-            view.write_u8((START_BYTE + ii) as u64, output_segments[0][ii])?;
-        }
+        view.write(START_BYTE as u64, output_segments[0])?;
         segment_size
     };
 
