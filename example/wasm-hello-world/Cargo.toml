@@ -9,7 +9,7 @@ build = "build.rs"
 members = ["."]
 
 [dependencies]
-wasmer = "3.3.0"
+wasmer = "4.0.0"
 
 [dependencies.capnp]
 path = "../../capnp"
