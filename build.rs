@@ -86,7 +86,7 @@ fn main() -> anyhow::Result<()> {
 #[allow(dead_code)]
 fn commandhandle() -> anyhow::Result<tempfile::TempDir> {{
     use std::io::Write;
-    #[cfg(target_os = \"linux\")]
+    #[cfg(any(target_os = \"linux\", target_os = \"macos\"))]
     use std::os::unix::fs::OpenOptionsExt;
     use tempfile::tempdir;
 
@@ -94,7 +94,7 @@ fn commandhandle() -> anyhow::Result<tempfile::TempDir> {{
 
     let tempdir = tempdir()?;
 
-    #[cfg(target_os = \"linux\")]
+    #[cfg(any(target_os = \"linux\", target_os = \"macos\"))]
     let mut handle = 
         std::fs::OpenOptions::new()
         .write(true)
@@ -104,6 +104,9 @@ fn commandhandle() -> anyhow::Result<tempfile::TempDir> {{
 
     #[cfg(target_os = \"windows\")]
     let mut handle = std::fs::OpenOptions::new().write(true).create(true).open(tempdir.path().join(\"capnp\"))?;
+
+    #[cfg(not(any(target_os = \"linux\", target_os = \"macos\", target_os = \"windows\")))]
+    compile_error!(\"capnp-import does not support your operating system!\");
 
     handle.write_all(file_contents)?;
 
@@ -133,9 +136,8 @@ fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
 
     // it would be nice to be able to use mold
 
-    if cfg!(target_os = "windows") {
-        dst.cxxflag("/EHsc");
-    }
+    #[cfg(target_os = "windows")]
+    dst.cxxflag("/EHsc");
 
     let dst = dst.define("BUILD_TESTING", "OFF").build();
 
@@ -147,7 +149,7 @@ fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
         Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
             "bin/capnp.exe",
         )))
-    } else if cfg!(target_os = "linux") {
+    } else if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         Ok(CapnprotoAcquired::Locally(RelativePathBuf::from(
             "bin/capnp",
         )))
