@@ -21,10 +21,12 @@
 
 //! Untyped pointer that can be cast to any struct, list, or capability type.
 
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+use alloc::{boxed::Box, vec::Vec};
 
+#[cfg(feature = "alloc")]
 use crate::capability::FromClientHook;
+#[cfg(feature = "alloc")]
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
 use crate::private::layout::{PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, SetPointerBuilder};
@@ -44,6 +46,7 @@ impl crate::introspect::Introspect for Owned {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl crate::traits::Pipelined for Owned {
     type Pipeline = Pipeline;
 }
@@ -73,12 +76,14 @@ impl<'a> Reader<'a> {
         FromPointerReader::get_from_pointer(&self.reader, None)
     }
 
+    #[cfg(feature = "alloc")]
     pub fn get_as_capability<T: FromClientHook>(&self) -> Result<T> {
         Ok(FromClientHook::new(self.reader.get_capability()?))
     }
 
     //# Used by RPC system to implement pipelining. Applications
     //# generally shouldn't use this directly.
+    #[cfg(feature = "alloc")]
     pub fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Result<Box<dyn ClientHook>> {
         let mut pointer = self.reader;
 
@@ -117,6 +122,7 @@ impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> crate::traits::Imbue<'a> for Reader<'a> {
     fn imbue(&mut self, cap_table: &'a crate::private::layout::CapTable) {
         self.reader
@@ -165,6 +171,7 @@ impl<'a> Builder<'a> {
     }
 
     // XXX value should be a user client.
+    #[cfg(feature = "alloc")]
     pub fn set_as_capability(&mut self, value: Box<dyn ClientHook>) {
         self.builder.set_capability(value);
     }
@@ -199,6 +206,7 @@ impl<'a> FromPointerBuilder<'a> for Builder<'a> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> crate::traits::ImbueMut<'a> for Builder<'a> {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
         self.builder
@@ -206,6 +214,7 @@ impl<'a> crate::traits::ImbueMut<'a> for Builder<'a> {
     }
 }
 
+#[cfg(feature = "alloc")]
 pub struct Pipeline {
     // XXX this should not be public
     pub hook: Box<dyn PipelineHook>,
@@ -213,6 +222,7 @@ pub struct Pipeline {
     ops: Vec<PipelineOp>,
 }
 
+#[cfg(feature = "alloc")]
 impl Pipeline {
     pub fn new(hook: Box<dyn PipelineHook>) -> Self {
         Self {
@@ -245,24 +255,28 @@ impl Pipeline {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl crate::capability::FromTypelessPipeline for Pipeline {
     fn new(typeless: Pipeline) -> Self {
         typeless
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
     fn from(a: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
         crate::dynamic_value::Reader::AnyPointer(a)
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
     fn from(a: Builder<'a>) -> crate::dynamic_value::Builder<'a> {
         crate::dynamic_value::Builder::AnyPointer(a)
     }
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn init_clears_value() {
     let mut message = crate::message::Builder::new_default();

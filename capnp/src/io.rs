@@ -105,6 +105,7 @@ mod no_std_impls {
         }
     }
 
+    #[cfg(feature = "alloc")]
     impl Write for alloc::vec::Vec<u8> {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
             self.extend_from_slice(buf);

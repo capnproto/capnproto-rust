@@ -1,5 +1,6 @@
 //! Dynamically-typed structs.
 
+#![cfg(feature = "alloc")]
 use crate::introspect::TypeVariant;
 use crate::private::layout;
 use crate::schema::{Field, StructSchema};

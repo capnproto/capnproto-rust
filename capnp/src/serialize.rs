@@ -26,18 +26,26 @@
 mod no_alloc_slice_segments;
 pub use no_alloc_slice_segments::NoAllocSliceSegments;
 
+#[cfg(feature = "alloc")]
 use crate::io::{Read, Write};
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
 use core::convert::TryInto;
+#[cfg(feature = "alloc")]
 use core::ops::Deref;
 
 use crate::message;
+#[cfg(feature = "alloc")]
 use crate::private::units::BYTES_PER_WORD;
-use crate::{Error, ErrorKind, Result};
+use crate::Result;
+#[cfg(feature = "alloc")]
+use crate::{Error, ErrorKind};
 
 pub const SEGMENTS_COUNT_LIMIT: usize = 512;
 
 /// Segments read from a single flat slice of words.
+#[cfg(feature = "alloc")]
 pub struct SliceSegments<'a> {
     words: &'a [u8],
 
@@ -46,6 +54,7 @@ pub struct SliceSegments<'a> {
     segment_indices: Vec<(usize, usize)>,
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> message::ReaderSegments for SliceSegments<'a> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         if id < self.segment_indices.len() as u32 {
@@ -67,6 +76,7 @@ impl<'a> message::ReaderSegments for SliceSegments<'a> {
 ///
 /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `slice`.
 /// Otherwise, `slice` must be 8-byte aligned (attempts to read the message will trigger errors).
+#[cfg(feature = "alloc")]
 pub fn read_message_from_flat_slice<'a>(
     slice: &mut &'a [u8],
     options: message::ReaderOptions,
@@ -114,6 +124,7 @@ pub fn read_message_from_flat_slice_no_alloc<'a>(
 
 /// Segments read from a buffer, useful for when you have the message in a buffer and don't want the extra
 /// copy of `read_message`.
+#[cfg(feature = "alloc")]
 pub struct BufferSegments<T> {
     buffer: T,
 
@@ -125,6 +136,7 @@ pub struct BufferSegments<T> {
     segment_indices: Vec<(usize, usize)>,
 }
 
+#[cfg(feature = "alloc")]
 impl<T: Deref<Target = [u8]>> BufferSegments<T> {
     /// Reads a serialized message (including a segment table) from a buffer and takes ownership, without copying.
     /// The buffer is allowed to be longer than the message. Provide this to `Reader::new` with options that make
@@ -154,6 +166,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T: Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         if id < self.segment_indices.len() as u32 {
@@ -174,6 +187,7 @@ impl<T: Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
 
 /// Owned memory containing a message's segments sequentialized in a single contiguous buffer.
 /// The segments are guaranteed to be 8-byte aligned.
+#[cfg(feature = "alloc")]
 pub struct OwnedSegments {
     // Each pair represents a segment inside of `owned_space`.
     // (starting index (in words), ending index (in words))
@@ -182,6 +196,7 @@ pub struct OwnedSegments {
     owned_space: Vec<crate::Word>,
 }
 
+#[cfg(feature = "alloc")]
 impl core::ops::Deref for OwnedSegments {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
@@ -189,12 +204,14 @@ impl core::ops::Deref for OwnedSegments {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl core::ops::DerefMut for OwnedSegments {
     fn deref_mut(&mut self) -> &mut [u8] {
         crate::Word::words_to_bytes_mut(&mut self.owned_space[..])
     }
 }
 
+#[cfg(feature = "alloc")]
 impl crate::message::ReaderSegments for OwnedSegments {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         if id < self.segment_indices.len() as u32 {
@@ -210,12 +227,14 @@ impl crate::message::ReaderSegments for OwnedSegments {
     }
 }
 
+#[cfg(feature = "alloc")]
 /// Helper object for constructing an `OwnedSegments` or a `SliceSegments`.
 pub struct SegmentLengthsBuilder {
     segment_indices: Vec<(usize, usize)>,
     total_words: usize,
 }
 
+#[cfg(feature = "alloc")]
 impl SegmentLengthsBuilder {
     /// Creates a new `SegmentsLengthsBuilder`, initializing the segment_indices vector with
     /// `Vec::with_capacitiy(capacity)`. `capacity` should equal the number of times that `push_segment()`
@@ -269,6 +288,7 @@ impl SegmentLengthsBuilder {
 /// Reads a serialized message from a stream with the provided options.
 ///
 /// For optimal performance, `read` should be a buffered reader type.
+#[cfg(feature = "alloc")]
 pub fn read_message<R>(
     mut read: R,
     options: message::ReaderOptions,
@@ -289,6 +309,7 @@ where
 /// Like `read_message()`, but returns None instead of an error if there are zero bytes left in
 /// `read`. This is useful for reading a stream containing an unknown number of messages -- you
 /// call this function until it returns None.
+#[cfg(feature = "alloc")]
 pub fn try_read_message<R>(
     mut read: R,
     options: message::ReaderOptions,
@@ -309,6 +330,7 @@ where
 ///
 /// The segment table format for streams is defined in the Cap'n Proto
 /// [encoding spec](https://capnproto.org/encoding.html)
+#[cfg(feature = "alloc")]
 fn read_segment_table<R>(
     read: &mut R,
     options: message::ReaderOptions,
@@ -377,6 +399,7 @@ where
     Ok(Some(segment_lengths_builder))
 }
 
+#[cfg(feature = "alloc")]
 /// Reads segments from `read`.
 fn read_segments<R>(
     read: &mut R,
@@ -391,6 +414,7 @@ where
 }
 
 /// Constructs a flat vector containing the entire message, including a segment header.
+#[cfg(feature = "alloc")]
 pub fn write_message_to_words<A>(message: &message::Builder<A>) -> Vec<u8>
 where
     A: message::Allocator,
@@ -400,6 +424,7 @@ where
 
 /// Like `write_message_to_words()`, but takes a `ReaderSegments`, allowing it to be
 /// used on `message::Reader` objects (via `into_segments()`).
+#[cfg(feature = "alloc")]
 pub fn write_message_segments_to_words<R>(message: &R) -> Vec<u8>
 where
     R: message::ReaderSegments,
@@ -407,6 +432,7 @@ where
     flatten_segments(message)
 }
 
+#[cfg(feature = "alloc")]
 fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8> {
     let word_count = compute_serialized_size(segments);
     let segment_count = segments.len();
@@ -431,6 +457,7 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8
 ///
 /// The only source of errors from this function are `write.write_all()` calls. If you pass in
 /// a writer that never returns an error, then this function will never return an error.
+#[cfg(feature = "alloc")]
 pub fn write_message<W, A>(mut write: W, message: &message::Builder<A>) -> Result<()>
 where
     W: Write,
@@ -443,6 +470,7 @@ where
 
 /// Like `write_message()`, but takes a `ReaderSegments`, allowing it to be
 /// used on `message::Reader` objects (via `into_segments()`).
+#[cfg(feature = "alloc")]
 pub fn write_message_segments<W, R>(mut write: W, segments: &R) -> Result<()>
 where
     W: Write,
@@ -452,6 +480,7 @@ where
     write_segments(&mut write, segments)
 }
 
+#[cfg(feature = "alloc")]
 fn write_segment_table<W>(write: &mut W, segments: &[&[u8]]) -> Result<()>
 where
     W: Write,
@@ -462,6 +491,7 @@ where
 /// Writes a segment table to `write`.
 ///
 /// `segments` must contain at least one segment.
+#[cfg(feature = "alloc")]
 fn write_segment_table_internal<W, R>(write: &mut W, segments: &R) -> Result<()>
 where
     W: Write,
@@ -512,6 +542,7 @@ where
 }
 
 /// Writes segments to `write`.
+#[cfg(feature = "alloc")]
 fn write_segments<W, R: message::ReaderSegments + ?Sized>(write: &mut W, segments: &R) -> Result<()>
 where
     W: Write,
@@ -526,6 +557,7 @@ where
     Ok(())
 }
 
+#[cfg(feature = "alloc")]
 fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) -> usize {
     // Table size
     let len = segments.len();
@@ -542,6 +574,7 @@ fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) ->
 ///
 /// Multiply this by 8 (or `std::mem::size_of::<capnp::Word>()`) to get the number of bytes
 /// that [`write_message()`](fn.write_message.html) will write.
+#[cfg(feature = "alloc")]
 pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>) -> usize
 where
     A: crate::message::Allocator,
@@ -549,6 +582,7 @@ where
     compute_serialized_size(&message.get_segments_for_output())
 }
 
+#[cfg(feature = "alloc")]
 #[cfg(test)]
 pub mod test {
     use alloc::vec::Vec;

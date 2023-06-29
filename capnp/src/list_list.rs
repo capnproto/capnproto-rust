@@ -280,6 +280,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a, T: crate::traits::Owned> From<Reader<'a, T>> for crate::dynamic_value::Reader<'a> {
     fn from(t: Reader<'a, T>) -> crate::dynamic_value::Reader<'a> {
         crate::dynamic_value::Reader::List(crate::dynamic_list::Reader::new(
@@ -289,6 +290,7 @@ impl<'a, T: crate::traits::Owned> From<Reader<'a, T>> for crate::dynamic_value::
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a, T: crate::traits::Owned> From<Builder<'a, T>> for crate::dynamic_value::Builder<'a> {
     fn from(t: Builder<'a, T>) -> crate::dynamic_value::Builder<'a> {
         crate::dynamic_value::Builder::List(crate::dynamic_list::Builder::new(

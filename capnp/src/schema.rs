@@ -1,5 +1,6 @@
 //! Convenience wrappers of the datatypes defined in schema.capnp.
 
+#![cfg(feature = "alloc")]
 use crate::dynamic_value;
 use crate::introspect::{self, RawBrandedStructSchema, RawEnumSchema};
 use crate::private::layout;

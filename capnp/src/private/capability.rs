@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#![cfg(feature = "alloc")]
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 

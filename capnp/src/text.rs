@@ -151,12 +151,14 @@ impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
     fn from(t: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
         crate::dynamic_value::Reader::Text(t)
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
     fn from(t: Builder<'a>) -> crate::dynamic_value::Builder<'a> {
         crate::dynamic_value::Builder::Text(t)

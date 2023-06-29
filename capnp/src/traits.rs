@@ -19,8 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#[cfg(feature = "alloc")]
+use crate::private::layout::CapTable;
 use crate::private::layout::{
-    CapTable, ListReader, PointerBuilder, PointerReader, StructBuilder, StructReader, StructSize,
+    ListReader, PointerBuilder, PointerReader, StructBuilder, StructReader, StructSize,
 };
 use crate::Result;
 
@@ -87,10 +89,12 @@ pub trait SetPointerBuilder {
     ) -> Result<()>;
 }
 
+#[cfg(feature = "alloc")]
 pub trait Imbue<'a> {
     fn imbue(&mut self, caps: &'a CapTable);
 }
 
+#[cfg(feature = "alloc")]
 pub trait ImbueMut<'a> {
     fn imbue_mut(&mut self, caps: &'a mut CapTable);
 }

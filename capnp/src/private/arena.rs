@@ -18,15 +18,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
 use core::slice;
 use core::u64;
 
 use crate::message;
-use crate::message::{Allocator, ReaderSegments};
+#[cfg(feature = "alloc")]
+use crate::message::Allocator;
+use crate::message::ReaderSegments;
 use crate::private::read_limiter::ReadLimiter;
 use crate::private::units::*;
-use crate::{Error, ErrorKind, OutputSegments, Result};
+#[cfg(feature = "alloc")]
+use crate::OutputSegments;
+use crate::{Error, ErrorKind, Result};
 
 pub type SegmentId = u32;
 
@@ -157,6 +163,7 @@ pub trait BuilderArena: ReaderArena {
 }
 
 /// A wrapper around a memory segment used in building a message.
+#[cfg(feature = "alloc")]
 struct BuilderSegment {
     /// Pointer to the start of the segment.
     ptr: *mut u8,
@@ -169,6 +176,7 @@ struct BuilderSegment {
     allocated: u32,
 }
 
+#[cfg(feature = "alloc")]
 pub struct BuilderArenaImplInner<A>
 where
     A: Allocator,
@@ -179,6 +187,7 @@ where
     segments: Vec<BuilderSegment>,
 }
 
+#[cfg(feature = "alloc")]
 pub struct BuilderArenaImpl<A>
 where
     A: Allocator,
@@ -186,6 +195,7 @@ where
     inner: BuilderArenaImplInner<A>,
 }
 
+#[cfg(feature = "alloc")]
 impl<A> BuilderArenaImpl<A>
 where
     A: Allocator,
@@ -248,6 +258,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<A> ReaderArena for BuilderArenaImpl<A>
 where
     A: Allocator,
@@ -279,6 +290,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<A> BuilderArenaImplInner<A>
 where
     A: Allocator,
@@ -343,6 +355,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<A> BuilderArena for BuilderArenaImpl<A>
 where
     A: Allocator,
@@ -364,6 +377,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<A> Drop for BuilderArenaImplInner<A>
 where
     A: Allocator,

@@ -29,11 +29,13 @@
 #![cfg_attr(feature = "rpc_try", feature(try_trait_v2))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(feature = "alloc")]
 #[macro_use]
 extern crate alloc;
 
 /// Code generated from
 /// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
+#[cfg(feature = "alloc")]
 pub mod schema_capnp;
 
 pub mod any_pointer;
@@ -65,6 +67,7 @@ pub mod traits;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
 ///
@@ -81,6 +84,7 @@ pub struct Word {
 ///
 /// Constructs a word with the given bytes.
 ///
+#[allow(clippy::too_many_arguments)]
 pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8) -> Word {
     Word {
         raw_content: [b0, b1, b2, b3, b4, b5, b6, b7],
@@ -89,6 +93,7 @@ pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8
 
 impl Word {
     /// Allocates a vec of `length` words, all set to zero.
+    #[cfg(feature = "alloc")]
     pub fn allocate_zeroed_vec(length: usize) -> Vec<Self> {
         vec![word(0, 0, 0, 0, 0, 0, 0, 0); length]
     }
@@ -589,11 +594,13 @@ impl ::std::error::Error for Error {
 
 /// Helper struct that allows `MessageBuilder::get_segments_for_output()` to avoid heap allocations
 /// in the single-segment case.
+#[cfg(feature = "alloc")]
 pub enum OutputSegments<'a> {
     SingleSegment([&'a [u8]; 1]),
     MultiSegment(Vec<&'a [u8]>),
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> core::ops::Deref for OutputSegments<'a> {
     type Target = [&'a [u8]];
     fn deref(&self) -> &[&'a [u8]] {
@@ -604,6 +611,7 @@ impl<'a> core::ops::Deref for OutputSegments<'a> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'s> message::ReaderSegments for OutputSegments<'s> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         match self {
