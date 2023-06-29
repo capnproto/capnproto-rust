@@ -289,19 +289,26 @@ fn calculate_data_offset(segments_count: usize) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "alloc")]
     use quickcheck::{quickcheck, TestResult};
 
+    use crate::serialize::no_alloc_slice_segments::calculate_data_offset;
+    #[cfg(feature = "alloc")]
     use crate::{
         message::{ReaderOptions, ReaderSegments},
-        serialize::{self, no_alloc_slice_segments::calculate_data_offset},
-        word, OutputSegments, Word,
+        serialize, word, Word,
     };
 
+    #[cfg(feature = "alloc")]
+    use crate::OutputSegments;
+
+    #[cfg(feature = "alloc")]
+    use super::NoAllocSliceSegments;
     use super::{
         read_u32_le, u32_to_segment_length_bytes, u32_to_segments_count, verify_alignment,
-        NoAllocSliceSegments,
     };
 
+    #[cfg(feature = "alloc")]
     use alloc::vec::Vec;
 
     #[repr(align(8))]
@@ -382,6 +389,7 @@ mod tests {
         assert_eq!(calculate_data_offset(101), Some(408));
     }
 
+    #[cfg(feature = "alloc")]
     quickcheck! {
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_single_segment_optimization(
@@ -437,6 +445,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn test_no_alloc_buffer_segments_message_postfix() {
         let output_segments = OutputSegments::SingleSegment([&[1, 2, 3, 4, 5, 6, 7, 8]]);
@@ -452,6 +461,7 @@ mod tests {
         assert_eq!(*remaining, &[11, 12, 13, 14, 15, 16, 0, 0]);
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn test_no_alloc_buffer_segments_message_invalid() {
         let mut buf = vec![];
@@ -475,6 +485,7 @@ mod tests {
         buf.clear();
     }
 
+    #[cfg(feature = "alloc")]
     quickcheck! {
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_message_truncated(segments_vec: Vec<Vec<Word>>) -> TestResult {

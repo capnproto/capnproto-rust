@@ -68,15 +68,22 @@
 //! }
 //!
 //! ```
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use core::convert::From;
 
 use crate::any_pointer;
-use crate::private::arena::{BuilderArena, BuilderArenaImpl, ReaderArena, ReaderArenaImpl};
+#[cfg(feature = "alloc")]
+use crate::private::arena::{BuilderArena, BuilderArenaImpl};
+use crate::private::arena::{ReaderArena, ReaderArenaImpl};
 use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
-use crate::traits::{FromPointerBuilder, FromPointerReader, Owned, SetPointerBuilder};
-use crate::{OutputSegments, Result};
+#[cfg(feature = "alloc")]
+use crate::traits::{FromPointerBuilder, SetPointerBuilder};
+use crate::traits::{FromPointerReader, Owned};
+#[cfg(feature = "alloc")]
+use crate::OutputSegments;
+use crate::Result;
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy, Debug)]
@@ -275,6 +282,7 @@ where
     /// Gets the [canonical](https://capnproto.org/encoding.html#canonicalization) form
     /// of this message. Works by copying the message twice. For a canonicalization
     /// method that only requires one copy, see `message::Builder::set_root_canonical()`.
+    #[cfg(feature = "alloc")]
     pub fn canonicalize(&self) -> Result<Vec<crate::Word>> {
         let root = self.get_root_internal()?;
         let size = root.target_size()?.word_count + 1;
@@ -336,6 +344,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
 where
     A: Allocator,
@@ -347,6 +356,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<A, T> From<TypedBuilder<T, A>> for TypedReader<Builder<A>, T>
 where
     A: Allocator,
@@ -394,6 +404,7 @@ pub unsafe trait Allocator {
 }
 
 /// A container used to build a message.
+#[cfg(feature = "alloc")]
 pub struct Builder<A>
 where
     A: Allocator,
@@ -401,8 +412,10 @@ where
     arena: BuilderArenaImpl<A>,
 }
 
+#[cfg(feature = "alloc")]
 unsafe impl<A> Send for Builder<A> where A: Send + Allocator {}
 
+#[cfg(feature = "alloc")]
 fn _assert_kinds() {
     fn _assert_send<T: Send>() {}
     fn _assert_reader<S: ReaderSegments + Send>() {
@@ -413,6 +426,7 @@ fn _assert_kinds() {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<A> Builder<A>
 where
     A: Allocator,
@@ -519,6 +533,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<A> ReaderSegments for Builder<A>
 where
     A: Allocator,
@@ -538,6 +553,7 @@ where
 /// - `T` - type of the capnp message which this builder is specialized on. Please see
 ///   [module documentation](self) for more info about builder type specialization.
 /// - `A` - type of allocator
+#[cfg(feature = "alloc")]
 pub struct TypedBuilder<T, A = HeapAllocator>
 where
     T: Owned,
@@ -547,6 +563,7 @@ where
     message: Builder<A>,
 }
 
+#[cfg(feature = "alloc")]
 impl<T> TypedBuilder<T, HeapAllocator>
 where
     T: Owned,
@@ -556,6 +573,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T, A> TypedBuilder<T, A>
 where
     T: Owned,
@@ -605,6 +623,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T, A> From<Builder<A>> for TypedBuilder<T, A>
 where
     T: Owned,
@@ -617,6 +636,7 @@ where
 
 /// Standard segment allocator. Allocates each segment via `alloc::alloc::alloc_zeroed()`.
 #[derive(Debug)]
+#[cfg(feature = "alloc")]
 pub struct HeapAllocator {
     // Minimum number of words in the next allocation.
     next_size: u32,
@@ -641,6 +661,7 @@ pub enum AllocationStrategy {
 pub const SUGGESTED_FIRST_SEGMENT_WORDS: u32 = 1024;
 pub const SUGGESTED_ALLOCATION_STRATEGY: AllocationStrategy = AllocationStrategy::GrowHeuristically;
 
+#[cfg(feature = "alloc")]
 impl Default for HeapAllocator {
     fn default() -> Self {
         Self {
@@ -651,6 +672,7 @@ impl Default for HeapAllocator {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl HeapAllocator {
     pub fn new() -> Self {
         Self::default()
@@ -677,6 +699,7 @@ impl HeapAllocator {
     }
 }
 
+#[cfg(feature = "alloc")]
 unsafe impl Allocator for HeapAllocator {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         let size = core::cmp::max(minimum_size, self.next_size);
@@ -711,6 +734,7 @@ unsafe impl Allocator for HeapAllocator {
     }
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn test_allocate_max() {
     let allocation_size = 1 << 24;
@@ -735,6 +759,7 @@ fn test_allocate_max() {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl Builder<HeapAllocator> {
     /// Constructs a new `message::Builder<HeapAllocator>` whose first segment has length
     /// `SUGGESTED_FIRST_SEGMENT_WORDS`.
@@ -753,12 +778,14 @@ impl Builder<HeapAllocator> {
 /// You can reuse a `ScratchSpaceHeapAllocator` by calling `message::Builder::into_allocator()`,
 /// or by initally passing it to `message::Builder::new()` as a `&mut ScratchSpaceHeapAllocator`.
 /// Such reuse can save significant amounts of zeroing.
+#[cfg(feature = "alloc")]
 pub struct ScratchSpaceHeapAllocator<'a> {
     scratch_space: &'a mut [u8],
     scratch_space_allocated: bool,
     allocator: HeapAllocator,
 }
 
+#[cfg(feature = "alloc")]
 impl<'a> ScratchSpaceHeapAllocator<'a> {
     /// Writes zeroes into the entire buffer and constructs a new allocator from it.
     ///
@@ -805,6 +832,7 @@ impl<'a> ScratchSpaceHeapAllocator<'a> {
     }
 }
 
+#[cfg(feature = "alloc")]
 unsafe impl<'a> Allocator for ScratchSpaceHeapAllocator<'a> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         if (minimum_size as usize) < (self.scratch_space.len() / BYTES_PER_WORD)
@@ -835,6 +863,7 @@ unsafe impl<'a> Allocator for ScratchSpaceHeapAllocator<'a> {
     }
 }
 
+#[cfg(feature = "alloc")]
 unsafe impl<'a, A> Allocator for &'a mut A
 where
     A: Allocator,

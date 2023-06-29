@@ -1,3 +1,4 @@
+#![cfg(feature = "alloc")]
 use crate::dynamic_value;
 use core::fmt::{self, Formatter};
 

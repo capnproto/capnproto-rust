@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 //! List of capabilities.
+#![cfg(feature = "alloc")]
 
 use alloc::boxed::Box;
 use core::marker::PhantomData;

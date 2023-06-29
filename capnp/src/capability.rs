@@ -22,6 +22,7 @@
 //! Hooks for for the RPC system.
 //!
 //! Roughly corresponds to capability.h in the C++ implementation.
+#![cfg(feature = "alloc")]
 
 use alloc::boxed::Box;
 use core::future::Future;

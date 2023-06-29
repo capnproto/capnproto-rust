@@ -214,6 +214,7 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema>> ::core::iter::IntoIterator for Re
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a, T: TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect> From<Reader<'a, T>>
     for crate::dynamic_value::Reader<'a>
 {
@@ -225,6 +226,7 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect> F
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a, T: TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect> From<Builder<'a, T>>
     for crate::dynamic_value::Builder<'a>
 {

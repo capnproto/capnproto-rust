@@ -25,7 +25,9 @@
 use crate::io::{BufRead, Read, Write};
 use core::{mem, ptr, slice};
 
+#[cfg(feature = "alloc")]
 use crate::message;
+#[cfg(feature = "alloc")]
 use crate::serialize;
 use crate::{Error, ErrorKind, Result};
 
@@ -229,6 +231,7 @@ where
 }
 
 /// Reads a packed message from a stream using the provided options.
+#[cfg(feature = "alloc")]
 pub fn read_message<R>(
     read: R,
     options: message::ReaderOptions,
@@ -241,6 +244,7 @@ where
 }
 
 /// Like read_message(), but returns None instead of an error if there are zero bytes left in `read`.
+#[cfg(feature = "alloc")]
 pub fn try_read_message<R>(
     read: R,
     options: message::ReaderOptions,
@@ -404,6 +408,7 @@ where
 ///
 /// The only source of errors from this function are `write.write_all()` calls. If you pass in
 /// a writer that never returns an error, then this function will never return an error.
+#[cfg(feature = "alloc")]
 pub fn write_message<W, A>(write: W, message: &crate::message::Builder<A>) -> Result<()>
 where
     W: Write,
@@ -413,6 +418,7 @@ where
     serialize::write_message(packed_write, message)
 }
 
+#[cfg(feature = "alloc")]
 #[cfg(test)]
 mod tests {
     use alloc::vec::Vec;

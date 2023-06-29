@@ -21,6 +21,7 @@
 
 use capnp::message;
 
+#[cfg(feature = "alloc")]
 #[test]
 fn canonicalize_succeeds_on_null_message() {
     let segment: &[capnp::Word] = &[capnp::word(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)];
@@ -34,6 +35,7 @@ fn canonicalize_succeeds_on_null_message() {
     assert_eq!(&canonical_bytes[..], segment);
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn dont_truncate_struct_too_far() {
     let segment: &[capnp::Word] = &[
@@ -63,6 +65,7 @@ fn dont_truncate_struct_too_far() {
     assert_eq!(&canonicalized[..], canonical_segment);
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn dont_truncate_struct_list_too_far() {
     let segment: &[capnp::Word] = &[
@@ -175,6 +178,7 @@ fn is_canonical_requires_dense_packing() {
     assert!(!message.is_canonical().unwrap());
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn simple_multisegment_message() {
     let segment0: &[capnp::Word] = &[
@@ -206,6 +210,7 @@ fn simple_multisegment_message() {
     assert_eq!(&canonicalized[..], canonical_segment);
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn multisegment_only_first_segment_used() {
     // A segment with a canonicalized struct.
@@ -265,6 +270,7 @@ fn is_canonical_rejects_unused_trailing_words() {
     assert!(!message.is_canonical().unwrap());
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn empty_inline_composite_list_of_0_sized_structs() {
     let segment: &[capnp::Word] = &[
@@ -285,6 +291,7 @@ fn empty_inline_composite_list_of_0_sized_structs() {
     assert_eq!(segment, &canonical_words[..]);
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn inline_composite_list_with_void_list() {
     let segment: &[capnp::Word] = &[
@@ -330,6 +337,7 @@ fn is_canonical_rejects_inline_composite_list_with_inaccurate_word_length() {
     assert!(!message.is_canonical().unwrap());
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn truncate_data_section_inline_composite() {
     let segment: &[capnp::Word] = &[
@@ -354,6 +362,7 @@ fn truncate_data_section_inline_composite() {
     assert!(canonical_message.is_canonical().unwrap());
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn truncate_pointer_section_inline_composite() {
     let segment: &[capnp::Word] = &[
@@ -387,6 +396,7 @@ fn truncate_pointer_section_inline_composite() {
     assert_eq!(expected_canonical_words, &canonical_words[..]);
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn list_padding_must_be_zero() {
     let segment: &[capnp::Word] = &[
@@ -416,6 +426,7 @@ fn list_padding_must_be_zero() {
     assert_eq!(expected_canonical_words, &canonical_words[..]);
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn bit_list_padding_must_be_zero() {
     let segment: &[capnp::Word] = &[

@@ -19,14 +19,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+use alloc::{boxed::Box, vec::Vec};
 use core::cell::Cell;
 use core::mem;
 use core::ptr;
 
 use crate::data;
 use crate::private::arena::{BuilderArena, NullArena, ReaderArena, SegmentId};
+#[cfg(feature = "alloc")]
 use crate::private::capability::ClientHook;
 use crate::private::mask::Mask;
 use crate::private::primitive::{Primitive, WireValue};
@@ -344,17 +345,21 @@ impl WirePointer {
 }
 
 mod wire_helpers {
+    #[cfg(feature = "alloc")]
     use alloc::boxed::Box;
     use core::{ptr, slice};
 
     use crate::data;
     use crate::private::arena::*;
+    #[cfg(feature = "alloc")]
     use crate::private::capability::ClientHook;
     use crate::private::layout::ElementSize::*;
     use crate::private::layout::{data_bits_per_element, pointers_per_element};
+    #[cfg(feature = "alloc")]
+    use crate::private::layout::{CapTableBuilder, CapTableReader};
     use crate::private::layout::{
-        CapTableBuilder, CapTableReader, ElementSize, ListBuilder, ListReader, StructBuilder,
-        StructReader, StructSize, WirePointer, WirePointerKind,
+        ElementSize, ListBuilder, ListReader, StructBuilder, StructReader, StructSize, WirePointer,
+        WirePointerKind,
     };
     use crate::private::units::*;
     use crate::text;
@@ -834,7 +839,7 @@ mod wire_helpers {
     unsafe fn copy_struct(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         dst: *mut u8,
         src: *const u8,
         data_size: isize,
@@ -849,6 +854,7 @@ mod wire_helpers {
             copy_message(
                 arena,
                 segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 dst_refs.offset(ii),
                 src_refs.offset(ii),
@@ -861,7 +867,7 @@ mod wire_helpers {
     pub unsafe fn copy_message(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         dst: *mut WirePointer,
         src: *const WirePointer,
     ) -> (*mut u8, *mut WirePointer, u32) {
@@ -882,6 +888,7 @@ mod wire_helpers {
                     copy_struct(
                         arena,
                         segment_id,
+                        #[cfg(feature = "alloc")]
                         cap_table,
                         dst_ptr,
                         src_ptr,
@@ -934,6 +941,7 @@ mod wire_helpers {
                         copy_message(
                             arena,
                             segment_id,
+                            #[cfg(feature = "alloc")]
                             cap_table,
                             dst_refs.offset(ii * BYTES_PER_WORD as isize) as *mut WirePointer,
                             src_refs.offset(ii),
@@ -968,6 +976,7 @@ mod wire_helpers {
                         copy_struct(
                             arena,
                             segment_id,
+                            #[cfg(feature = "alloc")]
                             cap_table,
                             dst_element,
                             src_element,
@@ -1107,7 +1116,7 @@ mod wire_helpers {
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         size: StructSize,
     ) -> StructBuilder<'_> {
         let (ptr, reff, segment_id) = allocate(
@@ -1122,6 +1131,7 @@ mod wire_helpers {
         StructBuilder {
             arena,
             segment_id,
+            #[cfg(feature = "alloc")]
             cap_table,
             data: ptr as *mut _,
             pointers: ptr.offset((size.data as usize) as isize * BYTES_PER_WORD as isize) as *mut _,
@@ -1135,7 +1145,7 @@ mod wire_helpers {
         arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         size: StructSize,
         default: Option<&'a [crate::Word]>,
     ) -> Result<StructBuilder<'a>> {
@@ -1145,18 +1155,29 @@ mod wire_helpers {
             match default {
                 None => {
                     return Ok(init_struct_pointer(
-                        arena, reff, segment_id, cap_table, size,
+                        arena,
+                        reff,
+                        segment_id,
+                        #[cfg(feature = "alloc")]
+                        cap_table,
+                        size,
                     ))
                 }
                 Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() => {
                     return Ok(init_struct_pointer(
-                        arena, reff, segment_id, cap_table, size,
+                        arena,
+                        reff,
+                        segment_id,
+                        #[cfg(feature = "alloc")]
+                        cap_table,
+                        size,
                     ))
                 }
                 Some(d) => {
                     let (new_ref_target, new_reff, new_segment_id) = copy_message(
                         arena,
                         segment_id,
+                        #[cfg(feature = "alloc")]
                         cap_table,
                         reff,
                         d.as_ptr() as *const WirePointer,
@@ -1226,6 +1247,7 @@ mod wire_helpers {
             Ok(StructBuilder {
                 arena,
                 segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 data: ptr as *mut _,
                 pointers: new_pointer_section,
@@ -1236,6 +1258,7 @@ mod wire_helpers {
             Ok(StructBuilder {
                 arena,
                 segment_id: old_segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 data: old_ptr,
                 pointers: old_pointer_section,
@@ -1250,7 +1273,7 @@ mod wire_helpers {
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         element_count: ElementCount32,
         element_size: ElementSize,
     ) -> ListBuilder<'_> {
@@ -1271,6 +1294,7 @@ mod wire_helpers {
         ListBuilder {
             arena,
             segment_id,
+            #[cfg(feature = "alloc")]
             cap_table,
             ptr,
             step,
@@ -1286,7 +1310,7 @@ mod wire_helpers {
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         element_count: ElementCount32,
         element_size: StructSize,
     ) -> ListBuilder<'_> {
@@ -1316,6 +1340,7 @@ mod wire_helpers {
         ListBuilder {
             arena,
             segment_id,
+            #[cfg(feature = "alloc")]
             cap_table,
             ptr: ptr1 as *mut _,
             step: words_per_element * BITS_PER_WORD as u32,
@@ -1331,7 +1356,7 @@ mod wire_helpers {
         arena: &mut dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         element_size: ElementSize,
         default_value: *const u8,
     ) -> Result<ListBuilder<'_>> {
@@ -1349,6 +1374,7 @@ mod wire_helpers {
             let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                 arena,
                 orig_segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 orig_ref,
                 default_value as *const WirePointer,
@@ -1425,6 +1451,7 @@ mod wire_helpers {
             Ok(ListBuilder {
                 arena,
                 segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 ptr: ptr as *mut _,
                 element_count: (*tag).inline_composite_list_element_count(),
@@ -1450,6 +1477,7 @@ mod wire_helpers {
             Ok(ListBuilder {
                 arena,
                 segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 ptr: ptr as *mut _,
                 step,
@@ -1466,7 +1494,7 @@ mod wire_helpers {
         arena: &mut dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         element_size: StructSize,
         default_value: *const u8,
     ) -> Result<ListBuilder<'_>> {
@@ -1479,6 +1507,7 @@ mod wire_helpers {
             let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                 arena,
                 orig_segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 orig_ref,
                 default_value as *const WirePointer,
@@ -1521,6 +1550,7 @@ mod wire_helpers {
                 return Ok(ListBuilder {
                     arena,
                     segment_id: old_segment_id,
+                    #[cfg(feature = "alloc")]
                     cap_table,
                     ptr: old_ptr as *mut _,
                     element_count,
@@ -1592,6 +1622,7 @@ mod wire_helpers {
             Ok(ListBuilder {
                 arena,
                 segment_id: new_segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 ptr: new_ptr,
                 element_count,
@@ -1614,6 +1645,7 @@ mod wire_helpers {
                     arena,
                     orig_ref,
                     orig_segment_id,
+                    #[cfg(feature = "alloc")]
                     cap_table,
                     element_count,
                     element_size,
@@ -1690,6 +1722,7 @@ mod wire_helpers {
                 Ok(ListBuilder {
                     arena,
                     segment_id: new_segment_id,
+                    #[cfg(feature = "alloc")]
                     cap_table,
                     ptr: new_ptr,
                     element_count,
@@ -1759,6 +1792,7 @@ mod wire_helpers {
                     let (new_ref_target, new_reff, new_segment_id) = copy_message(
                         arena,
                         segment_id,
+                        #[cfg(feature = "alloc")]
                         CapTableBuilder::Plain(::core::ptr::null_mut()),
                         reff,
                         d.as_ptr() as *const _,
@@ -1846,6 +1880,7 @@ mod wire_helpers {
                     let (new_ref_target, new_reff, new_segment_id) = copy_message(
                         arena,
                         segment_id,
+                        #[cfg(feature = "alloc")]
                         CapTableBuilder::Plain(core::ptr::null_mut()),
                         reff,
                         d.as_ptr() as *const _,
@@ -1879,7 +1914,7 @@ mod wire_helpers {
     pub unsafe fn set_struct_pointer(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         reff: *mut WirePointer,
         value: StructReader,
         canonicalize: bool,
@@ -1943,10 +1978,12 @@ mod wire_helpers {
             copy_pointer(
                 arena,
                 segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table,
                 pointer_section.offset(i),
                 value.arena,
                 value.segment_id,
+                #[cfg(feature = "alloc")]
                 value.cap_table,
                 value.pointers.offset(i),
                 value.nesting_limit,
@@ -1960,6 +1997,7 @@ mod wire_helpers {
         })
     }
 
+    #[cfg(feature = "alloc")]
     pub fn set_capability_pointer(
         _arena: &mut dyn BuilderArena,
         _segment_id: u32,
@@ -1976,7 +2014,7 @@ mod wire_helpers {
     pub unsafe fn set_list_pointer(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] cap_table: CapTableBuilder,
         reff: *mut WirePointer,
         value: ListReader,
         canonicalize: bool,
@@ -1996,10 +2034,12 @@ mod wire_helpers {
                     copy_pointer(
                         arena,
                         segment_id,
+                        #[cfg(feature = "alloc")]
                         cap_table,
                         (ptr as *mut WirePointer).offset(i),
                         value.arena,
                         value.segment_id,
+                        #[cfg(feature = "alloc")]
                         value.cap_table,
                         (value.ptr as *const WirePointer).offset(i),
                         value.nesting_limit,
@@ -2119,10 +2159,12 @@ mod wire_helpers {
                     copy_pointer(
                         arena,
                         segment_id,
+                        #[cfg(feature = "alloc")]
                         cap_table,
                         dst as *mut _,
                         value.arena,
                         value.segment_id,
+                        #[cfg(feature = "alloc")]
                         value.cap_table,
                         src as *const WirePointer,
                         value.nesting_limit,
@@ -2145,11 +2187,11 @@ mod wire_helpers {
     pub unsafe fn copy_pointer(
         dst_arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
-        dst_cap_table: CapTableBuilder,
+        #[cfg(feature = "alloc")] dst_cap_table: CapTableBuilder,
         dst: *mut WirePointer,
         src_arena: &dyn ReaderArena,
         src_segment_id: u32,
-        src_cap_table: CapTableReader,
+        #[cfg(feature = "alloc")] src_cap_table: CapTableReader,
         src: *const WirePointer,
         nesting_limit: i32,
         canonicalize: bool,
@@ -2183,11 +2225,13 @@ mod wire_helpers {
                 set_struct_pointer(
                     dst_arena,
                     dst_segment_id,
+                    #[cfg(feature = "alloc")]
                     dst_cap_table,
                     dst,
                     StructReader {
                         arena: src_arena,
                         segment_id: src_segment_id,
+                        #[cfg(feature = "alloc")]
                         cap_table: src_cap_table,
                         data: ptr,
                         pointers: ptr
@@ -2247,11 +2291,13 @@ mod wire_helpers {
                     set_list_pointer(
                         dst_arena,
                         dst_segment_id,
+                        #[cfg(feature = "alloc")]
                         dst_cap_table,
                         dst,
                         ListReader {
                             arena: src_arena,
                             segment_id: src_segment_id,
+                            #[cfg(feature = "alloc")]
                             cap_table: src_cap_table,
                             ptr: ptr as *const _,
                             element_count,
@@ -2289,11 +2335,13 @@ mod wire_helpers {
                     set_list_pointer(
                         dst_arena,
                         dst_segment_id,
+                        #[cfg(feature = "alloc")]
                         dst_cap_table,
                         dst,
                         ListReader {
                             arena: src_arena,
                             segment_id: src_segment_id,
+                            #[cfg(feature = "alloc")]
                             cap_table: src_cap_table,
                             ptr: ptr as *const _,
                             element_count,
@@ -2317,6 +2365,7 @@ mod wire_helpers {
                         ErrorKind::CannotCreateACanonicalMessageWithACapability,
                     ));
                 }
+                #[cfg(feature = "alloc")]
                 match src_cap_table.extract_cap((*src).cap_index() as usize) {
                     Some(cap) => {
                         set_capability_pointer(dst_arena, dst_segment_id, dst_cap_table, dst, cap);
@@ -2329,6 +2378,8 @@ mod wire_helpers {
                         ErrorKind::MessageContainsInvalidCapabilityPointer,
                     )),
                 }
+                #[cfg(not(feature = "alloc"))]
+                return Err(Error::from_kind(ErrorKind::UnknownPointerType));
             }
         }
     }
@@ -2337,7 +2388,7 @@ mod wire_helpers {
     pub unsafe fn read_struct_pointer<'a>(
         mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
-        cap_table: CapTableReader,
+        #[cfg(feature = "alloc")] cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>,
         nesting_limit: i32,
@@ -2383,6 +2434,7 @@ mod wire_helpers {
         Ok(StructReader {
             arena,
             segment_id,
+            #[cfg(feature = "alloc")]
             cap_table,
             data: ptr,
             pointers: ptr.offset(data_size_words as isize * BYTES_PER_WORD as isize) as *const _,
@@ -2393,6 +2445,7 @@ mod wire_helpers {
     }
 
     #[inline]
+    #[cfg(feature = "alloc")]
     pub unsafe fn read_capability_pointer(
         _arena: &dyn ReaderArena,
         _segment_id: u32,
@@ -2423,7 +2476,7 @@ mod wire_helpers {
     pub unsafe fn read_list_pointer(
         mut arena: &dyn ReaderArena,
         mut segment_id: u32,
-        cap_table: CapTableReader,
+        #[cfg(feature = "alloc")] cap_table: CapTableReader,
         mut reff: *const WirePointer,
         default_value: *const u8,
         expected_element_size: Option<ElementSize>,
@@ -2521,6 +2574,7 @@ mod wire_helpers {
                 Ok(ListReader {
                     arena,
                     segment_id,
+                    #[cfg(feature = "alloc")]
                     cap_table,
                     ptr: ptr as *const _,
                     element_count: size,
@@ -2584,6 +2638,7 @@ mod wire_helpers {
                 Ok(ListReader {
                     arena,
                     segment_id,
+                    #[cfg(feature = "alloc")]
                     cap_table,
                     ptr: ptr as *const _,
                     element_count,
@@ -2708,9 +2763,11 @@ fn zero_pointer() -> *const WirePointer {
 
 static NULL_ARENA: NullArena = NullArena;
 
+#[cfg(feature = "alloc")]
 pub type CapTable = Vec<Option<Box<dyn ClientHook>>>;
 
 #[derive(Copy, Clone)]
+#[cfg(feature = "alloc")]
 pub enum CapTableReader {
     // At one point, we had a `Dummy` variant here, but that ended up
     // making values of this type take 16 bytes of memory. Now we instead
@@ -2718,6 +2775,7 @@ pub enum CapTableReader {
     Plain(*const Vec<Option<Box<dyn ClientHook>>>),
 }
 
+#[cfg(feature = "alloc")]
 impl CapTableReader {
     pub fn extract_cap(&self, index: usize) -> Option<Box<dyn ClientHook>> {
         match *self {
@@ -2737,6 +2795,7 @@ impl CapTableReader {
 }
 
 #[derive(Copy, Clone)]
+#[cfg(feature = "alloc")]
 pub enum CapTableBuilder {
     // At one point, we had a `Dummy` variant here, but that ended up
     // making values of this type take 16 bytes of memory. Now we instead
@@ -2744,6 +2803,7 @@ pub enum CapTableBuilder {
     Plain(*mut Vec<Option<Box<dyn ClientHook>>>),
 }
 
+#[cfg(feature = "alloc")]
 impl CapTableBuilder {
     pub fn into_reader(self) -> CapTableReader {
         match self {
@@ -2804,6 +2864,7 @@ impl CapTableBuilder {
 #[derive(Clone, Copy)]
 pub struct PointerReader<'a> {
     arena: &'a dyn ReaderArena,
+    #[cfg(feature = "alloc")]
     cap_table: CapTableReader,
     pointer: *const WirePointer,
     segment_id: u32,
@@ -2815,6 +2876,7 @@ impl<'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
+            #[cfg(feature = "alloc")]
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: ptr::null(),
             nesting_limit: 0x7fffffff,
@@ -2838,6 +2900,7 @@ impl<'a> PointerReader<'a> {
         Ok(PointerReader {
             arena,
             segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *const _,
             nesting_limit,
@@ -2855,12 +2918,14 @@ impl<'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
+            #[cfg(feature = "alloc")]
             cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *const _,
             nesting_limit: 0x7fffffff,
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn imbue(&mut self, cap_table: CapTableReader) {
         self.cap_table = cap_table;
     }
@@ -2898,6 +2963,7 @@ impl<'a> PointerReader<'a> {
             wire_helpers::read_struct_pointer(
                 self.arena,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 reff,
                 default,
@@ -2924,6 +2990,7 @@ impl<'a> PointerReader<'a> {
             wire_helpers::read_list_pointer(
                 self.arena,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 reff,
                 default_value,
@@ -2943,6 +3010,7 @@ impl<'a> PointerReader<'a> {
             wire_helpers::read_list_pointer(
                 self.arena,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 reff,
                 default_value,
@@ -2970,6 +3038,7 @@ impl<'a> PointerReader<'a> {
         unsafe { wire_helpers::read_data_pointer(self.arena, self.segment_id, reff, default) }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn get_capability(&self) -> Result<Box<dyn ClientHook>> {
         let reff: *const WirePointer = if self.pointer.is_null() {
             zero_pointer()
@@ -3040,6 +3109,7 @@ impl<'a> PointerReader<'a> {
 pub struct PointerBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
     segment_id: u32,
+    #[cfg(feature = "alloc")]
     cap_table: CapTableBuilder,
     pointer: *mut WirePointer,
 }
@@ -3049,6 +3119,7 @@ impl<'a> PointerBuilder<'a> {
     pub fn get_root(arena: &'a mut dyn BuilderArena, segment_id: u32, location: *mut u8) -> Self {
         PointerBuilder {
             arena,
+            #[cfg(feature = "alloc")]
             cap_table: CapTableBuilder::Plain(ptr::null_mut()),
             segment_id,
             pointer: location as *mut _,
@@ -3063,6 +3134,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn imbue(&mut self, cap_table: CapTableBuilder) {
         self.cap_table = cap_table;
     }
@@ -3082,6 +3154,7 @@ impl<'a> PointerBuilder<'a> {
                 self.arena,
                 self.pointer,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 size,
                 default,
@@ -3103,6 +3176,7 @@ impl<'a> PointerBuilder<'a> {
                 self.arena,
                 self.pointer,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 element_size,
                 default_value,
@@ -3124,6 +3198,7 @@ impl<'a> PointerBuilder<'a> {
                 self.arena,
                 self.pointer,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 element_size,
                 default_value,
@@ -3153,6 +3228,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn get_capability(&self) -> Result<Box<dyn ClientHook>> {
         unsafe {
             wire_helpers::read_capability_pointer(
@@ -3171,6 +3247,7 @@ impl<'a> PointerBuilder<'a> {
                 self.arena,
                 self.pointer,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 size,
             )
@@ -3187,6 +3264,7 @@ impl<'a> PointerBuilder<'a> {
                 self.arena,
                 self.pointer,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 element_count,
                 element_size,
@@ -3204,6 +3282,7 @@ impl<'a> PointerBuilder<'a> {
                 self.arena,
                 self.pointer,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 element_count,
                 element_size,
@@ -3228,6 +3307,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::set_struct_pointer(
                 self.arena,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 self.pointer,
                 *value,
@@ -3242,6 +3322,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::set_list_pointer(
                 self.arena,
                 self.segment_id,
+                #[cfg(feature = "alloc")]
                 self.cap_table,
                 self.pointer,
                 *value,
@@ -3263,6 +3344,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn set_capability(&mut self, cap: Box<dyn ClientHook>) {
         wire_helpers::set_capability_pointer(
             self.arena,
@@ -3286,10 +3368,12 @@ impl<'a> PointerBuilder<'a> {
                 wire_helpers::copy_pointer(
                     self.arena,
                     self.segment_id,
+                    #[cfg(feature = "alloc")]
                     self.cap_table,
                     self.pointer,
                     other.arena,
                     other.segment_id,
+                    #[cfg(feature = "alloc")]
                     other.cap_table,
                     other.pointer,
                     other.nesting_limit,
@@ -3311,6 +3395,7 @@ impl<'a> PointerBuilder<'a> {
         PointerReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table.into_reader(),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff,
@@ -3321,6 +3406,7 @@ impl<'a> PointerBuilder<'a> {
         PointerReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table.into_reader(),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff,
@@ -3331,6 +3417,7 @@ impl<'a> PointerBuilder<'a> {
 #[derive(Clone, Copy)]
 pub struct StructReader<'a> {
     arena: &'a dyn ReaderArena,
+    #[cfg(feature = "alloc")]
     cap_table: CapTableReader,
     data: *const u8,
     pointers: *const WirePointer,
@@ -3345,6 +3432,7 @@ impl<'a> StructReader<'a> {
         StructReader {
             arena: &NULL_ARENA,
             segment_id: 0,
+            #[cfg(feature = "alloc")]
             cap_table: CapTableReader::Plain(ptr::null()),
             data: ptr::null(),
             pointers: ptr::null(),
@@ -3354,6 +3442,7 @@ impl<'a> StructReader<'a> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn imbue(&mut self, cap_table: CapTableReader) {
         self.cap_table = cap_table
     }
@@ -3370,6 +3459,7 @@ impl<'a> StructReader<'a> {
         ListReader {
             arena: self.arena,
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table,
             ptr: self.pointers as *const _,
             element_count: u32::from(self.pointer_count),
@@ -3439,6 +3529,7 @@ impl<'a> StructReader<'a> {
             PointerReader {
                 arena: self.arena,
                 segment_id: self.segment_id,
+                #[cfg(feature = "alloc")]
                 cap_table: self.cap_table,
                 pointer: unsafe { self.pointers.add(ptr_index) },
                 nesting_limit: self.nesting_limit,
@@ -3539,6 +3630,7 @@ impl<'a> StructReader<'a> {
 
 pub struct StructBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
+    #[cfg(feature = "alloc")]
     cap_table: CapTableBuilder,
     data: *mut u8,
     pointers: *mut WirePointer,
@@ -3559,6 +3651,7 @@ impl<'a> StructBuilder<'a> {
     pub fn as_reader(&self) -> StructReader<'_> {
         StructReader {
             arena: self.arena.as_reader(),
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table.into_reader(),
             data: self.data,
             pointers: self.pointers,
@@ -3572,6 +3665,7 @@ impl<'a> StructBuilder<'a> {
     pub fn into_reader(self) -> StructReader<'a> {
         StructReader {
             arena: self.arena.as_reader(),
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table.into_reader(),
             data: self.data,
             pointers: self.pointers,
@@ -3582,6 +3676,7 @@ impl<'a> StructBuilder<'a> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn imbue(&mut self, cap_table: CapTableBuilder) {
         self.cap_table = cap_table
     }
@@ -3649,6 +3744,7 @@ impl<'a> StructBuilder<'a> {
         PointerBuilder {
             arena: self.arena,
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table,
             pointer: unsafe { self.pointers.add(ptr_index) },
         }
@@ -3659,6 +3755,7 @@ impl<'a> StructBuilder<'a> {
         PointerBuilder {
             arena: self.arena,
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table,
             pointer: unsafe { self.pointers.add(ptr_index) },
         }
@@ -3735,10 +3832,12 @@ impl<'a> StructBuilder<'a> {
                 wire_helpers::copy_pointer(
                     self.arena,
                     self.segment_id,
+                    #[cfg(feature = "alloc")]
                     self.cap_table,
                     self.pointers.offset(i),
                     other.arena,
                     other.segment_id,
+                    #[cfg(feature = "alloc")]
                     other.cap_table,
                     other.pointers.offset(i),
                     other.nesting_limit,
@@ -3754,6 +3853,7 @@ impl<'a> StructBuilder<'a> {
 #[derive(Clone, Copy)]
 pub struct ListReader<'a> {
     arena: &'a dyn ReaderArena,
+    #[cfg(feature = "alloc")]
     cap_table: CapTableReader,
     ptr: *const u8,
     segment_id: u32,
@@ -3770,6 +3870,7 @@ impl<'a> ListReader<'a> {
         ListReader {
             arena: &NULL_ARENA,
             segment_id: 0,
+            #[cfg(feature = "alloc")]
             cap_table: CapTableReader::Plain(ptr::null()),
             ptr: ptr::null(),
             element_count: 0,
@@ -3781,6 +3882,7 @@ impl<'a> ListReader<'a> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn imbue(&mut self, cap_table: CapTableReader) {
         self.cap_table = cap_table
     }
@@ -3828,6 +3930,7 @@ impl<'a> ListReader<'a> {
         StructReader {
             arena: self.arena,
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table,
             data: struct_data,
             pointers: struct_pointers,
@@ -3845,6 +3948,7 @@ impl<'a> ListReader<'a> {
         PointerReader {
             arena: self.arena,
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table,
             pointer: unsafe { self.ptr.offset(offset) } as *const _,
             nesting_limit: self.nesting_limit,
@@ -3963,6 +4067,7 @@ impl<'a> ListReader<'a> {
 
 pub struct ListBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
+    #[cfg(feature = "alloc")]
     cap_table: CapTableBuilder,
     ptr: *mut u8,
     segment_id: u32,
@@ -3979,6 +4084,7 @@ impl<'a> ListBuilder<'a> {
         ListBuilder {
             arena,
             segment_id: 0,
+            #[cfg(feature = "alloc")]
             cap_table: CapTableBuilder::Plain(ptr::null_mut()),
             ptr: ptr::null_mut(),
             element_count: 0,
@@ -3993,6 +4099,7 @@ impl<'a> ListBuilder<'a> {
         ListReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table.into_reader(),
             ptr: self.ptr as *const _,
             element_count: self.element_count,
@@ -4012,6 +4119,7 @@ impl<'a> ListBuilder<'a> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn imbue(&mut self, cap_table: CapTableBuilder) {
         self.cap_table = cap_table
     }
@@ -4034,6 +4142,7 @@ impl<'a> ListBuilder<'a> {
         StructBuilder {
             arena: self.arena,
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table,
             data: struct_data,
             pointers: struct_pointers,
@@ -4052,6 +4161,7 @@ impl<'a> ListBuilder<'a> {
         PointerBuilder {
             arena: self.arena,
             segment_id: self.segment_id,
+            #[cfg(feature = "alloc")]
             cap_table: self.cap_table,
             pointer: unsafe { self.ptr.offset(offset as isize) } as *mut _,
         }
