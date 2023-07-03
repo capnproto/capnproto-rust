@@ -76,7 +76,7 @@ pub fn read_message_from_flat_slice<'a>(
     let mut bytes = *slice;
     let orig_bytes_len = bytes.len();
     let Some(segment_lengths_builder) = read_segment_table(&mut bytes, options)? else {
-        return Err(Error::failed("empty slice".to_string()))
+        return Err(Error::failed("empty slice".to_string()));
     };
     let segment_table_bytes_len = orig_bytes_len - bytes.len();
     assert_eq!(segment_table_bytes_len % BYTES_PER_WORD, 0);
@@ -138,7 +138,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
         let mut segment_bytes = &*buffer;
 
         let Some(segment_table) = read_segment_table(&mut segment_bytes, options)? else {
-            return Err(Error::failed("empty buffer".to_string()))
+            return Err(Error::failed("empty buffer".to_string()));
         };
         let segment_table_bytes_len = buffer.len() - segment_bytes.len();
 
@@ -279,7 +279,7 @@ where
     R: Read,
 {
     let Some(owned_segments_builder) = read_segment_table(&mut read, options)? else {
-        return Err(Error::failed("Premature end of file".to_string()))
+        return Err(Error::failed("Premature end of file".to_string()));
     };
     read_segments(
         &mut read,
@@ -298,7 +298,9 @@ pub fn try_read_message<R>(
 where
     R: Read,
 {
-    let Some(owned_segments_builder) = read_segment_table(&mut read, options)? else { return Ok(None) };
+    let Some(owned_segments_builder) = read_segment_table(&mut read, options)? else {
+        return Ok(None);
+    };
     Ok(Some(read_segments(
         &mut read,
         owned_segments_builder.into_owned_segments(),

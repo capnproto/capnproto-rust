@@ -647,7 +647,7 @@ impl<VatId> ConnectionState<VatId> {
         let Some(state) = weak_state.upgrade() else {
             return Promise::err(Error::disconnected(
                 "message loop cannot continue without a connection".into(),
-            ))
+            ));
         };
 
         let promise = match *state.connection.borrow_mut() {
@@ -894,7 +894,7 @@ impl<VatId> ConnectionState<VatId> {
         let Some(connection_state) = weak_state.upgrade() else {
             return Err(Error::disconnected(
                 "handle_message() cannot continue without a connection".into(),
-            ))
+            ));
         };
 
         let reader = message.get_body()?.get_as::<message::Reader>()?;
@@ -2041,7 +2041,7 @@ impl<VatId> Pipeline<VatId> {
             let resolve_self_promise =
                 connection_state.eagerly_evaluate(fork.clone().then(move |response| {
                     let Some(state) = this.upgrade() else {
-                        return Promise::err(Error::failed("dangling reference to this".into()))
+                        return Promise::err(Error::failed("dangling reference to this".into()));
                     };
                     PipelineState::resolve(&state, response);
                     Promise::ok(())

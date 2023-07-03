@@ -52,7 +52,7 @@ where
     R: AsyncRead + Unpin,
 {
     let Some(segment_lengths_builder) = read_segment_table(&mut reader, options).await? else {
-        return Ok(None)
+        return Ok(None);
     };
     Ok(Some(
         read_segments(

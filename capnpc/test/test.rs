@@ -114,7 +114,11 @@ mod tests {
             schema::StructSchema,
         };
 
-        let TypeVariant::Struct(schema) = field_subset_indexes_correctly::Owned::introspect().which() else { unreachable!() };
+        let TypeVariant::Struct(schema) =
+            field_subset_indexes_correctly::Owned::introspect().which()
+        else {
+            unreachable!()
+        };
         let schema = StructSchema::new(schema);
 
         let subset = schema.get_non_union_fields().unwrap();
