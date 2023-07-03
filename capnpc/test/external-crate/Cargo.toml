@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-capnp = { version = "0.17.1", path = "../../../capnp" }
+capnp = { version = "0.18.0-alpha", path = "../../../capnp" }
 
 [build-dependencies]
-capnpc = { version = "0.17.1", path = "../.." }
+capnpc = { version = "0.18.0-alpha", path = "../.." }
