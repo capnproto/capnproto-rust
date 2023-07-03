@@ -245,7 +245,7 @@ pub mod node {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -958,7 +958,7 @@ pub mod node {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -1252,7 +1252,7 @@ pub mod node {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -1588,7 +1588,7 @@ pub mod node {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -1981,7 +1981,7 @@ pub mod node {
                 }
             }
 
-            impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+            impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
                 fn set_pointer_builder(
                     mut pointer: crate::private::layout::PointerBuilder<'_>,
                     value: Self,
@@ -2304,7 +2304,7 @@ pub mod node {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -2771,7 +2771,7 @@ pub mod node {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -3098,7 +3098,7 @@ pub mod node {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -3476,7 +3476,7 @@ pub mod node {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -3874,7 +3874,7 @@ pub mod node {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -4514,7 +4514,7 @@ pub mod field {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -5008,7 +5008,7 @@ pub mod field {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -5404,7 +5404,7 @@ pub mod field {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -5681,7 +5681,7 @@ pub mod field {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -6010,7 +6010,7 @@ pub mod enumerant {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -6378,7 +6378,7 @@ pub mod superclass {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -6765,7 +6765,7 @@ pub mod method {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -7347,7 +7347,7 @@ pub mod type_ {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -8026,7 +8026,7 @@ pub mod type_ {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -8335,7 +8335,7 @@ pub mod type_ {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -8665,7 +8665,7 @@ pub mod type_ {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -8996,7 +8996,7 @@ pub mod type_ {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -9323,7 +9323,7 @@ pub mod type_ {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -9667,7 +9667,7 @@ pub mod type_ {
                 }
             }
 
-            impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+            impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
                 fn set_pointer_builder(
                     mut pointer: crate::private::layout::PointerBuilder<'_>,
                     value: Self,
@@ -10028,7 +10028,7 @@ pub mod type_ {
                 }
             }
 
-            impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+            impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
                 fn set_pointer_builder(
                     mut pointer: crate::private::layout::PointerBuilder<'_>,
                     value: Self,
@@ -10334,7 +10334,7 @@ pub mod type_ {
                 }
             }
 
-            impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+            impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
                 fn set_pointer_builder(
                     mut pointer: crate::private::layout::PointerBuilder<'_>,
                     value: Self,
@@ -10618,7 +10618,7 @@ pub mod brand {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -10944,7 +10944,7 @@ pub mod brand {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -11332,7 +11332,7 @@ pub mod brand {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -11737,7 +11737,7 @@ pub mod value {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -12531,7 +12531,7 @@ pub mod annotation {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -13028,7 +13028,7 @@ pub mod capnp_version {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -13401,7 +13401,7 @@ pub mod code_generator_request {
         }
     }
 
-    impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: crate::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -13901,7 +13901,7 @@ pub mod code_generator_request {
             }
         }
 
-        impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: crate::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -14300,7 +14300,7 @@ pub mod code_generator_request {
                 }
             }
 
-            impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+            impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
                 fn set_pointer_builder(
                     mut pointer: crate::private::layout::PointerBuilder<'_>,
                     value: Self,

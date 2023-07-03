@@ -2305,7 +2305,7 @@ fn generate_node(
 
                 from_pointer_builder_impl,
                 Line(fmt!(ctx,
-                    "impl <'a,{0}> {capnp}::traits::SetPointerBuilder for Reader<'a,{0}> {1} {{",
+                    "impl <'a,{0}> {capnp}::traits::SetPointerBuilder<Owned<{0}>> for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
                 indent(Line(fmt!(ctx,"fn set_pointer_builder(mut pointer: {capnp}::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> {capnp}::Result<()> {{ pointer.set_struct(&value.reader, canonicalize) }}"))),
                 line("}"),
@@ -2701,7 +2701,7 @@ fn generate_node(
 
             mod_interior.push(Branch(vec![
                 Line(fmt!(ctx,
-                    "impl <{0}> {capnp}::traits::SetPointerBuilder for Client<{0}> {1} {{",
+                    "impl <{0}> {capnp}::traits::SetPointerBuilder<Owned<{0}>> for Client<{0}> {1} {{",
                     params.params, params.where_clause)),
                 indent(vec![
                             Line(fmt!(ctx,"fn set_pointer_builder(mut pointer: {capnp}::private::layout::PointerBuilder<'_>, from: Self, _canonicalize: bool) -> {capnp}::Result<()> {{")),

@@ -486,7 +486,7 @@ where
     }
 
     /// Sets the root to a deep copy of the given value.
-    pub fn set_root<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
+    pub fn set_root<From: SetPointerBuilder<impl Owned>>(&mut self, value: From) -> Result<()> {
         let mut root = self.get_root_internal();
         root.set_as(value)
     }
@@ -494,7 +494,10 @@ where
     /// Sets the root to a canonicalized version of `value`. If this was the first action taken
     /// on this `Builder`, then a subsequent call to `get_segments_for_output()` should return
     /// a single segment, containing the full canonicalized message.
-    pub fn set_root_canonical<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
+    pub fn set_root_canonical<From: SetPointerBuilder<impl Owned>>(
+        &mut self,
+        value: From,
+    ) -> Result<()> {
         if self.arena.is_empty() {
             self.arena
                 .allocate_segment(1)
