@@ -85,7 +85,7 @@ pub fn read_message_from_flat_slice<'a>(
     let mut bytes = *slice;
     let orig_bytes_len = bytes.len();
     let Some(segment_lengths_builder) = read_segment_table(&mut bytes, options)? else {
-        return Err(Error::from_kind(ErrorKind::EmptySlice))
+        return Err(Error::from_kind(ErrorKind::EmptySlice));
     };
     let segment_table_bytes_len = orig_bytes_len - bytes.len();
     assert_eq!(segment_table_bytes_len % BYTES_PER_WORD, 0);
@@ -148,7 +148,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
         let mut segment_bytes = &*buffer;
 
         let Some(segment_table) = read_segment_table(&mut segment_bytes, options)? else {
-            return Err(Error::from_kind(ErrorKind::EmptyBuffer))
+            return Err(Error::from_kind(ErrorKind::EmptyBuffer));
         };
         let segment_table_bytes_len = buffer.len() - segment_bytes.len();
 
@@ -297,7 +297,7 @@ where
     R: Read,
 {
     let Some(owned_segments_builder) = read_segment_table(&mut read, options)? else {
-        return Err(Error::from_kind(ErrorKind::PrematureEndOfFile))
+        return Err(Error::from_kind(ErrorKind::PrematureEndOfFile));
     };
     read_segments(
         &mut read,

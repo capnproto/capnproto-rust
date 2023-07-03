@@ -183,7 +183,7 @@ impl<'a> Reader<'a> {
     /// Otherwise, returns None.
     pub fn which(&self) -> Result<Option<Field>> {
         let node::Struct(st) = self.schema.get_proto().which()? else {
-            return Err(Error::from_kind(ErrorKind::NotAStruct))
+            return Err(Error::from_kind(ErrorKind::NotAStruct));
         };
         if st.get_discriminant_count() == 0 {
             Ok(None)
@@ -201,7 +201,7 @@ impl<'a> Reader<'a> {
         let proto = field.get_proto();
         if has_discriminant_value(proto) {
             let node::Struct(st) = self.schema.get_proto().which()? else {
-                return Err(Error::from_kind(ErrorKind::NotAStruct))
+                return Err(Error::from_kind(ErrorKind::NotAStruct));
             };
 
             let discrim = self
@@ -411,7 +411,7 @@ impl<'a> Builder<'a> {
 
     pub fn which(&self) -> Result<Option<Field>> {
         let node::Struct(st) = self.schema.get_proto().which()? else {
-            return Err(Error::from_kind(ErrorKind::NotAStruct))
+            return Err(Error::from_kind(ErrorKind::NotAStruct));
         };
         if st.get_discriminant_count() == 0 {
             Ok(None)
@@ -531,10 +531,10 @@ impl<'a> Builder<'a> {
             }
             field::Group(_group) => {
                 let dynamic_value::Reader::Struct(src) = value else {
-                    return Err(Error::from_kind(ErrorKind::NotAStruct))
+                    return Err(Error::from_kind(ErrorKind::NotAStruct));
                 };
                 let dynamic_value::Builder::Struct(mut dst) = self.reborrow().init(field)? else {
-                    return Err(Error::from_kind(ErrorKind::NotAStruct))
+                    return Err(Error::from_kind(ErrorKind::NotAStruct));
                 };
                 if let Some(union_field) = src.which()? {
                     dst.set(union_field, src.get(union_field)?)?;
@@ -586,7 +586,7 @@ impl<'a> Builder<'a> {
             field::Group(_) => {
                 self.clear(field)?;
                 let TypeVariant::Struct(schema) = ty.which() else {
-                    return Err(Error::from_kind(ErrorKind::NotAStruct))
+                    return Err(Error::from_kind(ErrorKind::NotAStruct));
                 };
                 Ok((Builder::new(self.builder, schema.into())).into())
             }
@@ -684,7 +684,7 @@ impl<'a> Builder<'a> {
             }
             field::Group(_) => {
                 let TypeVariant::Struct(schema) = ty.which() else {
-                    return Err(Error::from_kind(ErrorKind::NotAStruct))
+                    return Err(Error::from_kind(ErrorKind::NotAStruct));
                 };
                 let mut group = Builder::new(self.builder.reborrow(), schema.into());
 
@@ -711,7 +711,7 @@ impl<'a> Builder<'a> {
     fn set_in_union(&mut self, field: Field) -> Result<()> {
         if has_discriminant_value(field.get_proto()) {
             let node::Struct(st) = self.schema.get_proto().which()? else {
-                return Err(Error::from_kind(ErrorKind::NotAStruct))
+                return Err(Error::from_kind(ErrorKind::NotAStruct));
             };
             self.builder.set_data_field::<u16>(
                 st.get_discriminant_offset() as usize,
