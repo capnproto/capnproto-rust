@@ -116,10 +116,7 @@ impl CodeGenerationCommand {
         use capnp::serialize;
         use std::io::Write;
 
-        let message = serialize::read_message(
-            ReadWrapper { inner: inp },
-            capnp::message::ReaderOptions::new(),
-        )?;
+        let message = serialize::read_message(inp, capnp::message::ReaderOptions::new())?;
 
         let ctx = GeneratorContext::new_from_code_generation_command(self, &message)?;
 
@@ -177,9 +174,7 @@ impl CodeGenerationCommand {
             let raw_code_generator_request_file =
                 ::std::fs::File::create(raw_code_generator_request).map_err(convert_io_err)?;
             serialize::write_message_segments(
-                WriteWrapper {
-                    inner: raw_code_generator_request_file,
-                },
+                raw_code_generator_request_file,
                 &message.into_segments(),
             )?;
         }
@@ -2987,48 +2982,4 @@ fn generate_node(
     Ok(Branch(output))
 }
 
-// The capnp crate defines a blanket impl of capnp::Read for R where R: std::io::Read,
-// but we can't use that here because it lives behind the "std" feature flag.
-struct ReadWrapper<R>
-where
-    R: std::io::Read,
-{
-    inner: R,
-}
-
-impl<R> capnp::io::Read for ReadWrapper<R>
-where
-    R: std::io::Read,
-{
-    fn read(&mut self, buf: &mut [u8]) -> capnp::Result<usize> {
-        loop {
-            match std::io::Read::read(&mut self.inner, buf) {
-                Ok(n) => return Ok(n),
-                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
-                Err(e) => return Err(convert_io_err(e)),
-            }
-        }
-    }
-}
-
-// The capnp crate defines a blanket impl of capnp::Write for R where R: std::io::Write,
-// but we can't use that here because it lives behind the "std" feature flag.
-struct WriteWrapper<W>
-where
-    W: std::io::Write,
-{
-    inner: W,
-}
-
-impl<W> capnp::io::Write for WriteWrapper<W>
-where
-    W: std::io::Write,
-{
-    fn write_all(&mut self, buf: &[u8]) -> ::capnp::Result<()> {
-        std::io::Write::write_all(&mut self.inner, buf).map_err(convert_io_err)?;
-        Ok(())
-    }
-}
-
 // TODO: make indent take Into<FormattedText>, impl Into<FormattedText> for vec (branch)
-// TODO: verbose rustfmt, see if can figure out why it gives up

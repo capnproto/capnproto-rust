@@ -1,6 +1,5 @@
 //! Traits and types to support run-time type introspection, i.e. reflection.
 
-#[cfg(feature = "alloc")]
 use crate::private::layout::ElementSize;
 
 /// A type that supports reflection. All types that can appear in a Cap'n Proto message
@@ -71,7 +70,6 @@ impl Type {
 
     /// If this type T appears as List(T), then what is the expected
     /// element size of the list?
-    #[cfg(feature = "alloc")]
     pub(crate) fn expected_element_size(&self) -> ElementSize {
         if self.list_count > 0 {
             ElementSize::Pointer

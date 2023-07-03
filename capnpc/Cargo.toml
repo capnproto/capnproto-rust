@@ -27,14 +27,3 @@ path = "src/capnpc-rust-bootstrap.rs"
 [dependencies.capnp]
 version = "0.18.0-alpha"
 path = "../capnp"
-
-# Don't include "std" feature, so that dependent crates can include a build-time
-# capnpc dependency still use capnp with no-std.
-#
-# This might not be necessary in the future, if cargo supports separate feature sets for
-# build and main dependencies: https://github.com/rust-lang/cargo/issues/7915
-#
-# Doing this forces capnpc to define its own mapping from std::io::Read to capnp::io::Read.
-# Fortunately, this is pretty easy, and is just an internal implementation detail.
-default-features=false
-features=["alloc"]

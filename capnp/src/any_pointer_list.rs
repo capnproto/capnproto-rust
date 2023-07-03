@@ -189,7 +189,6 @@ impl<'a> core::iter::IntoIterator for Reader<'a> {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
     fn from(t: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
         crate::dynamic_value::Reader::List(crate::dynamic_list::Reader::new(
@@ -199,7 +198,6 @@ impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
     fn from(t: Builder<'a>) -> crate::dynamic_value::Builder<'a> {
         crate::dynamic_value::Builder::List(crate::dynamic_list::Builder::new(

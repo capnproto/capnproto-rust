@@ -35,7 +35,6 @@ extern crate alloc;
 
 /// Code generated from
 /// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
-#[cfg(feature = "alloc")]
 pub mod schema_capnp;
 
 pub mod any_pointer;

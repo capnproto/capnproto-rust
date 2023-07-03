@@ -256,7 +256,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Reader<'a, T>>
     for crate::dynamic_value::Reader<'a>
 {
@@ -268,7 +267,6 @@ impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Reader<'a, T>
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Builder<'a, T>>
     for crate::dynamic_value::Builder<'a>
 {

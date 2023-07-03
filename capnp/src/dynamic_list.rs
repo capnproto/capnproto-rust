@@ -1,6 +1,5 @@
 //! Dynamically-typed lists.
 
-#![cfg(feature = "alloc")]
 use crate::dynamic_value;
 use crate::introspect::{Type, TypeVariant};
 use crate::private::layout::{self, PrimitiveElement};

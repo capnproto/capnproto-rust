@@ -1,7 +1,7 @@
 [package]
 name = "wasm-app"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 build = "build.rs"
 
 # Avoid getting picked up by parent workspaces.

@@ -1,7 +1,5 @@
 //! Convenience wrappers of the datatypes defined in schema.capnp.
 
-#![cfg(feature = "alloc")]
-
 #[cfg(feature = "alloc")]
 use alloc::string::ToString;
 

@@ -46,7 +46,6 @@ impl crate::introspect::Introspect for Owned {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl crate::traits::Pipelined for Owned {
     type Pipeline = Pipeline;
 }
@@ -214,16 +213,17 @@ impl<'a> crate::traits::ImbueMut<'a> for Builder<'a> {
     }
 }
 
-#[cfg(feature = "alloc")]
 pub struct Pipeline {
     // XXX this should not be public
+    #[cfg(feature = "alloc")]
     pub hook: Box<dyn PipelineHook>,
 
+    #[cfg(feature = "alloc")]
     ops: Vec<PipelineOp>,
 }
 
-#[cfg(feature = "alloc")]
 impl Pipeline {
+    #[cfg(feature = "alloc")]
     pub fn new(hook: Box<dyn PipelineHook>) -> Self {
         Self {
             hook,
@@ -231,6 +231,7 @@ impl Pipeline {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn noop(&self) -> Self {
         Self {
             hook: self.hook.add_ref(),
@@ -238,6 +239,12 @@ impl Pipeline {
         }
     }
 
+    #[cfg(not(feature = "alloc"))]
+    pub fn noop(&self) -> Self {
+        Self {}
+    }
+
+    #[cfg(feature = "alloc")]
     pub fn get_pointer_field(&self, pointer_index: u16) -> Self {
         let mut new_ops = Vec::with_capacity(self.ops.len() + 1);
         for op in &self.ops {
@@ -250,26 +257,29 @@ impl Pipeline {
         }
     }
 
+    #[cfg(not(feature = "alloc"))]
+    pub fn get_pointer_field(&self, _pointer_index: u16) -> Self {
+        Self {}
+    }
+
+    #[cfg(feature = "alloc")]
     pub fn as_cap(&self) -> Box<dyn ClientHook> {
         self.hook.get_pipelined_cap(&self.ops)
     }
 }
 
-#[cfg(feature = "alloc")]
 impl crate::capability::FromTypelessPipeline for Pipeline {
     fn new(typeless: Pipeline) -> Self {
         typeless
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
     fn from(a: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
         crate::dynamic_value::Reader::AnyPointer(a)
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
     fn from(a: Builder<'a>) -> crate::dynamic_value::Builder<'a> {
         crate::dynamic_value::Builder::AnyPointer(a)

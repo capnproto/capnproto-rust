@@ -1,6 +1,5 @@
 //! Dynamically typed values.
 
-#![cfg(feature = "alloc")]
 use crate::introspect::{self, TypeVariant};
 use crate::schema_capnp::value;
 use crate::Result;
