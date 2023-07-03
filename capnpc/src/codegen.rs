@@ -2144,6 +2144,7 @@ fn generate_node(
                         Line(fmt!(ctx,"impl {capnp}::introspect::Introspect for Owned {{ fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Struct({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types, annotation_types: _private::get_annotation_types }}).into() }} }}")),
                         Line(fmt!(ctx, "impl {capnp}::traits::Owned for Owned {{ type Reader<'a> = Reader<'a>; type Builder<'a> = Builder<'a>; }}")),
                         Line(fmt!(ctx,"impl {capnp}::traits::OwnedStruct for Owned {{ type Reader<'a> = Reader<'a>; type Builder<'a> = Builder<'a>; }}")),
+                        line("#[cfg(feature = \"alloc\")]"),
                         Line(fmt!(ctx,"impl {capnp}::traits::Pipelined for Owned {{ type Pipeline = Pipeline; }}"))
                     ])
                 } else {
@@ -2158,6 +2159,7 @@ fn generate_node(
                             params.params, params.where_clause)),
                         Line(fmt!(ctx,"impl <{0}> {capnp}::traits::OwnedStruct for Owned <{0}> {1} {{ type Reader<'a> = Reader<'a, {0}>; type Builder<'a> = Builder<'a, {0}>; }}",
                             params.params, params.where_clause)),
+                        line("#[cfg(feature = \"alloc\")]"),
                         Line(fmt!(ctx,"impl <{0}> {capnp}::traits::Pipelined for Owned<{0}> {1} {{ type Pipeline = Pipeline{2}; }}",
                             params.params, params.where_clause, bracketed_params)),
                     ])
@@ -2199,6 +2201,7 @@ fn generate_node(
                 ]),
                 line("}"),
                 BlankLine,
+                line("#[cfg(feature = \"alloc\")]"),
                 Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<Reader<'a,{0}>> for {capnp}::dynamic_value::Reader<'a> {1} {{",
                             params.params, params.where_clause)),
                 indent(vec![
@@ -2208,6 +2211,7 @@ fn generate_node(
                 ]),
                 line("}"),
                 BlankLine,
+                line("#[cfg(feature = \"alloc\")]"),
                 Line(format!("impl <'a,{0}> ::core::fmt::Debug for Reader<'a,{0}> {1} {{",
                             params.params, params.where_clause)),
                 indent(vec![
@@ -2237,6 +2241,7 @@ fn generate_node(
                 ]),
                 line("}"),
                 BlankLine,
+                line("#[cfg(feature = \"alloc\")]"),
                 Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::Imbue<'a> for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
                 indent(vec![
@@ -2289,6 +2294,7 @@ fn generate_node(
                 ]),
                 line("}"),
                 BlankLine,
+                line("#[cfg(feature = \"alloc\")]"),
                 Line(fmt!(ctx,"impl <'a,{0}> ::core::convert::From<Builder<'a,{0}>> for {capnp}::dynamic_value::Builder<'a> {1} {{",
                             params.params, params.where_clause)),
                 indent(vec![
@@ -2299,6 +2305,7 @@ fn generate_node(
                 line("}"),
                 BlankLine,
 
+                line("#[cfg(feature = \"alloc\")]"),
                 Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::ImbueMut<'a> for Builder<'a,{0}> {1} {{",
                              params.params, params.where_clause)),
                 indent(vec![
@@ -2341,6 +2348,7 @@ fn generate_node(
                 BlankLine,
                 (if is_generic {
                     Branch(vec![
+                        line("#[cfg(feature = \"alloc\")]"),
                         Line(format!("pub struct Pipeline{bracketed_params} {{")),
                         indent(vec![
                             Line(fmt!(ctx,"_typeless: {capnp}::any_pointer::Pipeline,")),
@@ -2349,14 +2357,19 @@ fn generate_node(
                         line("}")
                     ])
                 } else {
-                    Line(fmt!(ctx,"pub struct Pipeline {{ _typeless: {capnp}::any_pointer::Pipeline }}"))
+                    Branch(vec![
+                        line("#[cfg(feature = \"alloc\")]"),
+                        Line(fmt!(ctx,"pub struct Pipeline {{ _typeless: {capnp}::any_pointer::Pipeline }}"))
+                    ])
                 }),
+                line("#[cfg(feature = \"alloc\")]"),
                 Line(fmt!(ctx,"impl{bracketed_params} {capnp}::capability::FromTypelessPipeline for Pipeline{bracketed_params} {{")),
                 indent(vec![
                         Line(fmt!(ctx,"fn new(typeless: {capnp}::any_pointer::Pipeline) -> Self {{")),
                         indent(Line(format!("Self {{ _typeless: typeless, {} }}", params.phantom_data_value))),
                         line("}")]),
                 line("}"),
+                line("#[cfg(feature = \"alloc\")]"),
                 Line(format!("impl{0} Pipeline{0} {1} {{", bracketed_params,
                              params.pipeline_where_clause)),
                 indent(pipeline_impl_interior),
@@ -2413,6 +2426,7 @@ fn generate_node(
             ]));
 
             output.push(Branch(vec![
+                line("#[cfg(feature = \"alloc\")]"),
                 Line(fmt!(ctx,"impl <'a> ::core::convert::From<{last_name}> for {capnp}::dynamic_value::Reader<'a> {{")),
                 indent(Line(fmt!(ctx,
                     "fn from(e: {last_name}) -> Self {{ {capnp}::dynamic_value::Enum::new(e.into(), {capnp}::introspect::RawEnumSchema {{ encoded_node: &{0}::ENCODED_NODE, annotation_types: {0}::get_annotation_types }}.into()).into() }}", name_as_mod ))),
@@ -2664,6 +2678,7 @@ fn generate_node(
                     line("pub struct Owned(());"),
                     Line(fmt!(ctx,"impl {capnp}::introspect::Introspect for Owned {{ fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Capability.into() }} }}")),
                     line("impl ::capnp::traits::Owned for Owned { type Reader<'a> = Client; type Builder<'a> = Client; }"),
+                    line("#[cfg(feature = \"alloc\")]"),
                     Line(fmt!(ctx,"impl {capnp}::traits::Pipelined for Owned {{ type Pipeline = Client; }}"))])
             } else {
                 Branch(vec![
@@ -2677,6 +2692,7 @@ fn generate_node(
                     Line(fmt!(ctx,
                         "impl <{0}> {capnp}::traits::Owned for Owned <{0}> {1} {{ type Reader<'a> = Client<{0}>; type Builder<'a> = Client<{0}>; }}",
                         params.params, params.where_clause)),
+                    line("#[cfg(feature = \"alloc\")]"),
                     Line(fmt!(ctx,
                         "impl <{0}> {capnp}::traits::Pipelined for Owned <{0}> {1} {{ type Pipeline = Client{2}; }}",
                         params.params, params.where_clause, bracketed_params))])
