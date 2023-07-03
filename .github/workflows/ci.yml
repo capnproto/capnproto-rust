@@ -114,6 +114,8 @@ jobs:
       run: |
           cd capnp
           cargo test --no-default-features
+          cargo test --no-default-features --features alloc
+          cargo test --no-default-features --features std
           cargo test --features sync_reader
           cargo test --features unaligned
           cd ../
