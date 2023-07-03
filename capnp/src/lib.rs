@@ -477,10 +477,9 @@ impl core::convert::From<alloc::string::FromUtf8Error> for Error {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl core::convert::From<alloc::str::Utf8Error> for Error {
-    fn from(err: alloc::str::Utf8Error) -> Self {
-        Self::failed(format!("{err}"))
+impl core::convert::From<core::str::Utf8Error> for Error {
+    fn from(err: core::str::Utf8Error) -> Self {
+        Self::from_kind(ErrorKind::TextContainsNonUtf8Data(err))
     }
 }
 
