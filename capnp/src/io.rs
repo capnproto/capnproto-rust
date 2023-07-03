@@ -89,8 +89,6 @@ mod std_impls {
 mod no_std_impls {
     use crate::io::{BufRead, Read, Write};
     use crate::{Error, ErrorKind, Result};
-    #[cfg(feature = "alloc")]
-    use alloc::string::ToString;
 
     impl<'a> Write for &'a mut [u8] {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {

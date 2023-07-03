@@ -37,4 +37,4 @@ path = "../capnp"
 # Doing this forces capnpc to define its own mapping from std::io::Read to capnp::io::Read.
 # Fortunately, this is pretty easy, and is just an internal implementation detail.
 default-features=false
-features=[]
+features=["alloc"]

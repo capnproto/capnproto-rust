@@ -8,8 +8,7 @@ use alloc::alloc::{GlobalAlloc, Layout};
 use core::panic::PanicInfo;
 
 // Allocator that fails on every allocation. This is to show that we can read capnproto
-// messages without doing any allocations. Note, however, that capnp::Error does allocate,
-// so for a real application we would want an actual allocator.
+// messages without doing any allocations.
 struct NullAllocator;
 
 unsafe impl GlobalAlloc for NullAllocator {
