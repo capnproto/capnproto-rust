@@ -316,9 +316,6 @@ where
     )))
 }
 
-#[deprecated(since = "0.17.0", note = "use CapabilityServerSet instead")]
-pub type WeakCapabilityServerSet<S, C> = CapabilityServerSet<S, C>;
-
 /// Allows a server to recognize its own capabilities when passed back to it, and obtain the
 /// underlying Server objects associated with them. Holds only weak references to Server objects
 /// allowing Server objects to be dropped when dropped by the remote client. Call the `gc` method
