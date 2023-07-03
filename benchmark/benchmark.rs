@@ -470,7 +470,7 @@ fn try_main() -> ::capnp::Result<()> {
         return Err(::capnp::Error::failed(format!(
             "Could not parse a u64 from: {}",
             args[5]
-        )))
+        )));
     };
 
     let mode = Mode::parse(&args[2])?;

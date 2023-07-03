@@ -302,7 +302,9 @@ impl<'a> GeneratorContext<'a> {
         node_id: u64,
     ) -> ::capnp::Result<()> {
         // unused nodes in imported files might be omitted from the node map
-        let Some(&node_reader) = self.node_map.get(&node_id) else { return Ok(()) };
+        let Some(&node_reader) = self.node_map.get(&node_id) else {
+            return Ok(());
+        };
 
         for annotation in node_reader.get_annotations()? {
             if annotation.get_id() == NAME_ANNOTATION_ID {
@@ -1328,7 +1330,9 @@ fn used_params_of_brand(
     let brand_scopes = brand_scopes; // freeze
     let mut current_node_id = node_id;
     loop {
-        let Some(current_node) = ctx.node_map.get(&current_node_id) else { break };
+        let Some(current_node) = ctx.node_map.get(&current_node_id) else {
+            break;
+        };
         let params = current_node.get_parameters()?;
         match brand_scopes.get(&current_node_id) {
             None => (),

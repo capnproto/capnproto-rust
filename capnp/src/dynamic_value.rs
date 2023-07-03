@@ -104,7 +104,9 @@ pub trait DowncastReader<'a> {
 
 impl<'a> DowncastReader<'a> for () {
     fn downcast_reader(value: Reader<'a>) -> () {
-        let Reader::Void = value else { panic!("error downcasting to void") };
+        let Reader::Void = value else {
+            panic!("error downcasting to void")
+        };
     }
 }
 
@@ -223,7 +225,9 @@ pub trait DowncastBuilder<'a> {
 
 impl<'a> DowncastBuilder<'a> for () {
     fn downcast_builder(value: Builder<'a>) -> () {
-        let Builder::Void = value else { panic!("error downcasting to void") };
+        let Builder::Void = value else {
+            panic!("error downcasting to void")
+        };
     }
 }
 
