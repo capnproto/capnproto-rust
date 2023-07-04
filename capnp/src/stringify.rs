@@ -69,8 +69,12 @@ pub(crate) fn print(
         dynamic_value::Reader::UInt16(x) => formatter.write_fmt(format_args!("{x}")),
         dynamic_value::Reader::UInt32(x) => formatter.write_fmt(format_args!("{x}")),
         dynamic_value::Reader::UInt64(x) => formatter.write_fmt(format_args!("{x}")),
+        #[cfg(not(feature = "kernel"))]
         dynamic_value::Reader::Float32(x) => formatter.write_fmt(format_args!("{x}")),
+        #[cfg(not(feature = "kernel"))]
         dynamic_value::Reader::Float64(x) => formatter.write_fmt(format_args!("{x}")),
+        #[cfg(feature = "kernel")]
+        dynamic_value::Reader::Float32(_) | dynamic_value::Reader::Float64(_) => Err(fmt::Error),
         dynamic_value::Reader::Enum(e) => match cvt(e.get_enumerant())? {
             Some(enumerant) => formatter.write_str(cvt(enumerant.get_proto().get_name())?),
             None => formatter.write_fmt(format_args!("{}", e.get_value())),
