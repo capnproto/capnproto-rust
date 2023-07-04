@@ -26,20 +26,22 @@
 mod no_alloc_slice_segments;
 pub use no_alloc_slice_segments::NoAllocSliceSegments;
 
+#[cfg(any(feature = "alloc", feature = "kernel"))]
+use crate::io::Read;
 #[cfg(feature = "alloc")]
-use crate::io::{Read, Write};
-#[cfg(feature = "alloc")]
+use crate::io::Write;
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 use alloc::vec::Vec;
 #[cfg(feature = "alloc")]
 use core::convert::TryInto;
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 use core::ops::Deref;
 
 use crate::message;
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 use crate::private::units::BYTES_PER_WORD;
 use crate::Result;
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 use crate::{Error, ErrorKind};
 
 pub const SEGMENTS_COUNT_LIMIT: usize = 512;
@@ -124,7 +126,7 @@ pub fn read_message_from_flat_slice_no_alloc<'a>(
 
 /// Segments read from a buffer, useful for when you have the message in a buffer and don't want the extra
 /// copy of `read_message`.
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 pub struct BufferSegments<T> {
     buffer: T,
 
@@ -136,7 +138,7 @@ pub struct BufferSegments<T> {
     segment_indices: Vec<(usize, usize)>,
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 impl<T: Deref<Target = [u8]>> BufferSegments<T> {
     /// Reads a serialized message (including a segment table) from a buffer and takes ownership, without copying.
     /// The buffer is allowed to be longer than the message. Provide this to `Reader::new` with options that make
@@ -166,7 +168,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 impl<T: Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         if id < self.segment_indices.len() as u32 {
@@ -227,25 +229,37 @@ impl crate::message::ReaderSegments for OwnedSegments {
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 /// Helper object for constructing an `OwnedSegments` or a `SliceSegments`.
 pub struct SegmentLengthsBuilder {
     segment_indices: Vec<(usize, usize)>,
     total_words: usize,
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 impl SegmentLengthsBuilder {
     /// Creates a new `SegmentsLengthsBuilder`, initializing the segment_indices vector with
     /// `Vec::with_capacitiy(capacity)`. `capacity` should equal the number of times that `push_segment()`
     /// is expected to be called.
+    #[cfg(feature = "alloc")]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             segment_indices: Vec::with_capacity(capacity),
             total_words: 0,
         }
     }
+    /// Creates a new `SegmentsLengthsBuilder`, initializing the segment_indices vector with
+    /// `Vec::with_capacitiy(capacity)`. `capacity` should equal the number of times that `push_segment()`
+    /// is expected to be called.
+    #[cfg(feature = "kernel")]
+    pub fn with_capacity(capacity: usize) -> Result<Self> {
+        Ok(Self {
+            segment_indices: Vec::try_with_capacity(capacity)?,
+            total_words: 0,
+        })
+    }
 
+    #[cfg(feature = "alloc")]
     /// Pushes a new segment length. The `n`th time (starting at 0) this is called specifies the length of
     /// the segment with ID `n`.
     pub fn push_segment(&mut self, length_in_words: usize) {
@@ -253,9 +267,19 @@ impl SegmentLengthsBuilder {
             .push((self.total_words, self.total_words + length_in_words));
         self.total_words += length_in_words;
     }
+    #[cfg(feature = "kernel")]
+    /// Pushes a new segment length. The `n`th time (starting at 0) this is called specifies the length of
+    /// the segment with ID `n`.
+    pub fn push_segment(&mut self, length_in_words: usize) -> Result<()> {
+        self.segment_indices
+            .try_push((self.total_words, self.total_words + length_in_words))?;
+        self.total_words += length_in_words;
+        Ok(())
+    }
 
     /// Constructs an `OwnedSegments`, allocating a single buffer of 8-byte aligned memory to hold
     /// all segments.
+    #[cfg(feature = "alloc")]
     pub fn into_owned_segments(self) -> OwnedSegments {
         let owned_space = crate::Word::allocate_zeroed_vec(self.total_words);
         OwnedSegments {
@@ -265,6 +289,7 @@ impl SegmentLengthsBuilder {
     }
 
     /// Constructs a `SliceSegments`, where the passed-in slice is assumed to contain the segments.
+    #[cfg(feature = "alloc")]
     pub fn into_slice_segments(self, slice: &[u8]) -> SliceSegments {
         assert!(self.total_words * BYTES_PER_WORD <= slice.len());
         SliceSegments {
@@ -332,7 +357,7 @@ where
 ///
 /// The segment table format for streams is defined in the Cap'n Proto
 /// [encoding spec](https://capnproto.org/encoding.html)
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "kernel"))]
 fn read_segment_table<R>(
     read: &mut R,
     options: message::ReaderOptions,
@@ -364,25 +389,43 @@ where
         )));
     }
 
+    #[cfg(feature = "alloc")]
     let mut segment_lengths_builder = SegmentLengthsBuilder::with_capacity(segment_count);
+    #[cfg(feature = "kernel")]
+    let mut segment_lengths_builder = SegmentLengthsBuilder::with_capacity(segment_count)?;
+    #[cfg(feature = "alloc")]
     segment_lengths_builder
         .push_segment(u32::from_le_bytes(buf[4..8].try_into().unwrap()) as usize);
+    #[cfg(feature = "kernel")]
+    segment_lengths_builder
+        .push_segment(u32::from_le_bytes(buf[4..8].try_into().unwrap()) as usize)?;
     if segment_count > 1 {
         if segment_count < 4 {
             read.read_exact(&mut buf)?;
             for idx in 0..(segment_count - 1) {
                 let segment_len =
                     u32::from_le_bytes(buf[(idx * 4)..(idx + 1) * 4].try_into().unwrap()) as usize;
+                #[cfg(feature = "alloc")]
                 segment_lengths_builder.push_segment(segment_len);
+                #[cfg(feature = "kernel")]
+                segment_lengths_builder.push_segment(segment_len)?;
             }
         } else {
+            #[cfg(feature = "alloc")]
             let mut segment_sizes = vec![0u8; (segment_count & !1) * 4];
+            #[cfg(feature = "kernel")]
+            let mut segment_sizes = Vec::try_with_capacity((segment_count & !1) * 4)?;
+            #[cfg(feature = "kernel")]
+            segment_sizes.try_resize((segment_count & !1) * 4, 0)?;
             read.read_exact(&mut segment_sizes[..])?;
             for idx in 0..(segment_count - 1) {
                 let segment_len =
                     u32::from_le_bytes(segment_sizes[(idx * 4)..(idx + 1) * 4].try_into().unwrap())
                         as usize;
+                #[cfg(feature = "alloc")]
                 segment_lengths_builder.push_segment(segment_len);
+                #[cfg(feature = "kernel")]
+                segment_lengths_builder.push_segment(segment_len)?;
             }
         }
     }

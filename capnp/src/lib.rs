@@ -32,6 +32,8 @@
 #[cfg(feature = "alloc")]
 #[macro_use]
 extern crate alloc;
+#[cfg(feature = "kernel")]
+extern crate alloc;
 
 /// Code generated from
 /// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
@@ -358,6 +360,9 @@ pub enum ErrorKind {
     /// Only one of the section pointers is pointing to ourself
     OnlyOneOfTheSectionPointersIsPointingToOurself,
 
+    /// Out of memory
+    OutOfMemory,
+
     /// Packed input did not end cleanly on a segment boundary.
     PackedInputDidNotEndCleanlyOnASegmentBoundary,
 
@@ -489,6 +494,13 @@ impl core::convert::From<NotInSchema> for Error {
     }
 }
 
+#[cfg(any(feature = "alloc", feature = "kernel"))]
+impl core::convert::From<alloc::collections::TryReserveError> for Error {
+    fn from(_err: alloc::collections::TryReserveError) -> Self {
+        Self::from_kind(ErrorKind::OutOfMemory)
+    }
+}
+
 impl core::fmt::Display for ErrorKind {
     fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
         match self {
@@ -548,6 +560,7 @@ impl core::fmt::Display for ErrorKind {
             Self::NestingLimitExceeded => write!(fmt, "nesting limit exceeded"),
             Self::NotAStruct => write!(fmt, "not a struct"),
             Self::OnlyOneOfTheSectionPointersIsPointingToOurself => write!(fmt, "Only one of the section pointers is pointing to ourself"),
+            Self::OutOfMemory => write!(fmt, "Out of memory"),
             Self::PackedInputDidNotEndCleanlyOnASegmentBoundary => write!(fmt, "Packed input did not end cleanly on a segment boundary."),
             Self::PrematureEndOfFile => write!(fmt, "Premature end of file"),
             Self::PrematureEndOfPackedInput => write!(fmt, "Premature end of packed input."),
