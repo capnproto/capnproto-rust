@@ -107,6 +107,50 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
             uint8_list.set(3, 0xff);
         }
 
+        {
+            let mut uint16_list = sub_builder.reborrow().init_u_int16_list(4);
+            uint16_list.set(0, 1234);
+            uint16_list.set(1, 5678);
+            uint16_list.set(2, 0);
+            uint16_list.set(3, 0xffff);
+        }
+
+        {
+            let mut uint32_list = sub_builder.reborrow().init_u_int32_list(4);
+            uint32_list.set(0, 12345678);
+            uint32_list.set(1, 90123456);
+            uint32_list.set(2, 0);
+            uint32_list.set(3, 0xffffffff);
+        }
+
+        {
+            let mut uint64_list = sub_builder.reborrow().init_u_int64_list(4);
+            uint64_list.set(0, 123456789012345);
+            uint64_list.set(1, 678901234567890);
+            uint64_list.set(2, 0);
+            uint64_list.set(3, 0xffffffffffffffff);
+        }
+
+        {
+            let mut float32_list = sub_builder.reborrow().init_float32_list(6);
+            float32_list.set(0, 0f32);
+            float32_list.set(1, 1234567f32);
+            float32_list.set(2, 1e37);
+            float32_list.set(3, -1e37);
+            float32_list.set(4, 1e-37);
+            float32_list.set(5, -1e-37);
+        }
+
+        {
+            let mut float64_list = sub_builder.reborrow().init_float64_list(6);
+            float64_list.set(0, 0f64);
+            float64_list.set(1, 123456789012345f64);
+            float64_list.set(2, 1e306);
+            float64_list.set(3, -1e306);
+            float64_list.set(4, 1e-306);
+            float64_list.set(5, -1e-306);
+        }
+
         // ...
         {
             let mut struct_list = sub_builder.reborrow().init_struct_list(3);
@@ -257,6 +301,54 @@ check_test_message_impl(($mod:ident::$typ:ident) => (
                     assert_eq!(0xff, uint8_list.get(3));
                 }
 
+                {
+                    let uint16_list = sub_reader.reborrow().get_u_int16_list().unwrap();
+                    assert_eq!(4, uint16_list.len());
+                    assert_eq!(1234, uint16_list.get(0));
+                    assert_eq!(5678, uint16_list.get(1));
+                    assert_eq!(0, uint16_list.get(2));
+                    assert_eq!(0xffff, uint16_list.get(3));
+                }
+
+                {
+                    let uint32_list = sub_reader.reborrow().get_u_int32_list().unwrap();
+                    assert_eq!(4, uint32_list.len());
+                    assert_eq!(12345678, uint32_list.get(0));
+                    assert_eq!(90123456, uint32_list.get(1));
+                    assert_eq!(0, uint32_list.get(2));
+                    assert_eq!(0xffffffff, uint32_list.get(3));
+                }
+
+                {
+                    let uint64_list = sub_reader.reborrow().get_u_int64_list().unwrap();
+                    assert_eq!(4, uint64_list.len());
+                    assert_eq!(123456789012345, uint64_list.get(0));
+                    assert_eq!(678901234567890, uint64_list.get(1));
+                    assert_eq!(0, uint64_list.get(2));
+                    assert_eq!(0xffffffffffffffff, uint64_list.get(3));
+                }
+
+                {
+                    let float32_list = sub_reader.reborrow().get_float32_list().unwrap();
+                    assert_eq!(6, float32_list.len());
+                    assert_eq!(0f32, float32_list.get(0));
+                    assert_eq!(1234567f32, float32_list.get(1));
+                    assert_eq!(1e37, float32_list.get(2));
+                    assert_eq!(-1e37, float32_list.get(3));
+                    assert_eq!(1e-37, float32_list.get(4));
+                    assert_eq!(-1e-37, float32_list.get(5));
+                }
+
+                {
+                    let float64_list = sub_reader.reborrow().get_float64_list().unwrap();
+                    assert_eq!(6, float64_list.len());
+                    assert_eq!(0f64, float64_list.get(0));
+                    assert_eq!(123456789012345f64, float64_list.get(1));
+                    assert_eq!(1e306, float64_list.get(2));
+                    assert_eq!(-1e306, float64_list.get(3));
+                    assert_eq!(1e-306, float64_list.get(4));
+                    assert_eq!(-1e-306, float64_list.get(5));
+                }
 
                 // ...
 
