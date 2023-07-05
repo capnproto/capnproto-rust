@@ -5,6 +5,6 @@ capnp_import::capnp_import!("tests/example.capnp", "tests/folder-test/*.capnp");
 
 #[test]
 fn multiple_test() {
-    use tests::example_capnp::{date, person};
-    use tests::folder_test::example_capnp::foo;
+    use example_capnp::{date, person};
+    use foo_capnp::foo;
 }
