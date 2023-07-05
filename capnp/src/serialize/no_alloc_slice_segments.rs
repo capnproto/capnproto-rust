@@ -4,6 +4,7 @@ use crate::message::ReaderOptions;
 use crate::message::ReaderSegments;
 use crate::private::units::BYTES_PER_WORD;
 use crate::{Error, ErrorKind, Result};
+use core::ops::Deref;
 
 use super::SEGMENTS_COUNT_LIMIT;
 
@@ -163,6 +164,172 @@ impl<'b> ReaderSegments for NoAllocSliceSegments<'b> {
             NoAllocSliceSegments::SingleSegment { .. } => 1,
             NoAllocSliceSegments::MultipleSegments { mut message } => {
                 u32_to_segments_count(read_u32_le(&mut message).unwrap()).unwrap()
+            }
+        }
+    }
+}
+
+enum NoAllocBufferSegmentType {
+    SingleSegment(usize, usize),
+    MultipleSegments,
+}
+
+/// Segments read from a buffer, useful for when you have the message in a buffer and don't want the
+/// extra copy of `read_message`.
+///
+/// `NoAllocBufferSegments` is similar to [`crate::serialize::BufferSegments`] but optimized for
+/// low memory embedded environment. It does not do heap allocations.
+///
+/// # Performance considerations
+///
+/// Due to lack of heap allocations, `NoAllocBufferSegments` does not cache segments offset and
+/// length and has to parse message header every time `NoAllocBufferSegments::get_segment` is called.
+/// The parsing has O(N) complexity where N is total number of segments in the message.
+/// `NoAllocBufferSegments` has optimization for single segment messages: if message has only one
+/// segment, it will be parsed only once during creation and no parsing will be required on `get_segment` calls
+pub struct NoAllocBufferSegments<T> {
+    buffer: T,
+    segment_type: NoAllocBufferSegmentType,
+}
+
+impl<T: Deref<Target = [u8]>> NoAllocBufferSegments<T> {
+    /// Reads a serialized message (including a segment table) from a buffer and takes ownership, without copying.
+    /// The buffer is allowed to extend beyond the end of the message.
+    ///
+    /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
+    /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
+    pub fn try_new(buffer: T, options: ReaderOptions) -> Result<Self> {
+        let mut remaining = &*buffer;
+
+        verify_alignment(remaining.as_ptr())?;
+
+        let segments_count = u32_to_segments_count(read_u32_le(&mut remaining)?)?;
+
+        if segments_count >= SEGMENTS_COUNT_LIMIT {
+            return Err(Error::from_kind(ErrorKind::InvalidNumberOfSegments(
+                segments_count,
+            )));
+        }
+
+        let mut total_segments_length_bytes = 0_usize;
+
+        for _ in 0..segments_count {
+            let segment_length_in_bytes =
+                u32_to_segment_length_bytes(read_u32_le(&mut remaining)?)?;
+
+            total_segments_length_bytes = total_segments_length_bytes
+                .checked_add(segment_length_in_bytes)
+                .ok_or_else(|| Error::from_kind(ErrorKind::MessageSizeOverflow))?;
+        }
+
+        // Don't accept a message which the receiver couldn't possibly traverse without hitting the
+        // traversal limit. Without this check, a malicious client could transmit a very large segment
+        // size to make the receiver allocate excessive space and possibly crash.
+        if let Some(limit) = options.traversal_limit_in_words {
+            let total_segments_length_words = total_segments_length_bytes / 8;
+            if total_segments_length_words > limit {
+                return Err(Error::from_kind(ErrorKind::MessageTooLarge(
+                    total_segments_length_words,
+                )));
+            }
+        }
+
+        // If number of segments is even, header length will not be aligned by 8, we need to consume
+        // padding from the remainder of the message
+        if segments_count % 2 == 0 {
+            let _padding = read_u32_le(&mut remaining)?;
+        }
+
+        let expected_data_offset = calculate_data_offset(segments_count)
+            .ok_or_else(|| Error::from_kind(ErrorKind::MessageSizeOverflow))?;
+
+        let consumed_bytes = buffer.len() - remaining.len();
+
+        assert_eq!(
+            expected_data_offset, consumed_bytes,
+            "Expected header size and actual header size must match, otherwise we have a bug in this code"
+        );
+
+        // If data section of the message is smaller than calculated total segments length, the message
+        // is malformed. It looks like it's ok to have extra bytes in the end, according to
+        // of `SliceSegments` implementation.
+        if remaining.len() < total_segments_length_bytes {
+            return Err(Error::from_kind(ErrorKind::MessageEndsPrematurely(
+                total_segments_length_bytes / BYTES_PER_WORD,
+                remaining.len() / BYTES_PER_WORD,
+            )));
+        }
+
+        let message_length = expected_data_offset + total_segments_length_bytes;
+
+        if segments_count == 1 {
+            Ok(Self {
+                buffer,
+                segment_type: NoAllocBufferSegmentType::SingleSegment(
+                    expected_data_offset,
+                    message_length,
+                ),
+            })
+        } else {
+            Ok(Self {
+                buffer,
+                segment_type: NoAllocBufferSegmentType::MultipleSegments,
+            })
+        }
+    }
+}
+
+impl<T: Deref<Target = [u8]>> ReaderSegments for NoAllocBufferSegments<T> {
+    fn get_segment(&self, idx: u32) -> Option<&[u8]> {
+        // panic safety: we are doing a lot of `unwrap` here. We assume that underlying message slice
+        // holds valid capnp message - we already verified slice in NoAllocBufferSegments::try_new,
+        // so these unwraps are not expected to panic unless we have bug in the code.
+
+        let idx: usize = idx.try_into().unwrap();
+
+        match self.segment_type {
+            NoAllocBufferSegmentType::SingleSegment(start, end) => {
+                if idx == 0 {
+                    Some(&self.buffer[start..end])
+                } else {
+                    None
+                }
+            }
+            NoAllocBufferSegmentType::MultipleSegments => {
+                let mut buf = &*self.buffer;
+
+                let segments_count = u32_to_segments_count(read_u32_le(&mut buf).unwrap()).unwrap();
+
+                if idx >= segments_count {
+                    return None;
+                }
+
+                let mut segment_offset = calculate_data_offset(segments_count).unwrap();
+
+                for _ in 0..idx {
+                    segment_offset = segment_offset
+                        .checked_add(
+                            u32_to_segment_length_bytes(read_u32_le(&mut buf).unwrap()).unwrap(),
+                        )
+                        .unwrap();
+                }
+
+                let segment_length =
+                    u32_to_segment_length_bytes(read_u32_le(&mut buf).unwrap()).unwrap();
+
+                Some(&self.buffer[segment_offset..(segment_offset + segment_length)])
+            }
+        }
+    }
+
+    fn len(&self) -> usize {
+        // panic safety: we are doing a lot of `unwrap` here. We assume that underlying message slice
+        // holds valid capnp message - we already verified slice in NoAllocBufferSegments::try_new
+
+        match self.segment_type {
+            NoAllocBufferSegmentType::SingleSegment { .. } => 1,
+            NoAllocBufferSegmentType::MultipleSegments => {
+                u32_to_segments_count(read_u32_le(&mut &*self.buffer).unwrap()).unwrap()
             }
         }
     }
