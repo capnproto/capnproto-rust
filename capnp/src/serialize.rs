@@ -24,7 +24,7 @@
 //! where each message is preceded by a segment table indicating the size of its segments.
 
 mod no_alloc_slice_segments;
-pub use no_alloc_slice_segments::NoAllocSliceSegments;
+pub use no_alloc_slice_segments::{NoAllocBufferSegments, NoAllocSliceSegments};
 
 #[cfg(feature = "alloc")]
 use crate::io::{Read, Write};
