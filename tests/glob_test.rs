@@ -6,6 +6,6 @@ capnp_import!("tests/**/*.capnp");
 
 #[test]
 fn glob_test() {
-    use tests::example_capnp::{date, person};
-    use tests::folder_test::example_capnp::foo;
+    use example_capnp::{date, person};
+    use foo_capnp::foo;
 }

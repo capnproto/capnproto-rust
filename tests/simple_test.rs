@@ -5,5 +5,5 @@ capnp_import::capnp_import!("tests/example.capnp");
 
 #[test]
 fn simple_test() {
-    use tests::example_capnp::{date, person};
+    use example_capnp::{date, person};
 }
