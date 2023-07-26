@@ -12,6 +12,7 @@ keywords = ["encoding", "protocol", "serialization"]
 
 [dependencies]
 rand = "0.8.5"
+capnp-import = { path = "../../capnp-import" }
 
 [dependencies.capnp]
 path = "../../capnp"

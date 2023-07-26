@@ -19,9 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-pub mod addressbook_capnp {
-    include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
-}
+capnp_import::capnp_import!("addressbook.capnp");
 
 pub mod addressbook {
     use crate::addressbook_capnp::{address_book, person};

@@ -2,8 +2,7 @@
 
 name = "capnp-futures-test"
 version = "0.0.0"
-authors = [ "David Renshaw <dwrenshaw@gmail.com>"  ]
-build = "build.rs"
+authors = ["David Renshaw <dwrenshaw@gmail.com>"]
 edition = "2021"
 
 [lib]
@@ -11,11 +10,9 @@ edition = "2021"
 name = "capnp_futures_test"
 path = "test.rs"
 
-[build-dependencies]
-capnpc = { path = "../../capnpc" }
-
 [dependencies]
-capnp-futures = {path = "./../"}
+capnp-futures = { path = "./../" }
 capnp = { path = "../../capnp" }
+capnp-import = { path = "../../capnp-import" }
 futures = "0.3.0"
-async-byte-channel = {path = "./../../async-byte-channel"}
+async-byte-channel = { path = "./../../async-byte-channel" }

@@ -2,8 +2,7 @@
 
 name = "addressbook_send"
 version = "0.0.0"
-authors = [ "David Renshaw <dwrenshaw@gmail.com>"  ]
-build = "build.rs"
+authors = ["David Renshaw <dwrenshaw@gmail.com>"]
 edition = "2021"
 
 [[bin]]
@@ -11,9 +10,6 @@ edition = "2021"
 name = "addressbook_send"
 path = "addressbook_send.rs"
 
-
-[build-dependencies]
-capnpc = { path = "../../capnpc" }
-
 [dependencies]
 capnp = { path = "../../capnp" }
+capnp-import = { path = "../../capnp-import" }

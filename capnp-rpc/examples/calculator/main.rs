@@ -19,9 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-pub mod calculator_capnp {
-    include!(concat!(env!("OUT_DIR"), "/calculator_capnp.rs"));
-}
+capnp_import::capnp_import!("capnp-rpc/examples/calculator/calculator.capnp");
 
 pub mod client;
 pub mod server;

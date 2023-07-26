@@ -1,13 +1,7 @@
 use capnp::dynamic_value;
 use fill_random_values::Filler;
 
-pub mod shapes_capnp {
-    include!(concat!(env!("OUT_DIR"), "/shapes_capnp.rs"));
-}
-
-pub mod fill_capnp {
-    include!(concat!(env!("OUT_DIR"), "/fill_capnp.rs"));
-}
+capnp_import::capnp_import!("shapes.capnp");
 
 #[derive(Clone, Copy, Debug)]
 struct Viewport {
