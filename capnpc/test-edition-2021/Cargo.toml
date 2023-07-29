@@ -12,6 +12,9 @@ path = "test.rs"
 
 [build-dependencies]
 capnpc = { path = "../" }
+capnp-import = { path = "../../capnp-import" }
+tempfile = "3.6"
+anyhow = "1.*"
 
 [dependencies]
 capnp = { path = "../../capnp" }

@@ -9,4 +9,7 @@ edition = "2021"
 capnp = { path = "../../../capnp" }
 
 [build-dependencies]
+capnp-import = { path = "../../../capnp-import" }
 capnpc = { path = "../.." }
+tempfile = "3.6"
+anyhow = "1.*"

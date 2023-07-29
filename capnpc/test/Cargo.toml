@@ -2,7 +2,7 @@
 
 name = "capnpc-test"
 version = "0.0.0"
-authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
+authors = ["David Renshaw <dwrenshaw@sandstorm.io>"]
 build = "build.rs"
 edition = "2021"
 
@@ -13,6 +13,9 @@ path = "test.rs"
 
 [build-dependencies]
 capnpc = { path = "../" }
+capnp-import = { path = "../../capnp-import" }
+tempfile = "3.6"
+anyhow = "1.*"
 
 [dependencies]
 capnp = { path = "../../capnp" }

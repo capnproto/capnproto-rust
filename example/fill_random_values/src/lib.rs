@@ -5,7 +5,7 @@ use capnp::introspect::TypeVariant;
 use capnp::schema;
 use capnp::{dynamic_struct, dynamic_value};
 
-capnp_import::capnp_import!("fill.capnp");
+capnp_import::capnp_import!("example/fill_random_values/fill.capnp");
 
 pub struct Filler<R: Rng> {
     rng: R,

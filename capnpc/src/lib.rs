@@ -395,10 +395,20 @@ impl CompilerCommand {
     }
 }
 
+#[cfg(test)]
+capnp_import::capnp_extract_bin!();
+
 #[test]
 #[cfg_attr(miri, ignore)]
 fn compiler_command_new_no_out_dir() {
+    let output_dir = commandhandle().unwrap();
+    let cmdpath = output_dir.path().join("capnp");
+
     std::env::remove_var("OUT_DIR");
-    let error = CompilerCommand::new().run().unwrap_err().extra;
+    let error = CompilerCommand::new()
+        .capnp_executable(cmdpath)
+        .run()
+        .unwrap_err()
+        .extra;
     assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
 }

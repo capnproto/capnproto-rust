@@ -1,8 +1,6 @@
 use wasmer::{imports, Value};
 
-pub mod wasm_hello_world_capnp {
-    include!(concat!(env!("OUT_DIR"), "/wasm_hello_world_capnp.rs"));
-}
+capnp_import::capnp_import!("example/wasm-hello-world/wasm-hello-world.capnp");
 
 static WASM: &'static [u8] =
     include_bytes!("../wasm-app/target/wasm32-unknown-unknown/release/wasm_app.wasm");

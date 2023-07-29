@@ -29,6 +29,12 @@ pub fn capnp_import(input: TokenStream) -> TokenStream {
     result.into()
 }
 
+#[proc_macro]
+pub fn capnp_extract_bin(_: TokenStream) -> TokenStream {
+    let content = std::fs::read_to_string(concat!(env!("OUT_DIR"), "/extract_bin.rs")).unwrap();
+    TokenStream2::from_str(&content).unwrap().into()
+}
+
 fn process_inner<I>(path_patterns: I) -> anyhow::Result<TokenStream2>
 where
     I: IntoIterator,

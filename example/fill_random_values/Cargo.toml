@@ -17,9 +17,6 @@ capnp-import = { path = "../../capnp-import" }
 [dependencies.capnp]
 path = "../../capnp"
 
-[build-dependencies.capnpc]
-path = "../../capnpc"
-
 [[bin]]
 name = "fill_addressbook"
 path = "fill_addressbook.rs"

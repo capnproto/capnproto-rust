@@ -10,6 +10,8 @@ edition = "2018"
 name = "addressbook"
 path = "addressbook.rs"
 
+[dependencies.capnp-import]
+path = "../../capnp-import"
+
 [dependencies.capnp]
 path = "../../capnp"
-capnp-import = { path = "../../capnp-import" }

@@ -1,5 +1,11 @@
+capnp_import::capnp_extract_bin!();
+
 fn main() {
+    let output_dir = commandhandle().unwrap();
+    let cmdpath = output_dir.path().join("capnp");
+
     capnpc::CompilerCommand::new()
+        .capnp_executable(&cmdpath)
         .crate_provides("external_crate", [0xe6f94f52f7be8fe2])
         .file("test.capnp")
         .file("in-submodule.capnp")
@@ -15,6 +21,7 @@ fn main() {
         .expect("compiling schema");
 
     capnpc::CompilerCommand::new()
+        .capnp_executable(&cmdpath)
         .file("test-default-parent-module.capnp")
         .file("test-default-parent-module-override.capnp")
         .default_parent_module(vec![
@@ -30,6 +37,7 @@ fn main() {
     // `capnp compile` will create this directory
     output_path.push("inner-output-path");
     capnpc::CompilerCommand::new()
+        .capnp_executable(&cmdpath)
         .file("test-output-path.capnp")
         .output_path(output_path)
         .run()
