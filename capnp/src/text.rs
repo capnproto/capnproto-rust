@@ -94,7 +94,7 @@ impl<'a> Builder<'a> {
         self.pos = 0;
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn reborrow(&mut self) -> Builder<'_> {
         Builder {
             bytes: self.bytes,
             pos: self.pos,

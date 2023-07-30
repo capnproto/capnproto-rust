@@ -408,12 +408,7 @@ impl AnnotationList {
     /// Returns the first annotation in the list that matches `id`.
     /// Otherwise returns `None`.
     pub fn find(self, id: u64) -> Option<Annotation> {
-        for annotation in self.iter() {
-            if annotation.get_id() == id {
-                return Some(annotation);
-            }
-        }
-        None
+        self.iter().find(|&annotation| annotation.get_id() == id)
     }
 
     pub fn iter(self) -> ListIter<Self, Annotation> {

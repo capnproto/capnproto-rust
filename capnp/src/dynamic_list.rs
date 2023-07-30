@@ -161,7 +161,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn reborrow(&mut self) -> Builder<'_> {
         Builder {
             builder: self.builder.reborrow(),
             element_type: self.element_type,
@@ -264,51 +264,69 @@ impl<'a> Builder<'a> {
         match (self.element_type.which(), value) {
             (TypeVariant::Void, _) => Ok(()),
             (TypeVariant::Bool, dynamic_value::Reader::Bool(b)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, b))
+                PrimitiveElement::set(&self.builder, index, b);
+                Ok(())
             }
             (TypeVariant::Int8, dynamic_value::Reader::Int8(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::Int16, dynamic_value::Reader::Int16(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::Int32, dynamic_value::Reader::Int32(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::Int64, dynamic_value::Reader::Int64(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::UInt8, dynamic_value::Reader::UInt8(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::UInt16, dynamic_value::Reader::UInt16(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::UInt32, dynamic_value::Reader::UInt32(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::UInt64, dynamic_value::Reader::UInt64(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::Float32, dynamic_value::Reader::Float32(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::Float64, dynamic_value::Reader::Float64(x)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, x))
+                PrimitiveElement::set(&self.builder, index, x);
+                Ok(())
             }
             (TypeVariant::Enum(_es), dynamic_value::Reader::Enum(e)) => {
-                Ok(PrimitiveElement::set(&self.builder, index, e.get_value()))
+                PrimitiveElement::set(&self.builder, index, e.get_value());
+                Ok(())
             }
-            (TypeVariant::Text, dynamic_value::Reader::Text(t)) => Ok(self
+            (TypeVariant::Text, dynamic_value::Reader::Text(t)) => {
+                self
                 .builder
                 .reborrow()
                 .get_pointer_element(index)
-                .set_text(t)),
-            (TypeVariant::Data, dynamic_value::Reader::Data(d)) => Ok(self
+                .set_text(t);
+                Ok(())
+            },
+            (TypeVariant::Data, dynamic_value::Reader::Data(d)) => {
+                self
                 .builder
                 .reborrow()
                 .get_pointer_element(index)
-                .set_data(d)),
+                .set_data(d);
+                Ok(())
+            },
             (TypeVariant::Struct(ss), dynamic_value::Reader::Struct(s)) => {
                 assert_eq!(ss, s.get_schema().raw);
                 self.builder

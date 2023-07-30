@@ -159,7 +159,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn target(ptr: *const Self) -> *const u8 {
+    pub unsafe fn target(ptr: *const Self) -> *const u8 {
         let this_addr: *const u8 = ptr as *const _;
         unsafe { this_addr.offset(8 * (1 + (((*ptr).offset_and_kind.get() as i32) >> 2)) as isize) }
     }

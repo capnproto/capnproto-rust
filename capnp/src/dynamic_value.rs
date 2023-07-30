@@ -102,7 +102,7 @@ pub trait DowncastReader<'a> {
 }
 
 impl<'a> DowncastReader<'a> for () {
-    fn downcast_reader(value: Reader<'a>) -> () {
+    fn downcast_reader(value: Reader<'a>) {
         let Reader::Void = value else {
             panic!("error downcasting to void")
         };
@@ -162,7 +162,7 @@ pub enum Builder<'a> {
 }
 
 impl<'a> Builder<'a> {
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn reborrow(&mut self) -> Builder<'_> {
         match self {
             Builder::Void => Builder::Void,
             Builder::Bool(b) => Builder::Bool(*b),
@@ -223,7 +223,7 @@ pub trait DowncastBuilder<'a> {
 }
 
 impl<'a> DowncastBuilder<'a> for () {
-    fn downcast_builder(value: Builder<'a>) -> () {
+    fn downcast_builder(value: Builder<'a>) {
         let Builder::Void = value else {
             panic!("error downcasting to void")
         };

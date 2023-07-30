@@ -113,7 +113,7 @@ mod tests {
     fn basic_file_test() -> anyhow::Result<()> {
         let contents = process_inner(["tests/example.capnp"])?.to_string();
         assert!(contents.starts_with("pub mod example_capnp {"));
-        assert!(contents.ends_with("}"));
+        assert!(contents.ends_with('}'));
         Ok(())
     }
 
