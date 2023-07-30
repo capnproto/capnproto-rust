@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-capnp_import::capnp_import!("capnp-futures/test/addressbook.capnp");
+capnp_import::capnp_import!("addressbook.capnp");
 
 #[cfg(test)]
 mod tests {

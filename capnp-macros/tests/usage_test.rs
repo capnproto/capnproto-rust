@@ -1,4 +1,4 @@
-capnp_import::capnp_import!("capnp-macros/tests/example.capnp");
+capnp_import::capnp_import!("tests/example.capnp");
 
 use capnp::capability::Promise;
 use capnp_macros::capnp_let;

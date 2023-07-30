@@ -41,5 +41,14 @@ fn main() {
         .file("test-output-path.capnp")
         .output_path(output_path)
         .run()
-        .expect("compiling schema")
+        .expect("compiling schema");
+
+    // Have to do this test last
+    std::env::remove_var("OUT_DIR");
+    let error = capnpc::CompilerCommand::new()
+        .capnp_executable(&cmdpath)
+        .run()
+        .unwrap_err()
+        .extra;
+    assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
 }

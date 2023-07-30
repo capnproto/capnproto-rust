@@ -1,8 +1,8 @@
 use capnp::dynamic_value;
 use fill_random_values::Filler;
 
-capnp_import::capnp_import!("example/fill_random_values/fill.capnp");
-capnp_import::capnp_import!("example/fill_random_values/addressbook.capnp");
+capnp_import::capnp_import!("fill.capnp");
+capnp_import::capnp_import!("addressbook.capnp");
 
 pub fn main() {
     let mut message = ::capnp::message::Builder::new_default();

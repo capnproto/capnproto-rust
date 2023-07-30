@@ -1,5 +1,4 @@
 #![no_std]
-
 #![feature(core_intrinsics, alloc_error_handler)]
 
 extern crate alloc;
@@ -12,7 +11,9 @@ use core::panic::PanicInfo;
 struct NullAllocator;
 
 unsafe impl GlobalAlloc for NullAllocator {
-    unsafe fn alloc(&self, _layout: Layout) -> *mut u8 { core::ptr::null_mut() }
+    unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
+        core::ptr::null_mut()
+    }
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {}
 }
 
@@ -29,22 +30,24 @@ fn panic(_: &PanicInfo) -> ! {
     core::intrinsics::abort()
 }
 
-pub mod wasm_hello_world_capnp {
-  include!(concat!(env!("OUT_DIR"), "/wasm_hello_world_capnp.rs"));
-}
+capnp_import::capnp_import!("../wasm-hello-world.capnp");
 
 #[no_mangle]
 pub extern "C" fn add_numbers(ptr: i32, len: i32) -> i32 {
     let buf: &[u8] = unsafe { core::slice::from_raw_parts(ptr as *const u8, len as usize) };
     let segments = &[buf];
-    let message = capnp::message::Reader::new(capnp::message::SegmentArray::new(segments),
-                                              core::default::Default::default());
+    let message = capnp::message::Reader::new(
+        capnp::message::SegmentArray::new(segments),
+        core::default::Default::default(),
+    );
 
-    let foo = message.get_root::<wasm_hello_world_capnp::foo::Reader>().unwrap();
+    let foo = message
+        .get_root::<wasm_hello_world_capnp::foo::Reader>()
+        .unwrap();
     let numbers = foo.get_numbers().unwrap();
 
     let mut total: i32 = 0;
-    for ii in 0 .. numbers.len() {
+    for ii in 0..numbers.len() {
         total += numbers.get(ii) as i32;
     }
     total

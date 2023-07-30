@@ -22,6 +22,7 @@ include!(concat!(env!("OUT_DIR"), "/extract_bin.rs"));
 /// Resulting rust files from that compilation are then deleted.
 #[proc_macro]
 pub fn capnp_import(input: TokenStream) -> TokenStream {
+    //println!("DIR: {:?}", std::env::var("CARGO_MANIFEST_DIR").unwrap());
     let parser = syn::punctuated::Punctuated::<LitStr, Token![,]>::parse_separated_nonempty;
     let path_patterns = parser.parse(input).unwrap();
     let path_patterns = path_patterns.into_iter().map(|item| item.value());
@@ -50,7 +51,7 @@ where
     let globs = path_patterns
         .into_iter()
         .flat_map(|s| {
-            wax::walk(s.as_ref(), ".")
+            wax::walk(s.as_ref(), std::env::var("CARGO_MANIFEST_DIR").unwrap())
                 .map_err(BuildError::into_owned)
                 .map(Walk::into_owned)
         })
@@ -110,7 +111,6 @@ mod tests {
 
     #[test]
     fn basic_file_test() -> anyhow::Result<()> {
-        //println!("{:?}", std::env::current_dir().unwrap());
         let contents = process_inner(["tests/example.capnp"])?.to_string();
         assert!(contents.starts_with("pub mod example_capnp {"));
         assert!(contents.ends_with("}"));

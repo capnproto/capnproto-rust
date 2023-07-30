@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-capnp_import::capnp_import!("capnp-rpc/examples/pubsub/pubsub.capnp");
+capnp_import::capnp_import!("pubsub.capnp");
 
 pub mod client;
 pub mod server;

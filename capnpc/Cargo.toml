@@ -27,8 +27,4 @@ path = "src/capnpc-rust-bootstrap.rs"
 [dependencies.capnp]
 version = "0.18.0-alpha"
 path = "../capnp"
-
-[dev-dependencies]
-capnp-import = { path = "../capnp-import" }
-tempfile = "3.6"
-anyhow = "1.*"
+features = ["std"]

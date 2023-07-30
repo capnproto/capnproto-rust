@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-capnp_import::capnp_import!("example/addressbook_send/addressbook.capnp");
+capnp_import::capnp_import!("addressbook.capnp");
 
 use capnp::message::{Builder, HeapAllocator, TypedReader};
 use std::sync::mpsc;

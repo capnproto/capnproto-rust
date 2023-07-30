@@ -2,8 +2,8 @@
 
 // Has to be top level, contains `tests/example.capnp` and `tests/folder-test/example.capnp`
 capnp_import::capnp_import!(
-    "capnp-import/tests/example.capnp",
-    "capnp-import/tests/folder-test/*.capnp"
+    "tests/example.capnp",
+    "tests/folder-test/*.capnp"
 );
 
 #[test]

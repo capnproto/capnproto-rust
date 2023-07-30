@@ -2,8 +2,7 @@
 
 name = "benchmark"
 version = "0.0.0"
-authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
-build = "build.rs"
+authors = ["David Renshaw <dwrenshaw@sandstorm.io>"]
 edition = "2021"
 
 [[bin]]
@@ -16,8 +15,6 @@ path = "benchmark.rs"
 name = "run_all_benchmarks"
 path = "run_all.rs"
 
-[build-dependencies]
-capnpc = { path = "../capnpc" }
-
 [dependencies]
 capnp = { path = "../capnp" }
+capnp-import = { path = "../capnp-import" }

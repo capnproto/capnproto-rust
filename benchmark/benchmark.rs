@@ -26,20 +26,10 @@ use capnp::{message, serialize, serialize_packed};
 
 pub mod common;
 
-pub mod carsales_capnp {
-    include!(concat!(env!("OUT_DIR"), "/carsales_capnp.rs"));
-}
+capnp_import::capnp_import!("carsales.capnp", "catrank.capnp", "eval.capnp");
+
 pub mod carsales;
-
-pub mod catrank_capnp {
-    include!(concat!(env!("OUT_DIR"), "/catrank_capnp.rs"));
-}
 pub mod catrank;
-
-pub mod eval_capnp {
-    include!(concat!(env!("OUT_DIR"), "/eval_capnp.rs"));
-}
-
 pub mod eval;
 
 trait TestCase {
@@ -309,10 +299,8 @@ where
     S: for<'a> Scratch<'a>,
     T: TestCase,
 {
-    let mut out_stream: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(1) };
-    let mut in_stream: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(0) };
-    let mut in_buffered = io::BufReader::new(&mut in_stream);
-    let mut out_buffered = io::BufWriter::new(&mut out_stream);
+    let out_stream = std::io::stdout();
+    let in_stream = std::io::stdin();
     let mut rng = common::FastRand::new();
     let (mut allocator_req, _) = reuse.get_allocators();
     for _ in 0..iters {
@@ -323,12 +311,18 @@ where
             let request = message_req.init_root();
             testcase.setup_request(&mut rng, request)
         };
-        compression.write_message(&mut out_buffered, &message_req)?;
-        out_buffered.flush()?;
+        {
+            let mut out_buffered = out_stream.lock();
+            compression.write_message(&mut out_buffered, &message_req)?;
+            out_buffered.flush()?;
+        }
 
-        let message_reader = compression.read_message(&mut in_buffered, Default::default())?;
-        let response_reader = message_reader.get_root()?;
-        testcase.check_response(response_reader, expected)?;
+        {
+            let mut in_buffered = in_stream.lock();
+            let message_reader = compression.read_message(&mut in_buffered, Default::default())?;
+            let response_reader = message_reader.get_root()?;
+            testcase.check_response(response_reader, expected)?;
+        }
     }
     Ok(())
 }
@@ -408,11 +402,14 @@ where
         Mode::Object => pass_by_object(testcase, reuse, iters),
         Mode::Bytes => pass_by_bytes(testcase, reuse, compression, iters),
         Mode::Client => sync_client(testcase, reuse, compression, iters),
-        Mode::Server => {
-            let input: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(1) };
-            let output: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(0) };
-            server(testcase, reuse, compression, iters, input, output)
-        }
+        Mode::Server => server(
+            testcase,
+            reuse,
+            compression,
+            iters,
+            std::io::stdin(),
+            std::io::stdout(),
+        ),
         Mode::Pipe => pass_by_pipe(testcase, reuse, compression, iters),
     }
 }
