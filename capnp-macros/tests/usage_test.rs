@@ -1,8 +1,8 @@
 capnp_import::capnp_import!("tests/example.capnp");
 
 use capnp::capability::Promise;
+use capnp::IntoResult;
 use capnp_macros::capnp_let;
-use capnp_rpc::pry;
 use example_capnp::person as person_capnp;
 
 fn get_person() -> Vec<u8> {
@@ -22,11 +22,10 @@ fn macro_usage(person: person_capnp::Reader) -> Promise<(), capnp::Error> {
     capnp_let!(
         {name, birthdate: {year_as_text: year, month}, email: contact_email} = person
     );
-    assert_eq!(pry!(name), "Tom");
-    assert_eq!(pry!(year), "1990");
+    assert_eq!(name, "Tom");
+    assert_eq!(year, "1990");
     assert_eq!(month, 2);
-    assert_eq!(pry!(contact_email), "tom@gmail.com");
-
+    assert_eq!(contact_email, "tom@gmail.com");
     // `birthdate` as a Reader is also in scope
     assert_eq!(birthdate.get_day(), 1);
     Promise::ok(())
