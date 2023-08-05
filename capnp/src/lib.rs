@@ -618,3 +618,23 @@ impl<'s> message::ReaderSegments for OutputSegments<'s> {
         }
     }
 }
+
+/// Helper trait that allows treating non-Results as Results and doesn't mess with Results.
+pub trait IntoResult {
+    type InnerType;
+    fn into_result(self) -> Result<Self::InnerType>;
+}
+
+impl<T> IntoResult for Result<T> {
+    type InnerType = T;
+    fn into_result(self) -> Result<Self::InnerType> {
+        self
+    }
+}
+
+impl<T: crate::introspect::Introspect> IntoResult for T {
+    type InnerType = Self;
+    fn into_result(self) -> Result<Self::InnerType> {
+        Ok::<Self::InnerType, Error>(self)
+    }
+}

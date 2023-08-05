@@ -23,14 +23,19 @@ fn process_inner_pry(pat: CapnpAnonStruct, expr: Ident) -> syn::Result<TokenStre
     let mut res = TokenStream2::new();
     for field in pat.fields.into_iter() {
         let CapnpField { lhs, rhs, .. } = field;
-
         let field_accessor = format_ident!("get_{}", lhs);
         let to_append = match *rhs {
             CapnpFieldPat::Ident(ident) => {
-                quote!(let #ident = #expr.reborrow().#field_accessor();)
+                quote! {
+                    let #ident = #expr.reborrow().#field_accessor();
+                    let #ident = capnp_rpc::pry!(#ident.into_result());
+                }
             }
             CapnpFieldPat::AnonStruct(s) => {
-                let head = quote!(let #lhs = capnp_rpc::pry!(#expr.reborrow().#field_accessor()););
+                let head = quote! {
+                    let #lhs = #expr.reborrow().#field_accessor();
+                    let #lhs = capnp_rpc::pry!(#lhs.into_result());
+                };
                 let tail = process_inner_pry(s, lhs)?;
                 quote!(#head #tail)
             }
