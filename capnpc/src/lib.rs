@@ -37,18 +37,6 @@
 //! capnpc = "0.18"
 //! ```
 //!
-//! In your lib.rs:
-//!
-//! ```ignore
-//! mod foo_schema {
-//!     include!(concat!(env!("OUT_DIR"), "/schema_foo.rs"));
-//! }
-//!
-//! mod bar_schema {
-//!     include!(concat!(env!("OUT_DIR"), "/schema_bar.rs"));
-//! }
-//! ```
-//!
 //! In your build.rs:
 //!
 //! ```ignore
@@ -58,6 +46,18 @@
 //!         .file("schema/foo.capnp")
 //!         .file("schema/bar.capnp")
 //!         .run().expect("schema compiler command");
+//! }
+//! ```
+//!
+//! In your lib.rs:
+//!
+//! ```ignore
+//! mod foo_schema {
+//!     include!(concat!(env!("OUT_DIR"), "/foo_capnp.rs"));
+//! }
+//!
+//! mod bar_schema {
+//!     include!(concat!(env!("OUT_DIR"), "/bar_capnp.rs"));
 //! }
 //! ```
 //!
