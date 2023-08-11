@@ -52,11 +52,11 @@
 //! In your lib.rs:
 //!
 //! ```ignore
-//! mod foo_schema {
+//! mod foo_capnp {
 //!     include!(concat!(env!("OUT_DIR"), "/foo_capnp.rs"));
 //! }
 //!
-//! mod bar_schema {
+//! mod bar_capnp {
 //!     include!(concat!(env!("OUT_DIR"), "/bar_capnp.rs"));
 //! }
 //! ```
