@@ -31,6 +31,18 @@ fn macro_usage(person: person_capnp::Reader) -> Promise<(), capnp::Error> {
     Promise::ok(())
 }
 
+fn macro_usage_two(person: person_capnp::Builder) -> Promise<(), capnp::Error> {
+    //let birthdate_builder = capnp_rpc::pry!(person.get_birthdate());
+    //birthdate_builder.set_day(1);
+    //birthdate_builder.set_month(2);
+
+    let mut birthdate_builder = capnp_rpc::pry!(person.get_birthdate().into_result());
+    birthdate_builder.set_day(1u8);
+    birthdate_builder.set_month(2u8);
+    birthdate_builder.set_year_as_text("1990");
+    Promise::ok(())
+}
+
 #[tokio::test]
 async fn usage_test() -> capnp::Result<()> {
     let message_reader = capnp::serialize::read_message(
