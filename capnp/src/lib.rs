@@ -470,6 +470,31 @@ impl core::convert::From<::std::io::Error> for Error {
     }
 }
 
+impl From<embedded_io::ErrorKind> for ErrorKind {
+    fn from(value: embedded_io::ErrorKind) -> Self {
+        match value {
+            embedded_io::ErrorKind::Other => { Self::Failed }
+            embedded_io::ErrorKind::NotFound => { Self::Failed }
+            embedded_io::ErrorKind::PermissionDenied => { Self::Failed }
+            embedded_io::ErrorKind::ConnectionRefused => { Self::Failed }
+            embedded_io::ErrorKind::ConnectionReset => { Self::Failed }
+            embedded_io::ErrorKind::ConnectionAborted => { Self::Failed }
+            embedded_io::ErrorKind::NotConnected => { Self::Failed }
+            embedded_io::ErrorKind::AddrInUse => { Self::Failed }
+            embedded_io::ErrorKind::AddrNotAvailable => { Self::Failed }
+            embedded_io::ErrorKind::BrokenPipe => { Self::Failed }
+            embedded_io::ErrorKind::AlreadyExists => { Self::Failed }
+            embedded_io::ErrorKind::InvalidInput => { Self::Failed }
+            embedded_io::ErrorKind::InvalidData => { Self::Failed }
+            embedded_io::ErrorKind::TimedOut => { Self::Failed }
+            embedded_io::ErrorKind::Interrupted => { Self::Failed }
+            embedded_io::ErrorKind::Unsupported => { Self::Failed }
+            embedded_io::ErrorKind::OutOfMemory => { Self::Failed }
+            _ => { Self::Failed }
+        }
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl core::convert::From<alloc::string::FromUtf8Error> for Error {
     fn from(err: alloc::string::FromUtf8Error) -> Self {
