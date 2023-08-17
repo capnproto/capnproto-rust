@@ -87,77 +87,42 @@ mod std_impls {
 
 #[cfg(not(feature = "std"))]
 mod no_std_impls {
+    use embedded_io::Error;
     use crate::io::{BufRead, Read, Write};
-    use crate::{Error, ErrorKind, Result};
+    use crate::{Result};
 
-    impl<'a> Write for &'a mut [u8] {
+    impl<W: embedded_io::Write> Write for W {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
-            if buf.len() > self.len() {
-                return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough));
-            }
-            let amt = buf.len();
-            let (a, b) = core::mem::take(self).split_at_mut(amt);
-            a.copy_from_slice(buf);
-            *self = b;
+            embedded_io::Write::write_all(self, buf)
+                .map_err(|e| {
+                    match e {
+                        embedded_io::WriteAllError::WriteZero => {
+                            crate::Error::from_kind(crate::ErrorKind::Failed)
+                        }
+                        embedded_io::WriteAllError::Other(e) => crate::Error::from_kind(e.kind().into()),
+                    }
+                })?;
             Ok(())
         }
     }
 
-    #[cfg(feature = "alloc")]
-    impl Write for alloc::vec::Vec<u8> {
-        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
-            self.extend_from_slice(buf);
-            Ok(())
-        }
-    }
-
-    impl<W: ?Sized> Write for &mut W
-    where
-        W: Write,
-    {
-        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
-            (**self).write_all(buf)
-        }
-    }
-
-    impl<'a> Read for &'a [u8] {
+    impl<R: embedded_io::Read> Read for R {
         fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-            let amt = core::cmp::min(buf.len(), self.len());
-            let (a, b) = self.split_at(amt);
-
-            buf[..amt].copy_from_slice(a);
-            *self = b;
-            Ok(amt)
+            embedded_io::Read::read(self, buf)
+                .map_err(|e| {
+                    crate::Error::from_kind(e.kind().into())
+                })
         }
     }
 
-    impl<R: ?Sized> Read for &mut R
-    where
-        R: Read,
-    {
-        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-            (**self).read(buf)
-        }
-    }
-
-    impl<'a> BufRead for &'a [u8] {
+    impl<R: embedded_io::BufRead + embedded_io::Read> BufRead for R {
         fn fill_buf(&mut self) -> Result<&[u8]> {
-            Ok(*self)
+            embedded_io::BufRead::fill_buf(self)
+                .map_err(|e| crate::Error::from_kind(e.kind().into()))
         }
-        fn consume(&mut self, amt: usize) {
-            *self = &self[amt..]
-        }
-    }
 
-    impl<R: ?Sized> BufRead for &mut R
-    where
-        R: BufRead,
-    {
-        fn fill_buf(&mut self) -> Result<&[u8]> {
-            (**self).fill_buf()
-        }
         fn consume(&mut self, amt: usize) {
-            (**self).consume(amt)
+            embedded_io::BufRead::consume(self, amt)
         }
     }
 }
