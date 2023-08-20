@@ -2,8 +2,10 @@ capnp_import::capnp_import!("tests/example.capnp");
 
 use capnp::capability::Promise;
 use capnp::IntoResult;
-use capnp_macros::capnp_let;
+use capnp_macros::{capnp_let, capnp_build};
+use example_capnp::date_list;
 use example_capnp::person as person_capnp;
+use example_capnp::text_list;
 
 fn get_person() -> Vec<u8> {
     let mut message = capnp::message::Builder::new_default();
@@ -43,8 +45,21 @@ fn macro_usage_two(person: person_capnp::Builder) -> Promise<(), capnp::Error> {
     Promise::ok(())
 }
 
+fn macro_usage_three(mut date_list: date_list::Builder) -> Promise<(), capnp::Error> {
+    let v = vec![(1, 2, 3), (4, 5, 6), (7, 8, 9)].into_iter();
+    let mut x = date_list.init_dates(v.len() as u32);
+    // TODO capnp_build version of taking expressions must have unique syntax to renaming variables
+    let f =
+        |(x, y, z), w: example_capnp::date::Builder| {capnp_build!({day: x, month: y, year_as_text: z} = w);}
+    let temp = x.reborrow().get(0);
+    x.set_with_caveats(0, todo!());
+    x.set_with_caveats(1, todo!());
+    x.set_with_caveats(2, todo!());
+    Promise::ok(())
+}
+
 #[tokio::test]
-async fn usage_test() -> capnp::Result<()> {
+async fn capnp_let_test() -> capnp::Result<()> {
     let message_reader = capnp::serialize::read_message(
         get_person().as_slice(),
         capnp::message::ReaderOptions::new(),
@@ -52,4 +67,19 @@ async fn usage_test() -> capnp::Result<()> {
     let person = message_reader.get_root::<person_capnp::Reader>()?;
 
     macro_usage(person).await
+}
+
+#[tokio::test]
+async fn capnp_build_test() -> capnp::Result<()> {
+    let message_reader = capnp::serialize::read_message(
+        get_person().as_slice(),
+        capnp::message::ReaderOptions::new(),
+    )?;
+    let mut message = capnp::message::Builder::new_default();
+
+    let person: person_capnp::Builder = message.init_root::<person_capnp::Builder>();
+    macro_usage_two(person).await?;
+
+    let date_list = message.init_root::<date_list::Builder>();
+    macro_usage_three(date_list).await
 }

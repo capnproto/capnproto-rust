@@ -2,9 +2,26 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{punctuated::Punctuated, Ident, Token};
 
+use crate::parse::CapnpAnonStruct;
+
 type Expr = TokenStream2;
 type PatternStruct = dyn Iterator<Item = (Ident, Expr)>;
 type PatternList = dyn Iterator<Item = Expr>;
+
+pub fn process_build_pry(
+    subject: Ident,
+    build_pattern: CapnpAnonStruct,
+) -> syn::Result<TokenStream2> {
+    let mut res = TokenStream2::new();
+    for field_pat in build_pattern.fields.into_iter() {
+        let to_append = match *field_pat {
+            todo!() => todo!(),
+        };
+        res.extend(to_append);
+    }
+    Ok(res)
+}
+
 // TODO Type check expr
 // builder, {field => value}
 fn assign_from_expression(builder: &Ident, field: Ident, expr: Expr) -> TokenStream2 {

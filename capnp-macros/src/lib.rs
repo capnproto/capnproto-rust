@@ -2,8 +2,9 @@ mod capnp_build;
 mod capnp_let;
 mod parse;
 
+use crate::capnp_build::process_build_pry;
 use crate::capnp_let::process_let_pry;
-use crate::parse::CapnpLet;
+use crate::parse::{CapnpBuild, CapnpLet};
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
@@ -11,22 +12,23 @@ use syn::parse_macro_input;
 #[proc_macro]
 pub fn capnp_let(input: TokenStream) -> TokenStream {
     let CapnpLet {
-        anon_struct, ident, ..
+        struct_pattern,
+        ident,
+        ..
     } = parse_macro_input!(input as CapnpLet);
-    let result = process_let_pry(anon_struct, ident).unwrap();
+    let result = process_let_pry(struct_pattern, ident).unwrap();
     result.into()
 }
 
 #[proc_macro]
 pub fn capnp_build(input: TokenStream) -> TokenStream {
-    todo!()
-    //     let CapnpLet {
-    //         anon_struct,
-    //         ident: expr,
-    //         ..
-    //     } = syn::parse_macro_input!(input as CapnpLet);
-    //     let result = process_build(anon_struct, expr).unwrap();
-    //     result.into()
+    let CapnpBuild {
+        subject,
+        build_pattern,
+        ..
+    } = syn::parse_macro_input!(input as CapnpBuild);
+    let result = process_build_pry(subject, build_pattern).unwrap();
+    result.into()
 }
 
 // fn process_build(pat: CapnpAnonStruct, expr: Ident) -> syn::Result<TokenStream2> {

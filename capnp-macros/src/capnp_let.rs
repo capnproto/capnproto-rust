@@ -44,9 +44,11 @@ mod tests {
             {name, birthdate: {year_as_text: year, month, day}, email: contactEmail} = person
         }; // person is person_capnp::person::Reader
         let CapnpLet {
-            anon_struct, ident, ..
+            struct_pattern,
+            ident,
+            ..
         } = syn::parse2(input)?;
-        process_let_pry(anon_struct, ident)?;
+        process_let_pry(struct_pattern, ident)?;
         Ok(())
     }
 }

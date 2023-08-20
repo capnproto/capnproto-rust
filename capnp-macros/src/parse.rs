@@ -6,10 +6,18 @@ use syn::{
     Ident, Token,
 };
 
+// capnp_let!(struct_pattern = subject)
 pub struct CapnpLet {
-    pub anon_struct: CapnpAnonStruct,
+    pub struct_pattern: CapnpAnonStruct,
     pub equal_token: Token![=],
     pub ident: Ident,
+}
+
+// capnp_build!(person_builder, build_pattern)
+pub struct CapnpBuild {
+    pub subject: Ident,
+    pub comma_token: Token![,],
+    pub build_pattern: CapnpAnonStruct, // TODO Might be different for list
 }
 
 pub struct CapnpAnonStruct {
@@ -28,12 +36,34 @@ pub enum CapnpFieldPat {
     Ident(Ident),
 }
 
+pub enum CapnpBuildFieldPattern {
+    Name,
+    ExpressionAssignment, // name = expr
+    PatternAssignment,    // name : pat
+    BuilderExtraction,    // name => name
+}
+
+pub enum CapnpLetFieldPattern {
+    Name,             // name
+    StructAssignment, // name: name
+}
+
 impl Parse for CapnpLet {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(CapnpLet {
-            anon_struct: input.parse()?,
+            struct_pattern: input.parse()?,
             equal_token: input.parse()?,
             ident: input.parse()?,
+        })
+    }
+}
+
+impl Parse for CapnpBuild {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(CapnpBuild {
+            subject: input.parse()?,
+            comma_token: input.parse()?,
+            build_pattern: input.parse()?,
         })
     }
 }
