@@ -25,6 +25,7 @@ use std::path::{Path, PathBuf};
 
 use capnp;
 use capnp::schema_capnp;
+use capnp::schema_capnp::field::slot;
 use capnp::Error;
 
 use self::FormattedText::{BlankLine, Branch, Indent, Line};
@@ -738,7 +739,6 @@ pub fn getter_text(
             }
 
             let raw_type = reg_field.get_type()?;
-            let inner_type = raw_type.type_string(ctx, module)?;
             let default_value = reg_field.get_default_value()?;
             let default = default_value.which()?;
             let default_name = format!(
@@ -747,13 +747,18 @@ pub fn getter_text(
             );
             let should_get_option = is_option_field(*field)?;
 
+            let module_type = raw_type.which()?;
+            let inner_type = match module_type {
+                type_::Text(_) if is_reader => "&'a str".to_string(),
+                _ => raw_type.type_string(ctx, module)?,
+            };
             let typ = if should_get_option {
                 format!("Option<{}>", inner_type)
             } else {
                 inner_type
             };
 
-            let (is_fallible, mut result_type) = match raw_type.which()? {
+            let (is_fallible, mut result_type) = match module_type {
                 type_::Enum(_) => (
                     true,
                     fmt!(ctx, "::core::result::Result<{typ},{capnp}::NotInSchema>"),
@@ -779,7 +784,29 @@ pub fn getter_text(
                 }
             }
 
-            let getter_fragment = match (raw_type.which()?, default) {
+            fn set_default(
+                reg_field: slot::Reader,
+                default_decl: &mut Option<FormattedText>,
+                ctx: &GeneratorContext,
+                default_name: String,
+                default_value: value::Reader,
+            ) -> ::capnp::Result<String> {
+                if reg_field.get_had_explicit_default() {
+                    *default_decl = Some(crate::pointer_constants::word_array_declaration(
+                        ctx,
+                        &default_name,
+                        ::capnp::raw::get_struct_pointer_section(default_value).get(0),
+                        crate::pointer_constants::WordArrayDeclarationOptions { public: true },
+                    )?);
+                    Ok(format!(
+                        "::core::option::Option::Some(&_private::{default_name}[..])"
+                    ))
+                } else {
+                    Ok("::core::option::Option::None".to_string())
+                }
+            }
+
+            let getter_fragment = match (module_type, default) {
                 (type_::Void(()), value::Void(())) => {
                     if is_fn {
                         "".to_string()
@@ -823,25 +850,37 @@ pub fn getter_text(
                     }
                 }
 
-                (type_::Text(()), value::Text(_))
-                | (type_::Data(()), value::Data(_))
+                (type_::Data(()), value::Data(_))
                 | (type_::List(_), value::List(_))
                 | (type_::Struct(_), value::Struct(_)) => {
-                    let default = if reg_field.get_had_explicit_default() {
-                        default_decl = Some(crate::pointer_constants::word_array_declaration(
-                            ctx,
-                            &default_name,
-                            ::capnp::raw::get_struct_pointer_section(default_value).get(0),
-                            crate::pointer_constants::WordArrayDeclarationOptions { public: true },
-                        )?);
-                        format!("::core::option::Option::Some(&_private::{default_name}[..])")
-                    } else {
-                        "::core::option::Option::None".to_string()
-                    };
+                    let default = set_default(
+                        reg_field,
+                        &mut default_decl,
+                        ctx,
+                        default_name,
+                        default_value,
+                    )?;
 
                     if is_reader {
                         fmt!(ctx,
                             "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), {default})")
+                    } else {
+                        fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})")
+                    }
+                }
+
+                (type_::Text(()), value::Text(_)) => {
+                    let default = set_default(
+                        reg_field,
+                        &mut default_decl,
+                        ctx,
+                        default_name,
+                        default_value,
+                    )?;
+
+                    if is_reader {
+                        fmt!(ctx,
+                            "match {capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}),{default}) {{ ::core::result::Result::Ok(r) => {capnp}::text::Reader::to_str(r), ::core::result::Result::Err(e) => ::core::result::Result::Err(e)}}")
                     } else {
                         fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})")
                     }
@@ -1089,7 +1128,7 @@ fn generate_setter(
                     )));
                     initter_params.push("size: u32");
                     (
-                        Some(fmt!(ctx, "{capnp}::text::Reader<'_>")),
+                        Some("&str".to_string()),
                         Some(fmt!(ctx, "{capnp}::text::Builder<'a>")),
                     )
                 }
