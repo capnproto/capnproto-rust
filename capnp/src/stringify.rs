@@ -75,7 +75,13 @@ pub(crate) fn print(
             Some(enumerant) => formatter.write_str(cvt(enumerant.get_proto().get_name())?),
             None => formatter.write_fmt(format_args!("{}", e.get_value())),
         },
-        dynamic_value::Reader::Text(t) => formatter.write_fmt(format_args!("{t:?}")),
+        dynamic_value::Reader::Text(t) => {
+            if let Ok(s) = t.to_str() {
+                formatter.write_fmt(format_args!("{s:?}"))
+            } else {
+                print(dynamic_value::Reader::Data(t.reader), formatter, indent)
+            }
+        }
         dynamic_value::Reader::Data(d) => {
             formatter.write_str("0x\"")?;
             for b in d {

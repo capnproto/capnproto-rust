@@ -21,9 +21,10 @@
 
 //! UTF-8 encoded text.
 
+use core::fmt::{Debug, Formatter};
 use core::{convert, ops, str};
 
-use crate::{Error, ErrorKind, Result};
+use crate::{data, Error, ErrorKind, Result};
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
@@ -39,12 +40,42 @@ impl crate::introspect::Introspect for Owned {
     }
 }
 
-pub type Reader<'a> = &'a str;
+#[derive(Clone, Copy, PartialEq)]
+pub struct Reader<'a> {
+    pub reader: data::Reader<'a>,
+}
 
-pub fn new_reader(v: &[u8]) -> Result<Reader<'_>> {
-    match str::from_utf8(v) {
-        Ok(v) => Ok(v),
-        Err(e) => Err(Error::from_kind(ErrorKind::TextContainsNonUtf8Data(e))),
+pub fn new_reader(v: &str) -> Reader<'_> {
+    Reader {
+        reader: v.as_bytes(),
+    }
+}
+
+impl<'a> Reader<'a> {
+    pub fn as_bytes(self) -> &'a [u8] {
+        self.reader
+    }
+
+    pub fn to_str(self) -> Result<&'a str> {
+        match str::from_utf8(self.reader) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::from_kind(ErrorKind::TextContainsNonUtf8Data(e))),
+        }
+    }
+}
+
+impl<'a> From<&'a str> for Reader<'a> {
+    fn from(value: &'a str) -> Self {
+        new_reader(value)
+    }
+}
+
+impl<'a> Debug for Reader<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self.to_str() {
+            Ok(s) => write!(f, "{}", s),
+            Err(_) => write!(f, "{:?}", self.as_bytes()),
+        }
     }
 }
 
@@ -102,7 +133,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn into_reader(self) -> Reader<'a> {
-        str::from_utf8(self.bytes).unwrap()
+        Reader { reader: self.bytes }
     }
 }
 
@@ -146,7 +177,7 @@ impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
         value: Reader<'a>,
         _canonicalize: bool,
     ) -> Result<()> {
-        pointer.set_text(value);
+        pointer.set_text(value.to_str()?);
         Ok(())
     }
 }

@@ -2,6 +2,7 @@
 
 use crate::introspect::{self, TypeVariant};
 use crate::schema_capnp::value;
+use crate::text::new_reader;
 use crate::Result;
 use crate::{dynamic_list, dynamic_struct};
 
@@ -45,7 +46,7 @@ impl<'a> Reader<'a> {
             (value::Float32(x), _) => Ok(Reader::Float32(x)),
             (value::Float64(x), _) => Ok(Reader::Float64(x)),
             (value::Enum(d), TypeVariant::Enum(e)) => Ok(Reader::Enum(Enum::new(d, e.into()))),
-            (value::Text(t), _) => Ok(Reader::Text(t?)),
+            (value::Text(t), _) => Ok(Reader::Text(t?.into())),
             (value::Data(d), _) => Ok(Reader::Data(d?)),
             (value::Struct(d), TypeVariant::Struct(schema)) => Ok(Reader::Struct(
                 dynamic_struct::Reader::new(d.reader.get_struct(None)?, schema.into()),
@@ -73,6 +74,12 @@ impl<'a> Reader<'a> {
 impl<'a> From<()> for Reader<'a> {
     fn from((): ()) -> Reader<'a> {
         Reader::Void
+    }
+}
+
+impl<'a> From<&'a str> for Reader<'a> {
+    fn from(s: &'a str) -> Reader<'a> {
+        Reader::Text(new_reader(s))
     }
 }
 

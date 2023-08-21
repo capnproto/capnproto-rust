@@ -2615,7 +2615,7 @@ mod wire_helpers {
     ) -> Result<text::Reader<'a>> {
         if (*reff).is_null() {
             match default {
-                None => return Ok(""),
+                None => return Ok("".into()),
                 Some(d) => {
                     reff = d.as_ptr() as *const WirePointer;
                     arena = &super::NULL_ARENA;
@@ -2661,7 +2661,9 @@ mod wire_helpers {
             ));
         }
 
-        text::new_reader(slice::from_raw_parts(str_ptr, size as usize - 1))
+        Ok(text::Reader {
+            reader: slice::from_raw_parts(str_ptr, size as usize - 1),
+        })
     }
 
     #[inline]

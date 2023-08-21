@@ -108,11 +108,14 @@ pub mod node {
             self.reader.get_data_field::<u64>(0)
         }
         #[inline]
-        pub fn get_display_name(self) -> crate::Result<crate::text::Reader<'a>> {
-            crate::traits::FromPointerReader::get_from_pointer(
+        pub fn get_display_name(self) -> crate::Result<&'a str> {
+            match crate::traits::FromPointerReader::get_from_pointer(
                 &self.reader.get_pointer_field(0),
                 ::core::option::Option::None,
-            )
+            ) {
+                ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+            }
         }
         #[inline]
         pub fn has_display_name(&self) -> bool {
@@ -287,7 +290,7 @@ pub mod node {
             )
         }
         #[inline]
-        pub fn set_display_name(&mut self, value: crate::text::Reader<'_>) {
+        pub fn set_display_name(&mut self, value: &str) {
             self.builder.reborrow().get_pointer_field(0).set_text(value);
         }
         #[inline]
@@ -886,11 +889,14 @@ pub mod node {
                 self.reader.total_size()
             }
             #[inline]
-            pub fn get_name(self) -> crate::Result<crate::text::Reader<'a>> {
-                crate::traits::FromPointerReader::get_from_pointer(
+            pub fn get_name(self) -> crate::Result<&'a str> {
+                match crate::traits::FromPointerReader::get_from_pointer(
                     &self.reader.get_pointer_field(0),
                     ::core::option::Option::None,
-                )
+                ) {
+                    ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                    ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+                }
             }
             #[inline]
             pub fn has_name(&self) -> bool {
@@ -992,7 +998,7 @@ pub mod node {
                 )
             }
             #[inline]
-            pub fn set_name(&mut self, value: crate::text::Reader<'_>) {
+            pub fn set_name(&mut self, value: &str) {
                 self.builder.reborrow().get_pointer_field(0).set_text(value);
             }
             #[inline]
@@ -1176,11 +1182,14 @@ pub mod node {
                 self.reader.total_size()
             }
             #[inline]
-            pub fn get_name(self) -> crate::Result<crate::text::Reader<'a>> {
-                crate::traits::FromPointerReader::get_from_pointer(
+            pub fn get_name(self) -> crate::Result<&'a str> {
+                match crate::traits::FromPointerReader::get_from_pointer(
                     &self.reader.get_pointer_field(0),
                     ::core::option::Option::None,
-                )
+                ) {
+                    ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                    ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+                }
             }
             #[inline]
             pub fn has_name(&self) -> bool {
@@ -1286,7 +1295,7 @@ pub mod node {
                 )
             }
             #[inline]
-            pub fn set_name(&mut self, value: crate::text::Reader<'_>) {
+            pub fn set_name(&mut self, value: &str) {
                 self.builder.reborrow().get_pointer_field(0).set_text(value);
             }
             #[inline]
@@ -1498,11 +1507,14 @@ pub mod node {
                 self.reader.get_data_field::<u64>(0)
             }
             #[inline]
-            pub fn get_doc_comment(self) -> crate::Result<crate::text::Reader<'a>> {
-                crate::traits::FromPointerReader::get_from_pointer(
+            pub fn get_doc_comment(self) -> crate::Result<&'a str> {
+                match crate::traits::FromPointerReader::get_from_pointer(
                     &self.reader.get_pointer_field(0),
                     ::core::option::Option::None,
-                )
+                ) {
+                    ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                    ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+                }
             }
             #[inline]
             pub fn has_doc_comment(&self) -> bool {
@@ -1630,7 +1642,7 @@ pub mod node {
                 )
             }
             #[inline]
-            pub fn set_doc_comment(&mut self, value: crate::text::Reader<'_>) {
+            pub fn set_doc_comment(&mut self, value: &str) {
                 self.builder.reborrow().get_pointer_field(0).set_text(value);
             }
             #[inline]
@@ -1904,11 +1916,14 @@ pub mod node {
                     self.reader.total_size()
                 }
                 #[inline]
-                pub fn get_doc_comment(self) -> crate::Result<crate::text::Reader<'a>> {
-                    crate::traits::FromPointerReader::get_from_pointer(
+                pub fn get_doc_comment(self) -> crate::Result<&'a str> {
+                    match crate::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    )
+                    ) {
+                        ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                        ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+                    }
                 }
                 #[inline]
                 pub fn has_doc_comment(&self) -> bool {
@@ -2015,7 +2030,7 @@ pub mod node {
                     )
                 }
                 #[inline]
-                pub fn set_doc_comment(&mut self, value: crate::text::Reader<'_>) {
+                pub fn set_doc_comment(&mut self, value: &str) {
                     self.builder.reborrow().get_pointer_field(0).set_text(value);
                 }
                 #[inline]
@@ -4411,11 +4426,14 @@ pub mod field {
             self.reader.total_size()
         }
         #[inline]
-        pub fn get_name(self) -> crate::Result<crate::text::Reader<'a>> {
-            crate::traits::FromPointerReader::get_from_pointer(
+        pub fn get_name(self) -> crate::Result<&'a str> {
+            match crate::traits::FromPointerReader::get_from_pointer(
                 &self.reader.get_pointer_field(0),
                 ::core::option::Option::None,
-            )
+            ) {
+                ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+            }
         }
         #[inline]
         pub fn has_name(&self) -> bool {
@@ -4548,7 +4566,7 @@ pub mod field {
             )
         }
         #[inline]
-        pub fn set_name(&mut self, value: crate::text::Reader<'_>) {
+        pub fn set_name(&mut self, value: &str) {
             self.builder.reborrow().get_pointer_field(0).set_text(value);
         }
         #[inline]
@@ -5923,11 +5941,14 @@ pub mod enumerant {
             self.reader.total_size()
         }
         #[inline]
-        pub fn get_name(self) -> crate::Result<crate::text::Reader<'a>> {
-            crate::traits::FromPointerReader::get_from_pointer(
+        pub fn get_name(self) -> crate::Result<&'a str> {
+            match crate::traits::FromPointerReader::get_from_pointer(
                 &self.reader.get_pointer_field(0),
                 ::core::option::Option::None,
-            )
+            ) {
+                ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+            }
         }
         #[inline]
         pub fn has_name(&self) -> bool {
@@ -6044,7 +6065,7 @@ pub mod enumerant {
             )
         }
         #[inline]
-        pub fn set_name(&mut self, value: crate::text::Reader<'_>) {
+        pub fn set_name(&mut self, value: &str) {
             self.builder.reborrow().get_pointer_field(0).set_text(value);
         }
         #[inline]
@@ -6633,11 +6654,14 @@ pub mod method {
             self.reader.total_size()
         }
         #[inline]
-        pub fn get_name(self) -> crate::Result<crate::text::Reader<'a>> {
-            crate::traits::FromPointerReader::get_from_pointer(
+        pub fn get_name(self) -> crate::Result<&'a str> {
+            match crate::traits::FromPointerReader::get_from_pointer(
                 &self.reader.get_pointer_field(0),
                 ::core::option::Option::None,
-            )
+            ) {
+                ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+            }
         }
         #[inline]
         pub fn has_name(&self) -> bool {
@@ -6799,7 +6823,7 @@ pub mod method {
             )
         }
         #[inline]
-        pub fn set_name(&mut self, value: crate::text::Reader<'_>) {
+        pub fn set_name(&mut self, value: &str) {
             self.builder.reborrow().get_pointer_field(0).set_text(value);
         }
         #[inline]
@@ -11653,10 +11677,13 @@ pub mod value {
                 10 => ::core::result::Result::Ok(Float32(self.reader.get_data_field::<f32>(1))),
                 11 => ::core::result::Result::Ok(Float64(self.reader.get_data_field::<f64>(1))),
                 12 => ::core::result::Result::Ok(Text(
-                    crate::traits::FromPointerReader::get_from_pointer(
+                    match crate::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    ) {
+                        ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                        ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+                    },
                 )),
                 13 => ::core::result::Result::Ok(Data(
                     crate::traits::FromPointerReader::get_from_pointer(
@@ -11823,7 +11850,7 @@ pub mod value {
             self.builder.set_data_field::<f64>(1, value);
         }
         #[inline]
-        pub fn set_text(&mut self, value: crate::text::Reader<'_>) {
+        pub fn set_text(&mut self, value: &str) {
             self.builder.set_data_field::<u16>(0, 12);
             self.builder.reborrow().get_pointer_field(0).set_text(value);
         }
@@ -12332,7 +12359,7 @@ pub mod value {
         AnyPointer(A4),
     }
     pub type WhichReader<'a> = Which<
-        crate::Result<crate::text::Reader<'a>>,
+        crate::Result<&'a str>,
         crate::Result<crate::data::Reader<'a>>,
         crate::any_pointer::Reader<'a>,
         crate::any_pointer::Reader<'a>,
@@ -13811,11 +13838,14 @@ pub mod code_generator_request {
                 self.reader.get_data_field::<u64>(0)
             }
             #[inline]
-            pub fn get_filename(self) -> crate::Result<crate::text::Reader<'a>> {
-                crate::traits::FromPointerReader::get_from_pointer(
+            pub fn get_filename(self) -> crate::Result<&'a str> {
+                match crate::traits::FromPointerReader::get_from_pointer(
                     &self.reader.get_pointer_field(0),
                     ::core::option::Option::None,
-                )
+                ) {
+                    ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                    ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+                }
             }
             #[inline]
             pub fn has_filename(&self) -> bool {
@@ -13943,7 +13973,7 @@ pub mod code_generator_request {
                 )
             }
             #[inline]
-            pub fn set_filename(&mut self, value: crate::text::Reader<'_>) {
+            pub fn set_filename(&mut self, value: &str) {
                 self.builder.reborrow().get_pointer_field(0).set_text(value);
             }
             #[inline]
@@ -14223,11 +14253,14 @@ pub mod code_generator_request {
                     self.reader.get_data_field::<u64>(0)
                 }
                 #[inline]
-                pub fn get_name(self) -> crate::Result<crate::text::Reader<'a>> {
-                    crate::traits::FromPointerReader::get_from_pointer(
+                pub fn get_name(self) -> crate::Result<&'a str> {
+                    match crate::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    )
+                    ) {
+                        ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
+                        ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+                    }
                 }
                 #[inline]
                 pub fn has_name(&self) -> bool {
@@ -14342,7 +14375,7 @@ pub mod code_generator_request {
                     )
                 }
                 #[inline]
-                pub fn set_name(&mut self, value: crate::text::Reader<'_>) {
+                pub fn set_name(&mut self, value: &str) {
                     self.builder.reborrow().get_pointer_field(0).set_text(value);
                 }
                 #[inline]

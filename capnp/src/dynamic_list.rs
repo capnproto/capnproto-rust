@@ -303,7 +303,7 @@ impl<'a> Builder<'a> {
                 .builder
                 .reborrow()
                 .get_pointer_element(index)
-                .set_text(t)),
+                .set_text(t.to_str()?)),
             (TypeVariant::Data, dynamic_value::Reader::Data(d)) => Ok(self
                 .builder
                 .reborrow()

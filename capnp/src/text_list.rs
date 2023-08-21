@@ -76,23 +76,54 @@ impl<'a> FromPointerReader<'a> for Reader<'a> {
 
 impl<'a> IndexMove<u32, Result<crate::text::Reader<'a>>> for Reader<'a> {
     fn index_move(&self, index: u32) -> Result<crate::text::Reader<'a>> {
-        self.get(index)
+        assert!(index < self.len());
+        self.reader.get_pointer_element(index).get_text(None)
     }
 }
 
 impl<'a> Reader<'a> {
-    /// Gets the `text::Reader` at position `index`. Panics if `index` is
+    /// Gets the `text::Reader` as a `&str` at position `index`. Panics if `index` is
     /// greater than or equal to `len()`.
-    pub fn get(self, index: u32) -> Result<crate::text::Reader<'a>> {
+    pub fn get(self, index: u32) -> Result<&'a str> {
         assert!(index < self.len());
-        self.reader.get_pointer_element(index).get_text(None)
+        self.reader
+            .get_pointer_element(index)
+            .get_text(None)?
+            .to_str()
     }
 
-    /// Gets the `text::Reader` at position `index`. Returns `None` if `index`
+    /// Gets the `text::Reader` as a `&[u8]` at position `index`. Panics if `index` is
+    /// greater than or equal to `len()`.
+    pub fn get_as_bytes(self, index: u32) -> Result<&'a [u8]> {
+        assert!(index < self.len());
+        Ok(self
+            .reader
+            .get_pointer_element(index)
+            .get_text(None)?
+            .as_bytes())
+    }
+
+    /// Gets the `text::Reader` as a `&str` at position `index`. Returns `None` if `index`
     /// is greater than or equal to `len()`.
-    pub fn try_get(self, index: u32) -> Option<Result<crate::text::Reader<'a>>> {
+    pub fn try_get(self, index: u32) -> Option<Result<&'a str>> {
         if index < self.len() {
-            Some(self.reader.get_pointer_element(index).get_text(None))
+            match self.reader.get_pointer_element(index).get_text(None) {
+                Ok(s) => Some(s.to_str()),
+                Err(e) => Some(Err(e)),
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Gets the `text::Reader` as a `&[u8]` at position `index`. Returns `None` if `index`
+    /// is greater than or equal to `len()`.
+    pub fn try_get_as_bytes(self, index: u32) -> Option<Result<&'a [u8]>> {
+        if index < self.len() {
+            match self.reader.get_pointer_element(index).get_text(None) {
+                Ok(s) => Some(Ok(s.as_bytes())),
+                Err(e) => Some(Err(e)),
+            }
         } else {
             None
         }
@@ -122,12 +153,12 @@ impl<'a> Builder<'a> {
         self.len() == 0
     }
 
-    pub fn set(&mut self, index: u32, value: crate::text::Reader) {
+    pub fn set(&mut self, index: u32, value: &str) {
         assert!(index < self.len());
         self.builder
             .reborrow()
             .get_pointer_element(index)
-            .set_text(value);
+            .set_text(value.into());
     }
 
     pub fn into_reader(self) -> Reader<'a> {
