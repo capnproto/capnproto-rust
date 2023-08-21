@@ -36,8 +36,6 @@ unaligned = []
 # with the Rust standard library.
 std = ["embedded-io?/std"]
 
-
-embedded-io = []
 # If enabled, ReadLimiter will use `AtomicUsize` instead of `Cell<usize>`, allowing
 # message readers to be `Sync`. Note that AtomicUsize is not supported by all
 # rustc targets.
