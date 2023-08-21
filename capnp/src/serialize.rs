@@ -23,8 +23,8 @@
 //! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream),
 //! where each message is preceded by a segment table indicating the size of its segments.
 
-mod no_alloc_slice_segments;
-pub use no_alloc_slice_segments::{NoAllocBufferSegments, NoAllocSliceSegments};
+mod no_alloc_buffer_segments;
+pub use no_alloc_buffer_segments::{NoAllocBufferSegments, NoAllocSliceSegments};
 
 #[cfg(feature = "alloc")]
 use crate::io::{Read, Write};
@@ -95,7 +95,7 @@ pub fn read_message_from_flat_slice_no_alloc<'a>(
     slice: &mut &'a [u8],
     options: message::ReaderOptions,
 ) -> Result<message::Reader<NoAllocSliceSegments<'a>>> {
-    let segments = NoAllocSliceSegments::try_new(slice, options)?;
+    let segments = NoAllocSliceSegments::from_slice(slice, options)?;
 
     Ok(message::Reader::new(segments, options))
 }
