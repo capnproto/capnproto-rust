@@ -79,7 +79,11 @@ fn test_unions() {
         assert_eq!("u1f1sp", w.get_proto().get_name().unwrap());
         assert_eq!(
             "foo",
-            u.get(w).unwrap().downcast::<capnp::text::Reader<'_>>()
+            u.get(w)
+                .unwrap()
+                .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
     }
     {
@@ -124,6 +128,8 @@ fn test_unions() {
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
     }
     {
@@ -168,6 +174,8 @@ fn test_generics() {
         root.get_named("bar")
             .unwrap()
             .downcast::<capnp::text::Reader<'_>>()
+            .to_str()
+            .unwrap()
     );
 }
 
@@ -184,7 +192,10 @@ fn test_generic_annotation() -> ::capnp::Result<()> {
     assert_eq!(ann.get_id(), test_generics::ann::ID);
     assert_eq!(
         "foo",
-        ann.get_value()?.downcast::<capnp::text::Reader<'_>>()
+        ann.get_value()?
+            .downcast::<capnp::text::Reader<'_>>()
+            .to_str()
+            .unwrap()
     );
     Ok(())
 }

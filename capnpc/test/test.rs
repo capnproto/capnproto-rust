@@ -89,6 +89,7 @@ mod tests {
     use crate::test_util::{init_test_message, CheckTestMessage};
     use capnp::message::ReaderOptions;
     use capnp::message::{self, TypedBuilder, TypedReader};
+    use capnp::text::new_reader;
     use capnp::{primitive_list, text, Word};
 
     // like the unstable std::assert_matches::assert_matches but doesn't
@@ -621,7 +622,7 @@ mod tests {
         test_any_pointer
             .reborrow()
             .init_any_pointer_field()
-            .set_as("xyzzy")
+            .set_as(new_reader("xyzzy"))
             .unwrap();
 
         {
@@ -630,6 +631,8 @@ mod tests {
                 reader
                     .get_any_pointer_field()
                     .get_as::<::capnp::text::Reader<'_>>()
+                    .unwrap()
+                    .to_str()
                     .unwrap(),
                 "xyzzy"
             );
@@ -790,7 +793,7 @@ mod tests {
         test_set.reborrow().init_simple_struct().set_field("buzz");
         {
             let mut b = test_set.reborrow().init_any();
-            b.set_as("dyn")?;
+            b.set_as(new_reader("dyn"))?;
         }
 
         // Check builder getters
@@ -882,7 +885,7 @@ mod tests {
         let mut branded = message_for_brand.init_root::<brand_twice::Builder<'_>>();
         {
             let mut baz = branded.reborrow().init_baz_field();
-            baz.set_foo_field("blah").unwrap();
+            baz.set_foo_field(new_reader("blah")).unwrap();
             let mut bar = baz.init_bar_field();
             bar.set_text_field("some text");
             bar.set_data_field("some data".as_bytes());
@@ -891,7 +894,13 @@ mod tests {
         let reader = branded.into_reader();
         assert_eq!(
             "blah",
-            reader.get_baz_field().unwrap().get_foo_field().unwrap()
+            reader
+                .get_baz_field()
+                .unwrap()
+                .get_foo_field()
+                .unwrap()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "some text",
@@ -923,7 +932,11 @@ mod tests {
         let mut root: test_generics::Builder<'_, test_all_types::Owned, text::Owned> =
             message.init_root();
         init_test_message(root.reborrow().get_foo().unwrap());
-        root.reborrow().get_dub().unwrap().set_foo("Hello").unwrap();
+        root.reborrow()
+            .get_dub()
+            .unwrap()
+            .set_foo(new_reader("Hello"))
+            .unwrap();
         {
             let mut bar: ::capnp::primitive_list::Builder<'_, u8> =
                 root.reborrow().get_dub().unwrap().initn_bar(1);
@@ -941,7 +954,7 @@ mod tests {
         let root_reader = root.into_reader();
         CheckTestMessage::check_test_message(root_reader.get_foo().unwrap());
         let dub_reader = root_reader.get_dub().unwrap();
-        assert_eq!("Hello", dub_reader.get_foo().unwrap());
+        assert_eq!("Hello", dub_reader.get_foo().unwrap().to_str().unwrap());
         let bar_reader = dub_reader.get_bar().unwrap();
         assert_eq!(bar_reader.len(), 1);
         assert_eq!(bar_reader.get(0), 11);

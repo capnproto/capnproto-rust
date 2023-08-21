@@ -562,6 +562,8 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
             .get_named("textField")
             .unwrap()
             .downcast::<capnp::text::Reader<'_>>()
+            .to_str()
+            .unwrap()
     );
     assert_eq!(
         &b"bar"[..],
@@ -624,6 +626,8 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
                 .get(0)
                 .unwrap()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "xyzzy",
@@ -631,6 +635,8 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
                 .get(1)
                 .unwrap()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "thud",
@@ -638,6 +644,8 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
                 .get(2)
                 .unwrap()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
     }
 
@@ -681,6 +689,8 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
                 .get_named("textField")
                 .unwrap()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "structlist 2",
@@ -691,6 +701,8 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
                 .get_named("textField")
                 .unwrap()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "structlist 3",
@@ -701,6 +713,8 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
                 .get_named("textField")
                 .unwrap()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
     }
 }
@@ -811,6 +825,8 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
             .unwrap()
             .into_reader()
             .downcast::<capnp::text::Reader<'_>>()
+            .to_str()
+            .unwrap()
     );
     assert_eq!(
         &b"bar"[..],
@@ -899,6 +915,8 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "xyzzy",
@@ -908,6 +926,8 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "thud",
@@ -917,6 +937,8 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
     }
     {
@@ -969,6 +991,8 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "structlist 2",
@@ -981,6 +1005,8 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
         assert_eq!(
             "structlist 3",
@@ -993,6 +1019,8 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+                .to_str()
+                .unwrap()
         );
     }
 }
