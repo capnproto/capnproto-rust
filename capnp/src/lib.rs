@@ -470,6 +470,7 @@ impl core::convert::From<::std::io::Error> for Error {
     }
 }
 
+#[cfg(feature = "embedded-io")]
 impl From<embedded_io::ErrorKind> for ErrorKind {
     fn from(value: embedded_io::ErrorKind) -> Self {
         match value {

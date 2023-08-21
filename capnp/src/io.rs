@@ -85,7 +85,85 @@ mod std_impls {
     }
 }
 
-#[cfg(not(feature = "std"))]
+
+#[cfg(not(any(feature = "std", feature = "embedded-io")))]
+mod no_std_impls {
+    use crate::io::{BufRead, Read, Write};
+    use crate::{Error, ErrorKind, Result};
+
+    impl<'a> Write for &'a mut [u8] {
+        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+            if buf.len() > self.len() {
+                return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough));
+            }
+            let amt = buf.len();
+            let (a, b) = core::mem::take(self).split_at_mut(amt);
+            a.copy_from_slice(buf);
+            *self = b;
+            Ok(())
+        }
+    }
+
+    #[cfg(feature = "alloc")]
+    impl Write for alloc::vec::Vec<u8> {
+        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+            self.extend_from_slice(buf);
+            Ok(())
+        }
+    }
+
+    impl<W: ?Sized> Write for &mut W
+        where
+            W: Write,
+    {
+        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+            (**self).write_all(buf)
+        }
+    }
+
+    impl<'a> Read for &'a [u8] {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+            let amt = core::cmp::min(buf.len(), self.len());
+            let (a, b) = self.split_at(amt);
+
+            buf[..amt].copy_from_slice(a);
+            *self = b;
+            Ok(amt)
+        }
+    }
+
+    impl<R: ?Sized> Read for &mut R
+        where
+            R: Read,
+    {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+            (**self).read(buf)
+        }
+    }
+
+    impl<'a> BufRead for &'a [u8] {
+        fn fill_buf(&mut self) -> Result<&[u8]> {
+            Ok(*self)
+        }
+        fn consume(&mut self, amt: usize) {
+            *self = &self[amt..]
+        }
+    }
+
+    impl<R: ?Sized> BufRead for &mut R
+        where
+            R: BufRead,
+    {
+        fn fill_buf(&mut self) -> Result<&[u8]> {
+            (**self).fill_buf()
+        }
+        fn consume(&mut self, amt: usize) {
+            (**self).consume(amt)
+        }
+    }
+}
+
+#[cfg(feature = "embedded-io")]
 mod no_std_impls {
     use embedded_io::Error;
     use crate::io::{BufRead, Read, Write};
