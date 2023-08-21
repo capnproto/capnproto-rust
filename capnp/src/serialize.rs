@@ -46,29 +46,7 @@ pub const SEGMENTS_COUNT_LIMIT: usize = 512;
 
 /// Segments read from a single flat slice of words.
 #[cfg(feature = "alloc")]
-pub struct SliceSegments<'a> {
-    words: &'a [u8],
-
-    // Each pair represents a segment inside of `words`.
-    // (starting index (in words), ending index (in words))
-    segment_indices: Vec<(usize, usize)>,
-}
-
-#[cfg(feature = "alloc")]
-impl<'a> message::ReaderSegments for SliceSegments<'a> {
-    fn get_segment(&self, id: u32) -> Option<&[u8]> {
-        if id < self.segment_indices.len() as u32 {
-            let (a, b) = self.segment_indices[id as usize];
-            Some(&self.words[(a * BYTES_PER_WORD)..(b * BYTES_PER_WORD)])
-        } else {
-            None
-        }
-    }
-
-    fn len(&self) -> usize {
-        self.segment_indices.len()
-    }
-}
+type SliceSegments<'a> = BufferSegments<&'a [u8]>;
 
 /// Reads a serialized message (including a segment table) from a flat slice of bytes, without copying.
 /// The slice is allowed to extend beyond the end of the message. On success, updates `slice` to point
@@ -80,7 +58,7 @@ impl<'a> message::ReaderSegments for SliceSegments<'a> {
 pub fn read_message_from_flat_slice<'a>(
     slice: &mut &'a [u8],
     options: message::ReaderOptions,
-) -> Result<message::Reader<SliceSegments<'a>>> {
+) -> Result<message::Reader<BufferSegments<&'a [u8]>>> {
     let all_bytes = *slice;
     let mut bytes = *slice;
     let orig_bytes_len = bytes.len();
@@ -99,7 +77,7 @@ pub fn read_message_from_flat_slice<'a>(
     } else {
         *slice = &body_bytes[(num_words * BYTES_PER_WORD)..];
         Ok(message::Reader::new(
-            segment_lengths_builder.into_slice_segments(body_bytes),
+            segment_lengths_builder.into_slice_segments(all_bytes, segment_table_bytes_len),
             options,
         ))
     }
@@ -128,11 +106,12 @@ pub fn read_message_from_flat_slice_no_alloc<'a>(
 pub struct BufferSegments<T> {
     buffer: T,
 
-    // We need to offset this each time
+    // Eumber of bytes in the segment table.
     segment_table_bytes_len: usize,
 
-    // Each pair represents a segment inside of `words`.
-    // (starting index (in words), ending index (in words))
+    // Each pair represents a segment inside of `buffer`:
+    // (starting index (in words), ending index (in words)),
+    // where the indices are relative to the end of the segment table.
     segment_indices: Vec<(usize, usize)>,
 }
 
@@ -264,11 +243,17 @@ impl SegmentLengthsBuilder {
         }
     }
 
-    /// Constructs a `SliceSegments`, where the passed-in slice is assumed to contain the segments.
-    pub fn into_slice_segments(self, slice: &[u8]) -> SliceSegments {
+    /// Constructs a `SliceSegments`.
+    /// `slice` contains the full message (including the segment header).
+    pub fn into_slice_segments(
+        self,
+        slice: &[u8],
+        segment_table_bytes_len: usize,
+    ) -> SliceSegments {
         assert!(self.total_words * BYTES_PER_WORD <= slice.len());
-        SliceSegments {
-            words: slice,
+        BufferSegments {
+            buffer: slice,
+            segment_table_bytes_len,
             segment_indices: self.segment_indices,
         }
     }
