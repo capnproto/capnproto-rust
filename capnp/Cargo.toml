@@ -17,13 +17,13 @@ keywords = ["encoding", "protocol", "serialization"]
 [dependencies]
 quickcheck = { version = "1", optional = true }
 
-embedded-io = { version = "0.5.0", default-features = false }
+embedded-io = { version = "0.5.0", default-features = false, optional = true }
 
 [dev-dependencies]
 quickcheck = "1"
 
 [features]
-alloc = ["embedded-io/alloc"]
+alloc = ["embedded-io?/alloc"]
 default = ["std", "alloc"]
 
 rpc_try = []
@@ -34,8 +34,10 @@ unaligned = []
 
 # If disabled, turns on no_std, which tells rustc to not link
 # with the Rust standard library.
-std = ["embedded-io/std"]
+std = ["embedded-io?/std"]
 
+
+embedded-io = []
 # If enabled, ReadLimiter will use `AtomicUsize` instead of `Cell<usize>`, allowing
 # message readers to be `Sync`. Note that AtomicUsize is not supported by all
 # rustc targets.
