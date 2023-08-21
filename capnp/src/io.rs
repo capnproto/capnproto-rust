@@ -42,6 +42,7 @@ pub trait Write {
     fn write_all(&mut self, buf: &[u8]) -> Result<()>;
 }
 
+/// Blanket impls for when `std` is enabled.
 #[cfg(feature = "std")]
 mod std_impls {
     use crate::io::{BufRead, Read, Write};
@@ -85,6 +86,44 @@ mod std_impls {
     }
 }
 
+/// Blanket impls for when `embedded-io` is enabled and `std` is not.
+#[cfg(all(feature = "embedded-io", not(feature = "std")))]
+mod embedded_io_impls {
+    use crate::io::{BufRead, Read, Write};
+    use crate::Result;
+    use embedded_io::Error;
+
+    impl<W: embedded_io::Write> Write for W {
+        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+            embedded_io::Write::write_all(self, buf).map_err(|e| match e {
+                embedded_io::WriteAllError::WriteZero => {
+                    crate::Error::from_kind(crate::ErrorKind::Failed)
+                }
+                embedded_io::WriteAllError::Other(e) => crate::Error::from_kind(e.kind().into()),
+            })?;
+            Ok(())
+        }
+    }
+
+    impl<R: embedded_io::Read> Read for R {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+            embedded_io::Read::read(self, buf).map_err(|e| crate::Error::from_kind(e.kind().into()))
+        }
+    }
+
+    impl<R: embedded_io::BufRead + embedded_io::Read> BufRead for R {
+        fn fill_buf(&mut self) -> Result<&[u8]> {
+            embedded_io::BufRead::fill_buf(self)
+                .map_err(|e| crate::Error::from_kind(e.kind().into()))
+        }
+
+        fn consume(&mut self, amt: usize) {
+            embedded_io::BufRead::consume(self, amt)
+        }
+    }
+}
+
+/// Fallback impls, for when neither `std` nor `embedded-io` is enabled.
 #[cfg(not(any(feature = "std", feature = "embedded-io")))]
 mod no_std_impls {
     use crate::io::{BufRead, Read, Write};
@@ -158,42 +197,6 @@ mod no_std_impls {
         }
         fn consume(&mut self, amt: usize) {
             (**self).consume(amt)
-        }
-    }
-}
-
-#[cfg(all(feature = "embedded-io", not(feature = "std")))]
-mod no_std_impls {
-    use crate::io::{BufRead, Read, Write};
-    use crate::Result;
-    use embedded_io::Error;
-
-    impl<W: embedded_io::Write> Write for W {
-        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
-            embedded_io::Write::write_all(self, buf).map_err(|e| match e {
-                embedded_io::WriteAllError::WriteZero => {
-                    crate::Error::from_kind(crate::ErrorKind::Failed)
-                }
-                embedded_io::WriteAllError::Other(e) => crate::Error::from_kind(e.kind().into()),
-            })?;
-            Ok(())
-        }
-    }
-
-    impl<R: embedded_io::Read> Read for R {
-        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-            embedded_io::Read::read(self, buf).map_err(|e| crate::Error::from_kind(e.kind().into()))
-        }
-    }
-
-    impl<R: embedded_io::BufRead + embedded_io::Read> BufRead for R {
-        fn fill_buf(&mut self) -> Result<&[u8]> {
-            embedded_io::BufRead::fill_buf(self)
-                .map_err(|e| crate::Error::from_kind(e.kind().into()))
-        }
-
-        fn consume(&mut self, amt: usize) {
-            embedded_io::BufRead::consume(self, amt)
         }
     }
 }
