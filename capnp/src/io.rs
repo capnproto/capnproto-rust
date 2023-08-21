@@ -85,7 +85,6 @@ mod std_impls {
     }
 }
 
-
 #[cfg(not(any(feature = "std", feature = "embedded-io")))]
 mod no_std_impls {
     use crate::io::{BufRead, Read, Write};
@@ -113,8 +112,8 @@ mod no_std_impls {
     }
 
     impl<W: ?Sized> Write for &mut W
-        where
-            W: Write,
+    where
+        W: Write,
     {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
             (**self).write_all(buf)
@@ -133,8 +132,8 @@ mod no_std_impls {
     }
 
     impl<R: ?Sized> Read for &mut R
-        where
-            R: Read,
+    where
+        R: Read,
     {
         fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
             (**self).read(buf)
@@ -151,8 +150,8 @@ mod no_std_impls {
     }
 
     impl<R: ?Sized> BufRead for &mut R
-        where
-            R: BufRead,
+    where
+        R: BufRead,
     {
         fn fill_buf(&mut self) -> Result<&[u8]> {
             (**self).fill_buf()
@@ -165,31 +164,25 @@ mod no_std_impls {
 
 #[cfg(feature = "embedded-io")]
 mod no_std_impls {
-    use embedded_io::Error;
     use crate::io::{BufRead, Read, Write};
-    use crate::{Result};
+    use crate::Result;
+    use embedded_io::Error;
 
     impl<W: embedded_io::Write> Write for W {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
-            embedded_io::Write::write_all(self, buf)
-                .map_err(|e| {
-                    match e {
-                        embedded_io::WriteAllError::WriteZero => {
-                            crate::Error::from_kind(crate::ErrorKind::Failed)
-                        }
-                        embedded_io::WriteAllError::Other(e) => crate::Error::from_kind(e.kind().into()),
-                    }
-                })?;
+            embedded_io::Write::write_all(self, buf).map_err(|e| match e {
+                embedded_io::WriteAllError::WriteZero => {
+                    crate::Error::from_kind(crate::ErrorKind::Failed)
+                }
+                embedded_io::WriteAllError::Other(e) => crate::Error::from_kind(e.kind().into()),
+            })?;
             Ok(())
         }
     }
 
     impl<R: embedded_io::Read> Read for R {
         fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-            embedded_io::Read::read(self, buf)
-                .map_err(|e| {
-                    crate::Error::from_kind(e.kind().into())
-                })
+            embedded_io::Read::read(self, buf).map_err(|e| crate::Error::from_kind(e.kind().into()))
         }
     }
 
