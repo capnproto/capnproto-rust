@@ -35,7 +35,7 @@ impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
     ) -> Promise<(), ::capnp::Error> {
         println!(
             "message from publisher: {}",
-            pry!(pry!(params.get()).get_message())
+            pry!(pry!(pry!(params.get()).get_message()).to_str())
         );
         Promise::ok(())
     }

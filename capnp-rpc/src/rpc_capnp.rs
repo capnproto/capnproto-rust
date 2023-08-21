@@ -7998,11 +7998,14 @@ pub mod exception {
             self.reader.total_size()
         }
         #[inline]
-        pub fn get_reason(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
-            ::capnp::traits::FromPointerReader::get_from_pointer(
+        pub fn get_reason(self) -> ::capnp::Result<&'a str> {
+            match ::capnp::traits::FromPointerReader::get_from_pointer(
                 &self.reader.get_pointer_field(0),
                 ::core::option::Option::None,
-            )
+            ) {
+                ::core::result::Result::Ok(r) => ::capnp::text::Reader::to_str(r),
+                ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+            }
         }
         #[inline]
         pub fn has_reason(&self) -> bool {
@@ -8024,11 +8027,14 @@ pub mod exception {
             ::core::convert::TryInto::try_into(self.reader.get_data_field::<u16>(2))
         }
         #[inline]
-        pub fn get_trace(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
-            ::capnp::traits::FromPointerReader::get_from_pointer(
+        pub fn get_trace(self) -> ::capnp::Result<&'a str> {
+            match ::capnp::traits::FromPointerReader::get_from_pointer(
                 &self.reader.get_pointer_field(1),
                 ::core::option::Option::None,
-            )
+            ) {
+                ::core::result::Result::Ok(r) => ::capnp::text::Reader::to_str(r),
+                ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
+            }
         }
         #[inline]
         pub fn has_trace(&self) -> bool {
@@ -8130,7 +8136,7 @@ pub mod exception {
             )
         }
         #[inline]
-        pub fn set_reason(&mut self, value: ::capnp::text::Reader<'_>) {
+        pub fn set_reason(&mut self, value: &str) {
             self.builder.reborrow().get_pointer_field(0).set_text(value);
         }
         #[inline]
@@ -8176,7 +8182,7 @@ pub mod exception {
             )
         }
         #[inline]
-        pub fn set_trace(&mut self, value: ::capnp::text::Reader<'_>) {
+        pub fn set_trace(&mut self, value: &str) {
             self.builder.reborrow().get_pointer_field(1).set_text(value);
         }
         #[inline]
