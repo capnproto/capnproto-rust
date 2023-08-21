@@ -162,7 +162,7 @@ mod no_std_impls {
     }
 }
 
-#[cfg(feature = "embedded-io")]
+#[cfg(all(feature = "embedded-io", not(feature = "std")))]
 mod no_std_impls {
     use crate::io::{BufRead, Read, Write};
     use crate::Result;
