@@ -673,6 +673,28 @@ fn get_params(ctx: &GeneratorContext, mut node_id: u64) -> ::capnp::Result<Vec<S
     Ok(result)
 }
 
+fn set_default(
+    reg_field: slot::Reader,
+    default_decl: &mut Option<FormattedText>,
+    ctx: &GeneratorContext,
+    default_name: String,
+    default_value: schema_capnp::value::Reader,
+) -> ::capnp::Result<String> {
+    if reg_field.get_had_explicit_default() {
+        *default_decl = Some(crate::pointer_constants::word_array_declaration(
+            ctx,
+            &default_name,
+            ::capnp::raw::get_struct_pointer_section(default_value).get(0),
+            crate::pointer_constants::WordArrayDeclarationOptions { public: true },
+        )?);
+        Ok(format!(
+            "::core::option::Option::Some(&_private::{default_name}[..])"
+        ))
+    } else {
+        Ok("::core::option::Option::None".to_string())
+    }
+}
+
 //
 // Returns (type, getter body, default_decl)
 //
@@ -781,28 +803,6 @@ pub fn getter_text(
                     "".to_string()
                 } else {
                     format!("-> {result_type}")
-                }
-            }
-
-            fn set_default(
-                reg_field: slot::Reader,
-                default_decl: &mut Option<FormattedText>,
-                ctx: &GeneratorContext,
-                default_name: String,
-                default_value: value::Reader,
-            ) -> ::capnp::Result<String> {
-                if reg_field.get_had_explicit_default() {
-                    *default_decl = Some(crate::pointer_constants::word_array_declaration(
-                        ctx,
-                        &default_name,
-                        ::capnp::raw::get_struct_pointer_section(default_value).get(0),
-                        crate::pointer_constants::WordArrayDeclarationOptions { public: true },
-                    )?);
-                    Ok(format!(
-                        "::core::option::Option::Some(&_private::{default_name}[..])"
-                    ))
-                } else {
-                    Ok("::core::option::Option::None".to_string())
                 }
             }
 
@@ -927,6 +927,80 @@ pub fn getter_text(
             };
 
             Ok((result_type, getter_code, default_decl))
+        }
+    }
+}
+
+//
+// Returns (type, getter body, default_decl)
+// Currently only required for reader text fields.
+//
+pub fn secondary_getter_text(
+    ctx: &GeneratorContext,
+    field: &schema_capnp::field::Reader,
+) -> ::capnp::Result<Option<(String, FormattedText, String)>> {
+    use capnp::schema_capnp::*;
+
+    match field.which()? {
+        field::Group(_) => Ok(None),
+        field::Slot(reg_field) => {
+            let raw_type = reg_field.get_type()?;
+            let default_value = reg_field.get_default_value()?;
+            let default = default_value.which()?;
+            let module_type = raw_type.which()?;
+
+            if let (type_::Text(()), value::Text(_)) = (module_type, default) {
+                let mut default_decl = None;
+                let offset = reg_field.get_offset() as usize;
+                let module_string = "Reader";
+                let member = camel_to_snake_case(module_string);
+
+                let default_name = format!(
+                    "DEFAULT_{}",
+                    snake_to_upper_case(&camel_to_snake_case(get_field_name(*field)?))
+                );
+                let should_get_option = is_option_field(*field)?;
+
+                let result_type = if should_get_option {
+                    fmt!(ctx, "-> {capnp}::Result<Option<&'a [u8]>>")
+                } else {
+                    fmt!(ctx, "-> {capnp}::Result<&'a [u8]>")
+                };
+
+                let default = set_default(
+                    reg_field,
+                    &mut default_decl,
+                    ctx,
+                    default_name,
+                    default_value,
+                )?;
+
+                let getter_fragment  = fmt!(ctx, "::core::result::Result::Ok({capnp}::text::Reader::as_bytes({capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}),{default})?))");
+
+                let getter_code = if should_get_option {
+                    Branch(vec![
+                        Line(format!(
+                            "if self.{member}.is_pointer_field_null({offset}) {{"
+                        )),
+                        indent(Line(
+                            "core::result::Result::Ok(core::option::Option::None)".to_string(),
+                        )),
+                        Line("} else {".to_string()),
+                        indent(Line(format!(
+                            "{getter_fragment}.map(::core::option::Option::Some)"
+                        ))),
+                        Line("}".to_string()),
+                    ])
+                } else {
+                    Line(getter_fragment)
+                };
+
+                let getter_suffix = "as_bytes".to_string();
+
+                Ok(Some((result_type, getter_code, getter_suffix)))
+            } else {
+                Ok(None)
+            }
         }
     }
 }
@@ -2077,6 +2151,17 @@ fn generate_node(
                         indent(get),
                         line("}"),
                     ]));
+
+                    if let Some((ty, get, getter_suffix)) = secondary_getter_text(ctx, &field)? {
+                        reader_members.push(Branch(vec![
+                            line("#[inline]"),
+                            Line(format!(
+                                "pub fn get_{styled_name}_{getter_suffix}(self) {ty} {{"
+                            )),
+                            indent(get),
+                            line("}"),
+                        ]));
+                    }
 
                     let (ty_b, get_b, _) = getter_text(ctx, &field, false, true)?;
                     builder_members.push(Branch(vec![

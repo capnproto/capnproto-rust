@@ -8008,6 +8008,15 @@ pub mod exception {
             }
         }
         #[inline]
+        pub fn get_reason_as_bytes(self) -> ::capnp::Result<&'a [u8]> {
+            ::core::result::Result::Ok(::capnp::text::Reader::as_bytes(
+                ::capnp::traits::FromPointerReader::get_from_pointer(
+                    &self.reader.get_pointer_field(0),
+                    ::core::option::Option::None,
+                )?,
+            ))
+        }
+        #[inline]
         pub fn has_reason(&self) -> bool {
             !self.reader.get_pointer_field(0).is_null()
         }
@@ -8035,6 +8044,15 @@ pub mod exception {
                 ::core::result::Result::Ok(r) => ::capnp::text::Reader::to_str(r),
                 ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
             }
+        }
+        #[inline]
+        pub fn get_trace_as_bytes(self) -> ::capnp::Result<&'a [u8]> {
+            ::core::result::Result::Ok(::capnp::text::Reader::as_bytes(
+                ::capnp::traits::FromPointerReader::get_from_pointer(
+                    &self.reader.get_pointer_field(1),
+                    ::core::option::Option::None,
+                )?,
+            ))
         }
         #[inline]
         pub fn has_trace(&self) -> bool {

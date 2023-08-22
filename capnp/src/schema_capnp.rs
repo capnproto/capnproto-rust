@@ -118,6 +118,15 @@ pub mod node {
             }
         }
         #[inline]
+        pub fn get_display_name_as_bytes(self) -> crate::Result<&'a [u8]> {
+            ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                crate::traits::FromPointerReader::get_from_pointer(
+                    &self.reader.get_pointer_field(0),
+                    ::core::option::Option::None,
+                )?,
+            ))
+        }
+        #[inline]
         pub fn has_display_name(&self) -> bool {
             !self.reader.get_pointer_field(0).is_null()
         }
@@ -899,6 +908,15 @@ pub mod node {
                 }
             }
             #[inline]
+            pub fn get_name_as_bytes(self) -> crate::Result<&'a [u8]> {
+                ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                    crate::traits::FromPointerReader::get_from_pointer(
+                        &self.reader.get_pointer_field(0),
+                        ::core::option::Option::None,
+                    )?,
+                ))
+            }
+            #[inline]
             pub fn has_name(&self) -> bool {
                 !self.reader.get_pointer_field(0).is_null()
             }
@@ -1190,6 +1208,15 @@ pub mod node {
                     ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
                     ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
                 }
+            }
+            #[inline]
+            pub fn get_name_as_bytes(self) -> crate::Result<&'a [u8]> {
+                ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                    crate::traits::FromPointerReader::get_from_pointer(
+                        &self.reader.get_pointer_field(0),
+                        ::core::option::Option::None,
+                    )?,
+                ))
             }
             #[inline]
             pub fn has_name(&self) -> bool {
@@ -1515,6 +1542,15 @@ pub mod node {
                     ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
                     ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
                 }
+            }
+            #[inline]
+            pub fn get_doc_comment_as_bytes(self) -> crate::Result<&'a [u8]> {
+                ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                    crate::traits::FromPointerReader::get_from_pointer(
+                        &self.reader.get_pointer_field(0),
+                        ::core::option::Option::None,
+                    )?,
+                ))
             }
             #[inline]
             pub fn has_doc_comment(&self) -> bool {
@@ -1924,6 +1960,15 @@ pub mod node {
                         ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
                         ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
                     }
+                }
+                #[inline]
+                pub fn get_doc_comment_as_bytes(self) -> crate::Result<&'a [u8]> {
+                    ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                        crate::traits::FromPointerReader::get_from_pointer(
+                            &self.reader.get_pointer_field(0),
+                            ::core::option::Option::None,
+                        )?,
+                    ))
                 }
                 #[inline]
                 pub fn has_doc_comment(&self) -> bool {
@@ -4436,6 +4481,15 @@ pub mod field {
             }
         }
         #[inline]
+        pub fn get_name_as_bytes(self) -> crate::Result<&'a [u8]> {
+            ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                crate::traits::FromPointerReader::get_from_pointer(
+                    &self.reader.get_pointer_field(0),
+                    ::core::option::Option::None,
+                )?,
+            ))
+        }
+        #[inline]
         pub fn has_name(&self) -> bool {
             !self.reader.get_pointer_field(0).is_null()
         }
@@ -5951,6 +6005,15 @@ pub mod enumerant {
             }
         }
         #[inline]
+        pub fn get_name_as_bytes(self) -> crate::Result<&'a [u8]> {
+            ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                crate::traits::FromPointerReader::get_from_pointer(
+                    &self.reader.get_pointer_field(0),
+                    ::core::option::Option::None,
+                )?,
+            ))
+        }
+        #[inline]
         pub fn has_name(&self) -> bool {
             !self.reader.get_pointer_field(0).is_null()
         }
@@ -6662,6 +6725,15 @@ pub mod method {
                 ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
                 ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
             }
+        }
+        #[inline]
+        pub fn get_name_as_bytes(self) -> crate::Result<&'a [u8]> {
+            ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                crate::traits::FromPointerReader::get_from_pointer(
+                    &self.reader.get_pointer_field(0),
+                    ::core::option::Option::None,
+                )?,
+            ))
         }
         #[inline]
         pub fn has_name(&self) -> bool {
@@ -13848,6 +13920,15 @@ pub mod code_generator_request {
                 }
             }
             #[inline]
+            pub fn get_filename_as_bytes(self) -> crate::Result<&'a [u8]> {
+                ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                    crate::traits::FromPointerReader::get_from_pointer(
+                        &self.reader.get_pointer_field(0),
+                        ::core::option::Option::None,
+                    )?,
+                ))
+            }
+            #[inline]
             pub fn has_filename(&self) -> bool {
                 !self.reader.get_pointer_field(0).is_null()
             }
@@ -14261,6 +14342,15 @@ pub mod code_generator_request {
                         ::core::result::Result::Ok(r) => crate::text::Reader::to_str(r),
                         ::core::result::Result::Err(e) => ::core::result::Result::Err(e),
                     }
+                }
+                #[inline]
+                pub fn get_name_as_bytes(self) -> crate::Result<&'a [u8]> {
+                    ::core::result::Result::Ok(crate::text::Reader::as_bytes(
+                        crate::traits::FromPointerReader::get_from_pointer(
+                            &self.reader.get_pointer_field(0),
+                            ::core::option::Option::None,
+                        )?,
+                    ))
                 }
                 #[inline]
                 pub fn has_name(&self) -> bool {
