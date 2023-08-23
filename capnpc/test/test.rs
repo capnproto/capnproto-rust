@@ -90,7 +90,7 @@ mod tests {
     use capnp::message::ReaderOptions;
     use capnp::message::{self, TypedBuilder, TypedReader};
     use capnp::text::new_reader;
-    use capnp::{primitive_list, text, Word};
+    use capnp::{primitive_list, text, ErrorKind, Word};
 
     // like the unstable std::assert_matches::assert_matches but doesn't
     // require $left implement Debug
@@ -260,6 +260,10 @@ mod tests {
             assert_eq!(test_blob_reader.has_data_field(), true);
 
             assert_eq!(test_blob_reader.get_text_field().unwrap(), "abcdefghi");
+            assert_eq!(
+                test_blob_reader.get_text_field_as_bytes().unwrap(),
+                "abcdefghi".as_bytes()
+            );
             assert!(test_blob_reader.get_data_field().unwrap() == [0u8, 1u8, 2u8, 3u8, 4u8]);
         }
 
@@ -285,6 +289,14 @@ mod tests {
         assert_eq!(
             test_blob.reborrow().into_reader().get_text_field().unwrap(),
             "aabbccddee"
+        );
+        assert_eq!(
+            test_blob
+                .reborrow()
+                .into_reader()
+                .get_text_field_as_bytes()
+                .unwrap(),
+            "aabbccddee".as_bytes()
         );
         assert!(
             test_blob.reborrow().into_reader().get_data_field().unwrap()
@@ -875,6 +887,16 @@ mod tests {
                 .get_text_field()
                 .unwrap()
         );
+        assert_eq!(
+            "blah".as_bytes(),
+            reader
+                .get_branded_field()
+                .unwrap()
+                .get_generic_field()
+                .unwrap()
+                .get_text_field_as_bytes()
+                .unwrap()
+        );
     }
 
     #[test]
@@ -910,6 +932,16 @@ mod tests {
                 .get_bar_field()
                 .unwrap()
                 .get_text_field()
+                .unwrap()
+        );
+        assert_eq!(
+            "some text".as_bytes(),
+            reader
+                .get_baz_field()
+                .unwrap()
+                .get_bar_field()
+                .unwrap()
+                .get_text_field_as_bytes()
                 .unwrap()
         );
         assert_eq!(
@@ -1154,10 +1186,18 @@ mod tests {
             assert_eq!(struct_const_root.get_int32_field(), -78901234);
             // ...
             assert_eq!(struct_const_root.get_text_field().unwrap(), "baz");
+            assert_eq!(
+                struct_const_root.get_text_field_as_bytes().unwrap(),
+                "baz".as_bytes()
+            );
             assert_eq!(struct_const_root.get_data_field().unwrap(), b"qux");
             {
                 let sub_reader = struct_const_root.get_struct_field().unwrap();
                 assert_eq!(sub_reader.get_text_field().unwrap(), "nested");
+                assert_eq!(
+                    sub_reader.get_text_field_as_bytes().unwrap(),
+                    "nested".as_bytes()
+                );
                 assert_eq!(
                     sub_reader
                         .get_struct_field()
@@ -1165,6 +1205,14 @@ mod tests {
                         .get_text_field()
                         .unwrap(),
                     "really nested"
+                );
+                assert_eq!(
+                    sub_reader
+                        .get_struct_field()
+                        .unwrap()
+                        .get_text_field_as_bytes()
+                        .unwrap(),
+                    "really nested".as_bytes()
                 );
             }
             // ...
@@ -1206,6 +1254,18 @@ mod tests {
         assert_eq!(struct_list.get(0).get_text_field().unwrap(), "structlist 1");
         assert_eq!(struct_list.get(1).get_text_field().unwrap(), "structlist 2");
         assert_eq!(struct_list.get(2).get_text_field().unwrap(), "structlist 3");
+        assert_eq!(
+            struct_list.get(0).get_text_field_as_bytes().unwrap(),
+            "structlist 1".as_bytes()
+        );
+        assert_eq!(
+            struct_list.get(1).get_text_field_as_bytes().unwrap(),
+            "structlist 2".as_bytes()
+        );
+        assert_eq!(
+            struct_list.get(2).get_text_field_as_bytes().unwrap(),
+            "structlist 3".as_bytes()
+        );
     }
 
     #[test]
@@ -1577,6 +1637,7 @@ mod tests {
         assert_eq!(s.get_int8_field(), 0x1f);
         assert_eq!(s.get_int16_field(), 0x1f1f);
         assert_eq!(s.get_text_field().unwrap(), "hello.\n");
+        assert_eq!(s.get_text_field_as_bytes().unwrap(), "hello.\n".as_bytes());
     }
 
     #[test]
@@ -1942,6 +2003,10 @@ mod tests {
             .unwrap()
             .into_reader();
         assert_eq!(reader.get_text_field().unwrap(), "Hello");
+        assert_eq!(
+            reader.get_text_field_as_bytes().unwrap(),
+            "Hello".as_bytes()
+        );
         assert_eq!(reader.has_struct_field(), false);
         let nested = reader.get_struct_field().unwrap();
         assert_eq!(nested.get_int8_field(), 0);
@@ -1950,6 +2015,7 @@ mod tests {
         assert_eq!(nested.get_float64_list().unwrap().len(), 0);
         assert_eq!(nested.get_struct_list().unwrap().len(), 0);
         assert_eq!(nested.get_text_field().unwrap(), "");
+        assert_eq!(nested.get_text_field_as_bytes().unwrap(), "".as_bytes());
         let empty_slice: &[u8] = &[];
         assert_eq!(nested.get_data_field().unwrap(), empty_slice);
     }
@@ -2214,5 +2280,47 @@ mod tests {
         let generator_context = capnpc::codegen::GeneratorContext::new(&reader).unwrap();
         assert!(!generator_context.node_map.is_empty());
         assert!(!generator_context.scope_map.is_empty());
+    }
+
+    #[test]
+    fn invalid_utf8() {
+        let segment: &[capnp::Word] = &[
+            capnp::word(0, 0, 0, 0, 0, 0, 1, 0),
+            // struct pointer, zero offset, zero data words, one pointer.
+            capnp::word(0, 0, 0, 0, 0, 0, 1, 0),
+            // landing pad tag. struct pointer. One pointer.
+            capnp::word(1, 0, 0, 0, 0x42, 0, 0, 0),
+            // list. 8-bytes elements. 1 element.
+            capnp::word(0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x21, 0xff, 0), // "hello!" + 0xff, 0xff being invalid.
+        ];
+
+        let segment_array = &[capnp::Word::words_to_bytes(segment)];
+
+        let message = message::Reader::new(
+            message::SegmentArray::new(segment_array),
+            ReaderOptions::new(),
+        );
+
+        let root: crate::test_capnp::test_any_pointer::Reader<'_> = message.get_root().unwrap();
+        let s: crate::test_capnp::test_all_types::Reader<'_> =
+            root.get_any_pointer_field().get_as().unwrap();
+
+        let text_result = s.get_text_field();
+        assert!(text_result.is_err());
+        let error_kind = text_result.unwrap_err().kind;
+        assert_matches!(error_kind, ErrorKind::TextContainsNonUtf8Data { .. });
+
+        if let ErrorKind::TextContainsNonUtf8Data(utf8_error) = error_kind {
+            // 6 valid characters then 1 invalid character.
+            assert_eq!(utf8_error.valid_up_to(), 6);
+            assert_eq!(utf8_error.error_len(), Some(1));
+        } else {
+            panic!("expected valid utf8_error")
+        };
+
+        assert_eq!(
+            s.get_text_field_as_bytes().unwrap(),
+            &[0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x21, 0xff]
+        );
     }
 }
