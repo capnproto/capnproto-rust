@@ -1,15 +1,14 @@
 [package]
 
 name = "capnp"
-version = "0.18.0-alpha"
-authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
-license = "MIT"
+version.workspace = true
+authors = ["David Renshaw <dwrenshaw@gmail.com>"]
+license.workspace = true
 description = "runtime library for Cap'n Proto data encoding"
-repository = "https://github.com/capnproto/capnproto-rust"
-documentation = "https://docs.rs/capnp/"
-edition = "2021"
+repository.workspace = true
+documentation.workspace = true
+edition.workspace = true
 rust-version.workspace = true
-
 readme = "README.md"
 
 keywords = ["encoding", "protocol", "serialization"]

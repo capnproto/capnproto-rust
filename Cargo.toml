@@ -1,11 +1,4 @@
-[workspace.package]
-rust-version = "1.65.0"
-
 [workspace]
-
-# TODO(0.18): switch to `resolver = "2"`, and update capnpc/Cargo.toml to
-# include the `std` feature of the capnp crate.
-# This possible now that https://github.com/rust-lang/cargo/pull/7820 has landed.
 resolver = "2"
 
 members = [
@@ -35,3 +28,29 @@ members = [
     "example/fill_random_values",
 ]
 default-members = ["capnp", "capnp-import"]
+
+[workspace.package]
+version = "0.18.0-alpha"
+edition = "2021"
+rust-version = "1.65.0"
+license = "MIT"
+repository = "https://github.com/fundament-software/capnproto-rust"
+documentation = "https://docs.rs/capnp/"
+readme = "README.md"
+
+[workspace.dependencies]
+tokio = { version = "1.0.0", features = ["net", "rt", "macros"] }
+tokio-util = { version = "0.7.4", features = ["compat"] }
+capnp = { version = "0.18.0-alpha", path = "./capnp" }
+capnpc = { version = "0.18.0-alpha", path = "./capnpc" }
+capnp-rpc = { version = "0.18.0-alpha", path = "./capnp-rpc" }
+capnp-import = { version = "0.18.0-alpha", path = "./capnp-import" }
+capnp-macros = { version = "0.18.0-alpha", path = "./capnp-macros" }
+capnp-futures = { version = "0.18.0-alpha", path = "./capnp-futures" }
+async-byte-channel = { path = "./async-byte-channel" }
+futures = { version = "0.3.0", default-features = false, features = ["std"] }
+syn = { version = "2.0", features = ["full"] }
+proc-macro2 = "1.0"
+quote = "1.0"
+anyhow = "1.*"
+tempfile = "3.*"

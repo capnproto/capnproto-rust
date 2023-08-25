@@ -11,8 +11,8 @@ name = "capnp_futures_test"
 path = "test.rs"
 
 [dependencies]
-capnp-futures = { path = "./../" }
-capnp = { path = "../../capnp" }
-capnp-import = { path = "../../capnp-import" }
-futures = "0.3.0"
-async-byte-channel = { path = "./../../async-byte-channel" }
+capnp-futures.workspace = true
+capnp.workspace = true
+capnp-import.workspace = true
+futures.workspace = true
+async-byte-channel.workspace = true
