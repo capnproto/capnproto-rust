@@ -118,6 +118,12 @@ impl<'a> Builder<'a> {
         self.pos += bytes.len();
     }
 
+    // SAFETY: the caller must guarantee that the bytes `bytes` are valid UTF-8.
+    pub unsafe fn push_bytes(&mut self, bytes: &[u8]) {
+        self.bytes[self.pos..(self.pos + bytes.len())].copy_from_slice(bytes);
+        self.pos += bytes.len();
+    }
+
     pub fn clear(&mut self) {
         for b in &mut self.bytes[..self.pos] {
             *b = 0;
