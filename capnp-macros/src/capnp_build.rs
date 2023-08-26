@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
 use syn::{punctuated::Punctuated, Ident, Token};
 
-use crate::parse::CapnpAnonStruct;
+use crate::parse::{CapnpAnonStruct, CapnpBuildFieldPattern};
 
 type Expr = TokenStream2;
 type PatternStruct = dyn Iterator<Item = (Ident, Expr)>;
@@ -10,12 +10,26 @@ type PatternList = dyn Iterator<Item = Expr>;
 
 pub fn process_build_pry(
     subject: Ident,
-    build_pattern: CapnpAnonStruct,
+    build_pattern: CapnpAnonStruct<CapnpBuildFieldPattern>,
 ) -> syn::Result<TokenStream2> {
     let mut res = TokenStream2::new();
     for field_pat in build_pattern.fields.into_iter() {
-        let to_append = match *field_pat {
-            todo!() => todo!(),
+        let to_append = match field_pat {
+            CapnpBuildFieldPattern::Name(name) => {
+                let x: syn::ExprPath = syn::parse2(name.to_token_stream())?;
+                let x: syn::Expr = syn::Expr::Path(x);
+                assign_from_expression(&subject, &name, &x)
+            }
+            CapnpBuildFieldPattern::ExpressionAssignment(name, expr) => {
+                assign_from_expression(&subject, &name, &expr)
+            }
+            CapnpBuildFieldPattern::PatternAssignment(name, pat) => {
+                //build_with_pattern(&subject, &name, pat.fields)
+                todo!();
+            }
+            CapnpBuildFieldPattern::BuilderExtraction(name1, name2) => {
+                extract_symbol(&subject, &name1, &name2)
+            }
         };
         res.extend(to_append);
     }
@@ -24,7 +38,7 @@ pub fn process_build_pry(
 
 // TODO Type check expr
 // builder, {field => value}
-fn assign_from_expression(builder: &Ident, field: Ident, expr: Expr) -> TokenStream2 {
+fn assign_from_expression(builder: &Ident, field: &Ident, expr: &syn::Expr) -> TokenStream2 {
     let field_setter = format_ident!("set_{}", field);
     quote! {
         #builder.#field_setter(#expr);
@@ -32,16 +46,16 @@ fn assign_from_expression(builder: &Ident, field: Ident, expr: Expr) -> TokenStr
 }
 
 // builder, {field => {pattern..}}
-fn build_with_pattern<T: Iterator<Item = (Ident, Expr)>>(
-    builder: Ident,
-    field: Ident,
+fn build_with_pattern<T: Iterator<Item = (Ident, syn::Expr)>>(
+    builder: &Ident,
+    field: &Ident,
     pattern: T,
 ) -> TokenStream2 {
     let field_builder_name = format_ident!("{}_builder", field);
-    let acquire_field_symbol = extract_symbol(builder, field, field_builder_name.clone());
+    let acquire_field_symbol = extract_symbol(&builder, &field, &field_builder_name);
     let assignments = pattern.map(|(field, expr)| {
         // TODO Needs to check whether expr is another pattern and behave accordingly
-        assign_from_expression(&field_builder_name, field, expr)
+        assign_from_expression(&field_builder_name, &field, &expr)
     });
     quote! {
         #acquire_field_symbol
@@ -50,10 +64,10 @@ fn build_with_pattern<T: Iterator<Item = (Ident, Expr)>>(
 }
 
 // builder, {field: symbol_to_extract}
-fn extract_symbol(builder: Ident, field: Ident, symbol_to_extract: Ident) -> TokenStream2 {
+fn extract_symbol(builder: &Ident, field: &Ident, symbol_to_extract: &Ident) -> TokenStream2 {
     let field_accessor = format_ident!("get_{}", field);
     quote! {
-        let mut #symbol_to_extract = capnp_rpc::pry!(#builder.#field_accessor().into_result());
+        let mut #symbol_to_extract = capnp_rpc::pry!(#builder.reborrow().#field_accessor().into_result());
     }
 }
 

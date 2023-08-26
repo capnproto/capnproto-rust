@@ -6,9 +6,12 @@ use syn::{
     Ident, Token,
 };
 
+pub type CapnpLetStruct = CapnpAnonStruct<CapnpLetFieldPattern>;
+pub type CapnpBuildStruct = CapnpAnonStruct<CapnpBuildFieldPattern>;
+
 // capnp_let!(struct_pattern = subject)
 pub struct CapnpLet {
-    pub struct_pattern: CapnpAnonStruct,
+    pub struct_pattern: CapnpLetStruct,
     pub equal_token: Token![=],
     pub ident: Ident,
 }
@@ -17,35 +20,36 @@ pub struct CapnpLet {
 pub struct CapnpBuild {
     pub subject: Ident,
     pub comma_token: Token![,],
-    pub build_pattern: CapnpAnonStruct, // TODO Might be different for list
+    pub build_pattern: CapnpBuildStruct, // TODO Might be different for list
 }
 
-pub struct CapnpAnonStruct {
+pub struct CapnpAnonStruct<FieldPattern: Parse> {
     pub brace_token: Brace,
-    pub fields: Punctuated<CapnpField, Token![,]>,
+    pub fields: Punctuated<FieldPattern, Token![,]>,
 }
 
-pub struct CapnpField {
-    pub lhs: Ident,
-    pub colon_token: Option<Token![:]>,
-    pub rhs: Box<CapnpFieldPat>,
-}
+// pub struct CapnpField {
+//     pub lhs: Ident,
+//     pub colon_token: Option<Token![:]>,
+//     pub rhs: Box<CapnpFieldPat>,
+// }
 
-pub enum CapnpFieldPat {
-    AnonStruct(CapnpAnonStruct),
-    Ident(Ident),
-}
+// pub enum CapnpFieldPat {
+//     AnonStruct(CapnpAnonStruct<CapnpLetFieldPattern>),
+//     Ident(Ident),
+// }
 
 pub enum CapnpBuildFieldPattern {
-    Name,
-    ExpressionAssignment, // name = expr
-    PatternAssignment,    // name : pat
-    BuilderExtraction,    // name => name
+    Name(Ident),
+    ExpressionAssignment(Ident, syn::Expr),     // name = expr
+    PatternAssignment(Ident, CapnpBuildStruct), // name : pat
+    BuilderExtraction(Ident, Ident),            // name => name
 }
 
 pub enum CapnpLetFieldPattern {
-    Name,             // name
-    StructAssignment, // name: name
+    Name(Ident),                               // name
+    ExtractToSymbol(Ident, Ident),             // name: name
+    ExtractWithPattern(Ident, CapnpLetStruct), // name: struct_pattern
 }
 
 impl Parse for CapnpLet {
@@ -68,36 +72,76 @@ impl Parse for CapnpBuild {
     }
 }
 
-impl Parse for CapnpAnonStruct {
+impl<FieldPattern: Parse> Parse for CapnpAnonStruct<FieldPattern> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         Ok(CapnpAnonStruct {
             brace_token: braced!(content in input),
-            fields: content.parse_terminated(CapnpField::parse, Token![,])?,
+            //fields: syn::punctuated::Punctuated::parse_terminated(&content)?,
+            fields: content.parse_terminated(FieldPattern::parse, Token![,])?,
         })
     }
 }
 
-impl Parse for CapnpField {
+impl Parse for CapnpLetFieldPattern {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lhs: Ident = input.parse()?;
+        let name: Ident = input.parse()?;
         let colon_token: Option<Token![:]> = input.parse()?;
-        let rhs: Box<CapnpFieldPat>;
+        let res: Self;
         if colon_token.is_none() {
-            // {.., lhs, ..}
-            rhs = Box::new(CapnpFieldPat::Ident(lhs.clone()));
+            res = Self::Name(name);
         } else if input.peek(Brace) {
-            // {.., lhs: {...}, ..}
-            rhs = Box::new(CapnpFieldPat::AnonStruct(CapnpAnonStruct::parse(input)?));
+            res = Self::ExtractWithPattern(name, input.parse()?);
         } else {
-            // {.., lhs: rhs, ..}
-            rhs = Box::new(CapnpFieldPat::Ident(input.parse()?));
-        }
-
-        Ok(CapnpField {
-            lhs,
-            colon_token,
-            rhs,
-        })
+            let name2: Ident = input.parse()?;
+            res = Self::ExtractToSymbol(name, name2);
+        };
+        Ok(res)
     }
 }
+
+impl Parse for CapnpBuildFieldPattern {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let name: Ident = input.parse()?;
+        let res: Self;
+        if input.peek(Token![,]) || input.is_empty() {
+            res = Self::Name(name);
+        } else if input.peek(Token![:]) {
+            let _: Token![:] = input.parse()?;
+            res = Self::PatternAssignment(name, input.parse()?);
+        } else {
+            let _: Token![=] = input.parse()?;
+            if input.peek(Token![>]) {
+                let _: Token![>] = input.parse()?;
+                res = Self::BuilderExtraction(name, input.parse()?);
+            } else {
+                res = Self::ExpressionAssignment(name, input.parse()?);
+            }
+        }
+        Ok(res)
+    }
+}
+
+// impl Parse for CapnpField {
+//     fn parse(input: ParseStream) -> syn::Result<Self> {
+//         let lhs: Ident = input.parse()?;
+//         let colon_token: Option<Token![:]> = input.parse()?;
+//         let rhs: Box<CapnpFieldPat>;
+//         if colon_token.is_none() {
+//             // {.., lhs, ..}
+//             rhs = Box::new(CapnpFieldPat::Ident(lhs.clone()));
+//         } else if input.peek(Brace) {
+//             // {.., lhs: {...}, ..}
+//             rhs = Box::new(CapnpFieldPat::AnonStruct(CapnpAnonStruct::parse(input)?));
+//         } else {
+//             // {.., lhs: rhs, ..}
+//             rhs = Box::new(CapnpFieldPat::Ident(input.parse()?));
+//         }
+
+//         Ok(CapnpField {
+//             lhs,
+//             colon_token,
+//             rhs,
+//         })
+//     }
+// }

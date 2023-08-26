@@ -2,7 +2,7 @@ capnp_import::capnp_import!("tests/example.capnp");
 
 use capnp::capability::Promise;
 use capnp::IntoResult;
-use capnp_macros::{capnp_let, capnp_build};
+use capnp_macros::{capnp_build, capnp_let};
 use example_capnp::date_list;
 use example_capnp::person as person_capnp;
 use example_capnp::text_list;
@@ -33,15 +33,37 @@ fn macro_usage(person: person_capnp::Reader) -> Promise<(), capnp::Error> {
     Promise::ok(())
 }
 
-fn macro_usage_two(person: person_capnp::Builder) -> Promise<(), capnp::Error> {
+fn macro_usage_two(mut person_builder: person_capnp::Builder) -> Promise<(), capnp::Error> {
     //let birthdate_builder = capnp_rpc::pry!(person.get_birthdate());
     //birthdate_builder.set_day(1);
     //birthdate_builder.set_month(2);
+    let message_reader = capnp_rpc::pry!(capnp::serialize::read_message(
+        get_person().as_slice(),
+        capnp::message::ReaderOptions::new(),
+    ));
+    let person = capnp_rpc::pry!(message_reader.get_root::<person_capnp::Reader>());
+    capnp_let!(
+        {name, birthdate, email} = person
+    );
+    capnp_build!(person_builder, {name, birthdate, email});
+    let another_person = person_builder.reborrow_as_reader();
+    capnp_let!({name: name2, birthdate: birthdate2, email: email2} = another_person);
+    assert_eq!(name, name2);
+    assert_eq!(email, email2);
 
-    let mut birthdate_builder = capnp_rpc::pry!(person.get_birthdate().into_result());
-    birthdate_builder.set_day(1u8);
-    birthdate_builder.set_month(2u8);
-    birthdate_builder.set_year_as_text("1990");
+    capnp_build!(person_builder, { name = "s".to_uppercase().as_str() });
+    let another_person = person_builder.reborrow_as_reader();
+    assert_eq!(another_person.get_name().unwrap(), "S");
+
+    capnp_build!(person_builder, { name => name_setter });
+    name_setter.clear();
+    name_setter.push_str("a");
+    let another_person = person_builder.reborrow_as_reader();
+    assert_eq!(another_person.get_name().unwrap(), "a");
+    //let mut birthdate_builder = capnp_rpc::pry!(person_builder.get_birthdate().into_result());
+    //birthdate_builder.set_day(1u8);
+    //birthdate_builder.set_month(2u8);
+    //birthdate_builder.set_year_as_text("1990");
     Promise::ok(())
 }
 
@@ -49,12 +71,12 @@ fn macro_usage_three(mut date_list: date_list::Builder) -> Promise<(), capnp::Er
     let v = vec![(1, 2, 3), (4, 5, 6), (7, 8, 9)].into_iter();
     let mut x = date_list.init_dates(v.len() as u32);
     // TODO capnp_build version of taking expressions must have unique syntax to renaming variables
-    let f =
-        |(x, y, z), w: example_capnp::date::Builder| {capnp_build!({day: x, month: y, year_as_text: z} = w);}
-    let temp = x.reborrow().get(0);
-    x.set_with_caveats(0, todo!());
-    x.set_with_caveats(1, todo!());
-    x.set_with_caveats(2, todo!());
+    // let f =
+    //     |(x, y, z), w: example_capnp::date::Builder| {capnp_build!({day: x, month: y, year_as_text: z} = w);}
+    // let temp = x.reborrow().get(0);
+    // x.set_with_caveats(0, todo!());
+    // x.set_with_caveats(1, todo!());
+    // x.set_with_caveats(2, todo!());
     Promise::ok(())
 }
 
