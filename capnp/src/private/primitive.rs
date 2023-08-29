@@ -65,10 +65,12 @@ primitive_impl!(f64, 8);
 impl Primitive for f32 {
     type Raw = Self;
 
+    #[inline]
     fn get(raw: &Self::Raw) -> Self {
         Self::from_bits(raw.to_bits().to_le())
     }
 
+    #[inline]
     fn set(raw: &mut Self::Raw, value: Self) {
         *raw = Self::from_bits(value.to_bits().to_le())
     }
@@ -78,10 +80,12 @@ impl Primitive for f32 {
 impl Primitive for f64 {
     type Raw = Self;
 
+    #[inline]
     fn get(raw: &Self::Raw) -> Self {
         Self::from_bits(raw.to_bits().to_le())
     }
 
+    #[inline]
     fn set(raw: &mut Self::Raw, value: Self) {
         *raw = Self::from_bits(value.to_bits().to_le())
     }
