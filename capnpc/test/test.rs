@@ -1097,22 +1097,18 @@ mod tests {
                 .get_root_as_reader::<test_union_defaults::Reader<'_>>()
                 .expect("get_root_as_reader()");
             let field = reader.get_s16s8s64s8_set().unwrap();
-            if let test_union::union0::U0f0s16(_) = field.get_union0().which().unwrap() {
-            } else {
+            let test_union::union0::U0f0s16(_) = field.get_union0().which().unwrap() else {
                 panic!("expected U0f0s16");
-            }
+            };
 
-            if let test_union_defaults::inner1::A(17) = reader.get_inner1().which().unwrap() {
-            } else {
+            let test_union_defaults::inner1::A(17) = reader.get_inner1().which().unwrap() else {
                 panic!("")
-            }
+            };
 
-            if let test_union_defaults::inner2::C(Ok("grault")) =
-                reader.get_inner2().which().unwrap()
-            {
-            } else {
+            let test_union_defaults::inner2::C(Ok("grault")) = reader.get_inner2().which().unwrap()
+            else {
                 panic!("")
-            }
+            };
         }
     }
 
