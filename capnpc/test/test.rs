@@ -451,8 +451,10 @@ mod tests {
 
         let text_list = complex_list_reader.get_text_list().unwrap();
         assert_eq!(text_list.len(), 2);
-        assert_eq!(text_list.get(0).unwrap(), "garply");
-        assert_eq!(text_list.get(1).unwrap(), "foo");
+        assert_eq!(text_list.get_as_str(0).unwrap(), "garply");
+        assert_eq!(text_list.get_as_str(1).unwrap(), "foo");
+        assert_eq!(text_list.get_as_bytes(0).unwrap(), b"garply");
+        assert_eq!(text_list.get_as_bytes(1).unwrap(), b"foo");
 
         let data_list = complex_list_reader.get_data_list().unwrap();
         assert_eq!(data_list.len(), 2);
@@ -486,7 +488,7 @@ mod tests {
                 .unwrap()
                 .get(0)
                 .unwrap()
-                .get(0)
+                .get_as_str(0)
                 .unwrap()
                 == "abc"
         );
@@ -1242,9 +1244,12 @@ mod tests {
         let text_list_const = test_constants::TEXT_LIST_CONST;
         let text_list = text_list_const.get().unwrap();
         assert_eq!(text_list.len(), 3);
-        assert_eq!(text_list.get(0).unwrap(), "plugh");
-        assert_eq!(text_list.get(1).unwrap(), "xyzzy");
-        assert_eq!(text_list.get(2).unwrap(), "thud");
+        assert_eq!(text_list.get_as_str(0).unwrap(), "plugh");
+        assert_eq!(text_list.get_as_str(1).unwrap(), "xyzzy");
+        assert_eq!(text_list.get_as_str(2).unwrap(), "thud");
+        assert_eq!(text_list.get_as_bytes(0).unwrap(), b"plugh");
+        assert_eq!(text_list.get_as_bytes(1).unwrap(), b"xyzzy");
+        assert_eq!(text_list.get_as_bytes(2).unwrap(), b"thud");
 
         // TODO: DATA_LIST_CONST
 
@@ -1331,8 +1336,10 @@ mod tests {
             assert_eq!(old_version.get_old1(), 123);
             let names = old_version.get_old4().unwrap();
             assert_eq!(names.len(), 2);
-            assert_eq!(names.get(0).unwrap(), "alice");
-            assert_eq!(names.get(1).unwrap(), "bob");
+            assert_eq!(names.get_as_str(0).unwrap(), "alice");
+            assert_eq!(names.get_as_str(1).unwrap(), "bob");
+            assert_eq!(names.get_as_bytes(0).unwrap(), b"alice");
+            assert_eq!(names.get_as_bytes(1).unwrap(), b"bob");
         }
     }
 

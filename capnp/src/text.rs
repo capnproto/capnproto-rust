@@ -24,7 +24,7 @@
 use core::fmt::{Debug, Formatter};
 use core::{convert, ops, str};
 
-use crate::{data, Error, ErrorKind, Result};
+use crate::{Error, ErrorKind, Result};
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
@@ -42,7 +42,7 @@ impl crate::introspect::Introspect for Owned {
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Reader<'a> {
-    pub reader: data::Reader<'a>,
+    pub reader: &'a [u8],
 }
 
 pub fn new_reader(v: &str) -> Reader<'_> {
@@ -73,8 +73,8 @@ impl<'a> From<&'a str> for Reader<'a> {
 impl<'a> Debug for Reader<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self.to_str() {
-            Ok(s) => write!(f, "{}", s),
-            Err(_) => write!(f, "{:?}", self.as_bytes()),
+            Ok(s) => write!(f, "{:?}", s),
+            Err(_) => write!(f, "<invalid utf-8: {:?}>", self.as_bytes()),
         }
     }
 }
