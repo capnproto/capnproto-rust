@@ -106,7 +106,7 @@ pub fn read_message_from_flat_slice_no_alloc<'a>(
 pub struct BufferSegments<T> {
     buffer: T,
 
-    // Eumber of bytes in the segment table.
+    // Number of bytes in the segment table.
     segment_table_bytes_len: usize,
 
     // Each pair represents a segment inside of `buffer`:
