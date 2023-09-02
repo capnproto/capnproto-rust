@@ -37,32 +37,32 @@ pub mod addressbook {
             {
                 let mut alice = people.reborrow().get(0);
                 alice.set_id(123);
-                alice.set_name("Alice");
-                alice.set_email("alice@example.com");
+                alice.set_name("Alice".into());
+                alice.set_email("alice@example.com".into());
                 {
                     let mut alice_phones = alice.reborrow().init_phones(1);
-                    alice_phones.reborrow().get(0).set_number("555-1212");
+                    alice_phones.reborrow().get(0).set_number("555-1212".into());
                     alice_phones
                         .reborrow()
                         .get(0)
                         .set_type(person::phone_number::Type::Mobile);
                 }
-                alice.get_employment().set_school("MIT");
+                alice.get_employment().set_school("MIT".into());
             }
 
             {
                 let mut bob = people.get(1);
                 bob.set_id(456);
-                bob.set_name("Bob");
-                bob.set_email("bob@example.com");
+                bob.set_name("Bob".into());
+                bob.set_email("bob@example.com".into());
                 {
                     let mut bob_phones = bob.reborrow().init_phones(2);
-                    bob_phones.reborrow().get(0).set_number("555-4567");
+                    bob_phones.reborrow().get(0).set_number("555-4567".into());
                     bob_phones
                         .reborrow()
                         .get(0)
                         .set_type(person::phone_number::Type::Home);
-                    bob_phones.reborrow().get(1).set_number("555-7654");
+                    bob_phones.reborrow().get(1).set_number("555-7654".into());
                     bob_phones
                         .reborrow()
                         .get(1)
@@ -84,7 +84,11 @@ pub mod addressbook {
         let address_book = message_reader.get_root::<address_book::Reader>()?;
 
         for person in address_book.get_people()? {
-            println!("{}: {}", person.get_name()?, person.get_email()?);
+            println!(
+                "{}: {}",
+                person.get_name()?.to_str()?,
+                person.get_email()?.to_str()?
+            );
             for phone in person.get_phones()? {
                 let type_name = match phone.get_type() {
                     Ok(person::phone_number::Type::Mobile) => "mobile",
@@ -92,17 +96,17 @@ pub mod addressbook {
                     Ok(person::phone_number::Type::Work) => "work",
                     Err(::capnp::NotInSchema(_)) => "UNKNOWN",
                 };
-                println!("  {} phone: {}", type_name, phone.get_number()?);
+                println!("  {} phone: {}", type_name, phone.get_number()?.to_str()?);
             }
             match person.get_employment().which() {
                 Ok(person::employment::Unemployed(())) => {
                     println!("  unemployed");
                 }
                 Ok(person::employment::Employer(employer)) => {
-                    println!("  employer: {}", employer?);
+                    println!("  employer: {}", employer?.to_str()?);
                 }
                 Ok(person::employment::School(school)) => {
-                    println!("  student at: {}", school?);
+                    println!("  student at: {}", school?.to_str()?);
                 }
                 Ok(person::employment::SelfEmployed(())) => {
                     println!("  self-employed");
