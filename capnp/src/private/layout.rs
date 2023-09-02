@@ -1730,8 +1730,7 @@ mod wire_helpers {
 
         SegmentAnd {
             segment_id,
-            value: text::Builder::new(slice::from_raw_parts_mut(ptr, size as usize), 0)
-                .expect("empty text builder should be valid utf-8"),
+            value: text::Builder::new(slice::from_raw_parts_mut(ptr, size as usize)),
         }
     }
 
@@ -1740,12 +1739,16 @@ mod wire_helpers {
         arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        value: &str,
+        value: crate::text::Reader<'_>,
     ) -> SegmentAnd<text::Builder<'a>> {
         let value_bytes = value.as_bytes();
         // TODO make sure the string is not longer than 2 ** 29.
         let mut allocation = init_text_pointer(arena, reff, segment_id, value_bytes.len() as u32);
-        allocation.value.push_str(value);
+        allocation
+            .value
+            .reborrow()
+            .as_bytes_mut()
+            .copy_from_slice(value_bytes);
         allocation
     }
 
@@ -1758,7 +1761,7 @@ mod wire_helpers {
     ) -> Result<text::Builder<'a>> {
         let ref_target = if (*reff).is_null() {
             match default {
-                None => return text::Builder::new(&mut [], 0),
+                None => return Ok(text::Builder::new(&mut [])),
                 Some(d) => {
                     let (new_ref_target, new_reff, new_segment_id) = copy_message(
                         arena,
@@ -1793,10 +1796,10 @@ mod wire_helpers {
         }
 
         // Subtract 1 from the size for the NUL terminator.
-        text::Builder::new(
+        Ok(text::Builder::with_pos(
             slice::from_raw_parts_mut(ptr, (count - 1) as usize),
-            count - 1,
-        )
+            (count - 1) as usize,
+        ))
     }
 
     #[inline]
@@ -2615,7 +2618,7 @@ mod wire_helpers {
     ) -> Result<text::Reader<'a>> {
         if (*reff).is_null() {
             match default {
-                None => return Ok(""),
+                None => return Ok("".into()),
                 Some(d) => {
                     reff = d.as_ptr() as *const WirePointer;
                     arena = &super::NULL_ARENA;
@@ -2661,7 +2664,10 @@ mod wire_helpers {
             ));
         }
 
-        text::new_reader(slice::from_raw_parts(str_ptr, size as usize - 1))
+        Ok(text::Reader(slice::from_raw_parts(
+            str_ptr,
+            size as usize - 1,
+        )))
     }
 
     #[inline]
@@ -3282,7 +3288,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_text(&mut self, value: &str) {
+    pub fn set_text(&mut self, value: crate::text::Reader<'_>) {
         unsafe {
             wire_helpers::set_text_pointer(self.arena, self.pointer, self.segment_id, value);
         }

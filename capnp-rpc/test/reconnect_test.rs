@@ -76,7 +76,7 @@ impl test_interface::Server for TestInterfaceImpl {
         );
         {
             let mut results = results.get();
-            results.set_x(&s);
+            results.set_x(s[..].into());
         }
         if let Some(fut) = self.inner.borrow().block.as_ref() {
             Promise::from_future(fut.clone())
@@ -91,7 +91,7 @@ where
     F: Future<Output = capnp::Result<Response<test_interface::foo_results::Owned>>>,
 {
     match pool.run_until(fut) {
-        Ok(resp) => Ok(resp.get()?.get_x()?.to_string()),
+        Ok(resp) => Ok(resp.get()?.get_x()?.to_string()?),
         Err(err) => Err(err),
     }
 }

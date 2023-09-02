@@ -58,11 +58,14 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tokio::task::spawn_local(rpc_system);
 
             let mut request = hello_world.say_hello_request();
-            request.get().init_request().set_name(&msg);
+            request.get().init_request().set_name(msg[..].into());
 
             let reply = request.send().promise.await?;
 
-            println!("received: {}", reply.get()?.get_reply()?.get_message()?);
+            println!(
+                "received: {}",
+                reply.get()?.get_reply()?.get_message()?.to_str()?
+            );
             Ok(())
         })
         .await

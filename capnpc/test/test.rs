@@ -245,7 +245,7 @@ mod tests {
         let mut test_blob = message.init_root::<test_blob::Builder<'_>>();
 
         assert_eq!(test_blob.has_text_field(), false);
-        test_blob.set_text_field("abcdefghi");
+        test_blob.set_text_field("abcdefghi".into());
         assert_eq!(test_blob.has_text_field(), true);
 
         assert_eq!(test_blob.has_data_field(), false);
@@ -264,7 +264,7 @@ mod tests {
 
         {
             let mut text = test_blob.reborrow().init_text_field(10);
-            assert_eq!(&*text, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
+            assert_eq!(text, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
             text.push_str("aabbccddee");
         }
 
@@ -357,8 +357,8 @@ mod tests {
 
             {
                 let mut text_list = test_complex_list.reborrow().init_text_list(2);
-                text_list.set(0, "garply");
-                text_list.set(1, "foo");
+                text_list.set(0, "garply".into());
+                text_list.set(1, "foo".into());
             }
 
             {
@@ -413,7 +413,7 @@ mod tests {
 
             {
                 let text_list_list = test_complex_list.reborrow().init_text_list_list(1);
-                text_list_list.init(0, 1).set(0, "abc");
+                text_list_list.init(0, 1).set(0, b"abc".into());
             }
 
             {
@@ -467,7 +467,8 @@ mod tests {
         assert!(enum_list_list.get(1).unwrap().get(0) == Ok(AnEnum::Foo));
         assert!(enum_list_list.get(1).unwrap().get(1) == Ok(AnEnum::Qux));
 
-        assert!(
+        assert_eq!(
+            "abc",
             complex_list_reader
                 .get_text_list_list()
                 .unwrap()
@@ -475,7 +476,6 @@ mod tests {
                 .unwrap()
                 .get(0)
                 .unwrap()
-                == "abc"
         );
         assert!(
             complex_list_reader
@@ -571,7 +571,7 @@ mod tests {
 
             {
                 let mut sub_builder = test_defaults.reborrow().get_struct_field().unwrap();
-                sub_builder.set_text_field("garply");
+                sub_builder.set_text_field(b"garply".into());
             }
 
             assert_eq!(test_defaults.reborrow().get_bool_field(), false);
@@ -595,7 +595,7 @@ mod tests {
 
             {
                 let sub_builder = test_defaults.reborrow().get_struct_field().unwrap();
-                assert_eq!("garply", &*sub_builder.get_text_field().unwrap());
+                assert_eq!("garply", sub_builder.get_text_field().unwrap());
             }
         }
     }
@@ -778,7 +778,7 @@ mod tests {
 
         // Check setters
 
-        test_set.set_text("foo");
+        test_set.set_text(b"foo".into());
         test_set.set_data(&[42]);
         {
             let mut b = test_set.reborrow().init_list(3);
@@ -787,7 +787,10 @@ mod tests {
             b.set(2, 3);
         }
         test_set.reborrow().init_empty_struct();
-        test_set.reborrow().init_simple_struct().set_field("buzz");
+        test_set
+            .reborrow()
+            .init_simple_struct()
+            .set_field(b"buzz".into());
         {
             let mut b = test_set.reborrow().init_any();
             b.set_as("dyn")?;
@@ -825,7 +828,7 @@ mod tests {
         let unset_reader = test_unset.into_reader();
 
         assert!(unset_reader.get_text()?.is_none());
-        assert_eq!(set_reader.get_text()?, Some("foo"));
+        assert_eq!(set_reader.get_text()?, Some(capnp::text::Reader(b"foo")));
 
         assert!(unset_reader.get_data()?.is_none());
         assert_eq!(set_reader.get_data()?, Some(&[42][..]));
@@ -841,7 +844,7 @@ mod tests {
 
         assert!(unset_reader.get_simple_struct()?.is_none());
         let r = set_reader.get_simple_struct()?.expect("is some");
-        assert_eq!(r.get_field()?, Some("buzz"));
+        assert_eq!(r.get_field()?, Some(capnp::text::Reader(b"buzz")));
 
         assert!(unset_reader.get_any().is_none());
         assert!(set_reader.get_any().is_some());
@@ -858,7 +861,7 @@ mod tests {
         {
             let branded_field = branded.reborrow().init_branded_field();
             let mut foo = branded_field.init_generic_field();
-            foo.set_text_field("blah");
+            foo.set_text_field("blah".into());
         }
 
         let reader = branded.into_reader();
@@ -882,10 +885,10 @@ mod tests {
         let mut branded = message_for_brand.init_root::<brand_twice::Builder<'_>>();
         {
             let mut baz = branded.reborrow().init_baz_field();
-            baz.set_foo_field("blah").unwrap();
+            baz.set_foo_field("blah".into()).unwrap();
             let mut bar = baz.init_bar_field();
-            bar.set_text_field("some text");
-            bar.set_data_field("some data".as_bytes());
+            bar.set_text_field("some text".into());
+            bar.set_data_field(b"some data");
         }
 
         let reader = branded.into_reader();
@@ -904,7 +907,7 @@ mod tests {
                 .unwrap()
         );
         assert_eq!(
-            "some data".as_bytes(),
+            b"some data",
             reader
                 .get_baz_field()
                 .unwrap()
@@ -923,7 +926,11 @@ mod tests {
         let mut root: test_generics::Builder<'_, test_all_types::Owned, text::Owned> =
             message.init_root();
         init_test_message(root.reborrow().get_foo().unwrap());
-        root.reborrow().get_dub().unwrap().set_foo("Hello").unwrap();
+        root.reborrow()
+            .get_dub()
+            .unwrap()
+            .set_foo("Hello".into())
+            .unwrap();
         {
             let mut bar: ::capnp::primitive_list::Builder<'_, u8> =
                 root.reborrow().get_dub().unwrap().initn_bar(1);
@@ -1083,7 +1090,10 @@ mod tests {
         }
 
         assert_eq!(union_struct.reborrow().get_union0().has_u0f0sp(), false);
-        union_struct.reborrow().init_union0().set_u0f0sp("abcdef");
+        union_struct
+            .reborrow()
+            .init_union0()
+            .set_u0f0sp("abcdef".into());
         assert_eq!(union_struct.get_union0().has_u0f0sp(), true);
     }
 
@@ -1105,7 +1115,8 @@ mod tests {
                 panic!("")
             };
 
-            let test_union_defaults::inner2::C(Ok("grault")) = reader.get_inner2().which().unwrap()
+            let test_union_defaults::inner2::C(Ok(capnp::text::Reader(b"grault"))) =
+                reader.get_inner2().which().unwrap()
             else {
                 panic!("")
             };
@@ -1214,8 +1225,8 @@ mod tests {
             let mut old_version = message.init_root::<test_old_version::Builder<'_>>();
             old_version.set_old1(123);
             let mut names = old_version.init_old4(2);
-            names.set(0, "alice");
-            names.set(1, "bob");
+            names.set(0, "alice".into());
+            names.set(1, "bob".into());
         }
         {
             let mut new_version = message.get_root::<test_new_version::Builder<'_>>().unwrap();
@@ -1227,11 +1238,8 @@ mod tests {
 
             let mut names = new_version.get_old4().unwrap();
             assert_eq!(names.len(), 2);
-            assert_eq!(
-                names.reborrow().get(0).get_text_field().unwrap().as_ref(),
-                "alice"
-            );
-            assert_eq!(names.get(1).get_text_field().unwrap().as_ref(), "bob");
+            assert_eq!(names.reborrow().get(0).get_text_field().unwrap(), "alice");
+            assert_eq!(names.get(1).get_text_field().unwrap(), "bob");
         }
     }
 
@@ -1244,8 +1252,8 @@ mod tests {
             let mut new_version = message.init_root::<test_new_version::Builder<'_>>();
             new_version.set_old1(123);
             let mut names = new_version.init_old4(2);
-            names.reborrow().get(0).set_text_field("alice");
-            names.get(1).set_text_field("bob");
+            names.reborrow().get(0).set_text_field("alice".into());
+            names.get(1).set_text_field("bob".into());
         }
         {
             let old_version = message
@@ -1316,9 +1324,9 @@ mod tests {
                     .reborrow()
                     .get_any_pointer_field()
                     .initn_as::<::capnp::text_list::Builder<'_>>(3);
-                list.set(0, "foo");
-                list.set(1, "bar");
-                list.set(2, "baz");
+                list.set(0, "foo".into());
+                list.set(1, "bar".into());
+                list.set(2, "baz".into());
             }
             {
                 let mut l = root
@@ -1326,9 +1334,9 @@ mod tests {
                     .get_as::<::capnp::struct_list::Builder<'_, test_lists::struct_p::Owned>>()
                     .unwrap();
                 assert_eq!(3, l.len());
-                assert_eq!("foo", &*l.reborrow().get(0).get_f().unwrap());
-                assert_eq!("bar", &*l.reborrow().get(1).get_f().unwrap());
-                assert_eq!("baz", &*l.reborrow().get(2).get_f().unwrap());
+                assert_eq!("foo", l.reborrow().get(0).get_f().unwrap());
+                assert_eq!("bar", l.reborrow().get(1).get_f().unwrap());
+                assert_eq!("baz", l.reborrow().get(2).get_f().unwrap());
             }
         }
     }
@@ -1376,10 +1384,7 @@ mod tests {
                 message.get_root().unwrap();
             assert_eq!(new_version.len(), 1);
             assert_eq!(new_version.reborrow().get(0).get_old1(), 0xab);
-            assert_eq!(
-                &*new_version.reborrow().get(0).get_old2().unwrap(),
-                "hello!!"
-            );
+            assert_eq!(new_version.reborrow().get(0).get_old2().unwrap(), "hello!!");
         }
 
         {
@@ -1918,7 +1923,7 @@ mod tests {
         let mut message = message::Builder::new_default();
         {
             let mut test = message.init_root::<test_all_types::Builder<'_>>();
-            test.set_text_field("Hello");
+            test.set_text_field("Hello".into());
         }
         let reader = message
             .get_root::<test_all_types::Builder<'_>>()
