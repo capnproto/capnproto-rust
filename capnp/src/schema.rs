@@ -70,8 +70,6 @@ impl StructSchema {
         if let Some(field) = self.find_field_by_name(name)? {
             Ok(field)
         } else {
-            // error needs to be mutable only when the alloc feature is enabled
-            #[allow(unused_mut)]
             let mut error = crate::Error::from_kind(crate::ErrorKind::FieldNotFound);
             write!(error, "{}", name);
             Err(error)

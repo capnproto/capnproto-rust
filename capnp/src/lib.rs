@@ -401,6 +401,7 @@ pub enum ErrorKind {
 
 impl Error {
     /// Writes to the `extra` field. Does nothing if the "alloc" feature is not enabled.
+    /// This is intended to be used with the `write!()` macro from core.
     pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) {
         #[cfg(feature = "alloc")]
         {
