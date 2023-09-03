@@ -226,7 +226,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn reborrow_as_reader(&self) -> Reader<'_> {
-        Reader(&self.bytes[..])
+        Reader(self.bytes)
     }
 }
 
