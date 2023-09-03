@@ -249,16 +249,16 @@ impl<'a> Builder<'a> {
         Self { builder, schema }
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn reborrow(&mut self) -> Builder<'_> {
         Builder {
             builder: self.builder.reborrow(),
             schema: self.schema,
         }
     }
 
-    pub fn reborrow_as_reader<'b>(&'b self) -> Reader<'b> {
+    pub fn reborrow_as_reader(&self) -> Reader<'_> {
         Reader {
-            reader: self.builder.as_reader().into(),
+            reader: self.builder.as_reader(),
             schema: self.schema,
         }
     }
@@ -442,50 +442,63 @@ impl<'a> Builder<'a> {
                 match (ty.which(), value, dval.which()?) {
                     (TypeVariant::Void, _, _) => Ok(()),
                     (TypeVariant::Bool, dynamic_value::Reader::Bool(v), value::Bool(b)) => {
-                        Ok(self.builder.set_bool_field_mask(offset, v, b))
+                        self.builder.set_bool_field_mask(offset, v, b);
+                        Ok(())
                     }
                     (TypeVariant::Int8, dynamic_value::Reader::Int8(v), value::Int8(d)) => {
-                        Ok(self.builder.set_data_field_mask::<i8>(offset, v, d))
+                        self.builder.set_data_field_mask::<i8>(offset, v, d);
+                        Ok(())
                     }
                     (TypeVariant::Int16, dynamic_value::Reader::Int16(v), value::Int16(d)) => {
-                        Ok(self.builder.set_data_field_mask::<i16>(offset, v, d))
+                        self.builder.set_data_field_mask::<i16>(offset, v, d);
+                        Ok(())
                     }
                     (TypeVariant::Int32, dynamic_value::Reader::Int32(v), value::Int32(d)) => {
-                        Ok(self.builder.set_data_field_mask::<i32>(offset, v, d))
+                        self.builder.set_data_field_mask::<i32>(offset, v, d);
+                        Ok(())
                     }
                     (TypeVariant::Int64, dynamic_value::Reader::Int64(v), value::Int64(d)) => {
-                        Ok(self.builder.set_data_field_mask::<i64>(offset, v, d))
+                        self.builder.set_data_field_mask::<i64>(offset, v, d);
+                        Ok(())
                     }
                     (TypeVariant::UInt8, dynamic_value::Reader::UInt8(v), value::Uint8(d)) => {
-                        Ok(self.builder.set_data_field_mask::<u8>(offset, v, d))
+                        self.builder.set_data_field_mask::<u8>(offset, v, d);
+                        Ok(())
                     }
                     (TypeVariant::UInt16, dynamic_value::Reader::UInt16(v), value::Uint16(d)) => {
-                        Ok(self.builder.set_data_field_mask::<u16>(offset, v, d))
+                        self.builder.set_data_field_mask::<u16>(offset, v, d);
+                        Ok(())
                     }
                     (TypeVariant::UInt32, dynamic_value::Reader::UInt32(v), value::Uint32(d)) => {
-                        Ok(self.builder.set_data_field_mask::<u32>(offset, v, d))
+                        self.builder.set_data_field_mask::<u32>(offset, v, d);
+                        Ok(())
                     }
                     (TypeVariant::UInt64, dynamic_value::Reader::UInt64(v), value::Uint64(d)) => {
-                        Ok(self.builder.set_data_field_mask::<u64>(offset, v, d))
+                        self.builder.set_data_field_mask::<u64>(offset, v, d);
+                        Ok(())
                     }
                     (
                         TypeVariant::Float32,
                         dynamic_value::Reader::Float32(v),
                         value::Float32(d),
-                    ) => Ok(self
-                        .builder
-                        .set_data_field_mask::<f32>(offset, v, d.to_bits())),
+                    ) => {
+                        self.builder
+                            .set_data_field_mask::<f32>(offset, v, d.to_bits());
+                        Ok(())
+                    }
                     (
                         TypeVariant::Float64,
                         dynamic_value::Reader::Float64(v),
                         value::Float64(d),
-                    ) => Ok(self
-                        .builder
-                        .set_data_field_mask::<f64>(offset, v, d.to_bits())),
+                    ) => {
+                        self.builder
+                            .set_data_field_mask::<f64>(offset, v, d.to_bits());
+                        Ok(())
+                    }
                     (TypeVariant::Enum(_), dynamic_value::Reader::Enum(ev), value::Enum(d)) => {
-                        Ok(self
-                            .builder
-                            .set_data_field_mask::<u16>(offset, ev.get_value(), d))
+                        self.builder
+                            .set_data_field_mask::<u16>(offset, ev.get_value(), d);
+                        Ok(())
                     }
                     (TypeVariant::Text, dynamic_value::Reader::Text(tv), _) => {
                         let mut p = self.builder.reborrow().get_pointer_field(offset);

@@ -311,16 +311,20 @@ impl<'a> Builder<'a> {
                 PrimitiveElement::set(&self.builder, index, e.get_value());
                 Ok(())
             }
-            (TypeVariant::Text, dynamic_value::Reader::Text(t)) => Ok(self
-                .builder
-                .reborrow()
-                .get_pointer_element(index)
-                .set_text(t)),
-            (TypeVariant::Data, dynamic_value::Reader::Data(d)) => Ok(self
-                .builder
-                .reborrow()
-                .get_pointer_element(index)
-                .set_data(d)),
+            (TypeVariant::Text, dynamic_value::Reader::Text(t)) => {
+                self.builder
+                    .reborrow()
+                    .get_pointer_element(index)
+                    .set_text(t);
+                Ok(())
+            }
+            (TypeVariant::Data, dynamic_value::Reader::Data(d)) => {
+                self.builder
+                    .reborrow()
+                    .get_pointer_element(index)
+                    .set_data(d);
+                Ok(())
+            }
             (TypeVariant::Struct(ss), dynamic_value::Reader::Struct(s)) => {
                 assert_eq!(ss, s.get_schema().raw);
                 self.builder
