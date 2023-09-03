@@ -381,10 +381,9 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
         }
         _ => (::capnp::ErrorKind::Failed, "(malformed error)".into()),
     };
-    let reason_str = match reason.to_str() {
-        Ok(s) => s,
-        Err(_) => "<malformed utf-8 in error reason>",
-    };
+    let reason_str = reason
+        .to_str()
+        .unwrap_or("<malformed utf-8 in error reason>");
     Error {
         extra: format!("remote exception: {reason_str}"),
         kind,
@@ -570,9 +569,7 @@ impl<VatId> ConnectionState<VatId> {
                         }
                     }
                 });
-                let maybe_fulfiller =
-                    mem::replace(&mut *self.disconnect_fulfiller.borrow_mut(), None);
-                match maybe_fulfiller {
+                match self.disconnect_fulfiller.borrow_mut().take() {
                     None => unreachable!(),
                     Some(fulfiller) => {
                         let _ = fulfiller.send(Promise::from_future(promise.attach(c)));

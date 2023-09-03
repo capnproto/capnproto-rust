@@ -159,7 +159,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn target(ptr: *const Self) -> *const u8 {
+    pub unsafe fn target(ptr: *const Self) -> *const u8 {
         let this_addr: *const u8 = ptr as *const _;
         unsafe { this_addr.offset(8 * (1 + (((*ptr).offset_and_kind.get() as i32) >> 2)) as isize) }
     }
@@ -2036,18 +2036,14 @@ mod wire_helpers {
                 // in the canonicalize=true case.
                 let whole_byte_size =
                     u64::from(value.element_count) * u64::from(value.step) / BITS_PER_BYTE as u64;
-                ptr::copy_nonoverlapping(
-                    value.ptr as *const u8,
-                    ptr as *mut u8,
-                    whole_byte_size as usize,
-                );
+                ptr::copy_nonoverlapping(value.ptr, ptr, whole_byte_size as usize);
                 let leftover_bits =
                     u64::from(value.element_count) * u64::from(value.step) % BITS_PER_BYTE as u64;
                 if leftover_bits > 0 {
                     let mask: u8 = (1 << leftover_bits as u8) - 1;
 
                     *ptr.offset(whole_byte_size as isize) =
-                        mask & (*(value.ptr as *const u8).offset(whole_byte_size as isize))
+                        mask & (*value.ptr.offset(whole_byte_size as isize))
                 }
             }
 
