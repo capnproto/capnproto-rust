@@ -494,7 +494,7 @@ mod wire_helpers {
                 Ok((ptr, reff, segment_id))
             }
         } else {
-            Ok((ref_target as *mut u8, reff, segment_id))
+            Ok((ref_target, reff, segment_id))
         }
     }
 
@@ -2656,7 +2656,7 @@ mod wire_helpers {
             ));
         }
 
-        let str_ptr = ptr as *const u8;
+        let str_ptr = ptr;
 
         if (*str_ptr.offset((size - 1) as isize)) != 0u8 {
             return Err(Error::from_kind(

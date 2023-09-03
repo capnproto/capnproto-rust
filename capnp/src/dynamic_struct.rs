@@ -659,25 +659,62 @@ impl<'a> Builder<'a> {
                 let offset = slot.get_offset() as usize;
                 match ty.which() {
                     TypeVariant::Void => Ok(()),
-                    TypeVariant::Bool => Ok(self.builder.set_bool_field(offset, false)),
-                    TypeVariant::Int8 => Ok(self.builder.set_data_field::<i8>(offset, 0)),
-                    TypeVariant::Int16 => Ok(self.builder.set_data_field::<i16>(offset, 0)),
-                    TypeVariant::Int32 => Ok(self.builder.set_data_field::<i32>(offset, 0)),
-                    TypeVariant::Int64 => Ok(self.builder.set_data_field::<i64>(offset, 0)),
-                    TypeVariant::UInt8 => Ok(self.builder.set_data_field::<u8>(offset, 0)),
-                    TypeVariant::UInt16 => Ok(self.builder.set_data_field::<u16>(offset, 0)),
-                    TypeVariant::UInt32 => Ok(self.builder.set_data_field::<u32>(offset, 0)),
-                    TypeVariant::UInt64 => Ok(self.builder.set_data_field::<u64>(offset, 0)),
-                    TypeVariant::Float32 => Ok(self.builder.set_data_field::<f32>(offset, 0f32)),
-                    TypeVariant::Float64 => Ok(self.builder.set_data_field::<f64>(offset, 0f64)),
-                    TypeVariant::Enum(_) => Ok(self.builder.set_data_field::<u16>(offset, 0)),
+                    TypeVariant::Bool => {
+                        self.builder.set_bool_field(offset, false);
+                        Ok(())
+                    }
+                    TypeVariant::Int8 => {
+                        self.builder.set_data_field::<i8>(offset, 0);
+                        Ok(())
+                    }
+                    TypeVariant::Int16 => {
+                        self.builder.set_data_field::<i16>(offset, 0);
+                        Ok(())
+                    }
+                    TypeVariant::Int32 => {
+                        self.builder.set_data_field::<i32>(offset, 0);
+                        Ok(())
+                    }
+                    TypeVariant::Int64 => {
+                        self.builder.set_data_field::<i64>(offset, 0);
+                        Ok(())
+                    }
+                    TypeVariant::UInt8 => {
+                        self.builder.set_data_field::<u8>(offset, 0);
+                        Ok(())
+                    }
+                    TypeVariant::UInt16 => {
+                        self.builder.set_data_field::<u16>(offset, 0);
+                        Ok(())
+                    }
+                    TypeVariant::UInt32 => {
+                        self.builder.set_data_field::<u32>(offset, 0);
+                        Ok(())
+                    }
+                    TypeVariant::UInt64 => {
+                        self.builder.set_data_field::<u64>(offset, 0);
+                        Ok(())
+                    }
+                    TypeVariant::Float32 => {
+                        self.builder.set_data_field::<f32>(offset, 0f32);
+                        Ok(())
+                    }
+                    TypeVariant::Float64 => {
+                        self.builder.set_data_field::<f64>(offset, 0f64);
+                        Ok(())
+                    }
+                    TypeVariant::Enum(_) => {
+                        self.builder.set_data_field::<u16>(offset, 0);
+                        Ok(())
+                    }
                     TypeVariant::Text
                     | TypeVariant::Data
                     | TypeVariant::Struct(_)
                     | TypeVariant::List(_)
                     | TypeVariant::AnyPointer
                     | TypeVariant::Capability => {
-                        Ok(self.builder.reborrow().get_pointer_field(offset).clear())
+                        self.builder.reborrow().get_pointer_field(offset).clear();
+                        Ok(())
                     }
                 }
             }
