@@ -81,10 +81,7 @@ where
     T: crate::traits::Owned,
 {
     fn clone(&self) -> Reader<'a, T> {
-        Reader {
-            marker: self.marker,
-            reader: self.reader,
-        }
+        *self
     }
 }
 

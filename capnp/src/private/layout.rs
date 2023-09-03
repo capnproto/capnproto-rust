@@ -3966,7 +3966,7 @@ impl<'a> ListReader<'a> {
                 }
 
                 let byte_size = bit_size / BITS_PER_BYTE as u64;
-                let mut byte_read_head: *const u8 = read_head.get() as *const u8;
+                let mut byte_read_head: *const u8 = read_head.get();
                 byte_read_head = unsafe { byte_read_head.offset(byte_size as isize) };
                 let read_head_end = unsafe {
                     read_head
@@ -3985,7 +3985,7 @@ impl<'a> ListReader<'a> {
                     byte_read_head = unsafe { byte_read_head.offset(1_isize) };
                 }
 
-                while byte_read_head != read_head_end as *const u8 {
+                while byte_read_head != read_head_end {
                     if unsafe { *byte_read_head } != 0 {
                         return Ok(false);
                     }
