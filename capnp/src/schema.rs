@@ -157,6 +157,10 @@ impl FieldList {
         self.fields.len() as u16
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn get(self, index: u16) -> Field {
         Field {
             proto: self.fields.get(index as u32),
@@ -337,13 +341,13 @@ impl EnumerantList {
     }
 }
 
-impl<'a> IndexMove<u16, Enumerant> for EnumerantList {
+impl IndexMove<u16, Enumerant> for EnumerantList {
     fn index_move(&self, index: u16) -> Enumerant {
         self.get(index)
     }
 }
 
-impl<'a> ::core::iter::IntoIterator for EnumerantList {
+impl ::core::iter::IntoIterator for EnumerantList {
     type Item = Enumerant;
     type IntoIter = ShortListIter<Self, Self::Item>;
 
@@ -415,13 +419,13 @@ impl AnnotationList {
     }
 }
 
-impl<'a> IndexMove<u32, Annotation> for AnnotationList {
+impl IndexMove<u32, Annotation> for AnnotationList {
     fn index_move(&self, index: u32) -> Annotation {
         self.get(index)
     }
 }
 
-impl<'a> ::core::iter::IntoIterator for AnnotationList {
+impl ::core::iter::IntoIterator for AnnotationList {
     type Item = Annotation;
     type IntoIter = ListIter<Self, Self::Item>;
 

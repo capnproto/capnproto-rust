@@ -115,7 +115,7 @@ impl<'b> NoAllocBufferSegments<&'b [u8]> {
     /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
     /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
     pub fn from_slice(slice: &mut &'b [u8], options: ReaderOptions) -> Result<Self> {
-        let segment_table_info = read_segment_table(&*slice, options)?;
+        let segment_table_info = read_segment_table(slice, options)?;
 
         let message_length = segment_table_info.segment_table_length_bytes
             + segment_table_info.total_segments_length_bytes;
