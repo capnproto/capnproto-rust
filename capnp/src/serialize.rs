@@ -339,11 +339,7 @@ where
 
     let segment_count = u32::from_le_bytes(buf[0..4].try_into().unwrap()).wrapping_add(1) as usize;
 
-    if segment_count >= SEGMENTS_COUNT_LIMIT {
-        return Err(Error::from_kind(ErrorKind::InvalidNumberOfSegments(
-            segment_count,
-        )));
-    } else if segment_count == 0 {
+    if segment_count >= SEGMENTS_COUNT_LIMIT || segment_count == 0 {
         return Err(Error::from_kind(ErrorKind::InvalidNumberOfSegments(
             segment_count,
         )));

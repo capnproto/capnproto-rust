@@ -174,12 +174,12 @@ impl<'a> Builder<'a> {
     }
 
     pub fn as_bytes(self) -> &'a [u8] {
-        &self.bytes[..]
+        self.bytes
     }
 
     /// Converts to a `str`, returning a error if the data contains invalid utf-8.
     pub fn to_str(self) -> core::result::Result<&'a str, core::str::Utf8Error> {
-        str::from_utf8(&self.bytes[..])
+        str::from_utf8(self.bytes)
     }
 
     #[cfg(feature = "alloc")]
