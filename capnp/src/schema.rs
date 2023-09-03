@@ -170,13 +170,13 @@ impl FieldList {
     }
 }
 
-impl<'a> IndexMove<u16, Field> for FieldList {
+impl IndexMove<u16, Field> for FieldList {
     fn index_move(&self, index: u16) -> Field {
         self.get(index)
     }
 }
 
-impl<'a> ::core::iter::IntoIterator for FieldList {
+impl ::core::iter::IntoIterator for FieldList {
     type Item = Field;
     type IntoIter = ShortListIter<FieldList, Self::Item>;
 
@@ -216,13 +216,13 @@ impl FieldSubset {
     }
 }
 
-impl<'a> IndexMove<u16, Field> for FieldSubset {
+impl IndexMove<u16, Field> for FieldSubset {
     fn index_move(&self, index: u16) -> Field {
         self.get(index)
     }
 }
 
-impl<'a> ::core::iter::IntoIterator for FieldSubset {
+impl ::core::iter::IntoIterator for FieldSubset {
     type Item = Field;
     type IntoIter = ShortListIter<FieldSubset, Self::Item>;
 
