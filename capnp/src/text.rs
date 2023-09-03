@@ -102,8 +102,13 @@ impl<'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
 }
 
 impl<'a> Reader<'a> {
+    /// The string's length, in bytes.
     pub fn len(&self) -> usize {
         self.as_bytes().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn as_bytes(self) -> &'a [u8] {
@@ -159,8 +164,13 @@ impl<'a> Builder<'a> {
         Builder { bytes, pos }
     }
 
+    /// The string's length, in bytes.
     pub fn len(&self) -> usize {
         self.bytes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn as_bytes(self) -> &'a [u8] {
