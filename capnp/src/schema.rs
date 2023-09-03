@@ -1,8 +1,5 @@
 //! Convenience wrappers of the datatypes defined in schema.capnp.
 
-#[cfg(feature = "alloc")]
-use alloc::string::ToString;
-
 use crate::dynamic_value;
 use crate::introspect::{self, RawBrandedStructSchema, RawEnumSchema};
 use crate::private::layout;
@@ -76,8 +73,7 @@ impl StructSchema {
             // error needs to be mutable only when the alloc feature is enabled
             #[allow(unused_mut)]
             let mut error = crate::Error::from_kind(crate::ErrorKind::FieldNotFound);
-            #[cfg(feature = "alloc")]
-            error.extra(name.to_string());
+            write!(error, "{}", name);
             Err(error)
         }
     }

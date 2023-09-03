@@ -400,9 +400,13 @@ pub enum ErrorKind {
 }
 
 impl Error {
-    #[cfg(feature = "alloc")]
-    pub fn extra(&mut self, message: String) {
-        self.extra = message;
+    /// Writes to the `extra` field. Does nothing if the "alloc" feature is not enabled.
+    pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) {
+        #[cfg(feature = "alloc")]
+        {
+            use core::fmt::Write;
+            let _ = self.extra.write_fmt(fmt);
+        }
     }
 
     #[cfg(feature = "alloc")]
