@@ -3,6 +3,8 @@ rust-version = "1.65.0"
 
 [workspace]
 
+resolver = "2"
+
 members = [
     # main crates, published on crates.io
     "capnp",
