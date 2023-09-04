@@ -1,3 +1,10 @@
+## v0.18.0
+- Add optional (default-enabled) `alloc` feature to allow no-alloc mode.
+- Lazier UTF-8 validation.
+- Add missing #[inline] attributes for f32 and f64.
+- Add optional `embedded-io` feature.
+- Make SliceSegments a special case of BufferSegments.
+
 ## v0.17.2
 - Fix indexing bug in `schema::FieldSubset`.
 
