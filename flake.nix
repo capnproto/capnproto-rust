@@ -15,48 +15,60 @@
     };
   };
 
-  outputs = inputs@{ self, flake-utils, nixpkgs, rust-overlay, nixpkgs-21, crane
-    , advisory-db, ... }:
+  outputs =
+    inputs@{ self
+    , flake-utils
+    , nixpkgs
+    , rust-overlay
+    , nixpkgs-21
+    , crane
+    , advisory-db
+    , ...
+    }:
     flake-utils.lib.eachSystem [ flake-utils.lib.system.x86_64-linux ] (system:
-      let
-        overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs { inherit system overlays; };
+    let
+      overlays = [ (import rust-overlay) ];
+      pkgs = import nixpkgs { inherit system overlays; };
 
-        rust-custom-toolchain = (pkgs.rust-bin.stable.latest.default.override {
-              extensions = [
-                "rust-src"
-                "rustfmt"
-                "llvm-tools-preview"
-                "rust-analyzer-preview"
-              ];
-        });
+      rust-custom-toolchain = (pkgs.rust-bin.stable.latest.default.override {
+        extensions = [
+          "rust-src"
+          "rustfmt"
+          "llvm-tools-preview"
+          "rust-analyzer-preview"
+        ];
+      });
 
-      in rec {
-        devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            openssl
-            pkg-config
-          ];
+    in
+    rec {
+      devShell = pkgs.mkShell {
+        buildInputs = with pkgs; [
+          openssl
+          pkg-config
+        ];
 
-          nativeBuildInputs = with pkgs; [
-            # get current rust toolchain defaults (this includes clippy and rustfmt)
-            rust-custom-toolchain
+        nativeBuildInputs = with pkgs; [
+          # get current rust toolchain defaults (this includes clippy and rustfmt)
+          rust-custom-toolchain
 
-            cargo-edit
+          cargo-edit
 
-            capnproto
+          capnproto
 
-            cmake
-          ];
+          cmake
 
-          # fetch with cli instead of native
-          CARGO_NET_GIT_FETCH_WITH_CLI = "true";
-          RUST_BACKTRACE = 1;
-        };
+          ninja
+        ];
 
-        default = {};
+        # fetch with cli instead of native
+        CARGO_NET_GIT_FETCH_WITH_CLI = "true";
+        RUST_BACKTRACE = 1;
+      };
 
-        checks = let
+      default = { };
+
+      checks =
+        let
           craneLib =
             (inputs.crane.mkLib pkgs).overrideToolchain rust-custom-toolchain;
           src = ./.;
@@ -69,7 +81,8 @@
             inherit cargoArtifacts src;
             buildInputs = with pkgs; [ openssl pkg-config capnproto ];
           };
-        in {
+        in
+        {
           inherit build-tests;
 
           # Run clippy (and deny all warnings) on the crate source,
@@ -105,5 +118,5 @@
           };
         };
 
-      });
+    });
 }
