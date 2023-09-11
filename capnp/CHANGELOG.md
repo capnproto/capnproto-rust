@@ -1,3 +1,6 @@
+## v0.18.1
+- Add #[inline] attribute to many text::Reader and text::Builder methods.
+
 ## v0.18.0
 - Add optional (default-enabled) `alloc` feature to allow no-alloc mode.
 - Lazier UTF-8 validation.
