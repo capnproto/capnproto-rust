@@ -67,12 +67,14 @@ impl<'a> core::fmt::Debug for Reader<'a> {
 }
 
 impl<'a> From<&'a str> for Reader<'a> {
+    #[inline]
     fn from(value: &'a str) -> Self {
         Self(value.as_bytes())
     }
 }
 
 impl<'a> From<&'a [u8]> for Reader<'a> {
+    #[inline]
     fn from(value: &'a [u8]) -> Self {
         Self(value)
     }
@@ -103,20 +105,24 @@ impl<'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
 
 impl<'a> Reader<'a> {
     /// The string's length, in bytes.
+    #[inline]
     pub fn len(&self) -> usize {
         self.as_bytes().len()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    #[inline]
     pub fn as_bytes(self) -> &'a [u8] {
         let Self(d) = self;
         d
     }
 
     /// Converts to a `str`, returning a error if the data contains invalid utf-8.
+    #[inline]
     pub fn to_str(self) -> core::result::Result<&'a str, core::str::Utf8Error> {
         let Self(s) = self;
         str::from_utf8(s)
@@ -124,6 +130,7 @@ impl<'a> Reader<'a> {
 
     #[cfg(feature = "alloc")]
     /// Converts to a `String`, returning a error if the data contains invalid utf-8.
+    #[inline]
     pub fn to_string(self) -> core::result::Result<alloc::string::String, core::str::Utf8Error> {
         Ok(self.to_str()?.into())
     }
@@ -156,43 +163,52 @@ impl<'a> core::cmp::PartialEq<Builder<'a>> for &'a str {
 }
 
 impl<'a> Builder<'a> {
+    #[inline]
     pub fn new(bytes: &mut [u8]) -> Builder<'_> {
         Builder { bytes, pos: 0 }
     }
 
+    #[inline]
     pub fn with_pos(bytes: &mut [u8], pos: usize) -> Builder<'_> {
         Builder { bytes, pos }
     }
 
     /// The string's length, in bytes.
+    #[inline]
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    #[inline]
     pub fn as_bytes(self) -> &'a [u8] {
         self.bytes
     }
 
     /// Converts to a `str`, returning a error if the data contains invalid utf-8.
+    #[inline]
     pub fn to_str(self) -> core::result::Result<&'a str, core::str::Utf8Error> {
         str::from_utf8(self.bytes)
     }
 
     #[cfg(feature = "alloc")]
     /// Converts to a `String`, returning a error if the data contains invalid utf-8.
+    #[inline]
     pub fn to_string(self) -> core::result::Result<alloc::string::String, core::str::Utf8Error> {
         Ok(self.to_str()?.into())
     }
 
+    #[inline]
     pub fn as_bytes_mut(self) -> &'a mut [u8] {
         &mut self.bytes[..]
     }
 
     /// Writes a single ascii character at position `pos` and increments `pos`.
+    #[inline]
     pub fn push_ascii(&mut self, ascii: u8) {
         assert!(ascii < 128);
         self.bytes[self.pos] = ascii;
@@ -200,6 +216,7 @@ impl<'a> Builder<'a> {
     }
 
     /// Writes a string at position `pos` and increases `pos` a corresponding amount.
+    #[inline]
     pub fn push_str(&mut self, string: &str) {
         let bytes = string.as_bytes();
         self.bytes[self.pos..(self.pos + bytes.len())].copy_from_slice(bytes);
@@ -214,6 +231,7 @@ impl<'a> Builder<'a> {
         self.pos = 0;
     }
 
+    #[inline]
     pub fn reborrow(&mut self) -> Builder<'_> {
         Builder {
             bytes: self.bytes,
@@ -221,10 +239,12 @@ impl<'a> Builder<'a> {
         }
     }
 
+    #[inline]
     pub fn into_reader(self) -> Reader<'a> {
         Reader(self.bytes)
     }
 
+    #[inline]
     pub fn reborrow_as_reader(&self) -> Reader<'_> {
         Reader(self.bytes)
     }
