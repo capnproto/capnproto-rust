@@ -413,7 +413,7 @@ mod tests {
 
             {
                 let text_list_list = test_complex_list.reborrow().init_text_list_list(1);
-                text_list_list.init(0, 1).set(0, b"abc".into());
+                text_list_list.init(0, 1).set(0, "abc".into());
             }
 
             {
@@ -571,7 +571,7 @@ mod tests {
 
             {
                 let mut sub_builder = test_defaults.reborrow().get_struct_field().unwrap();
-                sub_builder.set_text_field(b"garply".into());
+                sub_builder.set_text_field("garply".into());
             }
 
             assert_eq!(test_defaults.reborrow().get_bool_field(), false);
@@ -778,7 +778,7 @@ mod tests {
 
         // Check setters
 
-        test_set.set_text(b"foo".into());
+        test_set.set_text("foo".into());
         test_set.set_data(&[42]);
         {
             let mut b = test_set.reborrow().init_list(3);
@@ -790,7 +790,7 @@ mod tests {
         test_set
             .reborrow()
             .init_simple_struct()
-            .set_field(b"buzz".into());
+            .set_field("buzz".into());
         {
             let mut b = test_set.reborrow().init_any();
             b.set_as("dyn")?;
