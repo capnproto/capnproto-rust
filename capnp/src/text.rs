@@ -21,6 +21,7 @@
 
 //! UTF-8 encoded text.
 
+use core::convert::AsRef;
 use core::str;
 
 use crate::Result;
@@ -66,6 +67,16 @@ impl<'a> core::fmt::Debug for Reader<'a> {
     }
 }
 
+impl<'a, T> From<&'a T> for Reader<'a>
+where
+    T: AsRef<str>,
+{
+    #[inline]
+    fn from(value: &'a T) -> Self {
+        Self(value.as_ref().as_bytes())
+    }
+}
+
 impl<'a> From<&'a str> for Reader<'a> {
     #[inline]
     fn from(value: &'a str) -> Self {
@@ -77,12 +88,6 @@ impl<'a> From<&'a [u8]> for Reader<'a> {
     #[inline]
     fn from(value: &'a [u8]) -> Self {
         Self(value)
-    }
-}
-
-impl<'a, const N: usize> From<&'a [u8; N]> for Reader<'a> {
-    fn from(value: &'a [u8; N]) -> Self {
-        Self(&value[..])
     }
 }
 
