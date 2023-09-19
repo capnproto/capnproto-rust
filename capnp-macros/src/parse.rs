@@ -1,8 +1,8 @@
 use syn::{
-    braced,
+    braced, bracketed,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    token::Brace,
+    token::{Brace, Bracket},
     Ident, Token,
 };
 
@@ -20,7 +20,12 @@ pub struct CapnpLet {
 pub struct CapnpBuild {
     pub subject: Ident,
     pub comma_token: Token![,],
-    pub build_pattern: CapnpBuildStruct, // TODO Might be different for list
+    pub build_pattern: CapnpBuildPattern,
+}
+
+pub enum CapnpBuildPattern {
+    StructPattern(CapnpBuildStruct),
+    ListPattern(ListPattern),
 }
 
 pub struct CapnpAnonStruct<FieldPattern: Parse> {
@@ -28,19 +33,19 @@ pub struct CapnpAnonStruct<FieldPattern: Parse> {
     pub fields: Punctuated<FieldPattern, Token![,]>,
 }
 
-// pub struct CapnpField {
-//     pub lhs: Ident,
-//     pub colon_token: Option<Token![:]>,
-//     pub rhs: Box<CapnpFieldPat>,
-// }
+pub enum ListPattern {
+    ListComprehension, // for RustPattern in IteratorExpression {BlockExpression}
+    ListElements(Punctuated<ListElementPattern, Token![,]>), // [= 13, = 12, ]
+}
 
-// pub enum CapnpFieldPat {
-//     AnonStruct(CapnpAnonStruct<CapnpLetFieldPattern>),
-//     Ident(Ident),
-// }
+pub enum ListElementPattern {
+    SimpleExpression(syn::Expr),
+    StructPattern(CapnpBuildStruct),
+    ListPattern(ListPattern),
+}
 
 pub enum CapnpBuildFieldPattern {
-    Name(Ident),
+    Name(Ident),                                // name
     ExpressionAssignment(Ident, syn::Expr),     // name = expr
     PatternAssignment(Ident, CapnpBuildStruct), // name : pat
     BuilderExtraction(Ident, Ident),            // name => name
@@ -122,6 +127,48 @@ impl Parse for CapnpBuildFieldPattern {
     }
 }
 
+impl Parse for ListPattern {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        bracketed!(content in input);
+        let res: Self;
+        if content.peek(Token![for]) {
+            res = Self::ListComprehension;
+        } else {
+            res =
+                Self::ListElements(content.parse_terminated(ListElementPattern::parse, Token![,])?);
+        }
+        Ok(res)
+    }
+}
+
+impl Parse for ListElementPattern {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let res: Self;
+        if input.peek(Token![=]) {
+            let _: Token![=] = input.parse()?;
+            res = Self::SimpleExpression(input.parse()?);
+        } else if input.peek(Bracket) {
+            res = Self::ListPattern(input.parse()?);
+        } else {
+            res = Self::StructPattern(input.parse()?);
+        }
+        Ok(res)
+        //
+    }
+}
+
+impl Parse for CapnpBuildPattern {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let res;
+        if input.peek(Brace) {
+            res = Self::StructPattern(CapnpBuildStruct::parse(input)?);
+        } else {
+            res = Self::ListPattern(ListPattern::parse(input)?);
+        }
+        Ok(res)
+    }
+}
 // impl Parse for CapnpField {
 //     fn parse(input: ParseStream) -> syn::Result<Self> {
 //         let lhs: Ident = input.parse()?;
