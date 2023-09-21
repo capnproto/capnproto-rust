@@ -94,14 +94,14 @@ impl Type {
         if self.list_count > 0 {
             true
         } else {
-            match self.base {
+            matches!(
+                self.base,
                 BaseType::Text
-                | BaseType::Data
-                | BaseType::AnyPointer
-                | BaseType::Struct(_)
-                | BaseType::Capability => true,
-                _ => false,
-            }
+                    | BaseType::Data
+                    | BaseType::AnyPointer
+                    | BaseType::Struct(_)
+                    | BaseType::Capability
+            )
         }
     }
 }

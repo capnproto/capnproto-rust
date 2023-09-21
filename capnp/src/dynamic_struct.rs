@@ -482,25 +482,22 @@ impl<'a> Builder<'a> {
                         dynamic_value::Reader::Float32(v),
                         value::Float32(d),
                     ) => {
-                        self
-                        .builder
-                        .set_data_field_mask::<f32>(offset, v, d.to_bits());
+                        self.builder
+                            .set_data_field_mask::<f32>(offset, v, d.to_bits());
                         Ok(())
-                    },
+                    }
                     (
                         TypeVariant::Float64,
                         dynamic_value::Reader::Float64(v),
                         value::Float64(d),
                     ) => {
-                        self
-                        .builder
-                        .set_data_field_mask::<f64>(offset, v, d.to_bits());
+                        self.builder
+                            .set_data_field_mask::<f64>(offset, v, d.to_bits());
                         Ok(())
-                    },
+                    }
                     (TypeVariant::Enum(_), dynamic_value::Reader::Enum(ev), value::Enum(d)) => {
-                        self
-                        .builder
-                        .set_data_field_mask::<u16>(offset, ev.get_value(), d);
+                        self.builder
+                            .set_data_field_mask::<u16>(offset, ev.get_value(), d);
                         Ok(())
                     }
                     (TypeVariant::Text, dynamic_value::Reader::Text(tv), _) => {
@@ -678,51 +675,51 @@ impl<'a> Builder<'a> {
                     TypeVariant::Bool => {
                         self.builder.set_bool_field(offset, false);
                         Ok(())
-                    },
+                    }
                     TypeVariant::Int8 => {
                         self.builder.set_data_field::<i8>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::Int16 => {
                         self.builder.set_data_field::<i16>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::Int32 => {
                         self.builder.set_data_field::<i32>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::Int64 => {
                         self.builder.set_data_field::<i64>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::UInt8 => {
                         self.builder.set_data_field::<u8>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::UInt16 => {
                         self.builder.set_data_field::<u16>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::UInt32 => {
                         self.builder.set_data_field::<u32>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::UInt64 => {
                         self.builder.set_data_field::<u64>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::Float32 => {
                         self.builder.set_data_field::<f32>(offset, 0f32);
                         Ok(())
-                    },
+                    }
                     TypeVariant::Float64 => {
                         self.builder.set_data_field::<f64>(offset, 0f64);
                         Ok(())
-                    },
+                    }
                     TypeVariant::Enum(_) => {
                         self.builder.set_data_field::<u16>(offset, 0);
                         Ok(())
-                    },
+                    }
                     TypeVariant::Text
                     | TypeVariant::Data
                     | TypeVariant::Struct(_)

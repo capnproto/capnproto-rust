@@ -259,7 +259,7 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
                     let the_struct = &ctx.node_map[&def.get_scope_id()];
                     let parameters = the_struct.get_parameters()?;
                     let parameter = parameters.get(u32::from(def.get_parameter_index()));
-                    let parameter_name = parameter.get_name()?;
+                    let parameter_name = parameter.get_name()?.to_str()?;
                     match module {
                         Leaf::Owned => Ok(parameter_name.to_string()),
                         Leaf::Reader(lifetime) => Ok(fmt!(
@@ -376,7 +376,7 @@ pub fn do_branding(
             Some(scope) => match scope.which()? {
                 brand::scope::Inherit(()) => {
                     for param in params {
-                        arguments.push(param.get_name()?.to_string());
+                        arguments.push(param.get_name()?.to_string()?);
                     }
                 }
                 brand::scope::Bind(bindings_list_opt) => {
@@ -437,7 +437,7 @@ pub fn get_type_parameters(ctx: &GeneratorContext, node_id: u64) -> Vec<String> 
         let current_node = ctx.node_map[&current_node_id];
         let mut params = Vec::new();
         for param in current_node.get_parameters().unwrap() {
-            params.push(param.get_name().unwrap().to_string());
+            params.push(param.get_name().unwrap().to_string().unwrap());
         }
 
         accumulator.push(params);

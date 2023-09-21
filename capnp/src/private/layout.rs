@@ -494,7 +494,7 @@ mod wire_helpers {
                 Ok((ptr, reff, segment_id))
             }
         } else {
-            Ok((ref_target as *mut u8, reff, segment_id))
+            Ok((ref_target, reff, segment_id))
         }
     }
 
@@ -1730,8 +1730,7 @@ mod wire_helpers {
 
         SegmentAnd {
             segment_id,
-            value: text::Builder::new(slice::from_raw_parts_mut(ptr, size as usize), 0)
-                .expect("empty text builder should be valid utf-8"),
+            value: text::Builder::new(slice::from_raw_parts_mut(ptr, size as usize)),
         }
     }
 
@@ -1740,12 +1739,16 @@ mod wire_helpers {
         arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        value: &str,
+        value: crate::text::Reader<'_>,
     ) -> SegmentAnd<text::Builder<'a>> {
         let value_bytes = value.as_bytes();
         // TODO make sure the string is not longer than 2 ** 29.
         let mut allocation = init_text_pointer(arena, reff, segment_id, value_bytes.len() as u32);
-        allocation.value.push_str(value);
+        allocation
+            .value
+            .reborrow()
+            .as_bytes_mut()
+            .copy_from_slice(value_bytes);
         allocation
     }
 
@@ -1758,7 +1761,7 @@ mod wire_helpers {
     ) -> Result<text::Builder<'a>> {
         let ref_target = if (*reff).is_null() {
             match default {
-                None => return text::Builder::new(&mut [], 0),
+                None => return Ok(text::Builder::new(&mut [])),
                 Some(d) => {
                     let (new_ref_target, new_reff, new_segment_id) = copy_message(
                         arena,
@@ -1793,10 +1796,10 @@ mod wire_helpers {
         }
 
         // Subtract 1 from the size for the NUL terminator.
-        text::Builder::new(
+        Ok(text::Builder::with_pos(
             slice::from_raw_parts_mut(ptr, (count - 1) as usize),
-            count - 1,
-        )
+            (count - 1) as usize,
+        ))
     }
 
     #[inline]
@@ -2033,18 +2036,14 @@ mod wire_helpers {
                 // in the canonicalize=true case.
                 let whole_byte_size =
                     u64::from(value.element_count) * u64::from(value.step) / BITS_PER_BYTE as u64;
-                ptr::copy_nonoverlapping(
-                    value.ptr as *const u8,
-                    ptr as *mut u8,
-                    whole_byte_size as usize,
-                );
+                ptr::copy_nonoverlapping(value.ptr, ptr, whole_byte_size as usize);
                 let leftover_bits =
                     u64::from(value.element_count) * u64::from(value.step) % BITS_PER_BYTE as u64;
                 if leftover_bits > 0 {
                     let mask: u8 = (1 << leftover_bits as u8) - 1;
 
                     *ptr.offset(whole_byte_size as isize) =
-                        mask & (*(value.ptr as *const u8).offset(whole_byte_size as isize))
+                        mask & (*value.ptr.offset(whole_byte_size as isize))
                 }
             }
 
@@ -2615,7 +2614,7 @@ mod wire_helpers {
     ) -> Result<text::Reader<'a>> {
         if (*reff).is_null() {
             match default {
-                None => return Ok(""),
+                None => return Ok("".into()),
                 Some(d) => {
                     reff = d.as_ptr() as *const WirePointer;
                     arena = &super::NULL_ARENA;
@@ -2653,7 +2652,7 @@ mod wire_helpers {
             ));
         }
 
-        let str_ptr = ptr as *const u8;
+        let str_ptr = ptr;
 
         if (*str_ptr.offset((size - 1) as isize)) != 0u8 {
             return Err(Error::from_kind(
@@ -2661,7 +2660,10 @@ mod wire_helpers {
             ));
         }
 
-        text::new_reader(slice::from_raw_parts(str_ptr, size as usize - 1))
+        Ok(text::Reader(slice::from_raw_parts(
+            str_ptr,
+            size as usize - 1,
+        )))
     }
 
     #[inline]
@@ -3282,7 +3284,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_text(&mut self, value: &str) {
+    pub fn set_text(&mut self, value: crate::text::Reader<'_>) {
         unsafe {
             wire_helpers::set_text_pointer(self.arena, self.pointer, self.segment_id, value);
         }
@@ -3960,7 +3962,7 @@ impl<'a> ListReader<'a> {
                 }
 
                 let byte_size = bit_size / BITS_PER_BYTE as u64;
-                let mut byte_read_head: *const u8 = read_head.get() as *const u8;
+                let mut byte_read_head: *const u8 = read_head.get();
                 byte_read_head = unsafe { byte_read_head.offset(byte_size as isize) };
                 let read_head_end = unsafe {
                     read_head
@@ -3979,7 +3981,7 @@ impl<'a> ListReader<'a> {
                     byte_read_head = unsafe { byte_read_head.offset(1_isize) };
                 }
 
-                while byte_read_head != read_head_end as *const u8 {
+                while byte_read_head != read_head_end {
                     if unsafe { *byte_read_head } != 0 {
                         return Ok(false);
                     }

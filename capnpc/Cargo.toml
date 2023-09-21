@@ -24,4 +24,3 @@ path = "src/capnpc-rust-bootstrap.rs"
 
 [dependencies.capnp]
 workspace = true
-features = ["std"]

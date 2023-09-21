@@ -1,3 +1,6 @@
+## v0.18.0
+- Update for lazier utf-8 validation.
+
 ## v0.17.2
 - Add the `$Rust.option` annotation for declaring fields to be optional.
 - Add `CompilerCommand::crate_provides()`, allowing cross-crate imports.

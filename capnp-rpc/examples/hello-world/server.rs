@@ -36,10 +36,10 @@ impl hello_world::Server for HelloWorldImpl {
         mut results: hello_world::SayHelloResults,
     ) -> Promise<(), ::capnp::Error> {
         let request = pry!(pry!(params.get()).get_request());
-        let name = pry!(request.get_name());
+        let name = pry!(pry!(request.get_name()).to_str());
         let message = format!("Hello, {name}!");
 
-        results.get().init_reply().set_message(&message);
+        results.get().init_reply().set_message(message[..].into());
 
         Promise::ok(())
     }

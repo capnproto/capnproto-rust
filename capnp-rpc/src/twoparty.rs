@@ -104,8 +104,7 @@ where
     T: AsyncRead,
 {
     fn drop(&mut self) {
-        let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
-        match maybe_fulfiller {
+        match self.on_disconnect_fulfiller.take() {
             Some(fulfiller) => {
                 let _ = fulfiller.send(());
             }
@@ -162,7 +161,7 @@ where
     ) -> Promise<Option<Box<dyn crate::IncomingMessage + 'static>>, ::capnp::Error> {
         let inner = self.inner.borrow_mut();
 
-        let maybe_input_stream = ::std::mem::replace(&mut *inner.input_stream.borrow_mut(), None);
+        let maybe_input_stream = inner.input_stream.borrow_mut().take();
         let return_it_here = inner.input_stream.clone();
         match maybe_input_stream {
             Some(mut s) => {
@@ -279,8 +278,7 @@ where
     }
 
     fn accept(&mut self) -> Promise<Box<dyn crate::Connection<VatId>>, ::capnp::Error> {
-        let connection = ::std::mem::replace(&mut self.connection, None);
-        match connection {
+        match self.connection.take() {
             Some(c) => Promise::ok(Box::new(c) as Box<dyn crate::Connection<VatId>>),
             None => Promise::from_future(::futures::future::pending()),
         }

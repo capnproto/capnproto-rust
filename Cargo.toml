@@ -30,7 +30,7 @@ members = [
 default-members = ["capnp", "capnp-import"]
 
 [workspace.package]
-version = "0.18.0-alpha"
+version = "0.18.0"
 edition = "2021"
 rust-version = "1.65.0"
 license = "MIT"
@@ -41,12 +41,12 @@ readme = "README.md"
 [workspace.dependencies]
 tokio = { version = "1.0.0", features = ["net", "rt", "macros"] }
 tokio-util = { version = "0.7.4", features = ["compat"] }
-capnp = { version = "0.18.0-alpha", path = "./capnp" }
-capnpc = { version = "0.18.0-alpha", path = "./capnpc" }
-capnp-rpc = { version = "0.18.0-alpha", path = "./capnp-rpc" }
-capnp-import = { version = "0.18.0-alpha", path = "./capnp-import" }
-capnp-macros = { version = "0.18.0-alpha", path = "./capnp-macros" }
-capnp-futures = { version = "0.18.0-alpha", path = "./capnp-futures" }
+capnp = { version = "0.18.0", path = "./capnp" }
+capnpc = { version = "0.18.0", path = "./capnpc" }
+capnp-rpc = { version = "0.18.0", path = "./capnp-rpc" }
+capnp-import = { version = "0.18.0", path = "./capnp-import" }
+capnp-macros = { version = "0.18.0", path = "./capnp-macros" }
+capnp-futures = { version = "0.18.0", path = "./capnp-futures" }
 async-byte-channel = { path = "./async-byte-channel" }
 futures = { version = "0.3.0", default-features = false, features = ["std"] }
 syn = { version = "2.0", features = ["full"] }

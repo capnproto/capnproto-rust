@@ -84,7 +84,7 @@ impl crate::TestCase for CatRank {
                 snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as usize]);
             }
 
-            result.set_snippet(&snippet);
+            result.set_snippet(snippet[..].into());
         }
 
         good_count
@@ -101,7 +101,7 @@ impl crate::TestCase for CatRank {
         for i in 0..results.len() {
             let result = results.get(i);
             let mut score = result.get_score();
-            let snippet = result.get_snippet()?;
+            let snippet = result.get_snippet()?.to_str()?;
             if snippet.contains(" cat ") {
                 score *= 10000.0;
             }
