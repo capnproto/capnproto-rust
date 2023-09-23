@@ -51,19 +51,33 @@ namespace kj {
 
 namespace {
 
-KJ_NORETURN(void throwOpensslError());
-void throwOpensslError() {
-  // Call when an OpenSSL function returns an error code to convert that into an exception and
-  // throw it.
+kj::Exception getOpensslError() {
+  // Call when an OpenSSL function returns an error code to convert that into an exception.
 
   kj::Vector<kj::String> lines;
   while (unsigned long long error = ERR_get_error()) {
+#ifdef SSL_R_UNEXPECTED_EOF_WHILE_READING
+    // OpenSSL 3.0+ reports unexpected disconnects this way.
+    if (ERR_GET_REASON(error) == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
+      return KJ_EXCEPTION(DISCONNECTED,
+          "peer disconnected without gracefully ending TLS session");
+    }
+#endif
+
     char message[1024];
     ERR_error_string_n(error, message, sizeof(message));
     lines.add(kj::heapString(message));
   }
   kj::String message = kj::strArray(lines, "\n");
-  KJ_FAIL_ASSERT("OpenSSL error", message);
+  return KJ_EXCEPTION(FAILED, "OpenSSL error", message);
+}
+
+KJ_NORETURN(void throwOpensslError());
+void throwOpensslError() {
+  // Call when an OpenSSL function returns an error code to convert that into an exception and
+  // throw it.
+
+  kj::throwFatalException(getOpensslError());
 }
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
@@ -169,22 +183,22 @@ public:
 
   kj::Promise<void> connect(kj::StringPtr expectedServerHostname) {
     if (!SSL_set_tlsext_host_name(ssl, expectedServerHostname.cStr())) {
-      throwOpensslError();
+      return getOpensslError();
     }
 
     X509_VERIFY_PARAM* verify = SSL_get0_param(ssl);
     if (verify == nullptr) {
-      throwOpensslError();
+      return getOpensslError();
     }
 
     if (isIpAddress(expectedServerHostname)) {
       if (X509_VERIFY_PARAM_set1_ip_asc(verify, expectedServerHostname.cStr()) <= 0) {
-        throwOpensslError();
+        return getOpensslError();
       }
     } else {
       if (X509_VERIFY_PARAM_set1_host(
           verify, expectedServerHostname.cStr(), expectedServerHostname.size()) <= 0) {
-        throwOpensslError();
+        return getOpensslError();
       }
     }
 
@@ -198,13 +212,13 @@ public:
 
     return sslCall([this]() { return SSL_connect(ssl); }).then([this](size_t) {
       X509* cert = SSL_get_peer_certificate(ssl);
-      KJ_REQUIRE(cert != nullptr, "TLS peer provided no certificate");
+      KJ_REQUIRE(cert != nullptr, "TLS peer provided no certificate") { return; }
       X509_free(cert);
 
       auto result = SSL_get_verify_result(ssl);
       if (result != X509_V_OK) {
         const char* reason = X509_verify_cert_error_string(result);
-        KJ_FAIL_REQUIRE("TLS peer's certificate is not trusted", reason);
+        KJ_FAIL_REQUIRE("TLS peer's certificate is not trusted", reason) { break; }
       }
     });
   }
@@ -251,9 +265,9 @@ public:
   }
 
   void shutdownWrite() override {
-    KJ_REQUIRE(shutdownTask == nullptr, "already called shutdownWrite()");
+    KJ_REQUIRE(shutdownTask == kj::none, "already called shutdownWrite()");
 
-    // TODO(0.10): shutdownWrite() is problematic because it doesn't return a promise. It was
+    // TODO(2.0): shutdownWrite() is problematic because it doesn't return a promise. It was
     //   designed to assume that it would only be called after all writes are finished and that
     //   there was no reason to block at that point, but SSL sessions don't fit this since they
     //   actually have to send a shutdown message.
@@ -293,7 +307,6 @@ private:
   kj::AsyncIoStream& inner;
   kj::Own<kj::AsyncIoStream> ownInner;
 
-  bool disconnected = false;
   kj::Maybe<kj::Promise<void>> shutdownTask;
 
   ReadyInputStreamWrapper readBuffer;
@@ -301,8 +314,6 @@ private:
 
   kj::Promise<size_t> tryReadInternal(
       void* buffer, size_t minBytes, size_t maxBytes, size_t alreadyDone) {
-    if (disconnected) return alreadyDone;
-
     return sslCall([this,buffer,maxBytes]() { return SSL_read(ssl, buffer, maxBytes); })
         .then([this,buffer,minBytes,maxBytes,alreadyDone](size_t n) -> kj::Promise<size_t> {
       if (n >= minBytes || n == 0) {
@@ -316,7 +327,7 @@ private:
 
   Promise<void> writeInternal(kj::ArrayPtr<const byte> first,
                               kj::ArrayPtr<const kj::ArrayPtr<const byte>> rest) {
-    KJ_REQUIRE(shutdownTask == nullptr, "already called shutdownWrite()");
+    KJ_REQUIRE(shutdownTask == kj::none, "already called shutdownWrite()");
 
     // SSL_write() with a zero-sized input returns 0, but a 0 return is documented as indicating
     // an error. So, we need to avoid zero-sized writes entirely.
@@ -344,8 +355,6 @@ private:
 
   template <typename Func>
   kj::Promise<size_t> sslCall(Func&& func) {
-    if (disconnected) return constPromise<size_t, 0>();
-
     auto result = func();
 
     if (result > 0) {
@@ -354,7 +363,6 @@ private:
       int error = SSL_get_error(ssl, result);
       switch (error) {
         case SSL_ERROR_ZERO_RETURN:
-          disconnected = true;
           return constPromise<size_t, 0>();
         case SSL_ERROR_WANT_READ:
           return readBuffer.whenReady().then(
@@ -363,11 +371,14 @@ private:
           return writeBuffer.whenReady().then(
               [this,func=kj::mv(func)]() mutable { return sslCall(kj::fwd<Func>(func)); });
         case SSL_ERROR_SSL:
-          throwOpensslError();
+          return getOpensslError();
         case SSL_ERROR_SYSCALL:
           if (result == 0) {
-            disconnected = true;
-            return constPromise<size_t, 0>();
+            // OpenSSL pre-3.0 reports unexpected disconnects this way. Note that 3.0+ report it
+            // as SSL_ERROR_SSL with the reason SSL_R_UNEXPECTED_EOF_WHILE_READING, which is
+            // handled in throwOpensslError().
+            return KJ_EXCEPTION(DISCONNECTED,
+                "peer disconnected without gracefully ending TLS session");
           } else {
             // According to documentation we shouldn't get here, because our BIO never returns an
             // "error". But in practice we do get here sometimes when the peer disconnects
@@ -382,9 +393,9 @@ private:
 
   static int bioRead(BIO* b, char* out, int outl) {
     BIO_clear_retry_flags(b);
-    KJ_IF_MAYBE(n, reinterpret_cast<TlsConnection*>(BIO_get_data(b))->readBuffer
+    KJ_IF_SOME(n, reinterpret_cast<TlsConnection*>(BIO_get_data(b))->readBuffer
         .read(kj::arrayPtr(out, outl).asBytes())) {
-      return *n;
+      return n;
     } else {
       BIO_set_retry_read(b);
       return -1;
@@ -393,9 +404,9 @@ private:
 
   static int bioWrite(BIO* b, const char* in, int inl) {
     BIO_clear_retry_flags(b);
-    KJ_IF_MAYBE(n, reinterpret_cast<TlsConnection*>(BIO_get_data(b))->writeBuffer
+    KJ_IF_SOME(n, reinterpret_cast<TlsConnection*>(BIO_get_data(b))->writeBuffer
         .write(kj::arrayPtr(in, inl).asBytes())) {
-      return *n;
+      return n;
     } else {
       BIO_set_retry_write(b);
       return -1;
@@ -404,12 +415,20 @@ private:
 
   static long bioCtrl(BIO* b, int cmd, long num, void* ptr) {
     switch (cmd) {
+      case BIO_CTRL_EOF:
+        return reinterpret_cast<TlsConnection*>(BIO_get_data(b))->readBuffer.isAtEnd();
       case BIO_CTRL_FLUSH:
         return 1;
       case BIO_CTRL_PUSH:
       case BIO_CTRL_POP:
         // Informational?
         return 0;
+#ifdef BIO_CTRL_GET_KTLS_SEND
+      case BIO_CTRL_GET_KTLS_SEND:
+      case BIO_CTRL_GET_KTLS_RECV:
+        // TODO(someday): Support kTLS if the underlying stream is a raw socket.
+        return 0;
+#endif
       default:
         KJ_LOG(WARNING, "unimplemented bio_ctrl", cmd);
         return 0;
@@ -475,8 +494,8 @@ public:
         tasks(*this) {}
 
   void taskFailed(Exception&& e) override {
-    KJ_IF_MAYBE(handler, acceptErrorHandler){
-      handler->operator()(kj::mv(e));
+    KJ_IF_SOME(handler, acceptErrorHandler){
+      handler(kj::mv(e));
     } else if (e.getType() != Exception::Type::DISCONNECTED) {
       KJ_LOG(ERROR, "error accepting tls connection", kj::mv(e));
     }
@@ -489,9 +508,9 @@ public:
   }
 
   Promise<AuthenticatedStream> acceptAuthenticated() override {
-    KJ_IF_MAYBE(e, maybeInnerException) {
+    KJ_IF_SOME(e, maybeInnerException) {
       // We've experienced an exception from the inner receiver, we consider this unrecoverable.
-      return Exception(*e);
+      return Exception(e);
     }
 
     return queue.pop();
@@ -619,8 +638,8 @@ public:
 
     if (addr.startsWith("[")) {
       // IPv6, like "[1234:5678::abcd]:123". Take the part between the brackets.
-      KJ_IF_MAYBE(pos, addr.findFirst(']')) {
-        hostname = kj::str(addr.slice(1, *pos));
+      KJ_IF_SOME(pos, addr.findFirst(']')) {
+        hostname = kj::str(addr.slice(1, pos));
       } else {
         // Uhh??? Just take the whole thing, cert will fail later.
         hostname = kj::heapString(addr);
@@ -650,8 +669,8 @@ public:
         // us what the actual parser decided the hostname is. However, when I tried this it proved
         // rather cumbersome and actually broke code in the Workers Runtime that does complicated
         // stacking of kj::Network implementations.
-        KJ_IF_MAYBE(pos, addr.findFirst(':')) {
-          hostname = kj::heapString(addr.slice(0, *pos));
+        KJ_IF_SOME(pos, addr.findFirst(':')) {
+          hostname = kj::heapString(addr.slice(0, pos));
         } else {
           hostname = kj::heapString(addr);
         }
@@ -773,17 +792,17 @@ TlsContext::TlsContext(Options options) {
   }
 
   // honor options.defaultKeypair
-  KJ_IF_MAYBE(kp, options.defaultKeypair) {
-    if (!SSL_CTX_use_PrivateKey(ctx, reinterpret_cast<EVP_PKEY*>(kp->privateKey.pkey))) {
+  KJ_IF_SOME(kp, options.defaultKeypair) {
+    if (!SSL_CTX_use_PrivateKey(ctx, reinterpret_cast<EVP_PKEY*>(kp.privateKey.pkey))) {
       throwOpensslError();
     }
 
-    if (!SSL_CTX_use_certificate(ctx, reinterpret_cast<X509*>(kp->certificate.chain[0]))) {
+    if (!SSL_CTX_use_certificate(ctx, reinterpret_cast<X509*>(kp.certificate.chain[0]))) {
       throwOpensslError();
     }
 
-    for (size_t i = 1; i < kj::size(kp->certificate.chain); i++) {
-      X509* x509 = reinterpret_cast<X509*>(kp->certificate.chain[i]);
+    for (size_t i = 1; i < kj::size(kp.certificate.chain); i++) {
+      X509* x509 = reinterpret_cast<X509*>(kp.certificate.chain[i]);
       if (x509 == nullptr) break;  // end of chain
 
       if (!SSL_CTX_add_extra_chain_cert(ctx, x509)) {
@@ -796,15 +815,15 @@ TlsContext::TlsContext(Options options) {
   }
 
   // honor options.sniCallback
-  KJ_IF_MAYBE(sni, options.sniCallback) {
+  KJ_IF_SOME(sni, options.sniCallback) {
     SSL_CTX_set_tlsext_servername_callback(ctx, &SniCallback::callback);
-    SSL_CTX_set_tlsext_servername_arg(ctx, sni);
+    SSL_CTX_set_tlsext_servername_arg(ctx, &sni);
   }
 
-  KJ_IF_MAYBE(timeout, options.acceptTimeout) {
+  KJ_IF_SOME(timeout, options.acceptTimeout) {
     this->timer = KJ_REQUIRE_NONNULL(options.timer,
         "acceptTimeout option requires that a timer is also provided");
-    this->acceptTimeout = *timeout;
+    this->acceptTimeout = timeout;
   }
 
   this->acceptErrorHandler = kj::mv(options.acceptErrorHandler);
@@ -815,17 +834,17 @@ TlsContext::TlsContext(Options options) {
 int TlsContext::SniCallback::callback(SSL* ssl, int* ad, void* arg) {
   // The third parameter is actually type TlsSniCallback*.
 
-  KJ_IF_MAYBE(exception, kj::runCatchingExceptions([&]() {
+  KJ_IF_SOME(exception, kj::runCatchingExceptions([&]() {
     TlsSniCallback& sni = *reinterpret_cast<TlsSniCallback*>(arg);
 
     const char* name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
     if (name != nullptr) {
-      KJ_IF_MAYBE(kp, sni.getKey(name)) {
-        if (!SSL_use_PrivateKey(ssl, reinterpret_cast<EVP_PKEY*>(kp->privateKey.pkey))) {
+      KJ_IF_SOME(kp, sni.getKey(name)) {
+        if (!SSL_use_PrivateKey(ssl, reinterpret_cast<EVP_PKEY*>(kp.privateKey.pkey))) {
           throwOpensslError();
         }
 
-        if (!SSL_use_certificate(ssl, reinterpret_cast<X509*>(kp->certificate.chain[0]))) {
+        if (!SSL_use_certificate(ssl, reinterpret_cast<X509*>(kp.certificate.chain[0]))) {
           throwOpensslError();
         }
 
@@ -833,8 +852,8 @@ int TlsContext::SniCallback::callback(SSL* ssl, int* ad, void* arg) {
           throwOpensslError();
         }
 
-        for (size_t i = 1; i < kj::size(kp->certificate.chain); i++) {
-          X509* x509 = reinterpret_cast<X509*>(kp->certificate.chain[i]);
+        for (size_t i = 1; i < kj::size(kp.certificate.chain); i++) {
+          X509* x509 = reinterpret_cast<X509*>(kp.certificate.chain[i]);
           if (x509 == nullptr) break;  // end of chain
 
           if (!SSL_add0_chain_cert(ssl, x509)) {
@@ -847,7 +866,7 @@ int TlsContext::SniCallback::callback(SSL* ssl, int* ad, void* arg) {
       }
     }
   })) {
-    KJ_LOG(ERROR, "exception when invoking SNI callback", *exception);
+    KJ_LOG(ERROR, "exception when invoking SNI callback", exception);
     *ad = SSL_AD_INTERNAL_ERROR;
     return SSL_TLSEXT_ERR_ALERT_FATAL;
   }
@@ -872,8 +891,8 @@ kj::Promise<kj::Own<kj::AsyncIoStream>> TlsContext::wrapClient(
 kj::Promise<kj::Own<kj::AsyncIoStream>> TlsContext::wrapServer(kj::Own<kj::AsyncIoStream> stream) {
   auto conn = kj::heap<TlsConnection>(kj::mv(stream), reinterpret_cast<SSL_CTX*>(ctx));
   auto promise = conn->accept();
-  KJ_IF_MAYBE(timeout, acceptTimeout) {
-    promise = KJ_REQUIRE_NONNULL(timer).afterDelay(*timeout).then([]() -> kj::Promise<void> {
+  KJ_IF_SOME(timeout, acceptTimeout) {
+    promise = KJ_REQUIRE_NONNULL(timer).afterDelay(timeout).then([]() -> kj::Promise<void> {
       return KJ_EXCEPTION(DISCONNECTED, "timed out waiting for client during TLS handshake");
     }).exclusiveJoin(kj::mv(promise));
   }
@@ -896,8 +915,8 @@ kj::Promise<kj::AuthenticatedStream> TlsContext::wrapClient(
 kj::Promise<kj::AuthenticatedStream> TlsContext::wrapServer(kj::AuthenticatedStream stream) {
   auto conn = kj::heap<TlsConnection>(kj::mv(stream.stream), reinterpret_cast<SSL_CTX*>(ctx));
   auto promise = conn->accept();
-  KJ_IF_MAYBE(timeout, acceptTimeout) {
-    promise = KJ_REQUIRE_NONNULL(timer).afterDelay(*timeout).then([]() -> kj::Promise<void> {
+  KJ_IF_SOME(timeout, acceptTimeout) {
+    promise = KJ_REQUIRE_NONNULL(timer).afterDelay(timeout).then([]() -> kj::Promise<void> {
       return KJ_EXCEPTION(DISCONNECTED, "timed out waiting for client during TLS handshake");
     }).exclusiveJoin(kj::mv(promise));
   }
@@ -970,9 +989,9 @@ TlsPrivateKey::~TlsPrivateKey() noexcept(false) {
 int TlsPrivateKey::passwordCallback(char* buf, int size, int rwflag, void* u) {
   auto& password = *reinterpret_cast<kj::Maybe<kj::StringPtr>*>(u);
 
-  KJ_IF_MAYBE(p, password) {
-    int result = kj::min(p->size(), size);
-    memcpy(buf, p->begin(), result);
+  KJ_IF_SOME(p, password) {
+    int result = kj::min(p.size(), size);
+    memcpy(buf, p.begin(), result);
     return result;
   } else {
     return 0;

@@ -188,7 +188,7 @@ static void rmrfChildrenAndClose(int fd) {
       if (entry->d_type == DT_DIR) {
         int subdirFd;
         KJ_SYSCALL(subdirFd = openat(
-            fd, entry->d_name, O_RDONLY | MAYBE_O_DIRECTORY | MAYBE_O_CLOEXEC));
+            fd, entry->d_name, O_RDONLY | MAYBE_O_DIRECTORY | MAYBE_O_CLOEXEC | O_NOFOLLOW));
         rmrfChildrenAndClose(subdirFd);
         KJ_SYSCALL(unlinkat(fd, entry->d_name, AT_REMOVEDIR));
       } else if (entry->d_type != DT_UNKNOWN) {
@@ -217,7 +217,9 @@ static bool rmrf(int fd, StringPtr path) {
   if (S_ISDIR(stats.st_mode)) {
     int subdirFd;
     KJ_SYSCALL(subdirFd = openat(
-        fd, path.cStr(), O_RDONLY | MAYBE_O_DIRECTORY | MAYBE_O_CLOEXEC)) { return false; }
+        fd, path.cStr(), O_RDONLY | MAYBE_O_DIRECTORY | MAYBE_O_CLOEXEC | O_NOFOLLOW)) {
+      return false;
+    }
     rmrfChildrenAndClose(subdirFd);
     KJ_SYSCALL(unlinkat(fd, path.cStr(), AT_REMOVEDIR)) { return false; }
   } else {
@@ -302,6 +304,11 @@ public:
 
   int getFd() const {
     return fd.get();
+  }
+
+  void setFd(AutoCloseFd newFd) {
+    // Used for one hack in DiskFilesystem's constructor...
+    fd = kj::mv(newFd);
   }
 
   // FsNode --------------------------------------------------------------------
@@ -545,16 +552,16 @@ public:
 
   kj::Maybe<size_t> copy(uint64_t offset, const ReadableFile& from,
                          uint64_t fromOffset, uint64_t size) const {
-    KJ_IF_MAYBE(otherFd, from.getFd()) {
+    KJ_IF_SOME(otherFd, from.getFd()) {
 #ifdef FICLONE
       if (offset == 0 && fromOffset == 0 && size == kj::maxValue && stat().size == 0) {
-        if (ioctl(fd, FICLONE, *otherFd) >= 0) {
+        if (ioctl(fd, FICLONE, otherFd) >= 0) {
           return stat().size;
         }
       } else if (size > 0) {    // src_length = 0 has special meaning for the syscall, so avoid.
         struct file_clone_range range;
         memset(&range, 0, sizeof(range));
-        range.src_fd = *otherFd;
+        range.src_fd = otherFd;
         range.dest_offset = offset;
         range.src_offset = fromOffset;
         range.src_length = size == kj::maxValue ? 0 : size;
@@ -583,7 +590,7 @@ public:
           // Find out how much data there is before the next hole.
           off_t nextHole;
 #ifdef SEEK_HOLE
-          KJ_SYSCALL_HANDLE_ERRORS(nextHole = lseek(*otherFd, fromPos, SEEK_HOLE)) {
+          KJ_SYSCALL_HANDLE_ERRORS(nextHole = lseek(otherFd, fromPos, SEEK_HOLE)) {
             case EINVAL:
               // SEEK_HOLE probably not supported. Assume no holes.
               nextHole = end;
@@ -603,7 +610,7 @@ public:
           off_t copyTo = kj::min(end, nextHole);
           size_t amount = copyTo - fromPos;
           if (amount > 0) {
-            size_t n = copyChunk(toPos, *otherFd, fromPos, amount);
+            size_t n = copyChunk(toPos, otherFd, fromPos, amount);
             fromPos += n;
             toPos += n;
 
@@ -622,7 +629,7 @@ public:
         {
           // Find out how much hole there is before the next data.
           off_t nextData;
-          KJ_SYSCALL_HANDLE_ERRORS(nextData = lseek(*otherFd, fromPos, SEEK_DATA)) {
+          KJ_SYSCALL_HANDLE_ERRORS(nextData = lseek(otherFd, fromPos, SEEK_DATA)) {
             case EINVAL:
               // SEEK_DATA probably not supported. But we should only have gotten here if we
               // were expecting a hole.
@@ -630,7 +637,7 @@ public:
               break;
             case ENXIO:
               // No more data. Set to EOF.
-              KJ_SYSCALL(nextData = lseek(*otherFd, 0, SEEK_END));
+              KJ_SYSCALL(nextData = lseek(otherFd, 0, SEEK_END));
               if (nextData > end) {
                 end = nextData;
               }
@@ -657,7 +664,7 @@ public:
     }
 
     // Indicates caller should call File::copy() default implementation.
-    return nullptr;
+    return kj::none;
   }
 
   // ReadableDirectory ---------------------------------------------------------
@@ -746,9 +753,9 @@ public:
     KJ_SYSCALL_HANDLE_ERRORS(fstatat(fd, path.toString().cStr(), &stats, AT_SYMLINK_NOFOLLOW)) {
       case ENOENT:
       case ENOTDIR:
-        return nullptr;
+        return kj::none;
       default:
-        KJ_FAIL_SYSCALL("faccessat(fd, path)", error, path) { return nullptr; }
+        KJ_FAIL_SYSCALL("faccessat(fd, path)", error, path) { return kj::none; }
     }
     return statToMetadata(stats);
   }
@@ -759,9 +766,9 @@ public:
         fd, path.toString().cStr(), O_RDONLY | MAYBE_O_CLOEXEC)) {
       case ENOENT:
       case ENOTDIR:
-        return nullptr;
+        return kj::none;
       default:
-        KJ_FAIL_SYSCALL("openat(fd, path, O_RDONLY)", error, path) { return nullptr; }
+        KJ_FAIL_SYSCALL("openat(fd, path, O_RDONLY)", error, path) { return kj::none; }
     }
 
     kj::AutoCloseFd result(newFd);
@@ -777,17 +784,17 @@ public:
     KJ_SYSCALL_HANDLE_ERRORS(newFd = openat(
         fd, path.toString().cStr(), O_RDONLY | MAYBE_O_CLOEXEC | MAYBE_O_DIRECTORY)) {
       case ENOENT:
-        return nullptr;
+        return kj::none;
       case ENOTDIR:
         // Could mean that a parent is not a directory, which we treat as "doesn't exist".
         // Could also mean that the specified file is not a directory, which should throw.
         // Check using exists().
         if (!exists(path)) {
-          return nullptr;
+          return kj::none;
         }
         KJ_FALLTHROUGH;
       default:
-        KJ_FAIL_SYSCALL("openat(fd, path, O_DIRECTORY)", error, path) { return nullptr; }
+        KJ_FAIL_SYSCALL("openat(fd, path, O_DIRECTORY)", error, path) { return kj::none; }
     }
 
     kj::AutoCloseFd result(newFd);
@@ -815,9 +822,9 @@ public:
           case ENOENT:
           case ENOTDIR:
           case EINVAL:    // not a link
-            return nullptr;
+            return kj::none;
           default:
-            KJ_FAIL_SYSCALL("readlinkat(fd, path)", error, path) { return nullptr; }
+            KJ_FAIL_SYSCALL("readlinkat(fd, path)", error, path) { return kj::none; }
         }
       }
 
@@ -882,7 +889,7 @@ public:
     return true;
   }
 
-  kj::Maybe<String> createNamedTemporary(
+  String createNamedTemporary(
       PathPtr finalName, WriteMode mode, Function<int(StringPtr)> tryCreate) const {
     // Create a temporary file which will eventually replace `finalName`.
     //
@@ -892,12 +899,10 @@ public:
     // advance, since it needs to be checked atomically. In the case of EEXIST, tryCreate() will
     // be called again with a new path.
     //
-    // Returns the temporary path that succeeded. Only returns nullptr if there was an exception
-    // but we're compiled with -fno-exceptions.
+    // Returns the temporary path that succeeded.
 
     if (finalName.size() == 0) {
-      KJ_FAIL_REQUIRE("can't replace self") { break; }
-      return nullptr;
+      KJ_FAIL_REQUIRE("can't replace self");
     }
 
     static uint counter = 0;
@@ -922,8 +927,7 @@ public:
         }
         KJ_FALLTHROUGH;
       default:
-        KJ_FAIL_SYSCALL("create(path)", error, path) { break; }
-        return nullptr;
+        KJ_FAIL_SYSCALL("create(path)", error, path);
     }
 
     return kj::mv(path);
@@ -975,21 +979,17 @@ public:
     // Either we don't have CREATE mode or the target already exists. We need to perform a
     // replacement instead.
 
-    KJ_IF_MAYBE(tempPath, createNamedTemporary(path, mode, kj::mv(tryCreate))) {
-      if (tryCommitReplacement(filename, fd, *tempPath, mode)) {
-        return true;
-      } else {
-        KJ_SYSCALL_HANDLE_ERRORS(unlinkat(fd, tempPath->cStr(), 0)) {
-          case ENOENT:
-            // meh
-            break;
-          default:
-            KJ_FAIL_SYSCALL("unlinkat(fd, tempPath, 0)", error, *tempPath);
-        }
-        return false;
-      }
+    auto tempPath = createNamedTemporary(path, mode, kj::mv(tryCreate));
+    if (tryCommitReplacement(filename, fd, tempPath, mode)) {
+      return true;
     } else {
-      // threw, but exceptions are disabled
+      KJ_SYSCALL_HANDLE_ERRORS(unlinkat(fd, tempPath.cStr(), 0)) {
+        case ENOENT:
+          // meh
+          break;
+        default:
+          KJ_FAIL_SYSCALL("unlinkat(fd, tempPath, 0)", error, tempPath);
+      }
       return false;
     }
   }
@@ -1003,7 +1003,7 @@ public:
     if (!has(mode, WriteMode::MODIFY)) {
       if (!has(mode, WriteMode::CREATE)) {
         // Neither CREATE nor MODIFY -- impossible to satisfy preconditions.
-        return nullptr;
+        return kj::none;
       }
       flags |= O_EXCL;
     }
@@ -1038,29 +1038,29 @@ public:
               faccessat(fd, filename.cStr(), F_OK, AT_SYMLINK_NOFOLLOW) >= 0) {
             // Yep. We treat this as already-exists, which means in CREATE-only mode this is a
             // simple failure.
-            return nullptr;
+            return kj::none;
           }
 
-          KJ_FAIL_REQUIRE("parent is not a directory", path) { return nullptr; }
+          KJ_FAIL_REQUIRE("parent is not a directory", path) { return kj::none; }
         } else {
           // MODIFY-only mode. ENOENT = doesn't exist = return null.
-          return nullptr;
+          return kj::none;
         }
       case ENOTDIR:
         if (!has(mode, WriteMode::CREATE)) {
           // MODIFY-only mode. ENOTDIR = parent not a directory = doesn't exist = return null.
-          return nullptr;
+          return kj::none;
         }
         goto failed;
       case EEXIST:
         if (!has(mode, WriteMode::MODIFY)) {
           // CREATE-only mode. EEXIST = already exists = return null.
-          return nullptr;
+          return kj::none;
         }
         goto failed;
       default:
       failed:
-        KJ_FAIL_SYSCALL("openat(fd, path, O_RDWR | ...)", error, path) { return nullptr; }
+        KJ_FAIL_SYSCALL("openat(fd, path, O_RDWR | ...)", error, path) { return kj::none; }
     }
 
     kj::AutoCloseFd result(newFd);
@@ -1176,8 +1176,7 @@ public:
       // non-directory to replace a non-directory, and allows a directory to replace an empty
       // directory. So we have to create the right type.
       Path toPathParsed = Path::parse(toPath);
-      String away;
-      KJ_IF_MAYBE(awayPath, createNamedTemporary(toPathParsed, WriteMode::CREATE,
+      String away = createNamedTemporary(toPathParsed, WriteMode::CREATE,
           [&](StringPtr candidatePath) {
         if (S_ISDIR(stats.st_mode)) {
           return mkdirat(fd, candidatePath.cStr(), 0700);
@@ -1194,12 +1193,7 @@ public:
           return mknodat(fd, candidatePath.cStr(), S_IFREG | 0600, dev_t());
 #endif
         }
-      })) {
-        away = kj::mv(*awayPath);
-      } else {
-        // Already threw.
-        return false;
-      }
+      });
 
       // OK, now move the target object to replace the thing we just created.
       KJ_SYSCALL(renameat(fd, toPath.cStr(), fd, away.cStr())) {
@@ -1330,21 +1324,17 @@ public:
     }
 
     int newFd_;
-    KJ_IF_MAYBE(temp, createNamedTemporary(path, mode,
+    auto temp = createNamedTemporary(path, mode,
         [&](StringPtr candidatePath) {
       return newFd_ = openat(fd, candidatePath.cStr(),
                              O_RDWR | O_CREAT | O_EXCL | MAYBE_O_CLOEXEC, acl);
-    })) {
-      AutoCloseFd newFd(newFd_);
+    });
+    AutoCloseFd newFd(newFd_);
 #ifndef O_CLOEXEC
-      setCloexec(newFd);
+    setCloexec(newFd);
 #endif
-      return heap<ReplacerImpl<File>>(newDiskFile(kj::mv(newFd)), *this, kj::mv(*temp),
-                                      path.toString(), mode);
-    } else {
-      // threw, but exceptions are disabled
-      return heap<BrokenReplacer<File>>(newInMemoryFile(nullClock()));
-    }
+    return heap<ReplacerImpl<File>>(newDiskFile(kj::mv(newFd)), *this, kj::mv(temp),
+                                    path.toString(), mode);
   }
 
   Own<const File> createTemporary() const {
@@ -1372,21 +1362,17 @@ public:
     }
 #endif
 
-    KJ_IF_MAYBE(temp, createNamedTemporary(Path("unnamed"), WriteMode::CREATE,
+    auto temp = createNamedTemporary(Path("unnamed"), WriteMode::CREATE,
         [&](StringPtr path) {
       return newFd_ = openat(fd, path.cStr(), O_RDWR | O_CREAT | O_EXCL | MAYBE_O_CLOEXEC, 0600);
-    })) {
-      AutoCloseFd newFd(newFd_);
+    });
+    AutoCloseFd newFd(newFd_);
 #ifndef O_CLOEXEC
-      setCloexec(newFd);
+    setCloexec(newFd);
 #endif
-      auto result = newDiskFile(kj::mv(newFd));
-      KJ_SYSCALL(unlinkat(fd, temp->cStr(), 0)) { break; }
-      return kj::mv(result);
-    } else {
-      // threw, but exceptions are disabled
-      return newInMemoryFile(nullClock());
-    }
+    auto result = newDiskFile(kj::mv(newFd));
+    KJ_SYSCALL(unlinkat(fd, temp.cStr(), 0)) { break; }
+    return kj::mv(result);
   }
 
   Maybe<Own<AppendableFile>> tryAppendFile(PathPtr path, WriteMode mode) const {
@@ -1396,7 +1382,7 @@ public:
   Maybe<Own<const Directory>> tryOpenSubdir(PathPtr path, WriteMode mode) const {
     // Must create before open.
     if (has(mode, WriteMode::CREATE)) {
-      if (!tryMkdir(path, mode, false)) return nullptr;
+      if (!tryMkdir(path, mode, false)) return kj::none;
     }
 
     return tryOpenSubdirInternal(path).map(newDiskDirectory);
@@ -1405,28 +1391,24 @@ public:
   Own<Directory::Replacer<Directory>> replaceSubdir(PathPtr path, WriteMode mode) const {
     mode_t acl = has(mode, WriteMode::PRIVATE) ? 0700 : 0777;
 
-    KJ_IF_MAYBE(temp, createNamedTemporary(path, mode,
+    auto temp = createNamedTemporary(path, mode,
         [&](StringPtr candidatePath) {
       return mkdirat(fd, candidatePath.cStr(), acl);
-    })) {
-      int subdirFd_;
-      KJ_SYSCALL_HANDLE_ERRORS(subdirFd_ = openat(
-          fd, temp->cStr(), O_RDONLY | MAYBE_O_CLOEXEC | MAYBE_O_DIRECTORY)) {
-        default:
-          KJ_FAIL_SYSCALL("open(just-created-temporary)", error);
-          return heap<BrokenReplacer<Directory>>(newInMemoryDirectory(nullClock()));
-      }
-
-      AutoCloseFd subdirFd(subdirFd_);
-#ifndef O_CLOEXEC
-      setCloexec(subdirFd);
-#endif
-      return heap<ReplacerImpl<Directory>>(
-          newDiskDirectory(kj::mv(subdirFd)), *this, kj::mv(*temp), path.toString(), mode);
-    } else {
-      // threw, but exceptions are disabled
-      return heap<BrokenReplacer<Directory>>(newInMemoryDirectory(nullClock()));
+    });
+    int subdirFd_;
+    KJ_SYSCALL_HANDLE_ERRORS(subdirFd_ = openat(
+        fd, temp.cStr(), O_RDONLY | MAYBE_O_CLOEXEC | MAYBE_O_DIRECTORY)) {
+      default:
+        KJ_FAIL_SYSCALL("open(just-created-temporary)", error);
+        return heap<BrokenReplacer<Directory>>(newInMemoryDirectory(nullClock()));
     }
+
+    AutoCloseFd subdirFd(subdirFd_);
+#ifndef O_CLOEXEC
+    setCloexec(subdirFd);
+#endif
+    return heap<ReplacerImpl<Directory>>(
+        newDiskDirectory(kj::mv(subdirFd)), *this, kj::mv(temp), path.toString(), mode);
   }
 
   bool trySymlink(PathPtr linkpath, StringPtr content, WriteMode mode) const {
@@ -1441,18 +1423,18 @@ public:
     KJ_REQUIRE(toPath.size() > 0, "can't replace self") { return false; }
 
     if (mode == TransferMode::LINK) {
-      KJ_IF_MAYBE(fromFd, fromDirectory.getFd()) {
+      KJ_IF_SOME(fromFd, fromDirectory.getFd()) {
         // Other is a disk directory, so we can hopefully do an efficient move/link.
         return tryReplaceNode(toPath, toMode, [&](StringPtr candidatePath) {
-          return linkat(*fromFd, fromPath.toString().cStr(), fd, candidatePath.cStr(), 0);
+          return linkat(fromFd, fromPath.toString().cStr(), fd, candidatePath.cStr(), 0);
         });
       };
     } else if (mode == TransferMode::MOVE) {
-      KJ_IF_MAYBE(fromFd, fromDirectory.getFd()) {
+      KJ_IF_SOME(fromFd, fromDirectory.getFd()) {
         KJ_ASSERT(mode == TransferMode::MOVE);
 
         int error = 0;
-        if (tryCommitReplacement(toPath.toString(), *fromFd, fromPath.toString(), toMode,
+        if (tryCommitReplacement(toPath.toString(), fromFd, fromPath.toString(), toMode,
                                  &error)) {
           return true;
         } else switch (error) {
@@ -1570,8 +1552,8 @@ public:
   }
   size_t copy(uint64_t offset, const ReadableFile& from,
               uint64_t fromOffset, uint64_t size) const override {
-    KJ_IF_MAYBE(result, DiskHandle::copy(offset, from, fromOffset, size)) {
-      return *result;
+    KJ_IF_SOME(result, DiskHandle::copy(offset, from, fromOffset, size)) {
+      return result;
     } else {
       return File::copy(offset, from, fromOffset, size);
     }
@@ -1656,7 +1638,25 @@ public:
   DiskFilesystem()
       : root(openDir("/")),
         current(openDir(".")),
-        currentPath(computeCurrentPath()) {}
+        currentPath(computeCurrentPath()) {
+    // We sometimes like to use qemu-user to test arm64 binaries cross-compiled from an x64 host
+    // machine. But, because it intercepts and rewrites system calls from userspace rather than
+    // emulating a whole kernel, it has a lot of quirks. One quirk that hits kj::Filesystem pretty
+    // badly is that open("/") actually returns a file descriptor for "/usr/aarch64-linux-gnu".
+    // Attempts to openat() any files within there then don't work. We can detect this problem and
+    // correct for it here.
+    struct stat realRoot, fsRoot;
+    KJ_SYSCALL_HANDLE_ERRORS(stat("/dev/..", &realRoot)) {
+      default:
+        // stat("/dev/..") failed? Give up.
+        return;
+    }
+    KJ_SYSCALL(fstat(root.DiskHandle::getFd(), &fsRoot));
+    if (realRoot.st_ino != fsRoot.st_ino) {
+      KJ_LOG(WARNING, "root dir file descriptor is broken, probably because of qemu; compensating");
+      root.setFd(openDir("/dev/.."));
+    }
+  }
 
   const Directory& getRoot() const override {
     return root;
@@ -1693,14 +1693,14 @@ private:
     if (pwd != nullptr) {
       Path result = nullptr;
       struct stat pwdStat, dotStat;
-      KJ_IF_MAYBE(e, kj::runCatchingExceptions([&]() {
+      KJ_IF_SOME(e, kj::runCatchingExceptions([&]() {
         KJ_ASSERT(pwd[0] == '/') { return; }
         result = Path::parse(pwd + 1);
         KJ_SYSCALL(lstat(result.toString(true).cStr(), &pwdStat), result) { return; }
         KJ_SYSCALL(lstat(".", &dotStat)) { return; }
       })) {
         // failed, give up on PWD
-        KJ_LOG(WARNING, "PWD environment variable seems invalid", pwd, *e);
+        KJ_LOG(WARNING, "PWD environment variable seems invalid", pwd, e);
       } else {
         if (pwdStat.st_ino == dotStat.st_ino &&
             pwdStat.st_dev == dotStat.st_dev) {

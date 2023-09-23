@@ -51,7 +51,7 @@ enum class TlsVersion {
 using TlsErrorHandler = kj::Function<void(kj::Exception&&)>;
 // Use a simple kj::Function for handling errors during parallel accept().
 
-class TlsContext {
+class TlsContext: public kj::SecureNetworkWrapper {
   // TLS system. Allocate one of these, configure it with the proper keys and certificates (or
   // use the defaults), and then use it to wrap the standard KJ network interfaces in
   // implementations that transparently use TLS.
@@ -173,7 +173,7 @@ public:
   // RSA and DSA keys. Does not accept encrypted keys; it is the caller's responsibility to
   // decrypt.
 
-  TlsPrivateKey(kj::StringPtr pem, kj::Maybe<kj::StringPtr> password = nullptr);
+  TlsPrivateKey(kj::StringPtr pem, kj::Maybe<kj::StringPtr> password = kj::none);
   // Parse a single PEM-encoded private key. Supports PKCS8 keys as well as "traditional format"
   // RSA and DSA keys. A password may optionally be provided and will be used if the key is
   // encrypted.

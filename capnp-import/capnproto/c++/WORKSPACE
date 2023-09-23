@@ -1,6 +1,7 @@
 workspace(name = "capnp-cpp")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("//:build/load_br.bzl", "load_brotli")
 
 http_archive(
     name = "bazel_skylib",
@@ -30,10 +31,14 @@ cc_library(
     name = "zlib",
     srcs = glob(["*.c"]),
     hdrs = glob(["*.h"]),
+    # Workaround for zlib warnings and mac compilation. Some issues were resolved in v1.3, but there are still implicit function declarations.
     copts = [
         "-w",
         "-Dverbose=-1",
-    ],
+    ] + select({
+        "@platforms//os:macos": [ "-Wno-implicit-function-declaration" ],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:public"],
 )
 """
@@ -41,7 +46,9 @@ cc_library(
 http_archive(
     name = "zlib",
     build_file_content = _zlib_build,
-    sha256 = "d14c38e313afc35a9a8760dadf26042f51ea0f5d154b0630a31da0540107fb98",
-    strip_prefix = "zlib-1.2.13",
-    urls = ["https://zlib.net/zlib-1.2.13.tar.xz"],
+    sha256 = "8a9ba2898e1d0d774eca6ba5b4627a11e5588ba85c8851336eb38de4683050a7",
+    strip_prefix = "zlib-1.3",
+    urls = ["https://zlib.net/zlib-1.3.tar.xz"],
 )
+
+load_brotli()

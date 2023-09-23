@@ -23,12 +23,12 @@
 //
 // If Cap'n Proto is installed, build the sample like:
 //   capnp compile -oc++ addressbook.capnp
-//   c++ -std=c++14 -Wall addressbook.c++ addressbook.capnp.c++ `pkg-config --cflags --libs capnp` -o addressbook
+//   c++ -std=c++20 -Wall addressbook.c++ addressbook.capnp.c++ `pkg-config --cflags --libs capnp` -o addressbook
 //
 // If Cap'n Proto is not installed, but the source is located at $SRC and has been
 // compiled in $BUILD (often both are simply ".." from here), you can do:
 //   $BUILD/capnp compile -I$SRC/src -o$BUILD/capnpc-c++ addressbook.capnp
-//   c++ -std=c++14 -Wall addressbook.c++ addressbook.capnp.c++ -I$SRC/src -L$BUILD/.libs -lcapnp -lkj -o addressbook
+//   c++ -std=c++20 -Wall addressbook.c++ addressbook.capnp.c++ -I$SRC/src -L$BUILD/.libs -lcapnp -lkj -o addressbook
 //
 // Run like:
 //   ./addressbook write | ./addressbook read
@@ -222,9 +222,9 @@ void dynamicPrintValue(DynamicValue::Reader value) {
     }
     case DynamicValue::ENUM: {
       auto enumValue = value.as<DynamicEnum>();
-      KJ_IF_MAYBE(enumerant, enumValue.getEnumerant()) {
+      KJ_IF_SOME(enumerant, enumValue.getEnumerant()) {
         std::cout <<
-            enumerant->getProto().getName().cStr();
+            enumerant.getProto().getName().cStr();
       } else {
         // Unknown enum value; output raw number.
         std::cout << enumValue.getRaw();

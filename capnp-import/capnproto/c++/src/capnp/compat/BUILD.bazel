@@ -24,6 +24,16 @@ cc_library(
 )
 
 cc_capnp_library(
+    name = "json-test_capnp",
+    srcs = [
+        "json-test.capnp",
+    ],
+    include_prefix = "capnp/compat",
+    src_prefix = "src",
+    visibility = ["//visibility:public"],
+)
+
+cc_capnp_library(
     name = "http-over-capnp_capnp",
     srcs = [
         "byte-stream.capnp",
@@ -79,5 +89,31 @@ cc_library(
 ) for f in [
     "byte-stream-test.c++",
     "http-over-capnp-test.c++",
+    "http-over-capnp-perf-test.c++",
     "websocket-rpc-test.c++",
 ]]
+
+cc_test(
+    name = "json-test",
+    srcs = ["json-test.c++"],
+    deps = [
+        "//src/capnp:capnp-test",
+        ":json",
+        ":json-test_capnp"
+    ],
+)
+
+cc_library(
+    name = "http-over-capnp-test-as-header",
+    hdrs = ["http-over-capnp-test.c++"],
+)
+
+cc_test(
+    name = "http-over-capnp-old-test",
+    srcs = ["http-over-capnp-old-test.c++"],
+    deps = [
+        ":http-over-capnp-test-as-header",
+        ":http-over-capnp",
+        "//src/capnp:capnp-test"
+    ],
+)

@@ -25,7 +25,6 @@
 #include <capnp/compiler/grammar.capnp.h>
 #include <capnp/schema.capnp.h>
 #include <capnp/dynamic.h>
-#include <kj/arena.h>
 #include <kj/vector.h>
 #include <kj/one-of.h>
 #include "error-reporter.h"
@@ -101,7 +100,6 @@ private:
   Orphanage orphanage;
   bool compileAnnotations;
   kj::Own<BrandScope> localBrand;
-  kj::Arena arena;
 
   Orphan<schema::Node> wipNode;
   // The work-in-progress schema node.
@@ -170,7 +168,7 @@ private:
 
   void compileBootstrapValue(
       Expression::Reader source, schema::Type::Reader type, schema::Value::Builder target,
-      kj::Maybe<Schema> typeScope = nullptr);
+      kj::Maybe<Schema> typeScope = kj::none);
   // Calls compileValue() if this value should be interpreted at bootstrap time.  Otherwise,
   // adds the value to `unfinishedValues` for later evaluation.
   //

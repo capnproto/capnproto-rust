@@ -39,6 +39,7 @@
 #include <kj/memory.h>
 #include <kj/one-of.h>
 #include <kj/async-io.h>
+#include <kj/debug.h>
 
 KJ_BEGIN_HEADER
 
@@ -121,7 +122,6 @@ public:
   HttpHeaderId() = default;
 
   inline bool operator==(const HttpHeaderId& other) const { return id == other.id; }
-  inline bool operator!=(const HttpHeaderId& other) const { return id != other.id; }
   inline bool operator< (const HttpHeaderId& other) const { return id <  other.id; }
   inline bool operator> (const HttpHeaderId& other) const { return id >  other.id; }
   inline bool operator<=(const HttpHeaderId& other) const { return id <= other.id; }
@@ -160,7 +160,9 @@ public:
   MACRO(HOST, "Host") \
   MACRO(DATE, "Date") \
   MACRO(LOCATION, "Location") \
-  MACRO(CONTENT_TYPE, "Content-Type")
+  MACRO(CONTENT_TYPE, "Content-Type") \
+  MACRO(RANGE, "Range") \
+  MACRO(CONTENT_RANGE, "Content-Range")
   // For convenience, these headers are valid for all HttpHeaderTables. You can refer to them like:
   //
   //     HttpHeaderId::HOST
@@ -491,6 +493,30 @@ private:
   //   also add direct accessors for those headers.
 };
 
+struct HttpByteRange {
+  // Inclusive HTTP range
+
+  uint64_t start;
+  uint64_t end;
+
+  inline bool operator==(const HttpByteRange& other) const {
+    return start == other.start && end == other.end;
+  }
+};
+
+kj::String KJ_STRINGIFY(HttpByteRange range);
+
+struct HttpEverythingRange {};
+struct HttpUnsatisfiableRange {};
+
+typedef kj::OneOf<kj::Array<HttpByteRange>, HttpEverythingRange, HttpUnsatisfiableRange> HttpRanges;
+
+HttpRanges tryParseHttpRangeHeader(kj::ArrayPtr<const char> value, uint64_t contentLength);
+// Parses a HTTP Range header into an array of satisfiable inclusive ranges. Returns
+// `HttpUnsatisfiableRange` if the range specifier was invalid/unsatisfiable per
+// https://www.rfc-editor.org/rfc/rfc9110#section-14. Returns `HttpEverythingRange` if at least one
+// of the specifier's range specs covers the full range.
+
 class HttpInputStream {
   // Low-level interface to receive HTTP-formatted messages (headers followed by body) from an
   // input stream, without a paired output stream.
@@ -570,8 +596,8 @@ struct CompressionParameters {
   // `inbound` and `outbound` instead.
   bool outboundNoContextTakeover = false;
   bool inboundNoContextTakeover = false;
-  kj::Maybe<size_t> outboundMaxWindowBits = nullptr;
-  kj::Maybe<size_t> inboundMaxWindowBits = nullptr;
+  kj::Maybe<size_t> outboundMaxWindowBits = kj::none;
+  kj::Maybe<size_t> inboundMaxWindowBits = kj::none;
 };
 
 class WebSocket {
@@ -613,6 +639,19 @@ public:
   // resolves, but send() or receive() will throw DISCONNECTED when appropriate. See also
   // kj::AsyncOutputStream::whenWriteDisconnected().)
 
+  struct ProtocolError {
+    // Represents a protocol error, such as a bad opcode or oversize message.
+
+    uint statusCode;
+    // Suggested WebSocket status code that should be used when returning an error to the client.
+    //
+    // Most errors are 1002; an oversize message will be 1009.
+
+    kj::StringPtr description;
+    // An error description safe for all the world to see. This should be at most 123 bytes so that
+    // it can be used as the body of a Close frame (RFC 6455 sections 5.5 and 5.5.1).
+  };
+
   struct Close {
     uint16_t code;
     kj::String reason;
@@ -650,7 +689,7 @@ public:
     REQUEST,
     RESPONSE
   };
-  virtual kj::Maybe<kj::String> getPreferredExtensions(ExtensionsContext ctx) { return nullptr; }
+  virtual kj::Maybe<kj::String> getPreferredExtensions(ExtensionsContext ctx) { return kj::none; }
   // If pumpTo() / tryPumpFrom() is able to be optimized only if the other WebSocket is using
   // certain extensions (e.g. compression settings), then this method returns what those extensions
   // are. For example, matching extensions between standard WebSockets allows pumping to be
@@ -658,6 +697,96 @@ public:
   //
   // A null return value indicates that there is no preference. A non-null return value containing
   // an empty string indicates a preference for no extensions to be applied.
+};
+
+using TlsStarterCallback = kj::Maybe<kj::Function<kj::Promise<void>(kj::StringPtr)>>;
+struct HttpConnectSettings {
+  bool useTls = false;
+  // Requests to automatically establish a TLS session over the connection. The remote party
+  // will be expected to present a valid certificate matching the requested hostname.
+  kj::Maybe<TlsStarterCallback&> tlsStarter;
+  // This is an output parameter. It doesn't need to be set. But if it is set, then it may get
+  // filled with a callback function. It will get filled with `kj::none` if any of the following
+  // are true:
+  //
+  // * kj is not built with TLS support
+  // * the underlying HttpClient does not support the startTls mechanism
+  // * `useTls` has been set to `true` and so TLS has already been started
+  //
+  // The callback function itself can be called to initiate a TLS handshake on the connection in
+  // between write() operations. It is not allowed to initiate a TLS handshake while a write
+  // operation or a pump operation to the connection exists. Read operations are not subject to
+  // the same constraint, however: implementations are required to be able to handle TLS
+  // initiation while a read operation or pump operation from the connection exists. Once the
+  // promise returned from the callback is fulfilled, the connection has become a secure stream,
+  // and write operations are once again permitted. The StringPtr parameter to the callback,
+  // expectedServerHostname may be dropped after the function synchronously returns.
+  //
+  // The PausableReadAsyncIoStream class defined below can be used to ensure that read operations
+  // are not pending when the tlsStarter is invoked.
+  //
+  // This mechanism is required for certain protocols, more info can be found on
+  // https://en.wikipedia.org/wiki/Opportunistic_TLS.
+};
+
+
+class PausableReadAsyncIoStream final: public kj::AsyncIoStream {
+  // A custom AsyncIoStream which can pause pending reads. This is used by startTls to pause a
+  // a read before TLS is initiated.
+  //
+  // TODO(cleanup): this class should be rewritten to use a CRTP mixin approach so that pumps
+  // can be optimised once startTls is invoked.
+  class PausableRead;
+public:
+  PausableReadAsyncIoStream(kj::Own<kj::AsyncIoStream> stream)
+      : inner(kj::mv(stream)), currentlyWriting(false), currentlyReading(false) {}
+
+  _::Deferred<kj::Function<void()>> trackRead();
+
+  _::Deferred<kj::Function<void()>> trackWrite();
+
+  kj::Promise<size_t> tryRead(void* buffer, size_t minBytes, size_t maxBytes) override;
+
+  kj::Promise<size_t> tryReadImpl(void* buffer, size_t minBytes, size_t maxBytes);
+
+  kj::Maybe<uint64_t> tryGetLength() override;
+
+  kj::Promise<uint64_t> pumpTo(kj::AsyncOutputStream& output, uint64_t amount) override;
+
+  kj::Promise<void> write(const void* buffer, size_t size) override;
+
+  kj::Promise<void> write(kj::ArrayPtr<const kj::ArrayPtr<const byte>> pieces) override;
+
+  kj::Maybe<kj::Promise<uint64_t>> tryPumpFrom(
+      kj::AsyncInputStream& input, uint64_t amount = kj::maxValue) override;
+
+  kj::Promise<void> whenWriteDisconnected() override;
+
+  void shutdownWrite() override;
+
+  void abortRead() override;
+
+  kj::Maybe<int> getFd() const override;
+
+  void pause();
+
+  void unpause();
+
+  bool getCurrentlyReading();
+
+  bool getCurrentlyWriting();
+
+  kj::Own<kj::AsyncIoStream> takeStream();
+
+  void replaceStream(kj::Own<kj::AsyncIoStream> stream);
+
+  void reject(kj::Exception&& exc);
+
+private:
+  kj::Own<kj::AsyncIoStream> inner;
+  kj::Maybe<PausableRead&> maybePausableRead;
+  bool currentlyWriting;
+  bool currentlyReading;
 };
 
 class HttpClient {
@@ -690,7 +819,7 @@ public:
   };
 
   virtual Request request(HttpMethod method, kj::StringPtr url, const HttpHeaders& headers,
-                          kj::Maybe<uint64_t> expectedBodySize = nullptr) = 0;
+                          kj::Maybe<uint64_t> expectedBodySize = kj::none) = 0;
   // Perform an HTTP request.
   //
   // `url` may be a full URL (with protocol and host) or it may be only the path part of the URL,
@@ -727,7 +856,7 @@ public:
       // outside the 200-299 range and errorBody *may* be specified if there is a rejection
       // payload.
 
-      // TODO(soon): Having Status own the statusText and headers is a bit unfortunate.
+      // TODO(perf): Having Status own the statusText and headers is a bit unfortunate.
       // Ideally we could have these be non-owned so that the headers object could just
       // point directly into HttpOutputStream's buffer and not be copied. That's a bit
       // more difficult to with CONNECT since the lifetimes of the buffers are a little
@@ -737,7 +866,7 @@ public:
       Status(uint statusCode,
              kj::String statusText,
              kj::Own<HttpHeaders> headers,
-             kj::Maybe<kj::Own<kj::AsyncInputStream>> errorBody = nullptr)
+             kj::Maybe<kj::Own<kj::AsyncInputStream>> errorBody = kj::none)
           : statusCode(statusCode),
             statusText(kj::mv(statusText)),
             headers(kj::mv(headers)),
@@ -748,7 +877,8 @@ public:
     kj::Own<kj::AsyncIoStream> connection;
   };
 
-  virtual ConnectRequest connect(kj::StringPtr host, const HttpHeaders& headers);
+  virtual ConnectRequest connect(
+      kj::StringPtr host, const HttpHeaders& headers, HttpConnectSettings settings);
   // Handles CONNECT requests.
   //
   // `host` must specify both the host and port (e.g. "example.org:1234").
@@ -777,14 +907,27 @@ public:
   public:
     virtual kj::Own<kj::AsyncOutputStream> send(
         uint statusCode, kj::StringPtr statusText, const HttpHeaders& headers,
-        kj::Maybe<uint64_t> expectedBodySize = nullptr) = 0;
+        kj::Maybe<uint64_t> expectedBodySize = kj::none) = 0;
     // Begin the response.
     //
     // `statusText` and `headers` need only remain valid until send() returns (they can be
     // stack-allocated).
+    //
+    // `send()` may only be called a single time. Calling it a second time will cause an exception
+    // to be thrown.
 
     virtual kj::Own<WebSocket> acceptWebSocket(const HttpHeaders& headers) = 0;
     // If headers.isWebSocket() is true then you can call acceptWebSocket() instead of send().
+    //
+    // If the request is an invalid WebSocket request (e.g., it has an Upgrade: websocket header,
+    // but other WebSocket-related headers are invalid), `acceptWebSocket()` will throw an
+    // exception, and the HttpServer will return a 400 Bad Request response and close the
+    // connection. In this circumstance, the HttpServer will ignore any exceptions which propagate
+    // from the `HttpService::request()` promise. `HttpServerErrorHandler::handleApplicationError()`
+    // will not be invoked, and the HttpServer's listen task will be fulfilled normally.
+    //
+    // `acceptWebSocket()` may only be called a single time. Calling it a second time will cause an
+    // exception to be thrown.
 
     kj::Promise<void> sendError(uint statusCode, kj::StringPtr statusText,
                                 const HttpHeaders& headers);
@@ -811,6 +954,14 @@ public:
   //
   // Request processing can be canceled by dropping the returned promise. HttpServer may do so if
   // the client disconnects prematurely.
+  //
+  // The implementation of `request()` should usually not try to use `response` in any way in
+  // exception-handling code, because it is often not possible to tell whether `Response::send()` or
+  // `Response::acceptWebSocket()` has already been called. Instead, to generate error HTTP
+  // responses for the client, implement an HttpServerErrorHandler and pass it to the HttpServer via
+  // HttpServerSettings. If the `HttpService::request()` promise rejects and no response has yet
+  // been sent, `HttpServerErrorHandler::handleApplicationError()` will be passed a non-null
+  // `Maybe<Response&>` parameter.
 
   class ConnectResponse {
   public:
@@ -824,14 +975,15 @@ public:
         uint statusCode,
         kj::StringPtr statusText,
         const HttpHeaders& headers,
-        kj::Maybe<uint64_t> expectedBodySize = nullptr) = 0;
+        kj::Maybe<uint64_t> expectedBodySize = kj::none) = 0;
     // Signals rejection of the CONNECT tunnel.
   };
 
   virtual kj::Promise<void> connect(kj::StringPtr host,
                                     const HttpHeaders& headers,
                                     kj::AsyncIoStream& connection,
-                                    ConnectResponse& response);
+                                    ConnectResponse& response,
+                                    HttpConnectSettings settings);
   // Handles CONNECT requests.
   //
   // The `host` must include host and port.
@@ -874,7 +1026,7 @@ struct HttpClientSettings {
   // For clients which automatically create new connections, any connection idle for at least this
   // long will be closed. Set this to 0 to prevent connection reuse entirely.
 
-  kj::Maybe<EntropySource&> entropySource = nullptr;
+  kj::Maybe<EntropySource&> entropySource = kj::none;
   // Must be provided in order to use `openWebSocket`. If you don't need WebSockets, this can be
   // omitted. The WebSocket protocol uses random values to avoid triggering flaws (including
   // security flaws) in certain HTTP proxy software. Specifically, entropy is used to generate the
@@ -883,7 +1035,7 @@ struct HttpClientSettings {
   // doesn't generate real entropy (e.g. returning the same value every time). Otherwise, you must
   // provide a cryptographically-random entropy source.
 
-  kj::Maybe<HttpClientErrorHandler&> errorHandler = nullptr;
+  kj::Maybe<HttpClientErrorHandler&> errorHandler = kj::none;
   // Customize how protocol errors are handled by the HttpClient. If null, HttpClientErrorHandler's
   // default implementation will be used.
 
@@ -893,6 +1045,22 @@ struct HttpClientSettings {
     AUTOMATIC_COMPRESSION, // Automatically includes the compression header in the WebSocket request.
   };
   WebSocketCompressionMode webSocketCompressionMode = NO_COMPRESSION;
+
+  kj::Maybe<SecureNetworkWrapper&> tlsContext;
+  // A reference to a TLS context that will be used when tlsStarter is invoked.
+};
+
+class WebSocketErrorHandler {
+public:
+  virtual kj::Exception handleWebSocketProtocolError(WebSocket::ProtocolError protocolError);
+  // Handles low-level protocol errors in received WebSocket data.
+  //
+  // This is called when the WebSocket peer sends us bad data *after* a successful WebSocket
+  // upgrade, e.g. a continuation frame without a preceding start frame, a frame with an unknown
+  // opcode, or similar.
+  //
+  // You would override this method in order to customize the exception. You cannot prevent the
+  // exception from being thrown.
 };
 
 kj::Own<HttpClient> newHttpClient(kj::Timer& timer, const HttpHeaderTable& responseHeaderTable,
@@ -962,7 +1130,8 @@ kj::Own<HttpInputStream> newHttpInputStream(
 
 kj::Own<WebSocket> newWebSocket(kj::Own<kj::AsyncIoStream> stream,
                                 kj::Maybe<EntropySource&> maskEntropySource,
-                                kj::Maybe<CompressionParameters> compressionConfig = nullptr);
+                                kj::Maybe<CompressionParameters> compressionConfig = kj::none,
+                                kj::Maybe<WebSocketErrorHandler&> errorHandler = kj::none);
 // Create a new WebSocket on top of the given stream. It is assumed that the HTTP -> WebSocket
 // upgrade handshake has already occurred (or is not needed), and messages can immediately be
 // sent and received on the stream. Normally applications would not call this directly.
@@ -979,6 +1148,8 @@ kj::Own<WebSocket> newWebSocket(kj::Own<kj::AsyncIoStream> stream,
 // compress and decompress messages. The configuration is determined by the
 // `Sec-WebSocket-Extensions` header during WebSocket negotiation.
 //
+// `errorHandler` is an optional argument that lets callers throw custom exceptions for WebSocket
+// protocol errors.
 
 struct WebSocketPipe {
   kj::Own<WebSocket> ends[2];
@@ -1009,12 +1180,15 @@ struct HttpServerSettings {
   // above two values -- if they hit either one, we'll close the socket, but if the request
   // completes, we'll let the connection stay open to handle more requests.
 
-  kj::Maybe<HttpServerErrorHandler&> errorHandler = nullptr;
+  kj::Maybe<HttpServerErrorHandler&> errorHandler = kj::none;
   // Customize how client protocol errors and service application exceptions are handled by the
   // HttpServer. If null, HttpServerErrorHandler's default implementation will be used.
 
-  kj::Maybe<HttpServerCallbacks&> callbacks = nullptr;
+  kj::Maybe<HttpServerCallbacks&> callbacks = kj::none;
   // Additional optional callbacks used to control some server behavior.
+
+  kj::Maybe<WebSocketErrorHandler&> webSocketErrorHandler = kj::none;
+  // Customize exceptions thrown on WebSocket protocol errors.
 
   enum WebSocketCompressionMode {
     NO_COMPRESSION,
@@ -1154,14 +1328,14 @@ public:
 
   kj::Promise<bool> listenHttpCleanDrain(kj::AsyncIoStream& connection,
       SuspendableHttpServiceFactory factory,
-      kj::Maybe<SuspendedRequest> suspendedRequest = nullptr);
+      kj::Maybe<SuspendedRequest> suspendedRequest = kj::none);
   // Like listenHttpCleanDrain(), but allows you to suspend requests.
   //
   // When this overload is in use, the HttpServer's default HttpService or HttpServiceFactory is not
   // used. Instead, the HttpServer reads the request method line and headers, then calls `factory`
   // with a SuspendableRequest representing the request parsed so far. The factory may then return
   // a kj::Own<HttpService> for that specific request, or it may call SuspendableRequest::suspend()
-  // and return nullptr. (It is an error for the factory to return nullptr without also calling
+  // and return kj::none. (It is an error for the factory to return kj::none without also calling
   // suspend(); this will result in a rejected listenHttpCleanDrain() promise.)
   //
   // If the factory chooses to suspend, the listenHttpCleanDrain() promise is resolved with false
@@ -1198,6 +1372,12 @@ private:
   kj::Promise<void> listenLoop(kj::ConnectionReceiver& port);
 
   void taskFailed(kj::Exception&& exception) override;
+
+  kj::Promise<bool> listenHttpImpl(kj::AsyncIoStream& connection, bool wantCleanDrain);
+  kj::Promise<bool> listenHttpImpl(kj::AsyncIoStream& connection,
+      SuspendableHttpServiceFactory factory,
+      kj::Maybe<SuspendedRequest> suspendedRequest,
+      bool wantCleanDrain);
 };
 
 class HttpServer::SuspendableRequest {
@@ -1259,7 +1439,7 @@ inline kj::StringPtr HttpHeaderTable::idToString(HttpHeaderId id) const {
 inline kj::Maybe<kj::StringPtr> HttpHeaders::get(HttpHeaderId id) const {
   id.requireFrom(*table);
   auto result = indexedHeaders[id.id];
-  return result == nullptr ? kj::Maybe<kj::StringPtr>(nullptr) : result;
+  return result == nullptr ? kj::Maybe<kj::StringPtr>(kj::none) : result;
 }
 
 inline void HttpHeaders::unset(HttpHeaderId id) {
@@ -1315,8 +1495,8 @@ struct UnverifiedConfig {
   // `populateUnverifiedConfig()` for details.
   bool clientNoContextTakeover = false;
   bool serverNoContextTakeover = false;
-  kj::Maybe<ArrayPtr<const char>> clientMaxWindowBits = nullptr;
-  kj::Maybe<ArrayPtr<const char>> serverMaxWindowBits = nullptr;
+  kj::Maybe<ArrayPtr<const char>> clientMaxWindowBits = kj::none;
+  kj::Maybe<ArrayPtr<const char>> serverMaxWindowBits = kj::none;
 };
 
 kj::Maybe<UnverifiedConfig> populateUnverifiedConfig(kj::Array<KeyMaybeVal>& params);

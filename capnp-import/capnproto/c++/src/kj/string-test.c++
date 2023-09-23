@@ -24,6 +24,7 @@
 #include <string>
 #include "vector.h"
 #include <locale.h>
+#include <stdint.h>
 
 namespace kj {
 namespace _ {  // private
@@ -378,6 +379,12 @@ KJ_TEST("float stringification and parsing is not locale-dependent") {
     KJ_EXPECT("1.5"_kj.parseAs<double>() == 1.5);
   }
 }
+
+KJ_TEST("ConstString") {
+  kj::ConstString theString = "it's a const string!"_kjc;
+  KJ_EXPECT(theString == "it's a const string!");
+}
+
 }  // namespace
 }  // namespace _ (private)
 }  // namespace kj

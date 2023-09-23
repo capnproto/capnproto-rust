@@ -40,11 +40,6 @@
 #include <sys/wait.h>
 #endif
 
-#if _MSC_VER && !defined(__clang__)
-#pragma warning(disable: 4996)
-// Warns that sprintf() is buffer-overrunny. Yeah, I know, it's cool.
-#endif
-
 namespace kj {
 namespace _ {  // private
 namespace {
@@ -158,16 +153,7 @@ public:
     }
     text += '\n';
     flush();
-#if KJ_NO_EXCEPTIONS
-    if (outputPipe >= 0) {
-      // This is a child process.  We got what we want, now exit quickly without writing any
-      // additional messages, with a status code that the parent will interpret as "exited in the
-      // way we expected".
-      _exit(74);
-    }
-#else
     throw MockException();
-#endif
   }
 
   void logMessage(LogSeverity severity, const char* file, int line, int contextDepth,
@@ -189,21 +175,17 @@ public:
   EXPECT_EQ(expText, text); \
 } while(0)
 
-#if KJ_NO_EXCEPTIONS
-#define EXPECT_FATAL(code) if (mockCallback.forkForDeathTest()) { code; abort(); }
-#else
 #define EXPECT_FATAL(code) \
   try { code; KJ_FAIL_EXPECT("expected exception"); } \
   catch (MockException e) {} \
   catch (...) { KJ_FAIL_EXPECT("wrong exception"); }
-#endif
 
 std::string fileLine(std::string file, int line) {
   file = trimSourceFilename(file.c_str()).cStr();
 
   file += ':';
   char buffer[32];
-  sprintf(buffer, "%d", line);
+  snprintf(buffer, sizeof(buffer), "%d", line);
   file += buffer;
   return file;
 }
@@ -306,10 +288,10 @@ TEST(Debug, Catch) {
       line = __LINE__; KJ_FAIL_ASSERT("foo") { break; }
     });
 
-    KJ_IF_MAYBE(e, exception) {
-      String what = str(*e);
-      KJ_IF_MAYBE(eol, what.findFirst('\n')) {
-        what = kj::str(what.slice(0, *eol));
+    KJ_IF_SOME(e, exception) {
+      String what = str(e);
+      KJ_IF_SOME(eol, what.findFirst('\n')) {
+        what = kj::str(what.slice(0, eol));
       }
       std::string text(what.cStr());
       EXPECT_EQ(fileLine(__FILE__, line) + ": failed: foo", text);
@@ -318,17 +300,16 @@ TEST(Debug, Catch) {
     }
   }
 
-#if !KJ_NO_EXCEPTIONS
   {
     // Catch fatal as kj::Exception.
     Maybe<Exception> exception = kj::runCatchingExceptions([&](){
       line = __LINE__; KJ_FAIL_ASSERT("foo");
     });
 
-    KJ_IF_MAYBE(e, exception) {
-      String what = str(*e);
-      KJ_IF_MAYBE(eol, what.findFirst('\n')) {
-        what = kj::str(what.slice(0, *eol));
+    KJ_IF_SOME(e, exception) {
+      String what = str(e);
+      KJ_IF_SOME(eol, what.findFirst('\n')) {
+        what = kj::str(what.slice(0, eol));
       }
       std::string text(what.cStr());
       EXPECT_EQ(fileLine(__FILE__, line) + ": failed: foo", text);
@@ -345,15 +326,14 @@ TEST(Debug, Catch) {
     } catch (const std::exception& e) {
       kj::StringPtr what = e.what();
       std::string text;
-      KJ_IF_MAYBE(eol, what.findFirst('\n')) {
-        text.assign(what.cStr(), *eol);
+      KJ_IF_SOME(eol, what.findFirst('\n')) {
+        text.assign(what.cStr(), eol);
       } else {
         text.assign(what.cStr());
       }
       EXPECT_EQ(fileLine(__FILE__, line) + ": failed: foo", text);
     }
   }
-#endif
 }
 
 int mockSyscall(int i, int error = 0) {

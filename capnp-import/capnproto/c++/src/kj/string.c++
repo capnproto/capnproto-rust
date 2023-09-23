@@ -29,11 +29,6 @@
 
 namespace kj {
 
-#if _MSC_VER && !defined(__clang__)
-#pragma warning(disable: 4996)
-// Warns that sprintf() is buffer-overrunny. We know that, it's cool.
-#endif
-
 namespace {
 bool isHex(const char *s) {
   if (*s == '-') s++;
@@ -52,12 +47,12 @@ long long parseSigned(const StringPtr& s, long long min, long long max) {
 }
 
 Maybe<long long> tryParseSigned(const StringPtr& s, long long min, long long max) {
-  if (s == nullptr) { return nullptr; } // String does not contain valid number.
+  if (s == nullptr) { return kj::none; } // String does not contain valid number.
   char *endPtr;
   errno = 0;
   auto value = strtoll(s.begin(), &endPtr, isHex(s.cStr()) ? 16 : 10);
   if (endPtr != s.end() || errno == ERANGE || value < min || max < value) {
-    return nullptr;
+    return kj::none;
   }
   return value;
 }
@@ -76,11 +71,11 @@ unsigned long long parseUnsigned(const StringPtr& s, unsigned long long max) {
 }
 
 Maybe<unsigned long long> tryParseUnsigned(const StringPtr& s, unsigned long long max) {
-  if (s == nullptr) { return nullptr; } // String does not contain valid number.
+  if (s == nullptr) { return kj::none; } // String does not contain valid number.
   char *endPtr;
   errno = 0;
   auto value = strtoull(s.begin(), &endPtr, isHex(s.cStr()) ? 16 : 10);
-  if (endPtr != s.end() || errno == ERANGE || max < value || s[0] == '-') { return nullptr; }
+  if (endPtr != s.end() || errno == ERANGE || max < value || s[0] == '-') { return kj::none; }
   return value;
 }
 
@@ -525,7 +520,7 @@ kj::String LocalizeRadix(const char* input, const char* radix_pos) {
   // to divuldge the locale's radix character.  No, localeconv() is NOT
   // thread-safe.
   char temp[16];
-  int size = sprintf(temp, "%.1f", 1.5);
+  int size = snprintf(temp, sizeof(temp), "%.1f", 1.5);
   KJ_ASSERT(temp[0] == '1');
   KJ_ASSERT(temp[size-1] == '5');
   KJ_ASSERT(size <= 6);
@@ -619,11 +614,11 @@ double parseDouble(const StringPtr& s) {
 }
 
 Maybe<double> tryParseDouble(const StringPtr& s) {
-  if(s == nullptr) { return nullptr; }
+  if(s == nullptr) { return kj::none; }
   char *endPtr;
   errno = 0;
   auto value = _::NoLocaleStrtod(s.begin(), &endPtr);
-  if (endPtr != s.end()) { return nullptr; }
+  if (endPtr != s.end()) { return kj::none; }
 #if _WIN32 || __CYGWIN__ || __BIONIC__
   if (isNaN(value)) {
     return kj::nan();

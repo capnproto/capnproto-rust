@@ -33,19 +33,3 @@ const ::capnp::_::RawSchema s_995f9a3377c0b16e = {
 #endif  // !CAPNP_LITE
 }  // namespace schemas
 }  // namespace capnp
-
-// =======================================================================================
-
-namespace capnp {
-
-// StreamResult
-constexpr uint16_t StreamResult::_capnpPrivate::dataWordSize;
-constexpr uint16_t StreamResult::_capnpPrivate::pointerCount;
-#if !CAPNP_LITE
-constexpr ::capnp::Kind StreamResult::_capnpPrivate::kind;
-constexpr ::capnp::_::RawSchema const* StreamResult::_capnpPrivate::schema;
-#endif  // !CAPNP_LITE
-
-
-}  // namespace
-

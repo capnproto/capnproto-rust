@@ -122,7 +122,6 @@ TEST(Array, ComplexConstructor) {
   EXPECT_EQ(0, TestObject::count);
 }
 
-#if !KJ_NO_EXCEPTIONS
 TEST(Array, ThrowingConstructor) {
   TestObject::count = 0;
   TestObject::throwAt = 16;
@@ -144,7 +143,6 @@ TEST(Array, ThrowingDestructor) {
   EXPECT_ANY_THROW(array = nullptr);
   EXPECT_EQ(0, TestObject::count);
 }
-#endif  // !KJ_NO_EXCEPTIONS
 
 TEST(Array, AraryBuilder) {
   TestObject::count = 0;
@@ -260,7 +258,6 @@ TEST(Array, AraryBuilderAddAll) {
   EXPECT_EQ(0, TestObject::count);
   EXPECT_EQ(0, TestObject::copiedCount);
 
-#if !KJ_NO_EXCEPTIONS
   {
     // Complex case, exceptions occur.
     TestObject::count = 0;
@@ -284,7 +281,6 @@ TEST(Array, AraryBuilderAddAll) {
   }
   EXPECT_EQ(0, TestObject::count);
   EXPECT_EQ(0, TestObject::copiedCount);
-#endif  // !KJ_NO_EXCEPTIONS
 }
 
 TEST(Array, HeapCopy) {
@@ -378,7 +374,6 @@ TEST(Array, ReleaseAsBytesOrChars) {
   }
 }
 
-#if __cplusplus > 201402L
 KJ_TEST("kj::arr()") {
   kj::Array<kj::String> array = kj::arr(kj::str("foo"), kj::str(123));
   KJ_EXPECT(array == kj::ArrayPtr<const kj::StringPtr>({"foo", "123"}));
@@ -397,7 +392,6 @@ KJ_TEST("kj::arrOf()") {
   KJ_EXPECT(array[1].i == 456);
   KJ_EXPECT(array[2].i == 789);
 }
-#endif
 
 struct DestructionOrderRecorder {
   DestructionOrderRecorder(uint& counter, uint& recordTo)

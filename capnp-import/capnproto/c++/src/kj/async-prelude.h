@@ -28,23 +28,17 @@
 #include <kj/tuple.h>
 #include <kj/source-location.h>
 
-// Detect whether or not we should enable kj::Promise<T> coroutine integration.
-//
-// TODO(someday): Support coroutines with -fno-exceptions.
-#if !KJ_NO_EXCEPTIONS
-#ifdef __has_include
+// Probe for C++20 or Coroutines TS coroutines.
 #if (__cpp_impl_coroutine >= 201902L) && __has_include(<coroutine>)
 // C++20 Coroutines detected.
 #include <coroutine>
-#define KJ_HAS_COROUTINE 1
 #define KJ_COROUTINE_STD_NAMESPACE std
 #elif (__cpp_coroutines >= 201703L) && __has_include(<experimental/coroutine>)
 // Coroutines TS detected.
 #include <experimental/coroutine>
-#define KJ_HAS_COROUTINE 1
 #define KJ_COROUTINE_STD_NAMESPACE std::experimental
-#endif
-#endif
+#else
+#error "Cap'n Proto requires support for C++20 coroutines. Support for the Coroutines TS will suffice."
 #endif
 
 KJ_BEGIN_HEADER
@@ -58,6 +52,7 @@ class WaitScope;
 class TaskSet;
 
 Promise<void> joinPromises(Array<Promise<void>>&& promises, SourceLocation location = {});
+Promise<void> joinPromisesFailFast(Array<Promise<void>>&& promises, SourceLocation location = {});
 // Out-of-line <void> specialization of template function defined in async.h.
 
 namespace _ {  // private
@@ -217,6 +212,8 @@ class XThreadPaf;
 class PromiseDisposer;
 using OwnPromiseNode = Own<PromiseNode, PromiseDisposer>;
 // PromiseNode uses a static disposer.
+template<typename T, bool FreeOnDestroy>
+class ForkBranch;
 
 class PromiseBase {
 public:

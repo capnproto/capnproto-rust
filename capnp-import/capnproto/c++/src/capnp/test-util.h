@@ -23,11 +23,11 @@
 
 #include <capnp/test.capnp.h>
 #include <iostream>
-#include "blob.h"
+#include <capnp/blob.h>
 #include <kj/compat/gtest.h>
 
 #if !CAPNP_LITE
-#include "dynamic.h"
+#include <capnp/dynamic.h>
 #include <kj/io.h>
 #endif  // !CAPNP_LITE
 
@@ -378,7 +378,6 @@ public:
 private:
   int count;
 };
-
 
 #endif  // !CAPNP_LITE
 

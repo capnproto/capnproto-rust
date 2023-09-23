@@ -152,7 +152,6 @@ public:
   // A Path can be accessed as an array of strings.
 
   bool operator==(PathPtr other) const;
-  bool operator!=(PathPtr other) const;
   bool operator< (PathPtr other) const;
   bool operator> (PathPtr other) const;
   bool operator<=(PathPtr other) const;
@@ -160,7 +159,6 @@ public:
   // Compare path components lexically.
 
   bool operator==(const Path& other) const;
-  bool operator!=(const Path& other) const;
   bool operator< (const Path& other) const;
   bool operator> (const Path& other) const;
   bool operator<=(const Path& other) const;
@@ -272,7 +270,6 @@ public:
   const String* end() const;
   PathPtr slice(size_t start, size_t end) const;
   bool operator==(PathPtr other) const;
-  bool operator!=(PathPtr other) const;
   bool operator< (PathPtr other) const;
   bool operator> (PathPtr other) const;
   bool operator<=(PathPtr other) const;
@@ -323,12 +320,12 @@ public:
   //
   // Under the hood, this will call dup(), so the FD number will not be the same.
 
-  virtual Maybe<int> getFd() const { return nullptr; }
-  // Get the underlying Unix file descriptor, if any. Returns nullptr if this object actually isn't
+  virtual Maybe<int> getFd() const { return kj::none; }
+  // Get the underlying Unix file descriptor, if any. Returns kj::none if this object actually isn't
   // wrapping a file descriptor.
 
-  virtual Maybe<void*> getWin32Handle() const { return nullptr; }
-  // Get the underlying Win32 HANDLE, if any. Returns nullptr if this object actually isn't
+  virtual Maybe<void*> getWin32Handle() const { return kj::none; }
+  // Get the underlying Win32 HANDLE, if any. Returns kj::none if this object actually isn't
   // wrapping a handle.
 
   enum class Type {
@@ -383,13 +380,6 @@ public:
     // - Access control info: Differs wildly across platforms, and KJ prefers capabilities anyway.
     // - Other timestamps: Differs across platforms.
     // - Device number: If you care, you're probably doing platform-specific stuff anyway.
-
-    Metadata() = default;
-    Metadata(Type type, uint64_t size, uint64_t spaceUsed, Date lastModified, uint linkCount,
-             uint64_t hashCode)
-        : type(type), size(size), spaceUsed(spaceUsed), lastModified(lastModified),
-          linkCount(linkCount), hashCode(hashCode) {}
-    // TODO(cleanup): This constructor is redundant in C++14, but needed in C++11.
   };
 
   virtual Metadata stat() const = 0;
@@ -869,7 +859,7 @@ public:
   //
   // tryTransferTo() exists to implement double-dispatch. It should be called as a fallback by
   // implementations of tryTransfer() in cases where the target directory would otherwise fail or
-  // perform a pessimal transfer. The default implementation returns nullptr, which the caller
+  // perform a pessimal transfer. The default implementation returns kj::none, which the caller
   // should interpret as: "I don't have any special optimizations; do the obvious thing."
   //
   // `toMode` controls how the target path is created. CREATE_PARENT is honored but EXECUTABLE and
@@ -882,6 +872,13 @@ public:
   // tryRemove() returns false in the specific case that the path doesn't exist. remove() would
   // throw in this case. In all other error cases (like "access denied"), tryRemove() still throws;
   // it is only "does not exist" that produces a false return.
+  //
+  // WARNING: The Windows implementation of recursive deletion is currently not safe to call from a
+  //   privileged process to delete directories writable by unprivileged users, due to a race
+  //   condition in which the user could trick the algorithm into following a symlink and deleting
+  //   everything at the destination. This race condition is not present in the Unix
+  //   implementation. Fixing it for Windows would require rewriting a lot of code to use different
+  //   APIs. If you're interested, see the TODO(security) in filesystem-disk-win32.c++.
 
   // TODO(someday):
   // - Support sockets? There's no openat()-like interface for sockets, so it's hard to support
@@ -1003,13 +1000,11 @@ inline PathPtr Path::slice(size_t start, size_t end) const& {
   return PathPtr(*this).slice(start, end);
 }
 inline bool Path::operator==(PathPtr other) const { return PathPtr(*this) == other; }
-inline bool Path::operator!=(PathPtr other) const { return PathPtr(*this) != other; }
 inline bool Path::operator< (PathPtr other) const { return PathPtr(*this) <  other; }
 inline bool Path::operator> (PathPtr other) const { return PathPtr(*this) >  other; }
 inline bool Path::operator<=(PathPtr other) const { return PathPtr(*this) <= other; }
 inline bool Path::operator>=(PathPtr other) const { return PathPtr(*this) >= other; }
 inline bool Path::operator==(const Path& other) const { return PathPtr(*this) == PathPtr(other); }
-inline bool Path::operator!=(const Path& other) const { return PathPtr(*this) != PathPtr(other); }
 inline bool Path::operator< (const Path& other) const { return PathPtr(*this) <  PathPtr(other); }
 inline bool Path::operator> (const Path& other) const { return PathPtr(*this) >  PathPtr(other); }
 inline bool Path::operator<=(const Path& other) const { return PathPtr(*this) <= PathPtr(other); }
@@ -1040,7 +1035,6 @@ inline const String* PathPtr::end() const { return parts.end(); }
 inline PathPtr PathPtr::slice(size_t start, size_t end) const {
   return PathPtr(parts.slice(start, end));
 }
-inline bool PathPtr::operator!=(PathPtr other) const { return !(*this == other); }
 inline bool PathPtr::operator> (PathPtr other) const { return other < *this; }
 inline bool PathPtr::operator<=(PathPtr other) const { return !(other < *this); }
 inline bool PathPtr::operator>=(PathPtr other) const { return !(*this < other); }

@@ -3,6 +3,7 @@
 
 set(kj_sources_lite
   array.c++
+  cidr.c++
   list.c++
   common.c++
   debug.c++
@@ -37,6 +38,7 @@ else()
 endif()
 
 set(kj_headers
+  cidr.h
   common.h
   units.h
   memory.h
@@ -76,8 +78,7 @@ set(kj-std_headers
 )
 add_library(kj ${kj_sources})
 add_library(CapnProto::kj ALIAS kj)
-# TODO(cleanup): Use cxx_std_14 once it's safe to require cmake 3.8.
-target_compile_features(kj PUBLIC cxx_generic_lambdas)
+target_compile_features(kj PUBLIC cxx_std_20)
 
 if(UNIX AND NOT ANDROID)
   target_link_libraries(kj PUBLIC pthread)
@@ -132,6 +133,7 @@ set(kj-async_headers
   async-win32.h
   async-io.h
   async-queue.h
+  cidr.h
   timer.h
 )
 if(NOT CAPNP_LITE)
@@ -290,6 +292,9 @@ if(BUILD_TESTING)
     target_link_libraries(kj-heavy-tests kj-http kj-async kj-test kj)
     if(WITH_OPENSSL)
       target_link_libraries(kj-heavy-tests kj-tls)
+      # tls-test.c++ needs to use OpenSSL directly.
+      target_link_libraries(kj-heavy-tests OpenSSL::SSL OpenSSL::Crypto)
+      target_compile_definitions(kj-heavy-tests PRIVATE KJ_HAS_OPENSSL)
       set_property(
         SOURCE compat/tls-test.c++
         APPEND PROPERTY COMPILE_DEFINITIONS KJ_HAS_OPENSSL

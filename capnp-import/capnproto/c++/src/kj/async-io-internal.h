@@ -26,6 +26,7 @@
 #include "async-io.h"
 #include <stdint.h>
 #include "one-of.h"
+#include "cidr.h"
 
 KJ_BEGIN_HEADER
 
@@ -42,32 +43,6 @@ kj::ArrayPtr<const char> safeUnixPath(const struct sockaddr_un* addr, uint addrl
 // sockaddr_un::sun_path is not required to have a NUL terminator! Thus to be safe unix address
 // paths MUST be read using this function.
 #endif
-
-class CidrRange {
-public:
-  CidrRange(StringPtr pattern);
-
-  static CidrRange inet4(ArrayPtr<const byte> bits, uint bitCount);
-  static CidrRange inet6(ArrayPtr<const uint16_t> prefix, ArrayPtr<const uint16_t> suffix,
-                         uint bitCount);
-  // Zeros are inserted between `prefix` and `suffix` to extend the address to 128 bits.
-
-  uint getSpecificity() const { return bitCount; }
-
-  bool matches(const struct sockaddr* addr) const;
-  bool matchesFamily(int family) const;
-
-  String toString() const;
-
-private:
-  int family;
-  byte bits[16];
-  uint bitCount;    // how many bits in `bits` need to match
-
-  CidrRange(int family, ArrayPtr<const byte> bits, uint bitCount);
-
-  void zeroIrrelevantBits();
-};
 
 class NetworkFilter: public LowLevelAsyncIoProvider::NetworkFilter {
 public:

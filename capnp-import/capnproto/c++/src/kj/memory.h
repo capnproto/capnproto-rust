@@ -272,7 +272,6 @@ private:
   inline explicit Own(decltype(nullptr)): disposer(nullptr), ptr(nullptr) {}
 
   inline bool operator==(decltype(nullptr)) { return ptr == nullptr; }
-  inline bool operator!=(decltype(nullptr)) { return ptr != nullptr; }
   // Only called by Maybe<Own<T>>.
 
   inline void dispose() {
@@ -386,7 +385,6 @@ private:
   inline explicit Own(decltype(nullptr)): ptr(nullptr) {}
 
   inline bool operator==(decltype(nullptr)) { return ptr == nullptr; }
-  inline bool operator!=(decltype(nullptr)) { return ptr != nullptr; }
   // Only called by Maybe<Own<T>>.
 
   inline void dispose() {
@@ -452,7 +450,10 @@ public:
   template <typename U>
   inline Maybe(Own<U, D>&& other): ptr(mv(other)) {}
 
+  KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR
   inline Maybe(decltype(nullptr)) noexcept: ptr(nullptr) {}
+
+  inline Maybe(kj::None) noexcept: ptr(nullptr) {}
 
   inline Own<T, D>& emplace(Own<T, D> value) {
     // Assign the Maybe to the given value and return the content. This avoids the need to do a
@@ -461,13 +462,21 @@ public:
     return ptr;
   }
 
-  inline operator Maybe<T&>() { return ptr.get(); }
-  inline operator Maybe<const T&>() const { return ptr.get(); }
+  template <typename U = T>
+  inline operator NoInfer<Maybe<U&>>() { return ptr.get(); }
+  template <typename U = T>
+  inline operator NoInfer<Maybe<const U&>>() const { return ptr.get(); }
+  // Implicit conversion to `Maybe<U&>`. The weird templating is to make sure that
+  // `Maybe<Own<void>>` can be instantiated with the compiler complaining about forming references
+  // to void -- the use of templates here will cause SFINAE to kick in and hide these, whereas if
+  // they are not templates then SFINAE isn't applied and so they are considered errors.
 
   inline Maybe& operator=(Maybe&& other) { ptr = kj::mv(other.ptr); return *this; }
 
+  KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR
   inline bool operator==(decltype(nullptr)) const { return ptr == nullptr; }
-  inline bool operator!=(decltype(nullptr)) const { return ptr != nullptr; }
+
+  inline bool operator==(kj::None) const { return ptr == nullptr; }
 
   Own<T, D>& orDefault(Own<T, D>& defaultValue) {
     if (ptr == nullptr) {
@@ -497,7 +506,7 @@ public:
   template <typename Func>
   auto map(Func&& f) & -> Maybe<decltype(f(instance<Own<T, D>&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(ptr);
     }
@@ -506,7 +515,7 @@ public:
   template <typename Func>
   auto map(Func&& f) const & -> Maybe<decltype(f(instance<const Own<T, D>&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(ptr);
     }
@@ -515,7 +524,7 @@ public:
   template <typename Func>
   auto map(Func&& f) && -> Maybe<decltype(f(instance<Own<T, D>&&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(kj::mv(ptr));
     }
@@ -524,7 +533,7 @@ public:
   template <typename Func>
   auto map(Func&& f) const && -> Maybe<decltype(f(instance<const Own<T, D>&&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(kj::mv(ptr));
     }
@@ -565,6 +574,17 @@ template <typename T>
 const HeapDisposer<T> HeapDisposer<T>::instance = HeapDisposer<T>();
 #endif
 
+template <typename T, void(*F)(T*)>
+class CustomDisposer: public Disposer {
+public:
+  void disposeImpl(void* pointer) const override {
+    (*F)(reinterpret_cast<T*>(pointer));
+  }
+};
+
+template <typename T, void(*F)(T*)>
+static constexpr CustomDisposer<T, F> CUSTOM_DISPOSER_INSTANCE {};
+
 }  // namespace _ (private)
 
 template <typename T, typename... Params>
@@ -586,6 +606,14 @@ Own<Decay<T>> heap(T&& orig) {
 
   typedef Decay<T> T2;
   return Own<T2>(new T2(kj::fwd<T>(orig)), _::HeapDisposer<T2>::instance);
+}
+
+template <auto F, typename T>
+Own<T> disposeWith(T* ptr) {
+  // Associate a pre-allocated raw pointer with a corresponding disposal function.
+  // The first template parameter should be a function pointer e.g. disposeWith<freeInt>(new int(0)).
+
+  return Own<T>(ptr, _::CUSTOM_DISPOSER_INSTANCE<T, F>);
 }
 
 template <typename T, typename... Attachments>

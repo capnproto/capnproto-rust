@@ -36,6 +36,8 @@ class VatNetwork;
 template <typename SturdyRefObjectId>
 class SturdyRefRestorer;
 
+class MessageReader;
+
 template <typename VatId>
 class BootstrapFactory: public _::BootstrapFactoryBase {
   // Interface that constructs per-client bootstrap interfaces. Use this if you want each client
@@ -298,6 +300,11 @@ public:
   // Helper function which computes whether the standard RpcSystem implementation would consider
   // the given message body to be short-lived, meaning it will be dropped before the next message
   // is read. This is useful to implement BufferedMessageStream::IsShortLivedCallback.
+
+  static kj::Function<bool(MessageReader&)> getShortLivedCallback();
+  // Returns a function that wraps isShortLivedRpcMessage(). The returned function type matches
+  // `BufferedMessageStream::IsShortLivedCallback` (defined in serialize-async.h), but we don't
+  // include that header here.
 };
 
 class RpcFlowController {
@@ -587,7 +594,7 @@ template <typename VatId, typename ProvisionId,
           typename RecipientId, typename ThirdPartyCapId, typename JoinResult>
 RpcSystem<VatId> makeRpcClient(
     VatNetwork<VatId, ProvisionId, RecipientId, ThirdPartyCapId, JoinResult>& network) {
-  return RpcSystem<VatId>(network, nullptr);
+  return RpcSystem<VatId>(network, kj::none);
 }
 
 }  // namespace capnp

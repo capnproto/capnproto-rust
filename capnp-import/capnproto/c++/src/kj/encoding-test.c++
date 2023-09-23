@@ -28,6 +28,10 @@ namespace {
 
 CappedArray<char, sizeof(char    ) * 2 + 1> hex(byte     i) { return kj::hex((uint8_t )i); }
 CappedArray<char, sizeof(char    ) * 2 + 1> hex(char     i) { return kj::hex((uint8_t )i); }
+#if __cpp_char8_t
+[[maybe_unused]]
+CappedArray<char, sizeof(char8_t ) * 2 + 1> hex(char8_t  i) { return kj::hex((uint8_t )i); }
+#endif
 CappedArray<char, sizeof(char16_t) * 2 + 1> hex(char16_t i) { return kj::hex((uint16_t)i); }
 CappedArray<char, sizeof(char32_t) * 2 + 1> hex(char32_t i) { return kj::hex((uint32_t)i); }
 CappedArray<char, sizeof(uint32_t) * 2 + 1> hex(wchar_t  i) { return kj::hex((uint32_t)i); }
@@ -58,7 +62,7 @@ void expectRes(EncodingResult<T> result,
   expectResImpl(kj::mv(result), arrayPtr(expected, s - 1), errors);
 }
 
-#if __cplusplus >= 202000L
+#if __cpp_char8_t
 template <typename T, size_t s>
 void expectRes(EncodingResult<T> result,
                const char8_t (&expected)[s],
@@ -237,14 +241,26 @@ KJ_TEST("round-trip invalid UTF-16") {
 }
 
 KJ_TEST("EncodingResult as a Maybe") {
-  KJ_IF_MAYBE(result, encodeUtf16("\x80")) {
-    KJ_FAIL_EXPECT("expected failure");
+  {
+    auto result = encodeUtf16("\x80");
+    KJ_EXPECT(result != nullptr);  // It has bytes ...
+    KJ_EXPECT(result == kj::none); // But an error.
+    KJ_IF_SOME(unused, result) {
+      (void)unused;
+      KJ_FAIL_EXPECT("expected failure");
+    }
   }
 
-  KJ_IF_MAYBE(result, encodeUtf16("foo")) {
-    // good
-  } else {
+  {
+    auto result = encodeUtf16("foo");
+    KJ_EXPECT(result != nullptr);
+    KJ_EXPECT(result != kj::none);
+    KJ_IF_SOME(unused, result) {
+      (void)unused;
+      // good
+    } else {
     KJ_FAIL_EXPECT("expected success");
+    }
   }
 
   KJ_EXPECT(KJ_ASSERT_NONNULL(decodeUtf16(u"foo")) == "foo");

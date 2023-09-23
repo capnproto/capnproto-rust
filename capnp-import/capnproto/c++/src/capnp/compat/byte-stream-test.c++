@@ -116,12 +116,12 @@ public:
 
   void fulfill() {
     KJ_ASSERT_NONNULL(fulfiller)->fulfill();
-    fulfiller = nullptr;
+    fulfiller = kj::none;
     receivedBuffer = nullptr;
   }
 
   kj::Promise<void> write(const void* buffer, size_t size) override {
-    KJ_ASSERT(fulfiller == nullptr);
+    KJ_ASSERT(fulfiller == kj::none);
     receivedBuffer = kj::arrayPtr(reinterpret_cast<const char*>(buffer), size);
     auto paf = kj::newPromiseAndFulfiller<void>();
     fulfiller = kj::mv(paf.fulfiller);
@@ -307,7 +307,7 @@ KJ_TEST("KJ -> ByteStream RPC -> KJ pipe -> ByteStream RPC -> KJ with shortening
       rpc::twoparty::Side::CLIENT);
   capnp::TwoPartyClient server(*rpcConnection.ends[1],
       serverFactory.kjToCapnp(kj::mv(middlePipe.out)),
-      rpc::twoparty::Side::CLIENT);
+      rpc::twoparty::Side::SERVER);
 
   auto backWrapped = serverFactory.capnpToKj(server.bootstrap().castAs<ByteStream>());
   auto midPumpPormise = middlePipe.in->pumpTo(*backWrapped, 3);
@@ -377,7 +377,7 @@ KJ_TEST("KJ -> ByteStream RPC -> KJ pipe -> ByteStream RPC -> KJ with concurrent
       rpc::twoparty::Side::CLIENT);
   capnp::TwoPartyClient server(*rpcConnection.ends[1],
       serverFactory.kjToCapnp(kj::mv(middlePipe.out)),
-      rpc::twoparty::Side::CLIENT);
+      rpc::twoparty::Side::SERVER);
 
   auto backWrapped = serverFactory.capnpToKj(server.bootstrap().castAs<ByteStream>());
   auto midPumpPormise = middlePipe.in->pumpTo(*backWrapped);
@@ -448,7 +448,7 @@ KJ_TEST("KJ -> KJ pipe -> ByteStream RPC -> KJ pipe -> ByteStream RPC -> KJ with
       rpc::twoparty::Side::CLIENT);
   capnp::TwoPartyClient server(*rpcConnection.ends[1],
       serverFactory.kjToCapnp(kj::mv(middlePipe.out)),
-      rpc::twoparty::Side::CLIENT);
+      rpc::twoparty::Side::SERVER);
 
   auto backWrapped = serverFactory.capnpToKj(server.bootstrap().castAs<ByteStream>());
   auto midPumpPormise = middlePipe.in->pumpTo(*backWrapped);

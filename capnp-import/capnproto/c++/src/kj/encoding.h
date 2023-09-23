@@ -40,11 +40,15 @@ struct EncodingResult: public ResultType {
   // so an application doesn't strictly have to check for errors. E.g. the Unicode functions
   // replace errors with U+FFFD in the output.
   //
-  // Through magic, KJ_IF_MAYBE() and KJ_{REQUIRE,ASSERT}_NONNULL() work on EncodingResult<T>
-  // exactly if it were a Maybe<T> that is null in case of errors.
+  // Through magic, KJ_IF_SOME() and KJ_{REQUIRE,ASSERT}_NONNULL() work on EncodingResult<T>
+  // exactly as if it were a Maybe<T> that is kj::none in case of errors. (Note that an
+  // EncodingResult<T> will compare false with `nullptr`, but true with `kj::none` in this case.)
 
   inline EncodingResult(ResultType&& result, bool hadErrors)
       : ResultType(kj::mv(result)), hadErrors(hadErrors) {}
+
+  using ResultType::operator==;
+  inline bool operator==(kj::None) const { return hadErrors; }
 
   const bool hadErrors;
 };
@@ -291,7 +295,7 @@ inline EncodingResult<String> decodeCEscape(ArrayPtr<const char> text) {
 }
 
 // If you pass a string literal to a function taking ArrayPtr<const char>, it'll include the NUL
-// termintator, which is surprising. Let's add overloads that avoid that. In practice this probably
+// terminator, which is surprising. Let's add overloads that avoid that. In practice this probably
 // only even matters for encoding-test.c++.
 
 template <size_t s>
@@ -372,7 +376,7 @@ EncodingResult<Array<byte>> decodeBase64(const char (&text)[s]) {
   return decodeBase64(arrayPtr(text, s - 1));
 }
 
-#if __cplusplus >= 202000L
+#if __cpp_char8_t
 template <size_t s>
 inline EncodingResult<Array<char16_t>> encodeUtf16(const char8_t (&text)[s], bool nulTerminate=false) {
   return encodeUtf16(arrayPtr(reinterpret_cast<const char*>(text), s - 1), nulTerminate);

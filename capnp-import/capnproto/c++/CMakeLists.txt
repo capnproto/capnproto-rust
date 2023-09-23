@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.16)
 project("Cap'n Proto" CXX)
-set(VERSION 0.11-dev)
+set(VERSION 2.0-dev)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -8,12 +8,12 @@ include(CTest)
 include(CheckIncludeFileCXX)
 include(GNUInstallDirs)
 if(MSVC)
-  check_include_file_cxx(initializer_list HAS_CXX14)
+  check_include_file_cxx(coroutine HAS_CXX20 "/std:c++20")
 else()
-  check_include_file_cxx(initializer_list HAS_CXX14 "-std=gnu++1y")
+  check_include_file_cxx(coroutine HAS_CXX20 "-std=gnu++20")
 endif()
-if(NOT HAS_CXX14)
-  message(SEND_ERROR "Requires a C++14 compiler and standard library.")
+if(NOT HAS_CXX20)
+  message(SEND_ERROR "Requires a C++20 compiler and standard library.")
 endif()
 
 # these arguments are passed to all install(TARGETS) calls
@@ -134,13 +134,8 @@ if(MSVC)
   # TODO(cleanup): Enable higher warning level in MSVC, but make sure to test
   #   build with that warning level and clean out false positives.
 
-  add_compile_options(/wo4503)
-  # Only warn once on truncated decorated names. The maximum symbol length MSVC
-  # supports is 4k characters, which the parser framework regularly blows. The
-  # compiler likes to print out the entire type that went over the limit along
-  # with this warning, which gets unbearably spammy. That said, we don't want to
-  # just ignore it, so I'm letting it trigger once until we find some places to
-  # inject ParserRefs.
+  add_compile_options(/Zc:__cplusplus)
+  # Set the __cplusplus macro properly.
 else()
   # Note that it's important to add new CXXFLAGS before ones specified by the
   # user, so that the user's flags override them. This is particularly
@@ -155,7 +150,7 @@ else()
   add_compile_options(-Wall -Wextra -Wno-strict-aliasing -Wno-sign-compare -Wno-unused-parameter)
 
   if(DEFINED CMAKE_CXX_EXTENSIONS AND NOT CMAKE_CXX_EXTENSIONS)
-    message(SEND_ERROR "Cap'n Proto requires compiler-specific extensions (e.g., -std=gnu++14). Please leave CMAKE_CXX_EXTENSIONS undefined or ON.")
+    message(SEND_ERROR "Cap'n Proto requires compiler-specific extensions (e.g., -std=gnu++20). Please leave CMAKE_CXX_EXTENSIONS undefined or ON.")
   endif()
 
   if (NOT ANDROID)
