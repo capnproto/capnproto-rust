@@ -27,16 +27,12 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install Rust and Clang
       run: |
+          export DEBIAN_FRONTEND=noninteractive
           rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
           sudo apt update
-          sudo apt install clang-15
+          sudo apt install -y clang-15
           sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-15 60
           sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 60
-
-    - name: Install Cap'n Proto
-      run: |
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get install -y capnproto libcapnp-dev
 
     - name: Test feature flags
       run: |
@@ -80,11 +76,6 @@ jobs:
       - name: Setup miri
         run: cargo miri setup
 
-      - name: Install Cap'n Proto
-        run: |
-            export DEBIAN_FRONTEND=noninteractive
-            sudo apt-get install -y capnproto libcapnp-dev
-
       - name: Test default features
         run: cargo miri test --package capnp --package capnpc-test
 
@@ -109,11 +100,6 @@ jobs:
 
     - name: Install Rust
       run: rustup update ${{ env.minrust }} --no-self-update && rustup default ${{ env.minrust }}
-
-    - name: Install Cap'n Proto
-      run: |
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get install -y capnproto libcapnp-dev
 
     - name: Test feature flags
       run: |
