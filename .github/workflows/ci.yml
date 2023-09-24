@@ -29,9 +29,9 @@ jobs:
       run: |
           rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
           sudo apt update
-          sudo apt install clang-13
-          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-13 60
-          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-13 60
+          sudo apt install clang-15
+          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-15 60
+          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 60
 
     - name: Install Cap'n Proto
       run: |
