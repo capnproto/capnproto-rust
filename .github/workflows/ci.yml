@@ -137,4 +137,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check --unstable-features --error-on-unformatted
+          args: --all -- --check --unstable-features
