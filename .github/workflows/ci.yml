@@ -25,8 +25,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install Rust
-      run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
+    - name: Install Rust and Clang
+      run: |
+          rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
+          sudo apt update
+          sudo apt install clang-13
+          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-13 60
+          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-13 60
 
     - name: Install Cap'n Proto
       run: |
