@@ -12,6 +12,7 @@ fn main() {
         .file("in-other-submodule.capnp")
         .file("schema/test-in-dir.capnp")
         .file("schema-with-src-prefix/test-in-src-prefix-dir.capnp")
+        .import_path("..")
         .src_prefix("schema-with-src-prefix")
         .raw_code_generator_request_path(
             std::env::var("OUT_DIR").expect("OUT_DIR env var is not set")
@@ -24,6 +25,7 @@ fn main() {
         .capnp_executable(&cmdpath)
         .file("test-default-parent-module.capnp")
         .file("test-default-parent-module-override.capnp")
+        .import_path("..")
         .default_parent_module(vec![
             "test_default_parent_module".into(),
             "test_default_parent_module_inner".into(),
@@ -39,6 +41,7 @@ fn main() {
     capnpc::CompilerCommand::new()
         .capnp_executable(&cmdpath)
         .file("test-output-path.capnp")
+        .import_path("..")
         .output_path(output_path)
         .run()
         .expect("compiling schema");
