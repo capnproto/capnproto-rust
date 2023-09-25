@@ -22,7 +22,7 @@
 
 @0x99d187209d25cee7;
 
-using Rust = import "rust.capnp";
+using Rust = import "/rust.capnp";
 using External = import "./external-crate/external.capnp";
 
 # The test case is that this builds. This ensure we're able to refer to a struct

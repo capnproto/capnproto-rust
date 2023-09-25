@@ -25,15 +25,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install Rust and Clang
+    
+    - name: Install Rust
+      run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
+          
+    - name: Install Clang
       run: |
           export DEBIAN_FRONTEND=noninteractive
-          rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
           sudo apt update
           sudo apt install -y clang-15
           sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-15 60
           sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 60
-
+          
     - name: Test feature flags
       run: |
           cd capnp
@@ -75,6 +78,14 @@ jobs:
 
       - name: Setup miri
         run: cargo miri setup
+          
+      - name: Install Clang
+        run: |
+            export DEBIAN_FRONTEND=noninteractive
+            sudo apt update
+            sudo apt install -y clang-15
+            sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-15 60
+            sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 60
 
       - name: Test default features
         run: cargo miri test --package capnp --package capnpc-test
@@ -100,6 +111,14 @@ jobs:
 
     - name: Install Rust
       run: rustup update ${{ env.minrust }} --no-self-update && rustup default ${{ env.minrust }}
+          
+    - name: Install Clang
+      run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt update
+          sudo apt install -y clang-15
+          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-15 60
+          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 60
 
     - name: Test feature flags
       run: |

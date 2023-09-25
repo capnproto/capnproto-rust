@@ -73,6 +73,7 @@ mod pointer_constants;
 
 use std::{
     collections::HashMap,
+    env::current_dir,
     path::{Path, PathBuf},
 };
 
@@ -387,9 +388,10 @@ impl CompilerCommand {
                 .raw_code_generator_request_path(raw_code_generator_request_path.clone());
         }
 
+        let cmd_string = format!("{:?}", &command);
         run_command(command, code_generation_command).map_err(|error| {
             ::capnp::Error::failed(format!(
-                "Error while trying to execute `capnp compile`: {error}."
+                "Error while trying to execute `{cmd_string}`: {error}."
             ))
         })
     }
