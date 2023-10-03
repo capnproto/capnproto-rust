@@ -24,3 +24,15 @@ struct Date {
   month @1 :UInt8;
   day @2 :UInt8;
 }
+
+struct TestGeneric(T) {
+  typed @0 :List(T);
+  any @1 :AnyList;
+}
+
+#interface TestPassThrough(T) {
+#  getTypeList @0 () -> (result :List(T));
+#  setTypeList @1 (result :List(T)) -> ();
+#  getAnyList @2 () -> (result :AnyList);
+#  setAnyList @3 (result :AnyList) -> ();
+#}
