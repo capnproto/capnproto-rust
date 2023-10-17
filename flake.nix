@@ -41,7 +41,7 @@
 
     in
     rec {
-      devShell = pkgs.mkShell {
+      devShell = (pkgs.mkShell.override { stdenv = pkgs.llvmPackages_15.stdenv; }) {
         buildInputs = with pkgs; [
           openssl
           pkg-config
