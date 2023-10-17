@@ -34,7 +34,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder) {
     builder.set_u_int64_field(12345678901234567890);
     builder.set_float32_field(1234.5);
     builder.set_float64_field(-123e45);
-    builder.set_text_field("foo");
+    builder.set_text_field("foo".into());
     builder.set_data_field(b"bar");
     {
         let mut sub_builder = builder.reborrow().init_struct_field();
@@ -50,14 +50,14 @@ pub fn init_test_message(mut builder: test_all_types::Builder) {
         sub_builder.set_u_int64_field(345678901234567890);
         sub_builder.set_float32_field(-1.25e-10);
         sub_builder.set_float64_field(345f64);
-        sub_builder.set_text_field("baz");
+        sub_builder.set_text_field("baz".into());
         sub_builder.set_data_field(b"qux");
         {
             let mut sub_sub_builder = sub_builder.reborrow().init_struct_field();
-            sub_sub_builder.set_text_field("nested");
+            sub_sub_builder.set_text_field("nested".into());
             sub_sub_builder
                 .init_struct_field()
-                .set_text_field("really nested");
+                .set_text_field("really nested".into());
         }
         sub_builder.set_enum_field(TestEnum::Baz);
 
@@ -105,15 +105,15 @@ pub fn init_test_message(mut builder: test_all_types::Builder) {
             struct_list
                 .reborrow()
                 .get(0)
-                .set_text_field("x structlist 1");
+                .set_text_field("x structlist 1".into());
             struct_list
                 .reborrow()
                 .get(1)
-                .set_text_field("x structlist 2");
+                .set_text_field("x structlist 2".into());
             struct_list
                 .reborrow()
                 .get(2)
-                .set_text_field("x structlist 3");
+                .set_text_field("x structlist 3".into());
         }
 
         let mut enum_list = sub_builder.reborrow().init_enum_list(3);
@@ -149,7 +149,7 @@ check_test_message_impl(($typ:ident) => (
             assert_eq!(12345678901234567890, reader.reborrow().get_u_int64_field());
             assert_eq!(1234.5, reader.reborrow().get_float32_field());
             assert_eq!(-123e45, reader.reborrow().get_float64_field());
-            assert_eq!("foo", &*reader.reborrow().get_text_field().unwrap());
+            assert_eq!("foo", reader.reborrow().get_text_field().unwrap());
             assert_eq!(b"bar", &*reader.reborrow().get_data_field().unwrap());
             {
                 let mut sub_reader = reader.get_struct_field().unwrap();
@@ -165,12 +165,12 @@ check_test_message_impl(($typ:ident) => (
                 assert_eq!(345678901234567890, sub_reader.reborrow().get_u_int64_field());
                 assert_eq!(-1.25e-10, sub_reader.reborrow().get_float32_field());
                 assert_eq!(345f64, sub_reader.reborrow().get_float64_field());
-                assert_eq!("baz", &*sub_reader.reborrow().get_text_field().unwrap());
+                assert_eq!("baz", sub_reader.reborrow().get_text_field().unwrap());
                 assert_eq!(b"qux", &*sub_reader.reborrow().get_data_field().unwrap());
                 {
                     let mut sub_sub_reader = sub_reader.reborrow().get_struct_field().unwrap();
-                    assert_eq!("nested", &*sub_sub_reader.reborrow().get_text_field().unwrap());
-                    assert_eq!("really nested", &*sub_sub_reader.get_struct_field().unwrap()
+                    assert_eq!("nested", sub_sub_reader.reborrow().get_text_field().unwrap());
+                    assert_eq!("really nested", sub_sub_reader.get_struct_field().unwrap()
                                                                 .get_text_field().unwrap());
                 }
                 assert!(Ok(TestEnum::Baz) == sub_reader.reborrow().get_enum_field());
@@ -218,9 +218,9 @@ check_test_message_impl(($typ:ident) => (
                 {
                     let mut struct_list = sub_reader.reborrow().get_struct_list().unwrap();
                     assert_eq!(3, struct_list.len());
-                    assert_eq!("x structlist 1", &*struct_list.reborrow().get(0).get_text_field().unwrap());
-                    assert_eq!("x structlist 2", &*struct_list.reborrow().get(1).get_text_field().unwrap());
-                    assert_eq!("x structlist 3", &*struct_list.reborrow().get(2).get_text_field().unwrap());
+                    assert_eq!("x structlist 1", struct_list.reborrow().get(0).get_text_field().unwrap());
+                    assert_eq!("x structlist 2", struct_list.reborrow().get(1).get_text_field().unwrap());
+                    assert_eq!("x structlist 3", struct_list.reborrow().get(2).get_text_field().unwrap());
                 }
 
                 {

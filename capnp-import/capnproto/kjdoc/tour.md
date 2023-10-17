@@ -435,6 +435,8 @@ These wrappers perform some extra bookkeeping:
 
 ### Supporting `-fno-exceptions`
 
+_NOTE: In KJ / Cap'n Proto v2.0, support for `-fno-exceptions` has been removed, making this section somewhat obsolete. However, instances of recovery blocks still apear in the codebase, and they may still be relevant in the case of destructors, where they protect against throwing during unwind. Recovery blocks appearing anywhere other than destructors or code called from destructors can safely be deleted._
+
 KJ strongly recommends using C++ exceptions. However, exceptions are controversial, and many C++ applications are compiled with exceptions disabled. Some KJ-based libraries (especially Cap'n Proto) would like to accommodate such users. To that end, KJ's exception and assertion infrastructure is designed to degrade gracefully when compiled without exception support. In this case, exceptions are split into two types:
 
 * Fatal exceptions, when compiled with `-fno-exceptions`, will terminate the program when thrown.
@@ -910,9 +912,11 @@ The opposite of forking promises is joining promises. There are two types of joi
 
 For an exclusive join, use `promise.exclusiveJoin(kj::mv(otherPromise))`. The two promises must return the same type. The result is a promise that returns whichever result is produced first, and cancels the other promise at that time. (To exclusively join more than two promises, call `.exclusiveJoin()` multiple times in a chain.)
 
-To perform an inclusive join, use `kj::joinPromises()`. This turns a `kj::Array<kj::Promise<T>>` into a `kj::Promise<kj::Array<T>>`. However, note that `kj::joinPromises()` has a couple common gotchas:
+To perform an inclusive join, use `kj::joinPromises()` or `kj::joinPromisesFailFast()`. These turn a `kj::Array<kj::Promise<T>>` into a `kj::Promise<kj::Array<T>>`. However, note that `kj::joinPromises()` has a couple common gotchas:
 * Trailing continuations on the promises passed to `kj::joinPromises()` are evaluated lazily after all the promises become ready. Use `.eagerlyEvaluate()` on each one to force trailing continuations to happen eagerly. (See earlier discussion under "Background Tasks".)
-* If any promise in the array rejects, the exception will be held until all other promises have completed (or rejected), and only then will the exception propagate. In practice we've found that most uses of `kj::joinPromises()` would prefer "exclusive" or "fail-fast" behavior in the case of an exception, but as of this writing we have not yet introduced a function that does this.
+* If any promise in the array rejects, the exception will be held until all other promises have completed (or rejected), and only then will the exception propagate. In practice we've found that most uses of `kj::joinPromises()` would prefer "exclusive" or "fail-fast" behavior in the case of an exception.
+
+`kj::joinPromisesFailFast()` addresses the gotchas described above: promise continuations are evaluated eagerly, and if any promise results in an exception, the join promise is immediately rejected with that exception.
 
 ### Threads
 
@@ -967,6 +971,10 @@ There are some caveats one should be aware of while writing coroutines:
 - Lambda captures **do not** live inside of the coroutine frame, meaning lambda objects must outlive any coroutine Promises they return, or else the coroutine will encounter dangling references to captured objects. This is a defect in the C++ standard: https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rcoro-capture. To safely use a capturing lambda as a coroutine, first wrap it using `kj::coCapture([captures]() { ... })`, then invoke that object.
 - Holding a mutex lock across a `co_await` is almost always a bad idea, with essentially the same problems as holding a lock while calling `promise.wait(waitScope)`. This would cause the coroutine to hold the lock for however many turns of the event loop is required to drive the coroutine to release the lock; if I/O is involved, this could cause significant problems. Additionally, a reentrant call to the coroutine on the same thread would deadlock. Instead, if a coroutine must temporarily hold a lock, always keep the lock in a new lexical scope without any `co_await`.
 - Attempting to define (and use) a variable-length array will cause a compile error, because the size of coroutine frames must be knowable at compile-time. The error message that clang emits for this, "Coroutines cannot handle non static allocas yet", suggests this may be relaxed in the future.
+
+There are some additional considerations when refactoring `.then()`-style code into coroutines:
+- When refactoring recursive asynchronous loops (see the "Loops" section elsewhere in this document), you must replace recursion with a traditional `for` or `while` loop. This is because while `.then()` supports tail-call optimization, our implementation of `co_await` does not. Fortunately, this usually makes the code more readable anyway. If there are multiple points of recursion, one simple strategy is to replace the points of recursion (e.g. `return loop()`) with `continue`, and wrap the code in an infinite loop.
+- Replacing `.then()` with `co_await` can affect timing, because `co_await` effectively eagerly evaluates the awaited promise. If refactoring `.then()`-style code into a coroutine produces different results, or hung promises, it is likely you are running into a latent timing bug exposed by this subtle difference in semantics. Try adding `.eagerlyEvaluate(nullptr)` to each `.then()` promise and fixing the bug before proceeding.
 
 As of this writing, KJ supports C++20 coroutines and Coroutines TS coroutines, the latter being an experimental precursor to C++20 coroutines. They are functionally the same thing, but enabled with different compiler/linker flags:
 

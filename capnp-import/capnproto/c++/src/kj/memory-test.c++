@@ -295,6 +295,14 @@ TEST(Memory, OwnVoid) {
     voidPtr = nullptr;
     KJ_EXPECT(destructorCalled);
   }
+
+  {
+    Maybe<Own<void>> maybe;
+    maybe = Own<void>(&maybe, NullDisposer::instance);
+    KJ_EXPECT(KJ_ASSERT_NONNULL(maybe).get() == &maybe);
+    maybe = kj::none;
+    KJ_EXPECT(maybe == kj::none);
+  }
 }
 
 TEST(Memory, OwnConstVoid) {
@@ -348,6 +356,14 @@ TEST(Memory, OwnConstVoid) {
     KJ_EXPECT(!destructorCalled);
     voidPtr = nullptr;
     KJ_EXPECT(destructorCalled);
+  }
+
+  {
+    Maybe<Own<const void>> maybe;
+    maybe = Own<const void>(&maybe, NullDisposer::instance);
+    KJ_EXPECT(KJ_ASSERT_NONNULL(maybe).get() == &maybe);
+    maybe = kj::none;
+    KJ_EXPECT(maybe == kj::none);
   }
 }
 
@@ -433,6 +449,53 @@ KJ_TEST("Own with static disposer") {
     KJ_EXPECT(disposedPtr == nullptr);
   }
   KJ_EXPECT(disposedPtr == &i);
+}
+
+KJ_TEST("Maybe<Own<T>>") {
+  Maybe<Own<int>> m = heap<int>(123);
+  KJ_EXPECT(m != kj::none);
+  Maybe<int&> mRef = m;
+  KJ_EXPECT(KJ_ASSERT_NONNULL(mRef) == 123);
+  KJ_EXPECT(&KJ_ASSERT_NONNULL(mRef) == KJ_ASSERT_NONNULL(m).get());
+}
+
+int* sawIntPtr = nullptr;
+
+void freeInt(int* ptr) {
+  sawIntPtr = ptr;
+  delete ptr;
+}
+
+void freeChar(char* c) {
+  delete c;
+}
+
+void free(StaticType* ptr) {
+  delete ptr;
+}
+
+void free(const char* ptr) {}
+
+KJ_TEST("disposeWith") {
+  auto i = new int(1);
+  {
+    auto p = disposeWith<freeInt>(i);
+    KJ_EXPECT(sawIntPtr == nullptr);
+  }
+  KJ_EXPECT(sawIntPtr == i);
+  {
+    auto c = new char('a');
+    auto p = disposeWith<freeChar>(c);
+  }
+  {
+    // Explicit cast required to avoid ambiguity when overloads are present.
+    auto s = new StaticType{1};
+    auto p = disposeWith<static_cast<void(*)(StaticType*)>(free)>(s);
+  }
+  {
+    const char c = 'a';
+    auto p2 = disposeWith<static_cast<void(*)(const char*)>(free)>(&c);
+  }
 }
 
 // TODO(test):  More tests.

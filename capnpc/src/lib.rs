@@ -37,18 +37,6 @@
 //! capnpc = "0.18"
 //! ```
 //!
-//! In your lib.rs:
-//!
-//! ```ignore
-//! mod foo_schema {
-//!     include!(concat!(env!("OUT_DIR"), "/schema_foo.rs"));
-//! }
-//!
-//! mod bar_schema {
-//!     include!(concat!(env!("OUT_DIR"), "/schema_bar.rs"));
-//! }
-//! ```
-//!
 //! In your build.rs:
 //!
 //! ```ignore
@@ -58,6 +46,18 @@
 //!         .file("schema/foo.capnp")
 //!         .file("schema/bar.capnp")
 //!         .run().expect("schema compiler command");
+//! }
+//! ```
+//!
+//! In your lib.rs:
+//!
+//! ```ignore
+//! mod foo_capnp {
+//!     include!(concat!(env!("OUT_DIR"), "/foo_capnp.rs"));
+//! }
+//!
+//! mod bar_capnp {
+//!     include!(concat!(env!("OUT_DIR"), "/bar_capnp.rs"));
 //! }
 //! ```
 //!
@@ -73,6 +73,7 @@ mod pointer_constants;
 
 use std::{
     collections::HashMap,
+    env::current_dir,
     path::{Path, PathBuf},
 };
 
@@ -387,9 +388,10 @@ impl CompilerCommand {
                 .raw_code_generator_request_path(raw_code_generator_request_path.clone());
         }
 
+        let cmd_string = format!("{:?}", &command);
         run_command(command, code_generation_command).map_err(|error| {
             ::capnp::Error::failed(format!(
-                "Error while trying to execute `capnp compile`: {error}."
+                "Error while trying to execute `{cmd_string}`: {error}."
             ))
         })
     }

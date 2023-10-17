@@ -28,15 +28,11 @@
 KJ_BEGIN_HEADER
 
 #ifndef KJ_USE_FIBERS
-  #if __BIONIC__ || __FreeBSD__ || __OpenBSD__ || KJ_NO_EXCEPTIONS
+  #if __BIONIC__ || __FreeBSD__ || __OpenBSD__
     // These platforms don't support fibers.
     #define KJ_USE_FIBERS 0
   #else
     #define KJ_USE_FIBERS 1
-  #endif
-#else
-  #if KJ_NO_EXCEPTIONS && KJ_USE_FIBERS
-    #error "Fibers cannot be enabled when exceptions are disabled."
   #endif
 #endif
 
@@ -223,9 +219,7 @@ public:
   // exception to the returned promise.
   //
   // Either `func` or `errorHandler` may, of course, throw an exception, in which case the promise
-  // is broken.  When compiled with -fno-exceptions, the framework will still detect when a
-  // recoverable exception was thrown inside of a continuation and will consider the promise
-  // broken even though a (presumably garbage) result was returned.
+  // is broken.
   //
   // If the returned promise is destroyed before the callback runs, the callback will be canceled
   // (it will never run).
@@ -277,10 +271,7 @@ public:
   // server-side code generally cannot use wait(), because it has to be able to accept multiple
   // requests at once.
   //
-  // If the promise is rejected, `wait()` throws an exception.  If the program was compiled without
-  // exceptions (-fno-exceptions), this will usually abort.  In this case you really should first
-  // use `then()` to set an appropriate handler for the exception case, so that the promise you
-  // actually wait on never throws.
+  // If the promise is rejected, `wait()` throws an exception.
   //
   // `waitScope` is an object proving that the caller is in a scope where wait() is allowed.  By
   // convention, any function which might call wait(), or which might call another function which
@@ -390,6 +381,7 @@ template <typename T>
 class ForkedPromise {
   // The result of `Promise::fork()` and `EventLoop::fork()`.  Allows branches to be created.
   // Like `Promise<T>`, this is a pass-by-move type.
+  // Rather than adding branches ForkedPromise can be co_await'ed directly to save on allocations.
 
 public:
   inline ForkedPromise(decltype(nullptr)) {}
@@ -407,6 +399,7 @@ private:
 
   friend class Promise<T>;
   friend class EventLoop;
+  template<typename, bool> friend class _::ForkBranch;
 };
 
 constexpr _::ReadyNow READY_NOW = _::ReadyNow();
@@ -556,51 +549,21 @@ private:
 
 template <typename T>
 Promise<Array<T>> joinPromises(Array<Promise<T>>&& promises, SourceLocation location = {});
-// Join an array of promises into a promise for an array.
+// Join an array of promises into a promise for an array. Trailing continuations on promises are not
+// evaluated until all promises have settled. Exceptions are propagated only after the last promise
+// has settled.
+//
+// TODO(cleanup): It is likely that `joinPromisesFailFast()` is what everyone should be using.
+//   Deprecate this function.
 
-// =======================================================================================
-// Hack for creating a lambda that holds an owned pointer.
-
-template <typename Func, typename MovedParam>
-class CaptureByMove {
-public:
-  inline CaptureByMove(Func&& func, MovedParam&& param)
-      : func(kj::mv(func)), param(kj::mv(param)) {}
-
-  template <typename... Params>
-  inline auto operator()(Params&&... params)
-      -> decltype(kj::instance<Func>()(kj::instance<MovedParam&&>(), kj::fwd<Params>(params)...)) {
-    return func(kj::mv(param), kj::fwd<Params>(params)...);
-  }
-
-private:
-  Func func;
-  MovedParam param;
-};
-
-template <typename Func, typename MovedParam>
-inline CaptureByMove<Func, Decay<MovedParam>> mvCapture(MovedParam&& param, Func&& func)
-    KJ_DEPRECATED("Use C++14 generalized captures instead.");
-
-template <typename Func, typename MovedParam>
-inline CaptureByMove<Func, Decay<MovedParam>> mvCapture(MovedParam&& param, Func&& func) {
-  // Hack to create a "lambda" which captures a variable by moving it rather than copying or
-  // referencing.  C++14 generalized captures should make this obsolete, but for now in C++11 this
-  // is commonly needed for Promise continuations that own their state.  Example usage:
-  //
-  //    Own<Foo> ptr = makeFoo();
-  //    Promise<int> promise = callRpc();
-  //    promise.then(mvCapture(ptr, [](Own<Foo>&& ptr, int result) {
-  //      return ptr->finish(result);
-  //    }));
-
-  return CaptureByMove<Func, Decay<MovedParam>>(kj::fwd<Func>(func), kj::mv(param));
-}
+template <typename T>
+Promise<Array<T>> joinPromisesFailFast(Array<Promise<T>>&& promises, SourceLocation location = {});
+// Join an array of promises into a promise for an array. Trailing continuations on promises are
+// evaluated eagerly. If any promise results in an exception, the exception is immediately
+// propagated to the returned join promise.
 
 // =======================================================================================
 // Hack for safely using a lambda as a coroutine.
-
-#if KJ_HAS_COROUTINE
 
 namespace _ {
 
@@ -625,11 +588,11 @@ struct CaptureForCoroutine {
 
   template<typename ...Args>
   auto operator()(Args&&... args) {
-    if (maybeFunctor == nullptr) {
+    if (maybeFunctor == kj::none) {
       throwMultipleCoCaptureInvocations();
     }
     auto localFunctor = kj::mv(*kj::_::readMaybe(maybeFunctor));
-    maybeFunctor = nullptr;
+    maybeFunctor = kj::none;
     return coInvoke(kj::mv(localFunctor), kj::fwd<Args>(args)...);
   }
 };
@@ -705,8 +668,6 @@ auto coCapture(Functor&& f) {
 
   return _::CaptureForCoroutine(kj::mv(f));
 }
-
-#endif  // KJ_HAS_COROUTINE
 
 // =======================================================================================
 // Advanced promise construction
@@ -895,7 +856,7 @@ public:
   // Releases previously-wrapped promises, so that they will not be canceled regardless of what
   // happens to this Canceler.
 
-  bool isEmpty() const { return list == nullptr; }
+  bool isEmpty() const { return list == kj::none; }
   // Indicates if any previously-wrapped promises are still executing. (If this returns true, then
   // cancel() would be a no-op.)
 
@@ -985,12 +946,21 @@ public:
   kj::String trace();
   // Return debug info about all promises currently in the TaskSet.
 
-  bool isEmpty() { return tasks == nullptr; }
+  bool isEmpty() { return tasks == kj::none; }
   // Check if any tasks are running.
 
   Promise<void> onEmpty();
   // Returns a promise that fulfills the next time the TaskSet is empty. Only one such promise can
   // exist at a time.
+
+  void clear();
+  // Cancel all tasks.
+  //
+  // As always, it is not safe to cancel the task that is currently running, so you could not call
+  // this from inside a task in the TaskSet. However, it IS safe to call this from the
+  // `taskFailed()` callback.
+  //
+  // Calling this will always trigger onEmpty(), if anyone is listening.
 
 private:
   class Task;
@@ -1000,6 +970,8 @@ private:
   Maybe<OwnTask> tasks;
   Maybe<Own<PromiseFulfiller<void>>> emptyFulfiller;
   SourceLocation location;
+
+  void destroyTasks();
 };
 
 // =======================================================================================
@@ -1285,7 +1257,7 @@ class WaitScope {
 
 public:
   inline explicit WaitScope(EventLoop& loop): loop(loop) { loop.enterScope(); }
-  inline ~WaitScope() { if (fiber == nullptr) loop.leaveScope(); }
+  inline ~WaitScope() { if (fiber == kj::none) loop.leaveScope(); }
   KJ_DISALLOW_COPY_AND_MOVE(WaitScope);
 
   uint poll(uint maxTurnCount = maxValue);
@@ -1318,7 +1290,7 @@ public:
   //
   // This has no effect if this WaitScope itself is for a fiber.
   //
-  // Pass `nullptr` as the parameter to go back to running events on the main stack.
+  // Pass `kj::none` as the parameter to go back to running events on the main stack.
 
   void cancelAllDetached();
   // HACK: Immediately cancel all detached promises.
@@ -1342,8 +1314,8 @@ private:
 
   template <typename Func>
   inline void runOnStackPool(Func&& func) {
-    KJ_IF_MAYBE(pool, runningStacksPool) {
-      pool->runSynchronously(kj::fwd<Func>(func));
+    KJ_IF_SOME(pool, runningStacksPool) {
+      pool.runSynchronously(kj::fwd<Func>(func));
     } else {
       func();
     }

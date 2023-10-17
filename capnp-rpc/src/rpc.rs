@@ -355,7 +355,7 @@ fn to_pipeline_ops(
 }
 
 fn from_error(error: &Error, mut builder: exception::Builder) {
-    builder.set_reason(&error.to_string());
+    builder.set_reason(error.to_string()[..].into());
     let typ = match error.kind {
         ::capnp::ErrorKind::Failed => exception::Type::Failed,
         ::capnp::ErrorKind::Overloaded => exception::Type::Overloaded,
@@ -379,10 +379,13 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
         (Ok(exception::Type::Unimplemented), Ok(reason)) => {
             (::capnp::ErrorKind::Unimplemented, reason)
         }
-        _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
+        _ => (::capnp::ErrorKind::Failed, "(malformed error)".into()),
     };
+    let reason_str = reason
+        .to_str()
+        .unwrap_or("<malformed utf-8 in error reason>");
     Error {
-        extra: format!("remote exception: {reason}"),
+        extra: format!("remote exception: {reason_str}"),
         kind,
     }
 }
@@ -566,9 +569,7 @@ impl<VatId> ConnectionState<VatId> {
                         }
                     }
                 });
-                let maybe_fulfiller =
-                    mem::replace(&mut *self.disconnect_fulfiller.borrow_mut(), None);
-                match maybe_fulfiller {
+                match self.disconnect_fulfiller.borrow_mut().take() {
                     None => unreachable!(),
                     Some(fulfiller) => {
                         let _ = fulfiller.send(Promise::from_future(promise.attach(c)));

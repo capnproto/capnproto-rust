@@ -68,10 +68,7 @@ where
     T: FromClientHook,
 {
     fn clone(&self) -> Reader<'a, T> {
-        Reader {
-            marker: self.marker,
-            reader: self.reader,
-        }
+        *self
     }
 }
 impl<'a, T> Copy for Reader<'a, T> where T: FromClientHook {}

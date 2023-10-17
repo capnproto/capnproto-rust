@@ -30,6 +30,7 @@
 #include "async-io-internal.h"
 #include "debug.h"
 #include "io.h"
+#include "cidr.h"
 #include "miniposix.h"
 #include <kj/compat/gtest.h>
 #include <kj/time.h>
@@ -90,7 +91,7 @@ TEST(AsyncIo, SimpleNetwork) {
   EXPECT_EQ("foo", result);
 }
 
-#if !_WIN32  // TODO(0.10): Implement NetworkPeerIdentity for Win32.
+#if !_WIN32  // TODO(someday): Implement NetworkPeerIdentity for Win32.
 TEST(AsyncIo, SimpleNetworkAuthentication) {
   auto ioContext = setupAsyncIo();
   auto& network = ioContext.provider->getNetwork();
@@ -194,15 +195,15 @@ TEST(AsyncIo, UnixSocket) {
     return promise.then([&,addr=kj::mv(addr)](AuthenticatedStream result) mutable {
       auto id = result.peerIdentity.downcast<LocalPeerIdentity>();
       auto creds = id->getCredentials();
-      KJ_IF_MAYBE(p, creds.pid) {
-        KJ_EXPECT(*p == getpid());
+      KJ_IF_SOME(p, creds.pid) {
+        KJ_EXPECT(p == getpid());
 #if __linux__ || __APPLE__
       } else {
         KJ_FAIL_EXPECT("LocalPeerIdentity for unix socket had null PID");
 #endif
       }
-      KJ_IF_MAYBE(u, creds.uid) {
-        KJ_EXPECT(*u == getuid());
+      KJ_IF_SOME(u, creds.uid) {
+        KJ_EXPECT(u == getuid());
       } else {
         KJ_FAIL_EXPECT("LocalPeerIdentity for unix socket had null UID");
       }
@@ -222,15 +223,15 @@ TEST(AsyncIo, UnixSocket) {
   }).then([&](AuthenticatedStream result) {
     auto id = result.peerIdentity.downcast<LocalPeerIdentity>();
     auto creds = id->getCredentials();
-    KJ_IF_MAYBE(p, creds.pid) {
-      KJ_EXPECT(*p == getpid());
+    KJ_IF_SOME(p, creds.pid) {
+      KJ_EXPECT(p == getpid());
 #if __linux__ || __APPLE__
     } else {
       KJ_FAIL_EXPECT("LocalPeerIdentity for unix socket had null PID");
 #endif
     }
-    KJ_IF_MAYBE(u, creds.uid) {
-      KJ_EXPECT(*u == getuid());
+    KJ_IF_SOME(u, creds.uid) {
+      KJ_EXPECT(u == getuid());
     } else {
       KJ_FAIL_EXPECT("LocalPeerIdentity for unix socket had null UID");
     }
@@ -1081,12 +1082,12 @@ TEST(AsyncIo, AbstractUnixSocket) {
 #endif  // __linux__
 
 KJ_TEST("CIDR parsing") {
-  KJ_EXPECT(_::CidrRange("1.2.3.4/16").toString() == "1.2.0.0/16");
-  KJ_EXPECT(_::CidrRange("1.2.255.4/18").toString() == "1.2.192.0/18");
-  KJ_EXPECT(_::CidrRange("1234::abcd:ffff:ffff/98").toString() == "1234::abcd:c000:0/98");
+  KJ_EXPECT(CidrRange("1.2.3.4/16").toString() == "1.2.0.0/16");
+  KJ_EXPECT(CidrRange("1.2.255.4/18").toString() == "1.2.192.0/18");
+  KJ_EXPECT(CidrRange("1234::abcd:ffff:ffff/98").toString() == "1234::abcd:c000:0/98");
 
-  KJ_EXPECT(_::CidrRange::inet4({1,2,255,4}, 18).toString() == "1.2.192.0/18");
-  KJ_EXPECT(_::CidrRange::inet6({0x1234, 0x5678}, {0xabcd, 0xffff, 0xffff}, 98).toString() ==
+  KJ_EXPECT(CidrRange::inet4({1,2,255,4}, 18).toString() == "1.2.192.0/18");
+  KJ_EXPECT(CidrRange::inet6({0x1234, 0x5678}, {0xabcd, 0xffff, 0xffff}, 98).toString() ==
             "1234:5678::abcd:c000:0/98");
 
   union {
@@ -1099,37 +1100,37 @@ KJ_TEST("CIDR parsing") {
   {
     addr4.sin_family = AF_INET;
     addr4.sin_addr.s_addr = htonl(0x0102dfff);
-    KJ_EXPECT(_::CidrRange("1.2.255.255/18").matches(&addr));
-    KJ_EXPECT(!_::CidrRange("1.2.255.255/19").matches(&addr));
-    KJ_EXPECT(_::CidrRange("1.2.0.0/16").matches(&addr));
-    KJ_EXPECT(!_::CidrRange("1.3.0.0/16").matches(&addr));
-    KJ_EXPECT(_::CidrRange("1.2.223.255/32").matches(&addr));
-    KJ_EXPECT(_::CidrRange("0.0.0.0/0").matches(&addr));
-    KJ_EXPECT(!_::CidrRange("::/0").matches(&addr));
+    KJ_EXPECT(CidrRange("1.2.255.255/18").matches(&addr));
+    KJ_EXPECT(!CidrRange("1.2.255.255/19").matches(&addr));
+    KJ_EXPECT(CidrRange("1.2.0.0/16").matches(&addr));
+    KJ_EXPECT(!CidrRange("1.3.0.0/16").matches(&addr));
+    KJ_EXPECT(CidrRange("1.2.223.255/32").matches(&addr));
+    KJ_EXPECT(CidrRange("0.0.0.0/0").matches(&addr));
+    KJ_EXPECT(!CidrRange("::/0").matches(&addr));
   }
 
   {
     addr4.sin_family = AF_INET6;
     byte bytes[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
     memcpy(addr6.sin6_addr.s6_addr, bytes, 16);
-    KJ_EXPECT(_::CidrRange("0102:03ff::/24").matches(&addr));
-    KJ_EXPECT(!_::CidrRange("0102:02ff::/24").matches(&addr));
-    KJ_EXPECT(_::CidrRange("0102:02ff::/23").matches(&addr));
-    KJ_EXPECT(_::CidrRange("0102:0304:0506:0708:090a:0b0c:0d0e:0f10/128").matches(&addr));
-    KJ_EXPECT(_::CidrRange("::/0").matches(&addr));
-    KJ_EXPECT(!_::CidrRange("0.0.0.0/0").matches(&addr));
+    KJ_EXPECT(CidrRange("0102:03ff::/24").matches(&addr));
+    KJ_EXPECT(!CidrRange("0102:02ff::/24").matches(&addr));
+    KJ_EXPECT(CidrRange("0102:02ff::/23").matches(&addr));
+    KJ_EXPECT(CidrRange("0102:0304:0506:0708:090a:0b0c:0d0e:0f10/128").matches(&addr));
+    KJ_EXPECT(CidrRange("::/0").matches(&addr));
+    KJ_EXPECT(!CidrRange("0.0.0.0/0").matches(&addr));
   }
 
   {
     addr4.sin_family = AF_INET6;
     inet_pton(AF_INET6, "::ffff:1.2.223.255", &addr6.sin6_addr);
-    KJ_EXPECT(_::CidrRange("1.2.255.255/18").matches(&addr));
-    KJ_EXPECT(!_::CidrRange("1.2.255.255/19").matches(&addr));
-    KJ_EXPECT(_::CidrRange("1.2.0.0/16").matches(&addr));
-    KJ_EXPECT(!_::CidrRange("1.3.0.0/16").matches(&addr));
-    KJ_EXPECT(_::CidrRange("1.2.223.255/32").matches(&addr));
-    KJ_EXPECT(_::CidrRange("0.0.0.0/0").matches(&addr));
-    KJ_EXPECT(_::CidrRange("::/0").matches(&addr));
+    KJ_EXPECT(CidrRange("1.2.255.255/18").matches(&addr));
+    KJ_EXPECT(!CidrRange("1.2.255.255/19").matches(&addr));
+    KJ_EXPECT(CidrRange("1.2.0.0/16").matches(&addr));
+    KJ_EXPECT(!CidrRange("1.3.0.0/16").matches(&addr));
+    KJ_EXPECT(CidrRange("1.2.223.255/32").matches(&addr));
+    KJ_EXPECT(CidrRange("0.0.0.0/0").matches(&addr));
+    KJ_EXPECT(CidrRange("::/0").matches(&addr));
   }
 }
 
@@ -2781,7 +2782,7 @@ KJ_TEST("Userland tee pump cancellation implies write cancellation") {
   leftPumpPromise = nullptr;
   // It should cancel its write operations, so it should now be safe to destroy the output stream to
   // which it was pumping.
-  KJ_IF_MAYBE(exception, kj::runCatchingExceptions([&]() {
+  KJ_IF_SOME(exception, kj::runCatchingExceptions([&]() {
     leftPipe.out = nullptr;
   })) {
     KJ_FAIL_EXPECT("write promises were not canceled", exception);
@@ -2992,8 +2993,8 @@ KJ_TEST("AggregateConnectionReceiver") {
 
   auto aggregate = newAggregateConnectionReceiver(receiversBuilder.finish());
 
-  CapabilityStreamNetworkAddress connector1(nullptr, *pipe1.ends[1]);
-  CapabilityStreamNetworkAddress connector2(nullptr, *pipe2.ends[1]);
+  CapabilityStreamNetworkAddress connector1(kj::none, *pipe1.ends[1]);
+  CapabilityStreamNetworkAddress connector2(kj::none, *pipe2.ends[1]);
 
   auto connectAndWrite = [&](NetworkAddress& addr, kj::StringPtr text) {
     return addr.connect()

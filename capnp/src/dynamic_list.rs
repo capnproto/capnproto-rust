@@ -312,21 +312,19 @@ impl<'a> Builder<'a> {
                 Ok(())
             }
             (TypeVariant::Text, dynamic_value::Reader::Text(t)) => {
-                self
-                .builder
-                .reborrow()
-                .get_pointer_element(index)
-                .set_text(t);
+                self.builder
+                    .reborrow()
+                    .get_pointer_element(index)
+                    .set_text(t);
                 Ok(())
-            },
+            }
             (TypeVariant::Data, dynamic_value::Reader::Data(d)) => {
-                self
-                .builder
-                .reborrow()
-                .get_pointer_element(index)
-                .set_data(d);
+                self.builder
+                    .reborrow()
+                    .get_pointer_element(index)
+                    .set_data(d);
                 Ok(())
-            },
+            }
             (TypeVariant::Struct(ss), dynamic_value::Reader::Struct(s)) => {
                 assert_eq!(ss, s.get_schema().raw);
                 self.builder

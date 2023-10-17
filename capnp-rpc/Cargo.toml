@@ -1,23 +1,21 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.18.0-alpha"
-authors = [ "David Renshaw <dwrenshaw@sandstorm.io>" ]
-license = "MIT"
+version.workspace = true
+authors = ["David Renshaw <dwrenshaw@sandstorm.io>"]
+license.workspace = true
 description = "implementation of the Cap'n Proto remote procedure call protocol"
-repository = "https://github.com/capnproto/capnproto-rust"
+repository.workspace = true
 documentation = "https://docs.rs/capnp-rpc/"
 categories = ["network-programming"]
 autoexamples = false
-edition = "2021"
+edition.workspace = true
 
 readme = "README.md"
 
 [dependencies.futures]
-version = "0.3.0"
-default-features = false
-features = ["std"]
+workspace = true
 
 [dependencies]
-capnp-futures = { version = "0.18.0-alpha", path = "../capnp-futures" }
-capnp = {version = "0.18.0-alpha", path = "../capnp"}
+capnp-futures.workspace = true
+capnp.workspace = true

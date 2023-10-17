@@ -10,12 +10,12 @@ use example_capnp::text_list;
 fn get_person_message() -> capnp::message::TypedBuilder<person_capnp::Owned> {
     let mut message = capnp::message::TypedBuilder::<person_capnp::Owned>::new_default();
     let mut person = message.init_root();
-    person.set_name("Tom");
-    person.set_email("tom@gmail.com");
+    person.set_name("Tom".into());
+    person.set_email("tom@gmail.com".into());
     let mut birthdate = person.reborrow().init_birthdate();
     birthdate.set_day(1);
     birthdate.set_month(2);
-    birthdate.set_year_as_text("1990");
+    birthdate.set_year_as_text("1990".into());
     message
     //capnp::serialize::write_message_to_words(&message)
 }

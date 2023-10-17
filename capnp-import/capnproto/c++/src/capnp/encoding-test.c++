@@ -647,9 +647,7 @@ TEST(Encoding, ListUpgrade) {
   {
     kj::Maybe<kj::Exception> e = kj::runCatchingExceptions([&]() {
       reader.getAnyPointerField().getAs<List<uint32_t>>();
-#if !KJ_NO_EXCEPTIONS
       ADD_FAILURE() << "Should have thrown an exception.";
-#endif
     });
 
     KJ_EXPECT(e != nullptr, "Should have thrown an exception.");
@@ -755,9 +753,7 @@ TEST(Encoding, BitListUpgrade) {
   {
     kj::Maybe<kj::Exception> e = kj::runCatchingExceptions([&]() {
       root.getAnyPointerField().getAs<List<test::TestLists::Struct1>>();
-#if !KJ_NO_EXCEPTIONS
       ADD_FAILURE() << "Should have thrown an exception.";
-#endif
     });
 
     KJ_EXPECT(e != nullptr, "Should have thrown an exception.");
@@ -768,9 +764,7 @@ TEST(Encoding, BitListUpgrade) {
   {
     kj::Maybe<kj::Exception> e = kj::runCatchingExceptions([&]() {
       reader.getAnyPointerField().getAs<List<test::TestLists::Struct1>>();
-#if !KJ_NO_EXCEPTIONS
       ADD_FAILURE() << "Should have thrown an exception.";
-#endif
     });
 
     KJ_EXPECT(e != nullptr, "Should have thrown an exception.");
@@ -1207,6 +1201,10 @@ TEST(Encoding, UpgradeListInBuilder) {
     EXPECT_NONFATAL_FAILURE(root.getAnyPointerField().getAs<List<uint32_t>>());
     EXPECT_NONFATAL_FAILURE(root.getAnyPointerField().getAs<List<uint64_t>>());
     checkList(root.getAnyPointerField().getAs<List<Text>>(), {"foo", "bar", "baz"});
+
+    auto ptrlist = root.getAnyPointerField().getAs<AnyList>();
+    ASSERT_EQ(3, ptrlist.size());
+    checkList(ptrlist.as<List<Text>>(), { "foo", "bar", "baz" });
 
     checkList(orig, {"foo", "bar", "baz"});
     checkUpgradedList(root, {0, 0, 0}, {"foo", "bar", "baz"});
@@ -1957,7 +1955,7 @@ TEST(Encoding, GenericDefaults) {
 
 TEST(Encoding, UnionInGenerics) {
   MallocMessageBuilder message;
-  auto builder = message.initRoot<test::TestGenerics<>>();
+  auto builder = message.initRoot<test::TestGenerics<test::TestAnyPointer, test::TestAnyPointer>>();
   auto reader = builder.asReader();
 
   //just call the methods to verify that generated code compiles
@@ -2035,14 +2033,14 @@ KJ_TEST("Test generic passthrough interface") {
   auto builder = message.initRoot<test::TestGenerics<TestAllTypes, TestAllTypes>>();
   const int COUNT = 3;
   auto list = builder.initListFoo(COUNT);
-
+  
   kj::EventLoop loop;
   kj::WaitScope waitScope(loop);
-
+  
   test::TestGenericParameterPassThroughInterface<TestAllTypes>::Client client(kj::heap<TestGenericParameterPassThroughInterfaceImpl<TestAllTypes>>());
 
   auto request1 = client.setGenericListRequest();
-  request1.setListResult(list.asReader());
+  request1.setListResult(builder.getListFoo());
   auto promise1 = request1.send();
 
   auto request2 = client.getGenericListRequest();

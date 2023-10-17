@@ -1,6 +1,6 @@
 ## Process this file with autoconf to produce configure.
 
-AC_INIT([Capn Proto],[0.11-dev],[capnproto@googlegroups.com],[capnproto-c++])
+AC_INIT([Capn Proto],[2.0-dev],[capnproto@googlegroups.com],[capnproto-c++])
 
 AC_CONFIG_SRCDIR([src/capnp/layout.c++])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -65,7 +65,7 @@ AC_ARG_ENABLE([reflection], [
 AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
-AX_CXX_COMPILE_STDCXX_14
+AX_CXX_COMPILE_STDCXX_20
 
 AS_CASE("${host_os}", *mingw*, [
     # We don't use pthreads on MinGW.

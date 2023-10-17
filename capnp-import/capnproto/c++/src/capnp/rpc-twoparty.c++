@@ -26,12 +26,6 @@
 
 namespace capnp {
 
-static BufferedMessageStream::IsShortLivedCallback getShortLivedCallback() {
-  return [](MessageReader& reader) {
-    return IncomingRpcMessage::isShortLivedRpcMessage(reader.getRoot<AnyPointer>());
-  };
-}
-
 TwoPartyVatNetwork::TwoPartyVatNetwork(
     kj::OneOf<MessageStream*, kj::Own<MessageStream>>&& stream,
     uint maxFdsPerMessage,
@@ -73,14 +67,16 @@ TwoPartyVatNetwork::TwoPartyVatNetwork(kj::AsyncIoStream& stream, rpc::twoparty:
                                        ReaderOptions receiveOptions,
                                        const kj::MonotonicClock& clock)
     : TwoPartyVatNetwork(
-          kj::Own<MessageStream>(kj::heap<BufferedMessageStream>(stream, getShortLivedCallback())),
+          kj::Own<MessageStream>(kj::heap<BufferedMessageStream>(
+              stream, IncomingRpcMessage::getShortLivedCallback())),
           0, side, receiveOptions, clock) {}
 
 TwoPartyVatNetwork::TwoPartyVatNetwork(kj::AsyncCapabilityStream& stream, uint maxFdsPerMessage,
                                        rpc::twoparty::Side side, ReaderOptions receiveOptions,
                                        const kj::MonotonicClock& clock)
     : TwoPartyVatNetwork(
-          kj::Own<MessageStream>(kj::heap<BufferedMessageStream>(stream, getShortLivedCallback())),
+          kj::Own<MessageStream>(kj::heap<BufferedMessageStream>(
+              stream, IncomingRpcMessage::getShortLivedCallback())),
           maxFdsPerMessage, side, receiveOptions, clock) {}
 
 TwoPartyVatNetwork::~TwoPartyVatNetwork() noexcept(false) {};
@@ -111,7 +107,7 @@ kj::Own<TwoPartyVatNetworkBase::Connection> TwoPartyVatNetwork::asConnection() {
 kj::Maybe<kj::Own<TwoPartyVatNetworkBase::Connection>> TwoPartyVatNetwork::connect(
     rpc::twoparty::VatId::Reader ref) {
   if (ref.getSide() == side) {
-    return nullptr;
+    return kj::none;
   } else {
     return asConnection();
   }
@@ -289,8 +285,8 @@ size_t TwoPartyVatNetwork::getWindow() {
   if (solSndbufUnimplemented) {
     return RpcFlowController::DEFAULT_WINDOW_SIZE;
   } else {
-    KJ_IF_MAYBE(bufSize, getStream().getSendBufferSize()) {
-      return *bufSize;
+    KJ_IF_SOME(bufSize, getStream().getSendBufferSize()) {
+      return bufSize;
     } else {
       solSndbufUnimplemented = true;
       return RpcFlowController::DEFAULT_WINDOW_SIZE;
@@ -308,9 +304,9 @@ kj::Own<OutgoingRpcMessage> TwoPartyVatNetwork::newOutgoingMessage(uint firstSeg
 
 kj::Promise<kj::Maybe<kj::Own<IncomingRpcMessage>>> TwoPartyVatNetwork::receiveIncomingMessage() {
   return kj::evalLater([this]() -> kj::Promise<kj::Maybe<kj::Own<IncomingRpcMessage>>> {
-    KJ_IF_MAYBE(e, readCancelReason) {
+    KJ_IF_SOME(e, readCancelReason) {
       // A previous write failed; propagate the failure to reads, too.
-      return kj::cp(*e);
+      return kj::cp(e);
     }
 
     kj::Array<kj::AutoCloseFd> fdSpace = nullptr;
@@ -321,15 +317,15 @@ kj::Promise<kj::Maybe<kj::Own<IncomingRpcMessage>>> TwoPartyVatNetwork::receiveI
     return promise.then([fdSpace = kj::mv(fdSpace)]
                         (kj::Maybe<MessageReaderAndFds>&& messageAndFds) mutable
                       -> kj::Maybe<kj::Own<IncomingRpcMessage>> {
-      KJ_IF_MAYBE(m, messageAndFds) {
-        if (m->fds.size() > 0) {
+      KJ_IF_SOME(m, messageAndFds) {
+        if (m.fds.size() > 0) {
           return kj::Own<IncomingRpcMessage>(
-              kj::heap<IncomingMessageImpl>(kj::mv(*m), kj::mv(fdSpace)));
+              kj::heap<IncomingMessageImpl>(kj::mv(m), kj::mv(fdSpace)));
         } else {
-          return kj::Own<IncomingRpcMessage>(kj::heap<IncomingMessageImpl>(kj::mv(m->reader)));
+          return kj::Own<IncomingRpcMessage>(kj::heap<IncomingMessageImpl>(kj::mv(m.reader)));
         }
       } else {
-        return nullptr;
+        return kj::none;
       }
     });
   });
@@ -339,37 +335,52 @@ kj::Promise<void> TwoPartyVatNetwork::shutdown() {
   kj::Promise<void> result = KJ_ASSERT_NONNULL(previousWrite, "already shut down").then([this]() {
     return getStream().end();
   });
-  previousWrite = nullptr;
+  previousWrite = kj::none;
   return kj::mv(result);
 }
 
 // =======================================================================================
 
-TwoPartyServer::TwoPartyServer(Capability::Client bootstrapInterface)
-    : bootstrapInterface(kj::mv(bootstrapInterface)), tasks(*this) {}
+TwoPartyServer::TwoPartyServer(Capability::Client bootstrapInterface,
+    kj::Maybe<kj::Function<kj::String(const kj::Exception&)>> traceEncoder)
+    : bootstrapInterface(kj::mv(bootstrapInterface)),
+      traceEncoder(kj::mv(traceEncoder)),
+      tasks(*this) {}
 
 struct TwoPartyServer::AcceptedConnection {
   kj::Own<kj::AsyncIoStream> connection;
   TwoPartyVatNetwork network;
   RpcSystem<rpc::twoparty::VatId> rpcSystem;
 
-  explicit AcceptedConnection(Capability::Client bootstrapInterface,
+  explicit AcceptedConnection(TwoPartyServer& parent,
                               kj::Own<kj::AsyncIoStream>&& connectionParam)
       : connection(kj::mv(connectionParam)),
         network(*connection, rpc::twoparty::Side::SERVER),
-        rpcSystem(makeRpcServer(network, kj::mv(bootstrapInterface))) {}
+        rpcSystem(makeRpcServer(network, kj::cp(parent.bootstrapInterface))) {
+    init(parent);
+  }
 
-  explicit AcceptedConnection(Capability::Client bootstrapInterface,
+  explicit AcceptedConnection(TwoPartyServer& parent,
                               kj::Own<kj::AsyncCapabilityStream>&& connectionParam,
                               uint maxFdsPerMessage)
       : connection(kj::mv(connectionParam)),
         network(kj::downcast<kj::AsyncCapabilityStream>(*connection),
                 maxFdsPerMessage, rpc::twoparty::Side::SERVER),
-        rpcSystem(makeRpcServer(network, kj::mv(bootstrapInterface))) {}
+        rpcSystem(makeRpcServer(network, kj::cp(parent.bootstrapInterface))) {
+    init(parent);
+  }
+
+  void init(TwoPartyServer& parent) {
+    KJ_IF_SOME(func, parent.traceEncoder) {
+      rpcSystem.setTraceEncoder([&func](const kj::Exception& e) {
+        return func(e);
+      });
+    }
+  }
 };
 
 void TwoPartyServer::accept(kj::Own<kj::AsyncIoStream>&& connection) {
-  auto connectionState = kj::heap<AcceptedConnection>(bootstrapInterface, kj::mv(connection));
+  auto connectionState = kj::heap<AcceptedConnection>(*this, kj::mv(connection));
 
   // Run the connection until disconnect.
   auto promise = connectionState->network.onDisconnect();
@@ -379,7 +390,7 @@ void TwoPartyServer::accept(kj::Own<kj::AsyncIoStream>&& connection) {
 void TwoPartyServer::accept(
     kj::Own<kj::AsyncCapabilityStream>&& connection, uint maxFdsPerMessage) {
   auto connectionState = kj::heap<AcceptedConnection>(
-      bootstrapInterface, kj::mv(connection), maxFdsPerMessage);
+      *this, kj::mv(connection), maxFdsPerMessage);
 
   // Run the connection until disconnect.
   auto promise = connectionState->network.onDisconnect();
@@ -387,7 +398,7 @@ void TwoPartyServer::accept(
 }
 
 kj::Promise<void> TwoPartyServer::accept(kj::AsyncIoStream& connection) {
-  auto connectionState = kj::heap<AcceptedConnection>(bootstrapInterface,
+  auto connectionState = kj::heap<AcceptedConnection>(*this,
       kj::Own<kj::AsyncIoStream>(&connection, kj::NullDisposer::instance));
 
   // Run the connection until disconnect.
@@ -397,7 +408,7 @@ kj::Promise<void> TwoPartyServer::accept(kj::AsyncIoStream& connection) {
 
 kj::Promise<void> TwoPartyServer::accept(
     kj::AsyncCapabilityStream& connection, uint maxFdsPerMessage) {
-  auto connectionState = kj::heap<AcceptedConnection>(bootstrapInterface,
+  auto connectionState = kj::heap<AcceptedConnection>(*this,
       kj::Own<kj::AsyncCapabilityStream>(&connection, kj::NullDisposer::instance),
       maxFdsPerMessage);
 

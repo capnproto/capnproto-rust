@@ -254,7 +254,7 @@ ArrayPtr<void* const> getStackTrace(ArrayPtr<void*> space, uint ignoreCount) {
 #endif
 }
 
-#if __GNUC__ && !_WIN32
+#if (__GNUC__ && !_WIN32) || __clang__
 // Allow dependents to override the implementation of stack symbolication by making it a weak
 // symbol. We prefer weak symbols over some sort of callback registration mechanism becasue this
 // allows an alternate symbolication library to be easily linked into tests without changing the
@@ -285,7 +285,8 @@ String stringifyStackTrace(ArrayPtr<void* const> trace) {
     IMAGEHLP_LINE64 lineInfo;
     memset(&lineInfo, 0, sizeof(lineInfo));
     lineInfo.SizeOfStruct = sizeof(lineInfo);
-    if (dbghelp.symGetLineFromAddr64(process, reinterpret_cast<DWORD64>(trace[i]), NULL, &lineInfo)) {
+    DWORD displacement;
+    if (dbghelp.symGetLineFromAddr64(process, reinterpret_cast<DWORD64>(trace[i]), &displacement, &lineInfo)) {
       lines[i] = kj::str('\n', lineInfo.FileName, ':', lineInfo.LineNumber);
     }
   }
@@ -450,8 +451,6 @@ String getStackTrace() {
 
 namespace {
 
-#if !KJ_NO_EXCEPTIONS
-
 [[noreturn]] void terminateHandler() {
   void* traceSpace[32];
 
@@ -484,8 +483,6 @@ namespace {
   kj::FdOutputStream(STDERR_FILENO).write(message.begin(), message.size());
   _exit(1);
 }
-
-#endif
 
 }  // namespace
 
@@ -573,10 +570,8 @@ void printStackTraceOnCrash() {
   KJ_WIN32(SetConsoleCtrlHandler(breakHandler, TRUE));
   SetUnhandledExceptionFilter(&sehHandler);
 
-#if !KJ_NO_EXCEPTIONS
   // Also override std::terminate() handler with something nicer for KJ.
   std::set_terminate(&terminateHandler);
-#endif
 }
 
 #elif _WIN32
@@ -584,9 +579,7 @@ void printStackTraceOnCrash() {
 // try to catch SEH nor ctrl+C.
 
 void printStackTraceOnCrash() {
-#if !KJ_NO_EXCEPTIONS
   std::set_terminate(&terminateHandler);
-#endif
 }
 
 #else
@@ -664,10 +657,8 @@ void printStackTraceOnCrash() {
   KJ_SYSCALL(sigaction(SIGINT, &action, nullptr));
 #endif
 
-#if !KJ_NO_EXCEPTIONS
   // Also override std::terminate() handler with something nicer for KJ.
   std::set_terminate(&terminateHandler);
-#endif
 }
 #endif
 
@@ -739,9 +730,7 @@ void resetCrashHandlers() {
 #endif
 #endif
 
-#if !KJ_NO_EXCEPTIONS
   std::set_terminate(nullptr);
-#endif
 }
 
 StringPtr KJ_STRINGIFY(Exception::Type type) {
@@ -760,9 +749,9 @@ String KJ_STRINGIFY(const Exception& e) {
 
   Maybe<const Exception::Context&> contextPtr = e.getContext();
   for (;;) {
-    KJ_IF_MAYBE(c, contextPtr) {
+    KJ_IF_SOME(c, contextPtr) {
       ++contextDepth;
-      contextPtr = c->next;
+      contextPtr = c.next;
     } else {
       break;
     }
@@ -773,10 +762,10 @@ String KJ_STRINGIFY(const Exception& e) {
   contextDepth = 0;
   contextPtr = e.getContext();
   for (;;) {
-    KJ_IF_MAYBE(c, contextPtr) {
+    KJ_IF_SOME(c, contextPtr) {
       contextText[contextDepth++] =
-          str(trimSourceFilename(c->file), ":", c->line, ": context: ", c->description, "\n");
-      contextPtr = c->next;
+          str(trimSourceFilename(c.file), ":", c.line, ": context: ", c.description, "\n");
+      contextPtr = c.next;
     } else {
       break;
     }
@@ -816,8 +805,8 @@ Exception::Exception(const Exception& other) noexcept
 
   memcpy(trace, other.trace, sizeof(trace[0]) * traceCount);
 
-  KJ_IF_MAYBE(c, other.context) {
-    context = heap(**c);
+  KJ_IF_SOME(c, other.context) {
+    context = heap(*c);
   }
 }
 
@@ -825,8 +814,8 @@ Exception::~Exception() noexcept {}
 
 Exception::Context::Context(const Context& other) noexcept
     : file(other.file), line(other.line), description(str(other.description)) {
-  KJ_IF_MAYBE(n, other.next) {
-    next = heap(**n);
+  KJ_IF_SOME(n, other.next) {
+    next = heap(*n);
   }
 }
 
@@ -835,6 +824,15 @@ void Exception::wrapContext(const char* file, int line, String&& description) {
 }
 
 void Exception::extendTrace(uint ignoreCount, uint limit) {
+  if (isFullTrace) {
+    // Awkward: extendTrace() was called twice without truncating in between. This should probably
+    // be an error, but historically we didn't check for this so I'm hesitant to make it an error
+    // now. We shouldn't actually extend the trace, though, as our current trace is presumably
+    // rooted in main() and it'd be weird to append frames "above" that.
+    // TODO(cleanup): Abort here and see what breaks?
+    return;
+  }
+
   KJ_STACK_ARRAY(void*, newTraceSpace, kj::min(kj::size(trace), limit) + ignoreCount + 1,
       sizeof(trace)/sizeof(trace[0]) + 8, 128);
 
@@ -846,10 +844,26 @@ void Exception::extendTrace(uint ignoreCount, uint limit) {
     // Copy the rest into our trace.
     memcpy(trace + traceCount, newTrace.begin(), newTrace.asBytes().size());
     traceCount += newTrace.size();
+    isFullTrace = true;
   }
 }
 
 void Exception::truncateCommonTrace() {
+  if (isFullTrace) {
+    // We're truncating the common portion of the full trace, turning it back into a limited
+    // trace.
+    isFullTrace = false;
+  } else {
+    // If the trace was never extended in the first place, trying to truncate it is at best a waste
+    // of time and at worst might remove information for no reason. So, don't.
+    //
+    // This comes up in particular in coroutines, when the exception originated from a co_awaited
+    // promise. In that case we manually add the one relevant frame to the trace, rather than
+    // call extendTrace() just to have to truncate most of it again a moment later in the
+    // unhandled_exception() callback.
+    return;
+  }
+
   if (traceCount > 0) {
     // Create a "reference" stack trace that is a little bit deeper than the one in the exception.
     void* refTraceSpace[sizeof(this->trace) / sizeof(this->trace[0]) + 4];
@@ -887,6 +901,9 @@ void Exception::truncateCommonTrace() {
 }
 
 void Exception::addTrace(void* ptr) {
+  // TODO(cleanup): Abort here if isFullTrace is true, and see what breaks. This method only makes
+  // sense to call on partial traces.
+
   if (traceCount < kj::size(trace)) {
     trace[traceCount++] = ptr;
   }
@@ -901,8 +918,6 @@ void Exception::addTraceHere() {
   #error "please implement for your compiler"
 #endif
 }
-
-#if !KJ_NO_EXCEPTIONS
 
 namespace {
 
@@ -956,25 +971,21 @@ InFlightExceptionIterator::InFlightExceptionIterator()
     : ptr(currentException) {}
 
 Maybe<const Exception&> InFlightExceptionIterator::next() {
-  if (ptr == nullptr) return nullptr;
+  if (ptr == nullptr) return kj::none;
 
   const ExceptionImpl& result = *static_cast<const ExceptionImpl*>(ptr);
   ptr = result.nextCurrentException;
   return result;
 }
 
-#endif  // !KJ_NO_EXCEPTIONS
-
 kj::Exception getDestructionReason(void* traceSeparator, kj::Exception::Type defaultType,
     const char* defaultFile, int defaultLine, kj::StringPtr defaultDescription) {
-#if !KJ_NO_EXCEPTIONS
   InFlightExceptionIterator iter;
-  KJ_IF_MAYBE(e, iter.next()) {
-    auto copy = kj::cp(*e);
+  KJ_IF_SOME(e, iter.next()) {
+    auto copy = kj::cp(e);
     copy.truncateCommonTrace();
     return copy;
   } else {
-#endif
     // Darn, use a generic exception.
     kj::Exception exception(defaultType, defaultFile, defaultLine,
         kj::heapString(defaultDescription));
@@ -986,9 +997,7 @@ kj::Exception getDestructionReason(void* traceSeparator, kj::Exception::Type def
     exception.addTrace(traceSeparator);
 
     return exception;
-#if !KJ_NO_EXCEPTIONS
   }
-#endif
 }
 
 // =======================================================================================
@@ -1055,9 +1064,6 @@ public:
   RootExceptionCallback(): ExceptionCallback(*this) {}
 
   void onRecoverableException(Exception&& exception) override {
-#if KJ_NO_EXCEPTIONS
-    logException(LogSeverity::ERROR, mv(exception));
-#else
     if (_::uncaughtExceptionCount() > 0) {
       // Bad time to throw an exception.  Just log instead.
       //
@@ -1068,15 +1074,10 @@ public:
     } else {
       throw ExceptionImpl(mv(exception));
     }
-#endif
   }
 
   void onFatalException(Exception&& exception) override {
-#if KJ_NO_EXCEPTIONS
-    logException(LogSeverity::FATAL, mv(exception));
-#else
     throw ExceptionImpl(mv(exception));
-#endif
   }
 
   void logMessage(LogSeverity severity, const char* file, int line, int contextDepth,
@@ -1161,13 +1162,13 @@ ExceptionCallback& getExceptionCallback() {
 }
 
 void throwFatalException(kj::Exception&& exception, uint ignoreCount) {
-  exception.extendTrace(ignoreCount + 1);
+  if (ignoreCount != (uint)kj::maxValue) exception.extendTrace(ignoreCount + 1);
   getExceptionCallback().onFatalException(kj::mv(exception));
   abort();
 }
 
 void throwRecoverableException(kj::Exception&& exception, uint ignoreCount) {
-  exception.extendTrace(ignoreCount + 1);
+  if (ignoreCount != (uint)kj::maxValue) exception.extendTrace(ignoreCount + 1);
   getExceptionCallback().onRecoverableException(kj::mv(exception));
 }
 
@@ -1175,79 +1176,9 @@ void throwRecoverableException(kj::Exception&& exception, uint ignoreCount) {
 
 namespace _ {  // private
 
-#if __cplusplus >= 201703L
-
 uint uncaughtExceptionCount() {
   return std::uncaught_exceptions();
 }
-
-#elif __GNUC__
-
-// Horrible -- but working -- hack:  We can dig into __cxa_get_globals() in order to extract the
-// count of uncaught exceptions.  This function is part of the C++ ABI implementation used on Linux,
-// OSX, and probably other platforms that use GCC.  Unfortunately, __cxa_get_globals() is only
-// actually defined in cxxabi.h on some platforms (e.g. Linux, but not OSX), and even where it is
-// defined, it returns an incomplete type.  Here we use the same hack used by Evgeny Panasyuk:
-//   https://github.com/panaseleus/stack_unwinding/blob/master/boost/exception/uncaught_exception_count.hpp
-//
-// Notice that a similar hack is possible on MSVC -- if its C++11 support ever gets to the point of
-// supporting KJ in the first place.
-//
-// It appears likely that a future version of the C++ standard may include an
-// uncaught_exception_count() function in the standard library, or an equivalent language feature.
-// Some discussion:
-//   https://groups.google.com/a/isocpp.org/d/msg/std-proposals/HglEslyZFYs/kKdu5jJw5AgJ
-
-struct FakeEhGlobals {
-  // Fake
-
-  void* caughtExceptions;
-  uint uncaughtExceptions;
-};
-
-// LLVM's libstdc++ doesn't declare __cxa_get_globals in its cxxabi.h. GNU does. Because it is
-// extern "C", the compiler wills get upset if we re-declare it even in a different namespace.
-#if _LIBCPPABI_VERSION
-extern "C" void* __cxa_get_globals();
-#else
-using abi::__cxa_get_globals;
-#endif
-
-uint uncaughtExceptionCount() {
-  return reinterpret_cast<FakeEhGlobals*>(__cxa_get_globals())->uncaughtExceptions;
-}
-
-#elif _MSC_VER
-
-#if _MSC_VER >= 1900
-// MSVC14 has a refactored CRT which now provides a direct accessor for this value.
-// See https://svn.boost.org/trac/boost/ticket/10158 for a brief discussion.
-extern "C" int *__cdecl __processing_throw();
-
-uint uncaughtExceptionCount() {
-  return static_cast<uint>(*__processing_throw());
-}
-
-#elif _MSC_VER >= 1400
-// The below was copied from:
-// https://github.com/panaseleus/stack_unwinding/blob/master/boost/exception/uncaught_exception_count.hpp
-
-extern "C" char *__cdecl _getptd();
-
-uint uncaughtExceptionCount() {
-  return *reinterpret_cast<uint*>(_getptd() + (sizeof(void*) == 8 ? 0x100 : 0x90));
-}
-#else
-uint uncaughtExceptionCount() {
-  // Since the above doesn't work, fall back to uncaught_exception(). This will produce incorrect
-  // results in very obscure cases that Cap'n Proto doesn't really rely on anyway.
-  return std::uncaught_exception();
-}
-#endif
-
-#else
-#error "This needs to be ported to your compiler / C++ ABI."
-#endif
 
 }  // namespace _ (private)
 
@@ -1257,14 +1188,12 @@ bool UnwindDetector::isUnwinding() const {
   return _::uncaughtExceptionCount() > uncaughtCount;
 }
 
-#if !KJ_NO_EXCEPTIONS
 void UnwindDetector::catchThrownExceptionAsSecondaryFault() const {
   // TODO(someday):  Attach the secondary exception to whatever primary exception is causing
   //   the unwind.  For now we just drop it on the floor as this is probably fine most of the
   //   time.
   getCaughtExceptionAsKj();
 }
-#endif
 
 #if __GNUC__ && !KJ_NO_RTTI
 static kj::String demangleTypeName(const char* name) {
@@ -1333,41 +1262,6 @@ kj::ArrayPtr<void* const> computeRelativeTrace(
   return bestMatch;
 }
 
-#if KJ_NO_EXCEPTIONS
-
-namespace _ {  // private
-
-class RecoverableExceptionCatcher: public ExceptionCallback {
-  // Catches a recoverable exception without using try/catch.  Used when compiled with
-  // -fno-exceptions.
-
-public:
-  virtual ~RecoverableExceptionCatcher() noexcept(false) {}
-
-  void onRecoverableException(Exception&& exception) override {
-    if (caught == nullptr) {
-      caught = mv(exception);
-    } else {
-      // TODO(someday):  Consider it a secondary fault?
-    }
-  }
-
-  Maybe<Exception> caught;
-};
-
-Maybe<Exception> runCatchingExceptions(Runnable& runnable) {
-  RecoverableExceptionCatcher catcher;
-  runnable.run();
-  KJ_IF_MAYBE(e, catcher.caught) {
-    e->truncateCommonTrace();
-  }
-  return mv(catcher.caught);
-}
-
-}  // namespace _ (private)
-
-#else  // KJ_NO_EXCEPTIONS
-
 kj::Exception getCaughtExceptionAsKj() {
   try {
     throw;
@@ -1393,6 +1287,5 @@ kj::Exception getCaughtExceptionAsKj() {
 #endif
   }
 }
-#endif  // !KJ_NO_EXCEPTIONS
 
 }  // namespace kj

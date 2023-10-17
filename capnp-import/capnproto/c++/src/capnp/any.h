@@ -48,6 +48,18 @@ struct AnyList {
   class Builder;
 };
 
+template<typename T>
+struct TypedAnyList : AnyList
+{
+  // When we have `interface Outer(T) { foo @0 List(T); }` the protocol normalizes T to an AnyPointer, even
+  // though it will always be of type T. We can't allow List(AnyPointer), so it must be represented as an
+  // AnyList - hence, this is a "typed" AnyList, which is just an AnyList that expects a specific type.
+
+  TypedAnyList() = delete;
+  typedef BuilderFor<List<T>> Builder;
+  typedef ReaderFor<List<T>> Reader;
+};
+
 struct AnyStruct {
   AnyStruct() = delete;
 
@@ -68,6 +80,7 @@ namespace _ {  // private
 template <> struct Kind_<AnyPointer> { static constexpr Kind kind = Kind::OTHER; };
 template <> struct Kind_<AnyStruct> { static constexpr Kind kind = Kind::OTHER; };
 template <> struct Kind_<AnyList> { static constexpr Kind kind = Kind::OTHER; };
+template <class T> struct Kind_<TypedAnyList<T>> { static constexpr Kind kind = Kind::OTHER; };
 }  // namespace _ (private)
 
 // =======================================================================================
@@ -106,9 +119,6 @@ struct AnyPointer {
 
     Equality equals(AnyPointer::Reader right) const;
     bool operator==(AnyPointer::Reader right) const;
-    inline bool operator!=(AnyPointer::Reader right) const {
-      return !(*this == right);
-    }
 
     template <typename T>
     inline ReaderFor<T> getAs() const;
@@ -163,9 +173,6 @@ struct AnyPointer {
     }
     inline bool operator==(AnyPointer::Reader right) const {
       return asReader() == right;
-    }
-    inline bool operator!=(AnyPointer::Reader right) const {
-      return !(*this == right);
     }
 
     inline void clear();
@@ -352,7 +359,6 @@ public:
   // Down-cast the orphan to a specific type.
 
   inline bool operator==(decltype(nullptr)) const { return builder == nullptr; }
-  inline bool operator!=(decltype(nullptr)) const { return builder != nullptr; }
 
 private:
   _::OrphanBuilder builder;
@@ -451,25 +457,6 @@ struct List<AnyPointer, Kind::OTHER> {
     template <typename, Kind>
     friend struct ToDynamic_;
   };
-
-  class Pipeline {};
-
-private:
-  inline static _::ListBuilder initPointer(_::PointerBuilder builder, uint size) {
-    return builder.initList(ElementSize::POINTER, bounded(size) * ELEMENTS);
-  }
-  inline static _::ListBuilder getFromPointer(_::PointerBuilder builder, const word* defaultValue) {
-    return builder.getList(ElementSize::POINTER, defaultValue);
-  }
-  inline static _::ListReader getFromPointer(
-    const _::PointerReader& reader, const word* defaultValue) {
-    return reader.getList(ElementSize::POINTER, defaultValue);
-  }
-
-  template <typename U, Kind k>
-  friend struct List;
-  template <typename U, Kind K>
-  friend struct _::PointerHelpers;
 };
 
 class AnyStruct::Reader {
@@ -498,9 +485,6 @@ public:
 
   Equality equals(AnyStruct::Reader right) const;
   bool operator==(AnyStruct::Reader right) const;
-  inline bool operator!=(AnyStruct::Reader right) const {
-    return !(*this == right);
-  }
 
   template <typename T>
   ReaderFor<T> as() const {
@@ -545,9 +529,6 @@ public:
   }
   inline bool operator==(AnyStruct::Reader right) const {
     return asReader() == right;
-  }
-  inline bool operator!=(AnyStruct::Reader right) const {
-    return !(*this == right);
   }
 
   inline operator Reader() const { return Reader(_builder.asReader()); }
@@ -672,9 +653,6 @@ public:
 
   Equality equals(AnyList::Reader right) const;
   bool operator==(AnyList::Reader right) const;
-  inline bool operator!=(AnyList::Reader right) const {
-    return !(*this == right);
-  }
 
   inline MessageSize totalSize() const {
     return _reader.totalSize().asPublic();
@@ -711,9 +689,6 @@ public:
   Equality equals(AnyList::Reader right) const;
   inline bool operator==(AnyList::Reader right) const{
     return asReader() == right;
-  }
-  inline bool operator!=(AnyList::Reader right) const{
-    return !(*this == right);
   }
 
   template <typename T> BuilderFor<T> as() {
@@ -770,10 +745,6 @@ inline bool operator==(const PipelineOp& a, const PipelineOp& b) {
     case PipelineOp::GET_POINTER_FIELD: return a.pointerIndex == b.pointerIndex;
   }
   KJ_CLANG_KNOWS_THIS_IS_UNREACHABLE_BUT_GCC_DOESNT
-}
-
-inline bool operator!=(const PipelineOp& a, const PipelineOp& b) {
-  return !(a == b);
 }
 
 class PipelineHook {
@@ -1046,6 +1017,54 @@ struct PointerHelpers<AnyStruct, Kind::OTHER> {
   }
   static Orphan<AnyStruct> disown(PointerBuilder builder) {
     return Orphan<AnyStruct>(builder.disown());
+  }
+};
+
+template <typename T, Kind K>
+struct PointerHelpers<TypedAnyList<T>, K> {
+  static inline typename TypedAnyList<T>::Reader get(PointerReader reader,
+    const word* defaultValue = nullptr) {
+    return typename TypedAnyList<T>::Reader(reader.getListAnySize(defaultValue));
+  }
+  static inline typename TypedAnyList<T>::Builder get(PointerBuilder builder,
+    const word* defaultValue = nullptr) {
+    return typename TypedAnyList<T>::Builder(builder.getListAnySize(defaultValue));
+  }
+  static inline void set(PointerBuilder builder, typename TypedAnyList<T>::Reader value) {
+    builder.setList(value.reader);
+  }
+  static inline void setCanonical(PointerBuilder builder, typename TypedAnyList<T>::Reader value) {
+    builder.setList(value.reader, true);
+  }
+  //static void set(PointerBuilder builder, kj::ArrayPtr<const ReaderFor<T>> value) {
+  //  auto l = init(builder, value.size());
+  //  uint i = 0;
+  //  for (auto& element : value) {
+  //    l.set(i++, element);
+  //  }
+  //}
+  static inline typename TypedAnyList<T>::Builder init(PointerBuilder builder, uint size) {
+    //return typename TypedAnyList<T>::Builder(TypedAnyList<T>::initPointer(builder, size));
+    if (ElementSize::INLINE_COMPOSITE == _::elementSizeForType<T>())
+    {
+      return TypedAnyList<T>::Builder(builder.initStructList(bounded(size) * ELEMENTS, _::structSize<T>()));
+    }
+    else {
+      return TypedAnyList<T>::Builder(builder.initList(
+        _::elementSizeForType<T>(), bounded(size) * ELEMENTS));
+    }
+  }
+  static inline void adopt(PointerBuilder builder, Orphan<TypedAnyList<T>>&& value) {
+    builder.adopt(kj::mv(value.builder));
+  }
+  static inline Orphan<TypedAnyList<T>> disown(PointerBuilder builder) {
+    return Orphan<TypedAnyList<T>>(builder.disown());
+  }
+  static inline _::ListReader getInternalReader(const typename TypedAnyList<T>::Reader& reader) {
+    return reader.reader;
+  }
+  static inline _::ListBuilder getInternalBuilder(typename TypedAnyList<T>::Builder&& builder) {
+    return builder.builder;
   }
 };
 

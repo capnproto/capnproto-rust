@@ -1,29 +1,22 @@
 [package]
 name = "capnp-futures"
-version = "0.18.0-alpha"
-authors = [ "David Renshaw <drenshaw@gmail.com>" ]
-license = "MIT"
-
+version.workspace = true
+authors = ["David Renshaw <drenshaw@gmail.com>"]
+license.workspace = true
 description = "async serialization for Cap'n Proto messages"
-repository = "https://github.com/dwrensha/capnproto-rust"
+repository.workspace = true
 documentation = "https://docs.rs/capnp-futures/"
-edition = "2021"
+edition.workspace = true
+readme = "README.md"
 
 keywords = ["async"]
 
 [dependencies]
-capnp = { version = "0.18.0-alpha", path = "../capnp" }
-
-[dependencies.futures]
-version = "0.3.0"
-default-features = false
-features = ["std"]
-
-[dev-dependencies.futures]
-version = "0.3.0"
-default-features = false
-features = ["executor"]
+capnp.workspace = true
+quickcheck = { version = "1", optional = true }
+futures.workspace = true
 
 [dev-dependencies]
-capnp = { version = "0.18.0-alpha", path = "../capnp", features = ["quickcheck"] }
+capnp = { workspace = true, features = ["quickcheck"] }
+futures = { workspace = true, features = ["executor"] }
 quickcheck = "1"

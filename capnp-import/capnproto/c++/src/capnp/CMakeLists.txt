@@ -222,6 +222,34 @@ if(NOT CAPNP_LITE)
   endif()
 endif()  # NOT CAPNP_LITE
 
+# http-over-capnp ==============================================================
+
+# This is put here, after the Tools/Compilers section because we need the capnp tool to generate the sources from the schema
+
+set(http-over-capnp_sources
+	compat/byte-stream.c++
+	compat/http-over-capnp.c++
+)
+set(http-over-capnp_headers
+	compat/byte-stream.h
+	compat/http-over-capnp.h 
+)
+set(http-over-capnp_schemas
+	compat/byte-stream.capnp
+	compat/http-over-capnp.capnp 
+)
+
+if(NOT CAPNP_LITE)
+	capnp_generate_cpp(http-over-capnp_sources http-over-capnp_headers ${http-over-capnp_schemas})
+
+	add_library(http-over-capnp ${http-over-capnp_sources})
+	add_library(CapnProto::http-over-capnp ALIAS http-over-capnp)
+	target_link_libraries(http-over-capnp PUBLIC capnp kj-http)
+	set_target_properties(http-over-capnp PROPERTIES VERSION ${VERSION})
+	install(TARGETS http-over-capnp ${INSTALL_TARGETS_DEFAULT_ARGS})
+	install(FILES ${http-over-capnp_headers} ${http-over-capnp_schemas} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/capnp/compat")
+endif()
+
 # Tests ========================================================================
 
 if(BUILD_TESTING)

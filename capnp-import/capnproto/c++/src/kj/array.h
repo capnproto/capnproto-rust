@@ -180,8 +180,6 @@ public:
 
   template <typename U>
   inline bool operator==(const U& other) const { return asPtr() == other; }
-  template <typename U>
-  inline bool operator!=(const U& other) const { return asPtr() != other; }
 
   inline ArrayPtr<T> slice(size_t start, size_t end) KJ_LIFETIMEBOUND {
     KJ_IREQUIRE(start <= end && end <= size_, "Out-of-bounds Array::slice().");
@@ -219,7 +217,6 @@ public:
   }
 
   inline bool operator==(decltype(nullptr)) const { return size_ == 0; }
-  inline bool operator!=(decltype(nullptr)) const { return size_ != 0; }
 
   inline Array& operator=(decltype(nullptr)) {
     dispose();
@@ -848,7 +845,6 @@ inline Array<T> heapArray(std::initializer_list<T> init) {
   return heapArray<T>(init.begin(), init.end());
 }
 
-#if __cplusplus > 201402L
 template <typename T, typename... Params>
 inline Array<Decay<T>> arr(T&& param1, Params&&... params) {
   ArrayBuilder<Decay<T>> builder = heapArrayBuilder<Decay<T>>(sizeof...(params) + 1);
@@ -861,7 +857,6 @@ inline Array<Decay<T>> arrOf(Params&&... params) {
   (... , builder.add(kj::fwd<Params>(params)));
   return builder.finish();
 }
-#endif
 
 namespace _ {  // private
 

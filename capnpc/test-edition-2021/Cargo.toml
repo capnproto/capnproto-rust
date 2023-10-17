@@ -11,12 +11,12 @@ name = "capnpc_test_edition_2021"
 path = "test.rs"
 
 [build-dependencies]
-capnpc = { path = "../" }
-capnp-import = { path = "../../capnp-import" }
-tempfile = "3.6"
-anyhow = "1.*"
+capnpc.workspace = true
+capnp-import.workspace = true
+tempfile.workspace = true
+anyhow.workspace = true
 
 [dependencies]
-capnp = { path = "../../capnp" }
-capnpc = { path = "../" }
+capnp.workspace = true
+capnpc.workspace = true
 external-crate = { path = "../test/external-crate" }

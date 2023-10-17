@@ -3,7 +3,7 @@
 name = "addressbook_send"
 version = "0.0.0"
 authors = ["David Renshaw <dwrenshaw@gmail.com>"]
-edition = "2021"
+edition.workspace = true
 
 [[bin]]
 
@@ -11,5 +11,5 @@ name = "addressbook_send"
 path = "addressbook_send.rs"
 
 [dependencies]
-capnp = { path = "../../capnp" }
-capnp-import = { path = "../../capnp-import" }
+capnp.workspace = true
+capnp-import.workspace = true

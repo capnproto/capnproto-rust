@@ -148,7 +148,7 @@ impl test_interface::Server for TestInterface {
         }
         {
             let mut results = results.get();
-            results.set_x("foo");
+            results.set_x("foo".into());
         }
         Promise::ok(())
     }
@@ -190,7 +190,7 @@ impl test_interface::Server for TestExtends {
         }
         {
             let mut results = results.get();
-            results.set_x("bar");
+            results.set_x("bar".into());
         }
         Promise::ok(())
     }
@@ -259,7 +259,7 @@ impl test_pipeline::Server for TestPipeline {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
 
-            results.get().set_s("bar");
+            results.get().set_s("bar".into());
 
             // TODO implement better casting
             results
@@ -352,7 +352,7 @@ impl test_more_stuff::Server for TestMoreStuff {
             if response?.get()?.get_x()? != "foo" {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
-            results.get().set_s("bar");
+            results.get().set_s("bar".into());
             Ok(())
         }))
     }
@@ -372,7 +372,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                 if response?.get()?.get_x()? != "foo" {
                     return Err(Error::failed("expected x to equal 'foo'".to_string()));
                 }
-                results.get().set_s("bar");
+                results.get().set_s("bar".into());
                 Ok(())
             })
         }))
@@ -438,7 +438,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                     if response?.get()?.get_x()? != "foo" {
                         Err(Error::failed("expected X to equal 'foo'".to_string()))
                     } else {
-                        results.get().set_s("bar");
+                        results.get().set_s("bar".into());
                         Ok(())
                     }
                 }))

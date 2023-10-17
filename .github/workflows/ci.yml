@@ -24,15 +24,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    
     - name: Install Rust
       run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
-
-    - name: Install Cap'n Proto
+          
+    - name: Install Clang
       run: |
           export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get install -y capnproto libcapnp-dev
-
+          sudo apt update
+          sudo apt install -y clang-15
+          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-15 60
+          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 60
+          
     - name: Test feature flags
       run: |
           cd capnp
@@ -64,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -74,11 +78,14 @@ jobs:
 
       - name: Setup miri
         run: cargo miri setup
-
-      - name: Install Cap'n Proto
+          
+      - name: Install Clang
         run: |
             export DEBIAN_FRONTEND=noninteractive
-            sudo apt-get install -y capnproto libcapnp-dev
+            sudo apt update
+            sudo apt install -y clang-15
+            sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-15 60
+            sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 60
 
       - name: Test default features
         run: cargo miri test --package capnp --package capnpc-test
@@ -100,15 +107,18 @@ jobs:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install Rust
       run: rustup update ${{ env.minrust }} --no-self-update && rustup default ${{ env.minrust }}
-
-    - name: Install Cap'n Proto
+          
+    - name: Install Clang
       run: |
           export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get install -y capnproto libcapnp-dev
+          sudo apt update
+          sudo apt install -y clang-15
+          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-15 60
+          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 60
 
     - name: Test feature flags
       run: |
@@ -127,7 +137,7 @@ jobs:
     name: formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -137,4 +147,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check --unstable-features --error-on-unformatted
+          args: --all -- --check --unstable-features

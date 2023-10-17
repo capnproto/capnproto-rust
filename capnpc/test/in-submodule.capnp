@@ -1,6 +1,6 @@
 @0xb9523c11cf10d3bd;
 
-using Rust = import "rust.capnp";
+using Rust = import "/rust.capnp";
 using Other = import "in-other-submodule.capnp";
 
 $Rust.parentModule("foo::bar");

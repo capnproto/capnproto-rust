@@ -1,37 +1,39 @@
 [package]
 name = "capnp-import"
-version = "0.2.0"
-edition = "2021"
+version.workspace = true
 authors = ["Erik McClure <erikm@fundament.software>"]
 description = """
 Fetches official Cap-n-Proto compiler (capnp) releases and automatically compiles all capnp files in a set of folders, then combines them in a single capnp_include.rs file.
 """
-categories = ["compilers", "development-tools::build-utils", "parsing", "web-programming", "network-programming"]
-documentation = "https://docs.rs/capnp-import"
+categories = ["compilers", "development-tools::build-utils", "parsing"]
+
+repository.workspace = true
+documentation.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
 homepage = "https://github.com/fundament-software/capnp-import"
-readme = "README.md"
-repository = "https://github.com/fundament-software/capnp-import"
-license = "Apache-2.0"
+license.workspace = true
 debug = true
 
 [lib]
 proc-macro = true
 
 [dependencies]
-anyhow = "1.*"
-capnpc = { version = "0.18.0-alpha", path = "../capnpc" }
-capnp = { version = "0.18.0-alpha", path = "../capnp" }
+anyhow.workspace = true
+capnpc.workspace = true
+capnp.workspace = true
 convert_case = "0.6"
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = { version = "2.0", features = ["full"] }
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true
 wax = "0.5.0"
 walkdir = "2"
-tempfile = "3.6"
+tempfile.workspace = true
 
 [build-dependencies]
 relative-path = "1.7.2"
-anyhow = "1.*"
+anyhow.workspace = true
 cmake = { version = "0.1" }
 which = "4.3.0"
 reqwest = { version = "0.11", features = ["blocking"] }

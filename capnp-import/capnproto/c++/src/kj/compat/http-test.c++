@@ -25,6 +25,7 @@
 #include <kj/debug.h>
 #include <kj/test.h>
 #include <kj/encoding.h>
+#include <kj/vector.h>
 #include <map>
 
 #if KJ_HTTP_TEST_USE_OS_PIPE
@@ -58,8 +59,8 @@ namespace {
 KJ_TEST("HttpMethod parse / stringify") {
 #define TRY(name) \
   KJ_EXPECT(kj::str(HttpMethod::name) == #name); \
-  KJ_IF_MAYBE(parsed, tryParseHttpMethodAllowingConnect(#name)) { \
-    KJ_SWITCH_ONEOF(*parsed) { \
+  KJ_IF_SOME(parsed, tryParseHttpMethodAllowingConnect(#name)) { \
+    KJ_SWITCH_ONEOF(parsed) { \
       KJ_CASE_ONEOF(method, HttpMethod) { \
         KJ_EXPECT(method == HttpMethod::name); \
       } \
@@ -478,16 +479,6 @@ struct HttpRequestTestCase {
   InitializeableArray<kj::StringPtr> requestBodyParts;
 
   Side side = BOTH;
-
-  // TODO(cleanup): Delete this constructor if/when we move to C++14.
-  HttpRequestTestCase(kj::StringPtr raw, HttpMethod method, kj::StringPtr path,
-                      InitializeableArray<HeaderTestCase> requestHeaders,
-                      kj::Maybe<uint64_t> requestBodySize,
-                      InitializeableArray<kj::StringPtr> requestBodyParts,
-                      Side side = BOTH)
-      : raw(raw), method(method), path(path), requestHeaders(kj::mv(requestHeaders)),
-        requestBodySize(requestBodySize), requestBodyParts(kj::mv(requestBodyParts)),
-        side(side) {}
 };
 
 struct HttpResponseTestCase {
@@ -502,17 +493,6 @@ struct HttpResponseTestCase {
   HttpMethod method = HttpMethod::GET;
 
   Side side = BOTH;
-
-  // TODO(cleanup): Delete this constructor if/when we move to C++14.
-  HttpResponseTestCase(kj::StringPtr raw, uint64_t statusCode, kj::StringPtr statusText,
-                       InitializeableArray<HeaderTestCase> responseHeaders,
-                       kj::Maybe<uint64_t> responseBodySize,
-                       InitializeableArray<kj::StringPtr> responseBodyParts,
-                       HttpMethod method = HttpMethod::GET,
-                       Side side = BOTH)
-      : raw(raw), statusCode(statusCode), statusText(statusText),
-        responseHeaders(kj::mv(responseHeaders)), responseBodySize(responseBodySize),
-        responseBodyParts(kj::mv(responseBodyParts)), method(method), side(side) {}
 };
 
 struct HttpTestCase {
@@ -723,9 +703,9 @@ public:
     }
 
     auto size = requestBody.tryGetLength();
-    KJ_IF_MAYBE(expectedSize, expectedRequest.requestBodySize) {
-      KJ_IF_MAYBE(s, size) {
-        KJ_EXPECT(*s == *expectedSize, *s);
+    KJ_IF_SOME(expectedSize, expectedRequest.requestBodySize) {
+      KJ_IF_SOME(s, size) {
+        KJ_EXPECT(s == expectedSize, s);
       } else {
         KJ_FAIL_EXPECT("tryGetLength() returned nullptr; expected known size");
       }
@@ -843,7 +823,7 @@ kj::ArrayPtr<const HttpRequestTestCase> requestTestCases() {
         {HttpHeaderId::HOST, "example.com"},
         {HttpHeaderId::CONTENT_TYPE, "text/plain"},
       },
-      nullptr, { "foo", "barbaz" },
+      kj::none, { "foo", "barbaz" },
     },
 
     {
@@ -863,7 +843,7 @@ kj::ArrayPtr<const HttpRequestTestCase> requestTestCases() {
         {HttpHeaderId::HOST, "example.com"},
         {HttpHeaderId::CONTENT_TYPE, "text/plain"},
       },
-      nullptr, { "0123456789abcdef0123456789abc" },
+      kj::none, { "0123456789abcdef0123456789abc" },
     },
 
     {
@@ -904,7 +884,7 @@ kj::ArrayPtr<const HttpRequestTestCase> requestTestCases() {
       "/foo/bar",
       {{HttpHeaderId::HOST, "example.com"},
        {HttpHeaderId::TRANSFER_ENCODING, "chunked"}},
-      nullptr, { "foo", "bar" },
+      kj::none, { "foo", "bar" },
     }
   };
 
@@ -924,7 +904,7 @@ kj::ArrayPtr<const HttpResponseTestCase> responseTestCases() {
 
       200, "OK",
       {{HttpHeaderId::CONTENT_TYPE, "text/plain"}},
-      nullptr, {"baz qux"},
+      kj::none, {"baz qux"},
 
       HttpMethod::GET,
       CLIENT_ONLY,   // Server never sends connection: close
@@ -940,7 +920,7 @@ kj::ArrayPtr<const HttpResponseTestCase> responseTestCases() {
 
       200, "OK",
       {{HttpHeaderId::CONTENT_TYPE, "text/plain"}},
-      nullptr, {"baz qux"},
+      kj::none, {"baz qux"},
 
       HttpMethod::GET,
       CLIENT_ONLY,   // Server never sends transfer-encoding: identity
@@ -954,7 +934,7 @@ kj::ArrayPtr<const HttpResponseTestCase> responseTestCases() {
 
       200, "OK",
       {{HttpHeaderId::CONTENT_TYPE, "text/plain"}},
-      nullptr, {"baz qux"},
+      kj::none, {"baz qux"},
 
       HttpMethod::GET,
       CLIENT_ONLY,   // Server never sends non-delimited message
@@ -1053,7 +1033,7 @@ kj::ArrayPtr<const HttpResponseTestCase> responseTestCases() {
 
       200, "OK",
       {{HttpHeaderId::CONTENT_TYPE, "text/plain"}},
-      nullptr, { "qux", "corge" }
+      kj::none, { "qux", "corge" }
     },
   };
 
@@ -1339,7 +1319,7 @@ kj::ArrayPtr<const HttpTestCase> pipelineTestCases() {
         "0\r\n"
         "\r\n",
 
-        HttpMethod::POST, "/foo", {}, nullptr, {},
+        HttpMethod::POST, "/foo", {}, kj::none, {},
       },
       {
         "HTTP/1.1 200 OK\r\n"
@@ -1348,7 +1328,7 @@ kj::ArrayPtr<const HttpTestCase> pipelineTestCases() {
         "0\r\n"
         "\r\n",
 
-        200, "OK", {}, nullptr, {}
+        200, "OK", {}, kj::none, {}
       },
     },
 
@@ -1364,7 +1344,7 @@ kj::ArrayPtr<const HttpTestCase> pipelineTestCases() {
         "0\r\n"
         "\r\n",
 
-        HttpMethod::POST, "/bar", {}, nullptr, { "garply", "waldo" },
+        HttpMethod::POST, "/bar", {}, kj::none, { "garply", "waldo" },
       },
       {
         "HTTP/1.1 200 OK\r\n"
@@ -1377,7 +1357,7 @@ kj::ArrayPtr<const HttpTestCase> pipelineTestCases() {
         "0\r\n"
         "\r\n",
 
-        200, "OK", {}, nullptr, { "fred", "plugh" }
+        200, "OK", {}, kj::none, { "fred", "plugh" }
       },
     },
 
@@ -1730,8 +1710,8 @@ KJ_TEST("WebSocket core protocol") {
   KJ_HTTP_TEST_SETUP_IO;
   auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
 
-  auto client = newWebSocket(kj::mv(pipe.ends[0]), nullptr);
-  auto server = newWebSocket(kj::mv(pipe.ends[1]), nullptr);
+  auto client = newWebSocket(kj::mv(pipe.ends[0]), kj::none);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none);
 
   auto mediumString = kj::strArray(kj::repeat(kj::StringPtr("123456789"), 30), "");
   auto bigString = kj::strArray(kj::repeat(kj::StringPtr("123456789"), 10000), "");
@@ -1794,7 +1774,7 @@ KJ_TEST("WebSocket fragmented") {
   auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
 
   auto client = kj::mv(pipe.ends[0]);
-  auto server = newWebSocket(kj::mv(pipe.ends[1]), nullptr);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none);
 
   byte DATA[] = {
     0x01, 0x06, 'h', 'e', 'l', 'l', 'o', ' ',
@@ -1814,6 +1794,39 @@ KJ_TEST("WebSocket fragmented") {
 
   clientTask.wait(waitScope);
 }
+
+#if KJ_HAS_ZLIB
+KJ_TEST("WebSocket compressed fragment") {
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  auto client = kj::mv(pipe.ends[0]);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none, CompressionParameters{
+      .outboundNoContextTakeover = false,
+      .inboundNoContextTakeover = false,
+      .outboundMaxWindowBits=15,
+      .inboundMaxWindowBits=15,
+  });
+
+  // The message is "Hello", sent in two fragments, see the fragmented example at the bottom of:
+  // https://datatracker.ietf.org/doc/html/rfc7692#section-7.2.3.1
+  byte COMPRESSED_DATA[] = {
+    0x41, 0x03, 0xf2, 0x48, 0xcd,
+
+    0x80, 0x04, 0xc9, 0xc9, 0x07, 0x00
+  };
+
+  auto clientTask = client->write(COMPRESSED_DATA, sizeof(COMPRESSED_DATA));
+
+  {
+    auto message = server->receive().wait(waitScope);
+    KJ_ASSERT(message.is<kj::String>());
+    KJ_EXPECT(message.get<kj::String>() == "Hello");
+  }
+
+  clientTask.wait(waitScope);
+}
+#endif // KJ_HAS_ZLIB
 
 class FakeEntropySource final: public EntropySource {
 public:
@@ -1853,12 +1866,154 @@ KJ_TEST("WebSocket masked") {
   serverTask.wait(waitScope);
 }
 
+class WebSocketErrorCatcher : public WebSocketErrorHandler {
+public:
+  kj::Vector<kj::WebSocket::ProtocolError> errors;
+
+  kj::Exception handleWebSocketProtocolError(kj::WebSocket::ProtocolError protocolError) {
+    errors.add(kj::mv(protocolError));
+    return KJ_EXCEPTION(FAILED, protocolError.description);
+  }
+};
+
+KJ_TEST("WebSocket unexpected RSV bits") {
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  WebSocketErrorCatcher errorCatcher;
+  auto client = kj::mv(pipe.ends[0]);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none, kj::none, errorCatcher);
+
+  byte DATA[] = {
+    0x01, 0x06, 'h', 'e', 'l', 'l', 'o', ' ',
+
+    0xF0, 0x05, 'w', 'o', 'r', 'l', 'd'  // all RSV bits set, plus FIN
+  };
+
+  auto clientTask = client->write(DATA, sizeof(DATA));
+
+  {
+    bool gotException = false;
+    auto serverTask = server->receive().then([](auto&& m) {}, [&gotException](kj::Exception&& ex) { gotException = true; });
+    serverTask.wait(waitScope);
+    KJ_ASSERT(gotException);
+    KJ_ASSERT(errorCatcher.errors.size() == 1);
+    KJ_ASSERT(errorCatcher.errors[0].statusCode == 1002);
+  }
+
+  clientTask.wait(waitScope);
+}
+
+KJ_TEST("WebSocket unexpected continuation frame") {
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  WebSocketErrorCatcher errorCatcher;
+  auto client = kj::mv(pipe.ends[0]);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none, kj::none, errorCatcher);
+
+  byte DATA[] = {
+    0x80, 0x06, 'h', 'e', 'l', 'l', 'o', ' ',  // Continuation frame with no start frame, plus FIN
+  };
+
+  auto clientTask = client->write(DATA, sizeof(DATA));
+
+  {
+    bool gotException = false;
+    auto serverTask = server->receive().then([](auto&& m) {}, [&gotException](kj::Exception&& ex) { gotException = true; });
+    serverTask.wait(waitScope);
+    KJ_ASSERT(gotException);
+    KJ_ASSERT(errorCatcher.errors.size() == 1);
+    KJ_ASSERT(errorCatcher.errors[0].statusCode == 1002);
+  }
+
+  clientTask.wait(waitScope);
+}
+
+KJ_TEST("WebSocket missing continuation frame") {
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  WebSocketErrorCatcher errorCatcher;
+  auto client = kj::mv(pipe.ends[0]);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none, kj::none, errorCatcher);
+
+  byte DATA[] = {
+    0x01, 0x06, 'h', 'e', 'l', 'l', 'o', ' ',  // Start frame
+    0x01, 0x06, 'w', 'o', 'r', 'l', 'd', '!',  // Another start frame
+  };
+
+  auto clientTask = client->write(DATA, sizeof(DATA));
+
+  {
+    bool gotException = false;
+    auto serverTask = server->receive().then([](auto&& m) {}, [&gotException](kj::Exception&& ex) { gotException = true; });
+    serverTask.wait(waitScope);
+    KJ_ASSERT(gotException);
+    KJ_ASSERT(errorCatcher.errors.size() == 1);
+  }
+
+  clientTask.wait(waitScope);
+}
+
+KJ_TEST("WebSocket fragmented control frame") {
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  WebSocketErrorCatcher errorCatcher;
+  auto client = kj::mv(pipe.ends[0]);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none, kj::none, errorCatcher);
+
+  byte DATA[] = {
+    0x09, 0x04, 'd', 'a', 't', 'a'  // Fragmented ping frame
+  };
+
+  auto clientTask = client->write(DATA, sizeof(DATA));
+
+  {
+    bool gotException = false;
+    auto serverTask = server->receive().then([](auto&& m) {}, [&gotException](kj::Exception&& ex) { gotException = true; });
+    serverTask.wait(waitScope);
+    KJ_ASSERT(gotException);
+    KJ_ASSERT(errorCatcher.errors.size() == 1);
+    KJ_ASSERT(errorCatcher.errors[0].statusCode == 1002);
+  }
+
+  clientTask.wait(waitScope);
+}
+
+KJ_TEST("WebSocket unknown opcode") {
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  WebSocketErrorCatcher errorCatcher;
+  auto client = kj::mv(pipe.ends[0]);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none, kj::none, errorCatcher);
+
+  byte DATA[] = {
+    0x85, 0x04, 'd', 'a', 't', 'a'  // 5 is a reserved opcode
+  };
+
+  auto clientTask = client->write(DATA, sizeof(DATA));
+
+  {
+    bool gotException = false;
+    auto serverTask = server->receive().then([](auto&& m) {}, [&gotException](kj::Exception&& ex) { gotException = true; });
+    serverTask.wait(waitScope);
+    KJ_ASSERT(gotException);
+    KJ_ASSERT(errorCatcher.errors.size() == 1);
+    KJ_ASSERT(errorCatcher.errors[0].statusCode == 1002);
+  }
+
+  clientTask.wait(waitScope);
+}
+
 KJ_TEST("WebSocket unsolicited pong") {
   KJ_HTTP_TEST_SETUP_IO;
   auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
 
   auto client = kj::mv(pipe.ends[0]);
-  auto server = newWebSocket(kj::mv(pipe.ends[1]), nullptr);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none);
 
   byte DATA[] = {
     0x01, 0x06, 'h', 'e', 'l', 'l', 'o', ' ',
@@ -1884,7 +2039,7 @@ KJ_TEST("WebSocket ping") {
   auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
 
   auto client = kj::mv(pipe.ends[0]);
-  auto server = newWebSocket(kj::mv(pipe.ends[1]), nullptr);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none);
 
   // Be extra-annoying by having the ping arrive between fragments.
   byte DATA[] = {
@@ -1921,7 +2076,7 @@ KJ_TEST("WebSocket ping mid-send") {
   auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
 
   auto client = kj::mv(pipe.ends[0]);
-  auto server = newWebSocket(kj::mv(pipe.ends[1]), nullptr);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none);
 
   auto bigString = kj::strArray(kj::repeat(kj::StringPtr("12345678"), 65536), "");
   auto serverTask = server->send(bigString).eagerlyEvaluate(nullptr);
@@ -2005,7 +2160,7 @@ KJ_TEST("WebSocket double-ping mid-send") {
   auto downPipe = newOneWayPipe();
   InputOutputPair client(kj::mv(downPipe.in), kj::mv(upPipe.out));
   auto server = newWebSocket(kj::heap<InputOutputPair>(kj::mv(upPipe.in), kj::mv(downPipe.out)),
-                             nullptr);
+                             kj::none);
 
   auto bigString = kj::strArray(kj::repeat(kj::StringPtr("12345678"), 65536), "");
   auto serverTask = server->send(bigString).eagerlyEvaluate(nullptr);
@@ -2035,12 +2190,57 @@ KJ_TEST("WebSocket double-ping mid-send") {
   serverTask.wait(waitScope);
 }
 
+KJ_TEST("WebSocket multiple ping outside of send") {
+  KJ_HTTP_TEST_SETUP_IO;
+
+  auto upPipe = newOneWayPipe();
+  auto downPipe = newOneWayPipe();
+  InputOutputPair client(kj::mv(downPipe.in), kj::mv(upPipe.out));
+  auto server = newWebSocket(kj::heap<InputOutputPair>(kj::mv(upPipe.in), kj::mv(downPipe.out)),
+                             kj::none);
+
+  byte DATA[] = {
+    0x89, 0x05, 'p', 'i', 'n', 'g', '1',
+    0x89, 0x05, 'p', 'i', 'n', 'g', '2',
+    0x89, 0x05, 'p', 'i', 'n', 'g', '3',
+    0x89, 0x05, 'p', 'i', 'n', 'g', '4',
+    0x81, 0x05, 'o', 't', 'h', 'e', 'r',
+  };
+
+  auto clientTask = client.write(DATA, sizeof(DATA));
+
+  {
+    auto message = server->receive().wait(waitScope);
+    KJ_ASSERT(message.is<kj::String>());
+    KJ_EXPECT(message.get<kj::String>() == "other");
+  }
+
+  auto bigString = kj::strArray(kj::repeat(kj::StringPtr("12345678"), 65536), "");
+  auto serverTask = server->send(bigString).eagerlyEvaluate(nullptr);
+
+  // We expect to receive pongs for only the first and last pings, because the server has the
+  // option of only sending pongs for the most recently processed ping, and the last three pings
+  // were processed while waiting for the write of the first pong to complete.
+  byte EXPECTED1[] = {
+    0x8A, 0x05, 'p', 'i', 'n', 'g', '1',
+    0x8A, 0x05, 'p', 'i', 'n', 'g', '4',
+  };
+  expectRead(client, EXPECTED1).wait(waitScope);
+
+  byte EXPECTED2[] = { 0x81, 0x7f, 0, 0, 0, 0, 0, 8, 0, 0 };
+  expectRead(client, EXPECTED2).wait(waitScope);
+  expectRead(client, bigString).wait(waitScope);
+
+  clientTask.wait(waitScope);
+  serverTask.wait(waitScope);
+}
+
 KJ_TEST("WebSocket ping received during pong send") {
   KJ_HTTP_TEST_SETUP_IO;
   auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
 
   auto client = kj::mv(pipe.ends[0]);
-  auto server = newWebSocket(kj::mv(pipe.ends[1]), nullptr);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none);
 
   // Send a very large ping so that sending the pong takes a while. Then send a second ping
   // immediately after.
@@ -2076,9 +2276,9 @@ KJ_TEST("WebSocket pump byte counting") {
   auto pipe2 = KJ_HTTP_TEST_CREATE_2PIPE;
 
   FakeEntropySource maskGenerator;
-  auto server1 = newWebSocket(kj::mv(pipe1.ends[1]), nullptr);
+  auto server1 = newWebSocket(kj::mv(pipe1.ends[1]), kj::none);
   auto client2 = newWebSocket(kj::mv(pipe2.ends[0]), maskGenerator);
-  auto server2 = newWebSocket(kj::mv(pipe2.ends[1]), nullptr);
+  auto server2 = newWebSocket(kj::mv(pipe2.ends[1]), kj::none);
 
   auto pumpTask = server1->pumpTo(*client2);
   auto receiveTask = server2->receive();
@@ -2092,13 +2292,7 @@ KJ_TEST("WebSocket pump byte counting") {
   pumpTask.wait(waitScope);
 
   // The eventual receiver gets a disconnect exception.
-  // (Note: We don't use KJ_EXPECT_THROW here because under -fno-exceptions it forks and we lose
-  // state.)
-  receiveTask.then([](auto) {
-    KJ_FAIL_EXPECT("expected exception");
-  }, [](kj::Exception&& e) {
-    KJ_EXPECT(e.getType() == kj::Exception::Type::DISCONNECTED);
-  }).wait(waitScope);
+  KJ_EXPECT_THROW(DISCONNECTED, receiveTask.wait(waitScope));
 
   KJ_EXPECT(server1->receivedByteCount() == 3);
 #if KJ_NO_RTTI
@@ -2118,7 +2312,7 @@ KJ_TEST("WebSocket pump disconnect on send") {
 
   FakeEntropySource maskGenerator;
   auto client1 = newWebSocket(kj::mv(pipe1.ends[0]), maskGenerator);
-  auto server1 = newWebSocket(kj::mv(pipe1.ends[1]), nullptr);
+  auto server1 = newWebSocket(kj::mv(pipe1.ends[1]), kj::none);
   auto client2 = newWebSocket(kj::mv(pipe2.ends[0]), maskGenerator);
 
   auto pumpTask = server1->pumpTo(*client2);
@@ -2144,9 +2338,9 @@ KJ_TEST("WebSocket pump disconnect on receive") {
   auto pipe2 = KJ_HTTP_TEST_CREATE_2PIPE;
 
   FakeEntropySource maskGenerator;
-  auto server1 = newWebSocket(kj::mv(pipe1.ends[1]), nullptr);
+  auto server1 = newWebSocket(kj::mv(pipe1.ends[1]), kj::none);
   auto client2 = newWebSocket(kj::mv(pipe2.ends[0]), maskGenerator);
-  auto server2 = newWebSocket(kj::mv(pipe2.ends[1]), nullptr);
+  auto server2 = newWebSocket(kj::mv(pipe2.ends[1]), kj::none);
 
   auto pumpTask = server1->pumpTo(*client2);
   auto receiveTask = server2->receive();
@@ -2163,6 +2357,58 @@ KJ_TEST("WebSocket pump disconnect on receive") {
   KJ_EXPECT_THROW(DISCONNECTED, receiveTask.wait(waitScope));
 }
 
+KJ_TEST("WebSocket abort propagates through pipe") {
+  // Pumping one end of a WebSocket pipe into another WebSocket which later becomes aborted will
+  // cancel the pump promise with a DISCONNECTED exception.
+
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe1 = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  auto server = newWebSocket(kj::mv(pipe1.ends[1]), kj::none);
+  auto client = newWebSocket(kj::mv(pipe1.ends[0]), kj::none);
+
+  auto wsPipe = newWebSocketPipe();
+
+  auto downstreamPump = wsPipe.ends[0]->pumpTo(*server);
+  KJ_EXPECT(!downstreamPump.poll(waitScope));
+
+  client->abort();
+
+  KJ_EXPECT(downstreamPump.poll(waitScope));
+  KJ_EXPECT_THROW_RECOVERABLE(DISCONNECTED, downstreamPump.wait(waitScope));
+}
+
+KJ_TEST("WebSocket maximum message size") {
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe =KJ_HTTP_TEST_CREATE_2PIPE;
+
+  WebSocketErrorCatcher errorCatcher;
+  FakeEntropySource maskGenerator;
+  auto client = newWebSocket(kj::mv(pipe.ends[0]), maskGenerator);
+  auto server = newWebSocket(kj::mv(pipe.ends[1]), kj::none, kj::none, errorCatcher);
+
+  size_t maxSize = 100;
+  auto biggestAllowedString = kj::strArray(kj::repeat(kj::StringPtr("A"), maxSize), "");
+  auto tooBigString = kj::strArray(kj::repeat(kj::StringPtr("B"), maxSize + 1), "");
+
+  auto clientTask = client->send(biggestAllowedString)
+      .then([&]() { return client->send(tooBigString); })
+      .then([&]() { return client->close(1234, "done"); });
+
+  {
+    auto message = server->receive(maxSize).wait(waitScope);
+    KJ_ASSERT(message.is<kj::String>());
+    KJ_EXPECT(message.get<kj::String>().size() == maxSize);
+  }
+
+  {
+    KJ_EXPECT_THROW_RECOVERABLE_MESSAGE("too large",
+        server->receive(maxSize).ignoreResult().wait(waitScope));
+    KJ_ASSERT(errorCatcher.errors.size() == 1);
+    KJ_ASSERT(errorCatcher.errors[0].statusCode == 1009);
+  }
+}
+
 class TestWebSocketService final: public HttpService, private kj::TaskSet::ErrorHandler {
 public:
   TestWebSocketService(HttpHeaderTable& headerTable, HttpHeaderId hMyHeader)
@@ -2174,8 +2420,8 @@ public:
     KJ_ASSERT(headers.isWebSocket());
 
     HttpHeaders responseHeaders(headerTable);
-    KJ_IF_MAYBE(h, headers.get(hMyHeader)) {
-      responseHeaders.set(hMyHeader, kj::str("respond-", *h));
+    KJ_IF_SOME(h, headers.get(hMyHeader)) {
+      responseHeaders.set(hMyHeader, kj::str("respond-", h));
     }
 
     if (url == "/return-error") {
@@ -2307,6 +2553,10 @@ const byte WEBSOCKET_TWO_DEFLATE_BLOCKS_MESSAGE[] =
     {  0xc1, 0x0d, 0xf2, 0x48, 0x05, 0x00, 0x00, 0x00, 0xff, 0xff, 0xca, 0xc9, 0xc9, 0x07, 0x00 };
 // See this example: https://datatracker.ietf.org/doc/html/rfc7692#section-7.2.3.5
 // This uses two DEFLATE blocks in a single message.
+const byte WEBSOCKET_EMPTY_COMPRESSED_MESSAGE[] =
+    { 0xc1, 0x01, 0x00 };
+const byte WEBSOCKET_EMPTY_SEND_COMPRESSED_MESSAGE[] =
+    { 0xc1, 0x81, 12, 34, 56, 78, 0x00^12 };
 #endif // KJ_HAS_ZLIB
 
 template <size_t s>
@@ -2391,6 +2641,53 @@ void testWebSocketTwoMessageCompression(kj::WaitScope& waitScope, HttpHeaderTabl
 #endif // KJ_HAS_ZLIB
 
 #if KJ_HAS_ZLIB
+void testWebSocketEmptyMessageCompression(kj::WaitScope& waitScope, HttpHeaderTable& headerTable,
+                                        kj::HttpHeaderId extHeader, kj::StringPtr extensions,
+                                        HttpClient& client) {
+  // Confirm that we can send empty messages when compression is enabled.
+
+  kj::HttpHeaders headers(headerTable);
+  headers.set(extHeader, extensions);
+  auto response = client.openWebSocket("/websocket", headers).wait(waitScope);
+
+  KJ_EXPECT(response.statusCode == 101);
+  KJ_EXPECT(response.statusText == "Switching Protocols", response.statusText);
+  KJ_EXPECT(KJ_ASSERT_NONNULL(response.headers->get(extHeader)).startsWith("permessage-deflate"));
+  KJ_ASSERT(response.webSocketOrBody.is<kj::Own<WebSocket>>());
+  auto ws = kj::mv(response.webSocketOrBody.get<kj::Own<WebSocket>>());
+
+  {
+    auto message = ws->receive().wait(waitScope);
+    KJ_ASSERT(message.is<kj::String>());
+    KJ_EXPECT(message.get<kj::String>() == "Hello");
+  }
+  ws->send(kj::StringPtr("Hello")).wait(waitScope);
+
+  {
+    auto message = ws->receive().wait(waitScope);
+    KJ_ASSERT(message.is<kj::String>());
+    KJ_EXPECT(message.get<kj::String>() == "");
+  }
+  ws->send(kj::StringPtr("")).wait(waitScope);
+
+  {
+    auto message = ws->receive().wait(waitScope);
+    KJ_ASSERT(message.is<kj::String>());
+    KJ_EXPECT(message.get<kj::String>() == "Hello");
+  }
+  ws->send(kj::StringPtr("Hello")).wait(waitScope);
+
+  ws->close(0x1234, "qux").wait(waitScope);
+  {
+    auto message = ws->receive().wait(waitScope);
+    KJ_ASSERT(message.is<WebSocket::Close>());
+    KJ_EXPECT(message.get<WebSocket::Close>().code == 0x1235);
+    KJ_EXPECT(message.get<WebSocket::Close>().reason == "close-reply:qux");
+  }
+}
+#endif // KJ_HAS_ZLIB
+
+#if KJ_HAS_ZLIB
 void testWebSocketOptimizePumpProxy(kj::WaitScope& waitScope, HttpHeaderTable& headerTable,
                                     kj::HttpHeaderId extHeader, kj::StringPtr extensions,
                                     HttpClient& client) {
@@ -2415,9 +2712,9 @@ void testWebSocketOptimizePumpProxy(kj::WaitScope& waitScope, HttpHeaderTable& h
   auto ws = kj::mv(response.webSocketOrBody.get<kj::Own<WebSocket>>());
 
   auto maybeExt = ws->getPreferredExtensions(kj::WebSocket::ExtensionsContext::REQUEST);
-  // Should be nullptr since we are asking `ws` (a client) to give us extensions that we can give to
+  // Should be none since we are asking `ws` (a client) to give us extensions that we can give to
   // another client. Since clients cannot `optimizedPumpTo` each other, we must get null.
-  KJ_ASSERT(maybeExt == nullptr);
+  KJ_ASSERT(maybeExt == kj::none);
 
   maybeExt = ws->getPreferredExtensions(kj::WebSocket::ExtensionsContext::RESPONSE);
   kj::StringPtr extStr = KJ_ASSERT_NONNULL(maybeExt);
@@ -2962,7 +3259,7 @@ KJ_TEST("WebSocket Compression String Parsing (tryParseAllExtensionOffers)") {
       false,
       false,
       15, // server_max_window_bits = 15
-      nullptr
+      kj::none
   };
   maybeAccepted = _::tryParseAllExtensionOffers(serverOnly, allowServerBits);
   accepted = KJ_ASSERT_NONNULL(maybeAccepted);
@@ -2977,7 +3274,7 @@ KJ_TEST("WebSocket Compression String Parsing (tryParseAllExtensionOffers)") {
       true, // server_no_context_takeover = true
       false,
       13, // server_max_window_bits = 13
-      nullptr
+      kj::none
   };
 
   maybeAccepted = _::tryParseAllExtensionOffers(serverOnly, allowServerTakeoverAndBits);
@@ -3023,7 +3320,7 @@ KJ_TEST("WebSocket Compression String Parsing (tryParseExtensionAgreement)") {
       "client_max_window_bits; server_max_window_bits=10, "
       "permessage-deflate; client_no_context_takeover; client_max_window_bits;"_kj;
 
-  auto maybeAccepted = _::tryParseExtensionAgreement(nullptr, tooManyExtensions);
+  auto maybeAccepted = _::tryParseExtensionAgreement(kj::none, tooManyExtensions);
   KJ_ASSERT(
       KJ_ASSERT_NONNULL(maybeAccepted.tryGet<kj::Exception>()).getDescription() == didNotOffer);
 
@@ -3072,6 +3369,44 @@ KJ_TEST("WebSocket Compression String Parsing (tryParseExtensionAgreement)") {
   KJ_ASSERT(config.outboundMaxWindowBits == 15);
   KJ_ASSERT(config.inboundMaxWindowBits == 10);
 }
+
+#if KJ_HAS_ZLIB
+KJ_TEST("HttpClient WebSocket Empty Message Compression") {
+  // We'll try to send and receive "Hello", then "", followed by "Hello" again.
+  KJ_HTTP_TEST_SETUP_IO;
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  auto request = kj::str("GET /websocket", WEBSOCKET_COMPRESSION_HANDSHAKE);
+
+  auto serverTask = expectRead(*pipe.ends[1], request)
+      .then([&]() { return writeA(*pipe.ends[1], asBytes(WEBSOCKET_COMPRESSION_RESPONSE_HANDSHAKE)); })
+      .then([&]() { return writeA(*pipe.ends[1], WEBSOCKET_FIRST_COMPRESSED_MESSAGE); })
+      .then([&]() { return expectRead(*pipe.ends[1], WEBSOCKET_SEND_COMPRESSED_MESSAGE); })
+      .then([&]() { return writeA(*pipe.ends[1], WEBSOCKET_EMPTY_COMPRESSED_MESSAGE); })
+      .then([&]() { return expectRead(*pipe.ends[1], WEBSOCKET_EMPTY_SEND_COMPRESSED_MESSAGE); })
+      .then([&]() { return writeA(*pipe.ends[1], WEBSOCKET_FIRST_COMPRESSED_MESSAGE); })
+      .then([&]() { return expectRead(*pipe.ends[1], WEBSOCKET_SEND_COMPRESSED_MESSAGE_REUSE_CTX); })
+      .then([&]() { return expectRead(*pipe.ends[1], WEBSOCKET_SEND_CLOSE); })
+      .then([&]() { return writeA(*pipe.ends[1], WEBSOCKET_REPLY_CLOSE); })
+      .eagerlyEvaluate([](kj::Exception&& e) { KJ_LOG(ERROR, e); });
+
+  HttpHeaderTable::Builder tableBuilder;
+  HttpHeaderId extHeader = tableBuilder.add("Sec-WebSocket-Extensions");
+  auto headerTable = tableBuilder.build();
+
+  FakeEntropySource entropySource;
+  HttpClientSettings clientSettings;
+  clientSettings.entropySource = entropySource;
+  clientSettings.webSocketCompressionMode = HttpClientSettings::MANUAL_COMPRESSION;
+
+  auto client = newHttpClient(*headerTable, *pipe.ends[0], clientSettings);
+
+  constexpr auto extensions = "permessage-deflate; server_no_context_takeover"_kj;
+  testWebSocketEmptyMessageCompression(waitScope, *headerTable, extHeader, extensions, *client);
+
+  serverTask.wait(waitScope);
+}
+#endif // KJ_HAS_ZLIB
 
 #if KJ_HAS_ZLIB
 KJ_TEST("HttpClient WebSocket Default Compression") {
@@ -3321,6 +3656,159 @@ KJ_TEST("HttpServer WebSocket handshake error") {
   listenTask.wait(waitScope);
 }
 
+void testBadWebSocketHandshake(
+    WaitScope& waitScope, Timer& timer, StringPtr request, StringPtr response, TwoWayPipe pipe) {
+  // Write an invalid WebSocket GET request, and expect a particular error response.
+
+  HttpHeaderTable::Builder tableBuilder;
+  HttpHeaderId hMyHeader = tableBuilder.add("My-Header");
+  auto headerTable = tableBuilder.build();
+  TestWebSocketService service(*headerTable, hMyHeader);
+
+  class ErrorHandler final: public HttpServerErrorHandler {
+    Promise<void> handleApplicationError(
+        Exception exception, Maybe<HttpService::Response&> response) override {
+      // When I first wrote this, I expected this function to be called, because
+      // `TestWebSocketService::request()` definitely throws. However, the exception it throws comes
+      // from `HttpService::Response::acceptWebSocket()`, which stores the fact which it threw a
+      // WebSocket error. This prevents the HttpServer's listen loop from propagating the exception
+      // to our HttpServerErrorHandler (i.e., this function), because it assumes the exception is
+      // related to the WebSocket error response. See `HttpServer::Connection::startLoop()` for
+      // details.
+      bool responseWasSent = response == kj::none;
+      KJ_FAIL_EXPECT("Unexpected application error", responseWasSent, exception);
+      return READY_NOW;
+    }
+  };
+
+  ErrorHandler errorHandler;
+
+  HttpServerSettings serverSettings;
+  serverSettings.errorHandler = errorHandler;
+
+  HttpServer server(timer, *headerTable, service, serverSettings);
+
+  auto listenTask = server.listenHttp(kj::mv(pipe.ends[0]));
+
+  pipe.ends[1]->write(request.begin(), request.size()).wait(waitScope);
+  pipe.ends[1]->shutdownWrite();
+
+  expectRead(*pipe.ends[1], response).wait(waitScope);
+
+  listenTask.wait(waitScope);
+}
+
+KJ_TEST("HttpServer WebSocket handshake with unsupported Sec-WebSocket-Version") {
+  static constexpr auto REQUEST =
+    "GET /websocket HTTP/1.1\r\n"
+    "Connection: Upgrade\r\n"
+    "Upgrade: websocket\r\n"
+    "Sec-WebSocket-Key: DCI4TgwiOE4MIjhODCI4Tg==\r\n"
+    "Sec-WebSocket-Version: 1\r\n"
+    "My-Header: foo\r\n"
+    "\r\n"_kj;
+
+  static constexpr auto RESPONSE =
+    "HTTP/1.1 400 Bad Request\r\n"
+    "Connection: close\r\n"
+    "Content-Length: 56\r\n"
+    "Content-Type: text/plain\r\n"
+    "\r\n"
+    "ERROR: The requested WebSocket version is not supported."_kj;
+
+  KJ_HTTP_TEST_SETUP_IO;
+  kj::TimerImpl timer(kj::origin<kj::TimePoint>());
+
+  testBadWebSocketHandshake(waitScope, timer, REQUEST, RESPONSE, KJ_HTTP_TEST_CREATE_2PIPE);
+}
+
+KJ_TEST("HttpServer WebSocket handshake with missing Sec-WebSocket-Key") {
+  static constexpr auto REQUEST =
+    "GET /websocket HTTP/1.1\r\n"
+    "Connection: Upgrade\r\n"
+    "Upgrade: websocket\r\n"
+    "Sec-WebSocket-Version: 13\r\n"
+    "My-Header: foo\r\n"
+    "\r\n"_kj;
+
+  static constexpr auto RESPONSE =
+    "HTTP/1.1 400 Bad Request\r\n"
+    "Connection: close\r\n"
+    "Content-Length: 32\r\n"
+    "Content-Type: text/plain\r\n"
+    "\r\n"
+    "ERROR: Missing Sec-WebSocket-Key"_kj;
+
+  KJ_HTTP_TEST_SETUP_IO;
+  kj::TimerImpl timer(kj::origin<kj::TimePoint>());
+
+  testBadWebSocketHandshake(waitScope, timer, REQUEST, RESPONSE, KJ_HTTP_TEST_CREATE_2PIPE);
+}
+
+KJ_TEST("HttpServer WebSocket with application error after accept") {
+  KJ_HTTP_TEST_SETUP_IO;
+  kj::TimerImpl timer(kj::origin<kj::TimePoint>());
+
+  class WebSocketApplicationErrorService: public HttpService, public HttpServerErrorHandler {
+    // Accepts a WebSocket, receives a message, and throws an exception (application error).
+
+  public:
+    Promise<void> request(
+        HttpMethod method, kj::StringPtr, const HttpHeaders&,
+        AsyncInputStream&, Response& response) override {
+      KJ_ASSERT(method == HttpMethod::GET);
+      HttpHeaderTable headerTable;
+      HttpHeaders responseHeaders(headerTable);
+      auto webSocket = response.acceptWebSocket(responseHeaders);
+      return webSocket->receive().then([](WebSocket::Message) {
+        throwRecoverableException(KJ_EXCEPTION(FAILED, "test exception"));
+      }).attach(kj::mv(webSocket));
+    }
+
+    Promise<void> handleApplicationError(Exception exception, Maybe<Response&> response) override {
+      // We accepted the WebSocket, so the response was already sent. At one time, we _did_ expose a
+      // useless Response reference here, so this is a regression test.
+      bool responseWasSent = response == kj::none;
+      KJ_EXPECT(responseWasSent);
+      KJ_EXPECT(exception.getDescription() == "test exception"_kj);
+      return READY_NOW;
+    }
+  };
+
+  // Set up the HTTP service.
+
+  WebSocketApplicationErrorService service;
+
+  HttpServerSettings serverSettings;
+  serverSettings.errorHandler = service;
+
+  HttpHeaderTable headerTable;
+  HttpServer server(timer, headerTable, service, serverSettings);
+
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  auto listenTask = server.listenHttp(kj::mv(pipe.ends[0]));
+
+  // Make a client and open a WebSocket to the service.
+
+  FakeEntropySource entropySource;
+  HttpClientSettings clientSettings;
+  clientSettings.entropySource = entropySource;
+  auto client = newHttpClient(
+      headerTable, *pipe.ends[1], clientSettings);
+
+  HttpHeaders headers(headerTable);
+  auto webSocketResponse = client->openWebSocket("/websocket"_kj, headers)
+      .wait(waitScope);
+
+  KJ_ASSERT(webSocketResponse.statusCode == 101);
+  auto webSocket = kj::mv(KJ_ASSERT_NONNULL(webSocketResponse.webSocketOrBody.tryGet<Own<WebSocket>>()));
+
+  webSocket->send("ignored"_kj).wait(waitScope);
+
+  listenTask.wait(waitScope);
+}
+
 // -----------------------------------------------------------------------------
 
 KJ_TEST("HttpServer request timeout") {
@@ -3389,8 +3877,8 @@ public:
       HttpMethod method, kj::StringPtr url, const HttpHeaders& headers,
       kj::AsyncInputStream& requestBody, Response& responseSender) override {
     return requestBody.readAllBytes().then([this](kj::Array<byte>&&) -> kj::Promise<void> {
-      KJ_IF_MAYBE(e, exception) {
-        return kj::cp(*e);
+      KJ_IF_SOME(e, exception) {
+        return kj::cp(e);
       } else {
         return kj::READY_NOW;
       }
@@ -3596,10 +4084,10 @@ public:
 private:
   kj::Promise<void> sendError(uint statusCode, kj::StringPtr statusText, String message,
       Maybe<HttpService::Response&> response) {
-    KJ_IF_MAYBE(r, response) {
+    KJ_IF_SOME(r, response) {
       HttpHeaderTable headerTable;
       HttpHeaders headers(headerTable);
-      auto body = r->send(statusCode, statusText, headers, message.size());
+      auto body = r.send(statusCode, statusText, headers, message.size());
       return body->write(message.begin(), message.size()).attach(kj::mv(body), kj::mv(message));
     } else {
       KJ_LOG(ERROR, "Saw an error but too late to report to client.");
@@ -3874,8 +4362,8 @@ public:
     ++inFlight;
     return result.attach(kj::defer([this]() {
       if (--inFlight == 0) {
-        KJ_IF_MAYBE(f, onCancelFulfiller) {
-          f->get()->fulfill();
+        KJ_IF_SOME(f, onCancelFulfiller) {
+          f->fulfill();
         }
       }
     }));
@@ -3931,14 +4419,14 @@ public:
   kj::Maybe<kj::Own<HttpService>> operator()(HttpServer::SuspendableRequest& sr) {
     if (countdown == 0) {
       suspendedRequest = sr.suspend();
-      return nullptr;
+      return kj::none;
     }
     --countdown;
     return kj::Own<HttpService>(static_cast<HttpService*>(this), kj::NullDisposer::instance);
   }
 
   kj::Maybe<HttpServer::SuspendedRequest> getSuspended() {
-    KJ_DEFER(suspendedRequest = nullptr);
+    KJ_DEFER(suspendedRequest = kj::none);
     return kj::mv(suspendedRequest);
   }
 
@@ -4490,7 +4978,7 @@ KJ_TEST("adapted client/server propagates request exceptions like non-adapted cl
   public:
     Request request(
         HttpMethod method, kj::StringPtr url, const HttpHeaders& headers,
-        kj::Maybe<uint64_t> expectedBodySize = nullptr) override {
+        kj::Maybe<uint64_t> expectedBodySize = kj::none) override {
       KJ_FAIL_ASSERT("request_fail");
     }
 
@@ -4580,7 +5068,7 @@ KJ_TEST("adapted client waits for service to complete before returning EOF on re
 }
 
 KJ_TEST("adapted client waits for service to complete before returning EOF on chunked response") {
-  doDelayedCompletionTest(false, nullptr);
+  doDelayedCompletionTest(false, kj::none);
 }
 
 KJ_TEST("adapted client propagates throw from service after complete response body sent") {
@@ -4592,7 +5080,7 @@ KJ_TEST("adapted client propagates throw from service after incomplete response 
 }
 
 KJ_TEST("adapted client propagates throw from service after chunked response body sent") {
-  doDelayedCompletionTest(true, nullptr);
+  doDelayedCompletionTest(true, kj::none);
 }
 
 class DelayedCompletionWebSocketHttpService final: public HttpService {
@@ -5089,7 +5577,6 @@ KJ_TEST("HttpClient concurrency limiting") {
     bool operator==(const CallbackEvent& other) const {
       return runningCount == other.runningCount && pendingCount == other.pendingCount;
     }
-    bool operator!=(const CallbackEvent& other) const { return !(*this == other); }
     // TODO(someday): Can use default spaceship operator in C++20:
     //auto operator<=>(const CallbackEvent&) const = default;
   };
@@ -5216,9 +5703,9 @@ KJ_TEST("NetworkHttpClient connect impl") {
   kj::TimerImpl clientTimer(kj::origin<kj::TimePoint>());
   HttpHeaderTable headerTable;
   auto client = newHttpClient(clientTimer, headerTable,
-      io.provider->getNetwork(), nullptr, clientSettings);
+      io.provider->getNetwork(), kj::none, clientSettings);
   auto request = client->connect(
-      kj::str("localhost:", listener1->getPort()), HttpHeaders(headerTable));
+      kj::str("localhost:", listener1->getPort()), HttpHeaders(headerTable), {});
 
   auto buf = kj::heapArray<char>(4);
   return request.connection->tryRead(buf.begin(), 1, buf.size())
@@ -5349,15 +5836,15 @@ KJ_TEST("HttpClient to capnproto.org") {
     return kj::mv(connection);
   }, [](kj::Exception&& e) -> kj::Maybe<kj::Own<kj::AsyncIoStream>> {
     KJ_LOG(WARNING, "skipping test because couldn't connect to capnproto.org");
-    return nullptr;
+    return kj::none;
   }).wait(io.waitScope);
 
-  KJ_IF_MAYBE(conn, maybeConn) {
+  KJ_IF_SOME(conn, maybeConn) {
     // Successfully connected to capnproto.org. Try doing GET /. We expect to get a redirect to
     // HTTPS, because what kind of horrible web site would serve in plaintext, really?
 
     HttpHeaderTable table;
-    auto client = newHttpClient(table, **conn);
+    auto client = newHttpClient(table, *conn);
 
     HttpHeaders headers(table);
     headers.set(HttpHeaderId::HOST, "capnproto.org");
@@ -5386,7 +5873,13 @@ public:
       kj::AsyncInputStream& requestBody, Response& responseSender) override {
     if (method == HttpMethod::POST) {
       // Try to read all content, but cancel after 1ms.
-      return requestBody.readAllBytes().ignoreResult()
+
+      // Actually, we can't literally cancel mid-read, because this leaves the stream in an
+      // unknown state which requires closing the connection. Instead, we know that the sender
+      // will send 5 bytes, so we read that, then pause.
+      static char junk[5];
+      return requestBody.read(junk, 5)
+          .then([]() -> kj::Promise<void> { return kj::NEVER_DONE; })
           .exclusiveJoin(timer.afterDelay(1 * kj::MILLISECONDS))
           .then([this, &responseSender]() {
         responseSender.send(408, "Request Timeout", kj::HttpHeaders(headerTable), uint64_t(0));
@@ -5571,6 +6064,84 @@ KJ_TEST("drain() doesn't lose bytes when called at the wrong moment") {
   // The HTTP server should indicate the connection was released but still valid.
   KJ_ASSERT(listenTask.wait(waitScope));
 #endif
+}
+
+KJ_TEST("drain() does not cancel the first request on a new connection") {
+  KJ_HTTP_TEST_SETUP_IO;
+  kj::TimerImpl timer(kj::origin<kj::TimePoint>());
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  HttpHeaderTable table;
+  DummyService service(table);
+  HttpServer server(timer, table, service);
+
+  auto listenTask = server.listenHttpCleanDrain(*pipe.ends[0]);
+
+  // Request a drain(). It won't complete, because the newly-connected socket is considered to have
+  // an in-flight request.
+  auto drainPromise = server.drain();
+  KJ_EXPECT(!drainPromise.poll(waitScope));
+
+  // Deliver the request.
+  static constexpr kj::StringPtr REQUEST2 =
+      "GET /foo HTTP/1.1\r\n"
+      "Host: example.com\r\n"
+      "\r\n"_kj;
+  pipe.ends[1]->write(REQUEST2.begin(), REQUEST2.size()).wait(waitScope);
+
+  // It should get a response.
+  expectRead(*pipe.ends[1],
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Length: 16\r\n"
+      "\r\n"
+      "example.com:/foo"_kj).wait(waitScope);
+
+  // Now the drain completes.
+  drainPromise.wait(waitScope);
+
+  // The HTTP server should indicate the connection was released but still valid.
+  KJ_ASSERT(listenTask.wait(waitScope));
+}
+
+KJ_TEST("drain() when NOT using listenHttpCleanDrain() sends Connection: close header") {
+  KJ_HTTP_TEST_SETUP_IO;
+  kj::TimerImpl timer(kj::origin<kj::TimePoint>());
+  auto pipe = KJ_HTTP_TEST_CREATE_2PIPE;
+
+  HttpHeaderTable table;
+  DummyService service(table);
+  HttpServer server(timer, table, service);
+
+  auto listenTask = server.listenHttp(kj::mv(pipe.ends[0]));
+
+  // Request a drain(). It won't complete, because the newly-connected socket is considered to have
+  // an in-flight request.
+  auto drainPromise = server.drain();
+  KJ_EXPECT(!drainPromise.poll(waitScope));
+
+  // Deliver the request.
+  static constexpr kj::StringPtr REQUEST2 =
+      "GET /foo HTTP/1.1\r\n"
+      "Host: example.com\r\n"
+      "\r\n"_kj;
+  pipe.ends[1]->write(REQUEST2.begin(), REQUEST2.size()).wait(waitScope);
+
+  // It should get a response.
+  expectRead(*pipe.ends[1],
+      "HTTP/1.1 200 OK\r\n"
+      "Connection: close\r\n"
+      "Content-Length: 16\r\n"
+      "\r\n"
+      "example.com:/foo"_kj).wait(waitScope);
+
+  // And then EOF.
+  auto rest = pipe.ends[1]->readAllText();
+  KJ_ASSERT(rest.poll(waitScope));
+  KJ_EXPECT(rest.wait(waitScope) == nullptr);
+
+  // The drain task and listen task are done.
+  drainPromise.wait(waitScope);
+  listenTask.wait(waitScope);
 }
 
 class BrokenConnectionListener final: public kj::ConnectionReceiver {
@@ -5801,7 +6372,8 @@ public:
   kj::Promise<void> connect(kj::StringPtr host,
                             const HttpHeaders& headers,
                             kj::AsyncIoStream& connection,
-                            ConnectResponse& response) override {
+                            ConnectResponse& response,
+                            kj::HttpConnectSettings settings) override {
     connectCount++;
     response.accept(statusCodeToSend, "OK", HttpHeaders(headerTable));
     return connection.pumpTo(connection).ignoreResult();
@@ -5832,7 +6404,8 @@ public:
   kj::Promise<void> connect(kj::StringPtr host,
                             const HttpHeaders& headers,
                             kj::AsyncIoStream& connection,
-                            ConnectResponse& response) override {
+                            ConnectResponse& response,
+                            kj::HttpConnectSettings settings) override {
     connectCount++;
     auto out = response.reject(statusCodeToSend, "Failed"_kj, HttpHeaders(headerTable), 4);
     return out->write("boom", 4).attach(kj::mv(out));
@@ -5859,7 +6432,8 @@ public:
   kj::Promise<void> connect(kj::StringPtr host,
                             const HttpHeaders& headers,
                             kj::AsyncIoStream& connection,
-                            ConnectResponse& response) override {
+                            ConnectResponse& response,
+                            kj::HttpConnectSettings settings) override {
     response.accept(200, "OK", HttpHeaders(headerTable));
     // Return an immediately resolved promise and drop the connection
     return kj::READY_NOW;
@@ -5885,7 +6459,8 @@ public:
   kj::Promise<void> connect(kj::StringPtr host,
                             const HttpHeaders& headers,
                             kj::AsyncIoStream& connection,
-                            ConnectResponse& response) override {
+                            ConnectResponse& response,
+                            kj::HttpConnectSettings settings) override {
     response.accept(200, "OK", HttpHeaders(headerTable));
 
     auto msg = "hello"_kj;
@@ -5918,7 +6493,8 @@ private:
   kj::Promise<void> connect(kj::StringPtr host,
                             const HttpHeaders& headers,
                             kj::AsyncIoStream& connection,
-                            ConnectResponse& response) override {
+                            ConnectResponse& response,
+                            kj::HttpConnectSettings settings) override {
     response.accept(200, "OK", HttpHeaders(tunneledService.table));
     return server.listenHttp(kj::Own<kj::AsyncIoStream>(&connection, kj::NullDisposer::instance));
   }
@@ -5958,7 +6534,8 @@ public:
   kj::Promise<void> connect(kj::StringPtr host,
                             const HttpHeaders& headers,
                             kj::AsyncIoStream& connection,
-                            ConnectResponse& response) override {
+                            ConnectResponse& response,
+                            kj::HttpConnectSettings settings) override {
     response.accept(200, "OK", HttpHeaders(headerTable));
     connection.shutdownWrite();
     return kj::READY_NOW;
@@ -6018,7 +6595,8 @@ KJ_TEST("Simple CONNECT Client/Server works") {
   HttpHeaderTable clientHeaders;
   // Initiates a CONNECT with the echo server. Once established, sends a bit of data
   // and waits for it to be echoed back.
-  auto request = client->connect("https://example.org"_kj, HttpHeaders(clientHeaders));
+  auto request = client->connect(
+      "https://example.org"_kj, HttpHeaders(clientHeaders), {});
 
   request.status.then([io=kj::mv(request.connection)](auto status) mutable {
     KJ_ASSERT(status.statusCode == 200);
@@ -6095,7 +6673,8 @@ KJ_TEST("CONNECT Client (204 status)") {
   HttpHeaderTable clientHeaders;
   // Initiates a CONNECT with the echo server. Once established, sends a bit of data
   // and waits for it to be echoed back.
-  auto request = client->connect("https://example.org"_kj, HttpHeaders(clientHeaders));
+  auto request = client->connect(
+      "https://example.org"_kj, HttpHeaders(clientHeaders), {});
 
   request.status.then([io=kj::mv(request.connection)](auto status) mutable {
     KJ_ASSERT(status.statusCode == 204);
@@ -6168,7 +6747,8 @@ KJ_TEST("CONNECT Client rejected") {
   auto client = newHttpClient(table, *pipe.ends[1]);
 
   HttpHeaderTable clientHeaders;
-  auto request = client->connect("https://example.org"_kj, HttpHeaders(clientHeaders));
+  auto request = client->connect(
+      "https://example.org"_kj, HttpHeaders(clientHeaders), {});
 
   request.status.then([](auto status) mutable {
     KJ_ASSERT(status.statusCode == 400);
@@ -6234,7 +6814,8 @@ KJ_TEST("CONNECT Server cancels read w/client") {
   bool failed = false;
 
   HttpHeaderTable clientHeaders;
-  auto request = client->connect("https://example.org"_kj, HttpHeaders(clientHeaders));
+  auto request = client->connect(
+      "https://example.org"_kj, HttpHeaders(clientHeaders), {});
 
   request.status.then([&failed, io=kj::mv(request.connection)](auto status) mutable {
     KJ_ASSERT(status.statusCode == 200);
@@ -6299,7 +6880,8 @@ KJ_TEST("CONNECT Server cancels write w/client") {
 
   HttpHeaderTable clientHeaders;
   bool failed = false;
-  auto request = client->connect("https://example.org"_kj, HttpHeaders(clientHeaders));
+  auto request = client->connect(
+      "https://example.org"_kj, HttpHeaders(clientHeaders), {});
 
   request.status.then([&failed, io=kj::mv(request.connection)](auto status) mutable {
     KJ_ASSERT(status.statusCode == 200);
@@ -6405,7 +6987,8 @@ KJ_TEST("CONNECT HTTP-tunneled-over-CONNECT") {
   HttpHeaderTable tunneledHeaderTable;
   HttpClientSettings settings;
 
-  auto request = client->connect("https://example.org"_kj, HttpHeaders(connectHeaderTable));
+  auto request = client->connect(
+      "https://example.org"_kj, HttpHeaders(connectHeaderTable), {});
 
   auto text = request.status.then([
       &tunneledHeaderTable,
@@ -6444,7 +7027,8 @@ KJ_TEST("CONNECT HTTP-tunneled-over-pipelined-CONNECT") {
   HttpHeaderTable tunneledHeaderTable;
   HttpClientSettings settings;
 
-  auto request = client->connect("https://exmaple.org"_kj, HttpHeaders(connectHeaderTable));
+  auto request = client->connect(
+      "https://exmaple.org"_kj, HttpHeaders(connectHeaderTable), {});
   auto conn = kj::mv(request.connection);
   auto proxyClient = newHttpClient(tunneledHeaderTable, *conn, settings).attach(kj::mv(conn));
 
@@ -6505,7 +7089,8 @@ KJ_TEST("CONNECT pipelined via an adapter") {
   auto promise = adaptedService->connect("https://example.org"_kj,
                                          HttpHeaders(connectHeaderTable),
                                          *clientPipe.ends[0],
-                                         response).attach(kj::mv(clientPipe.ends[0]));
+                                         response,
+                                         {}).attach(kj::mv(clientPipe.ends[0]));
 
   auto proxyClient = newHttpClient(tunneledHeaderTable, *clientPipe.ends[1], settings)
       .attach(kj::mv(clientPipe.ends[1]));
@@ -6577,7 +7162,8 @@ KJ_TEST("CONNECT pipelined via an adapter (reject)") {
   auto promise = adaptedService->connect("https://example.org"_kj,
                                          HttpHeaders(connectHeaderTable),
                                          *clientPipe.ends[0],
-                                         response).attach(kj::mv(clientPipe.ends[0]));
+                                         response,
+                                         {}).attach(kj::mv(clientPipe.ends[0]));
 
   auto proxyClient = newHttpClient(tunneledHeaderTable, *clientPipe.ends[1], settings)
       .attach(kj::mv(clientPipe.ends[1]));
@@ -6604,6 +7190,118 @@ KJ_TEST("CONNECT pipelined via an adapter (reject)") {
   KJ_ASSERT(rejectCalled);
   KJ_ASSERT(failedAsExpected);
   KJ_ASSERT(text == "ok");
+}
+
+struct HttpRangeTestCase {
+  kj::StringPtr value;
+  uint64_t contentLength;
+  kj::OneOf<InitializeableArray<HttpByteRange>, HttpEverythingRange, HttpUnsatisfiableRange> expected;
+
+  HttpRangeTestCase(kj::StringPtr value, uint64_t contentLength) :
+    value(value), contentLength(contentLength), expected(HttpUnsatisfiableRange {}) {}
+  HttpRangeTestCase(kj::StringPtr value, uint64_t contentLength, HttpEverythingRange expected) :
+    value(value), contentLength(contentLength), expected(expected) {}
+  HttpRangeTestCase(kj::StringPtr value, uint64_t contentLength, InitializeableArray<HttpByteRange> expected) :
+    value(value), contentLength(contentLength), expected(kj::mv(expected)) {}
+};
+
+KJ_TEST("Range header parsing") {
+  static const HttpRangeTestCase RANGE_TEST_CASES[] {
+    // ===== Unit =====
+    // Check case-insensitive unit must be "bytes" and ignores whitespace
+    {"bytes=0-1"_kjc,                 2, HttpEverythingRange {}},
+    {"BYTES    =0-1"_kjc,             2, HttpEverythingRange {}},
+    {"     bYtEs=0-1"_kjc,            4, {{0,1}}},
+    {"    Bytes        =0-1"_kjc,     2, HttpEverythingRange {}},
+    // Check fails with other units
+    {"nibbles=0-1"_kjc,               2},
+
+    // ===== Interval =====
+    // Check valid ranges accepted
+    {"bytes=0-1"_kjc,                 8, {{0,1}}},
+    {"bytes=  2 -   7   "_kjc,        8, {{2,7}}},
+    {"bytes=5-5"_kjc,                 8, {{5,5}}},
+    // Check start after end rejected
+    {"bytes=1-0"_kjc,                 2},
+    // Check start after content rejected
+    {"bytes=2-3"_kjc,                 2},
+    {"bytes=5-7"_kjc,                 2},
+    // Check end after content clamped
+    {"bytes=0-2"_kjc,                 2, HttpEverythingRange {}},
+    {"bytes=1-5"_kjc,                 3, {{1,2}}},
+    // Check multiple valid ranges accepted
+    {"bytes=  1-3  , 6-7,10-11"_kjc, 12, {{1,3},{6,7},{10,11}}},
+    // Check overlapping ranges accepted
+    {"bytes=0-2,1-3"_kjc,             5, {{0,2},{1,3}}},
+    // Check unsatisfiable ranges ignored
+    {"bytes=1-2,7-8"_kjc,             5, {{1,2}}},
+
+    // ===== Prefix =====
+    // Check valid ranges accepted
+    {"bytes=2-"_kjc,                  8, {{2,7}}},
+    {"bytes=5-"_kjc,                  6, {{5,5}}},
+    // Check start after content rejected
+    {"bytes=2-"_kjc,                  2},
+    {"bytes=5-"_kjc,                  2},
+    // Check multiple valid ranges accepted
+    {"bytes=  1-  ,6-, 10-11 "_kjc,  12, {{1,11},{6,11},{10,11}}},
+
+    // ===== Suffix =====
+    // Check valid ranges accepted
+    {"bytes=-2"_kjc,                  8, {{6,7}}},
+    {"bytes=-6"_kjc,                  7, {{1,6}}},
+    // Check start after content truncated and entire response response
+    {"bytes=-7"_kjc,                  7, HttpEverythingRange {}},
+    {"bytes=-10"_kjc,                 5, HttpEverythingRange {}},
+    // Check if any range returns entire response, other ranges ignored
+    {"bytes=0-1,-5,2-3"_kjc,          5, HttpEverythingRange {}},
+    // Check unsatisfiable empty range ignored
+    {"bytes=-0"_kjc,                  2},
+    {"bytes=0-1,-0,2-3"_kjc,          4, {{0,1},{2,3}}},
+
+    // ===== Invalid =====
+    // Check range with no start or end rejected
+    {"bytes=-"_kjc,                   2},
+    // Check range wih no dash rejected
+    {"bytes=0"_kjc,                   2},
+    // Check empty range rejected
+    {"bytes=0-1,"_kjc,                2},
+    // Check no ranges rejected
+    {"bytes="_kjc,                    2},
+    {"bytes"_kjc,                     2},
+  };
+
+  for (auto& testCase : RANGE_TEST_CASES) {
+    auto ranges = tryParseHttpRangeHeader(testCase.value, testCase.contentLength);
+    KJ_SWITCH_ONEOF(testCase.expected) {
+      KJ_CASE_ONEOF(expectedArray, InitializeableArray<HttpByteRange>) {
+        KJ_SWITCH_ONEOF(ranges) {
+          KJ_CASE_ONEOF(array, kj::Array<HttpByteRange>) {
+            KJ_ASSERT(array == expectedArray);
+          }
+          KJ_CASE_ONEOF_DEFAULT {
+            KJ_FAIL_ASSERT("Expected ", testCase.value, testCase.contentLength, "to return ranges");
+          }
+        }
+      }
+      KJ_CASE_ONEOF(_, HttpEverythingRange) {
+        KJ_SWITCH_ONEOF(ranges) {
+          KJ_CASE_ONEOF(_, HttpEverythingRange) {}
+          KJ_CASE_ONEOF_DEFAULT {
+            KJ_FAIL_ASSERT("Expected ", testCase.value, testCase.contentLength, "to return everything");
+          }
+        }
+      }
+      KJ_CASE_ONEOF(_, HttpUnsatisfiableRange) {
+        KJ_SWITCH_ONEOF(ranges) {
+          KJ_CASE_ONEOF(_, HttpUnsatisfiableRange) {}
+          KJ_CASE_ONEOF_DEFAULT {
+            KJ_FAIL_ASSERT("Expected ", testCase.value, testCase.contentLength, "to be unsatisfiable");
+          }
+        }
+      }
+    }
+  }
 }
 
 }  // namespace

@@ -29,8 +29,6 @@
 #include <dlfcn.h>
 #endif
 
-#if KJ_HAS_COROUTINE
-
 namespace capnp {
 namespace {
 
@@ -316,7 +314,7 @@ private:
 
   kj::Own<kj::AsyncOutputStream> send(
       uint statusCode, kj::StringPtr statusText, const kj::HttpHeaders& headers,
-      kj::Maybe<uint64_t> expectedBodySize = nullptr) override {
+      kj::Maybe<uint64_t> expectedBodySize = kj::none) override {
     KJ_ASSERT(statusCode == 200);
     KJ_ASSERT(statusText == "OK"_kj);
     KJ_ASSERT(headers.get(customHeaderId) == "foobar"_kj);
@@ -442,5 +440,3 @@ KJ_TEST("Benchmark HTTP-over-capnp full RPC") {
 
 }  // namespace
 }  // namespace capnp
-
-#endif  // KJ_HAS_COROUTINE

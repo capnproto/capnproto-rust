@@ -216,7 +216,6 @@ TEST(Mutex, When) {
     KJ_EXPECT(*value.lockShared() == 101);
   }
 
-#if !KJ_NO_EXCEPTIONS
   {
     // Throw from predicate.
     KJ_EXPECT_THROW_MESSAGE("oops threw", value.when([](uint n) -> bool {
@@ -256,7 +255,6 @@ TEST(Mutex, When) {
     });
     KJ_EXPECT(m == 654);
   }
-#endif
 }
 
 TEST(Mutex, WhenWithTimeout) {
@@ -338,7 +336,6 @@ TEST(Mutex, WhenWithTimeout) {
     KJ_EXPECT(m == 56);
   }
 
-#if !KJ_NO_EXCEPTIONS
   {
     // Throw from predicate.
     KJ_EXPECT_THROW_MESSAGE("oops threw", value.when([](uint n) -> bool {
@@ -385,7 +382,6 @@ TEST(Mutex, WhenWithTimeout) {
     }, LONG_TIMEOUT);
     KJ_EXPECT(m == 654);
   }
-#endif
 }
 
 TEST(Mutex, WhenWithTimeoutPreciseTiming) {
@@ -515,13 +511,7 @@ TEST(Mutex, LazyException) {
         return space.construct(456);
       });
 
-  // Unfortunately, the results differ depending on whether exceptions are enabled.
-  // TODO(someday):  Fix this?  Does it matter?
-#if KJ_NO_EXCEPTIONS
-  EXPECT_EQ(123, i);
-#else
   EXPECT_EQ(456, i);
-#endif
 }
 
 class OnlyTouchUnderLock {
@@ -664,8 +654,8 @@ KJ_TEST("tracking blocking on mutex acquisition") {
   memset(&handler, 0, sizeof(handler));
   handler.sa_sigaction = [](int, siginfo_t* info, void*) {
     auto& blockage = *reinterpret_cast<BlockDetected *>(info->si_value.sival_ptr);
-    KJ_IF_MAYBE(r, blockedReason()) {
-      KJ_SWITCH_ONEOF(*r) {
+    KJ_IF_SOME(r, blockedReason()) {
+      KJ_SWITCH_ONEOF(r) {
         KJ_CASE_ONEOF(b, BlockedOnMutexAcquisition) {
           blockage.blockedOnMutexAcquisition = true;
           blockage.blockLocation = b.origin;
@@ -721,8 +711,8 @@ KJ_TEST("tracking blocked on CondVar::wait") {
   memset(&handler, 0, sizeof(handler));
   handler.sa_sigaction = [](int, siginfo_t* info, void*) {
     auto& blockage = *reinterpret_cast<BlockDetected *>(info->si_value.sival_ptr);
-    KJ_IF_MAYBE(r, blockedReason()) {
-      KJ_SWITCH_ONEOF(*r) {
+    KJ_IF_SOME(r, blockedReason()) {
+      KJ_SWITCH_ONEOF(r) {
         KJ_CASE_ONEOF(b, BlockedOnCondVarWait) {
           blockage.blockedOnCondVar = true;
           blockage.blockLocation = b.origin;
@@ -778,8 +768,8 @@ KJ_TEST("tracking blocked on Once::init") {
   memset(&handler, 0, sizeof(handler));
   handler.sa_sigaction = [](int, siginfo_t* info, void*) {
     auto& blockage = *reinterpret_cast<BlockDetected *>(info->si_value.sival_ptr);
-    KJ_IF_MAYBE(r, blockedReason()) {
-      KJ_SWITCH_ONEOF(*r) {
+    KJ_IF_SOME(r, blockedReason()) {
+      KJ_SWITCH_ONEOF(r) {
         KJ_CASE_ONEOF(b, BlockedOnOnceInit) {
           blockage.blockedOnOnceInit = true;
           blockage.blockLocation = b.origin;

@@ -10,13 +10,14 @@ edition = "2021"
 [package.metadata]
 cargo-fuzz = true
 
-[dependencies.capnp]
-path = ".."
+[dependencies]
+capnp.workspace = true
+
 [dependencies.libfuzzer-sys]
 git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
 
-[build-dependencies.capnpc]
-path = "../../capnpc"
+[build-dependencies]
+capnpc.workspace = true
 
 # Prevent this from interfering with workspaces
 [workspace]

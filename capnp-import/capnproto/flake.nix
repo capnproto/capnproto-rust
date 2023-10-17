@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
     nix-filter.url = "github:numtide/nix-filter";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -20,7 +20,7 @@
             selfpkgs = self.packages.${system};
           in
           {
-            capnproto = pkgs.stdenv.mkDerivation {
+            capnproto = pkgs.llvmPackages_15.stdenv.mkDerivation {
               pname = "capnproto";
               version = "0.11";
               dontStrip = true;

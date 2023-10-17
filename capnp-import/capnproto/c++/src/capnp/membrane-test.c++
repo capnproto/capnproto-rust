@@ -105,7 +105,7 @@ public:
     if (interfaceId == capnp::typeId<Thing>() && methodId == 1) {
       return Capability::Client(kj::heap<ThingImpl>("inbound"));
     } else {
-      return nullptr;
+      return kj::none;
     }
   }
 
@@ -114,7 +114,7 @@ public:
     if (interfaceId == capnp::typeId<Thing>() && methodId == 1) {
       return Capability::Client(kj::heap<ThingImpl>("outbound"));
     } else {
-      return nullptr;
+      return kj::none;
     }
   }
 
@@ -312,7 +312,7 @@ struct TestRpcEnv {
   TwoPartyClient server;
   test::TestMembrane::Client membraned;
 
-  TestRpcEnv(kj::Maybe<kj::Promise<void>> revokePromise = nullptr)
+  TestRpcEnv(kj::Maybe<kj::Promise<void>> revokePromise = kj::none)
       : waitScope(loop),
         pipe(kj::newTwoWayPipe()),
         client(*pipe.ends[0]),
@@ -391,20 +391,14 @@ KJ_TEST("revoke membrane") {
 
   paf.fulfiller->reject(KJ_EXCEPTION(DISCONNECTED, "foobar"));
 
-  // TRICKY: We need to use .ignoreResult().wait() below because when compiling with
-  //   -fno-exceptions, void waits throw recoverable exceptions while non-void waits necessarily
-  //   throw fatal exceptions... but testing for fatal exceptions when exceptions are disabled
-  //   involves fork()ing the process to run the code so if it has side effects on file descriptors
-  //   then we'll get in a bad state...
-
   KJ_ASSERT(callPromise.poll(env.waitScope));
-  KJ_EXPECT_THROW_RECOVERABLE_MESSAGE("foobar", callPromise.ignoreResult().wait(env.waitScope));
+  KJ_EXPECT_THROW_RECOVERABLE_MESSAGE("foobar", callPromise.wait(env.waitScope));
 
   KJ_EXPECT_THROW_RECOVERABLE_MESSAGE("foobar",
-      env.membraned.makeThingRequest().send().ignoreResult().wait(env.waitScope));
+      env.membraned.makeThingRequest().send().wait(env.waitScope));
 
   KJ_EXPECT_THROW_RECOVERABLE_MESSAGE("foobar",
-      thing.passThroughRequest().send().ignoreResult().wait(env.waitScope));
+      thing.passThroughRequest().send().wait(env.waitScope));
 }
 
 }  // namespace

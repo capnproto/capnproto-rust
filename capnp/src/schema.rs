@@ -1,8 +1,5 @@
 //! Convenience wrappers of the datatypes defined in schema.capnp.
 
-#[cfg(feature = "alloc")]
-use alloc::string::ToString;
-
 use crate::dynamic_value;
 use crate::introspect::{self, RawBrandedStructSchema, RawEnumSchema};
 use crate::private::layout;
@@ -73,11 +70,8 @@ impl StructSchema {
         if let Some(field) = self.find_field_by_name(name)? {
             Ok(field)
         } else {
-            // error needs to be mutable only when the alloc feature is enabled
-            #[allow(unused_mut)]
             let mut error = crate::Error::from_kind(crate::ErrorKind::FieldNotFound);
-            #[cfg(feature = "alloc")]
-            error.extra(name.to_string());
+            write!(error, "{}", name);
             Err(error)
         }
     }
@@ -163,6 +157,10 @@ impl FieldList {
         self.fields.len() as u16
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn get(self, index: u16) -> Field {
         Field {
             proto: self.fields.get(index as u32),
@@ -176,13 +174,13 @@ impl FieldList {
     }
 }
 
-impl<'a> IndexMove<u16, Field> for FieldList {
+impl IndexMove<u16, Field> for FieldList {
     fn index_move(&self, index: u16) -> Field {
         self.get(index)
     }
 }
 
-impl<'a> ::core::iter::IntoIterator for FieldList {
+impl ::core::iter::IntoIterator for FieldList {
     type Item = Field;
     type IntoIter = ShortListIter<FieldList, Self::Item>;
 
@@ -222,13 +220,13 @@ impl FieldSubset {
     }
 }
 
-impl<'a> IndexMove<u16, Field> for FieldSubset {
+impl IndexMove<u16, Field> for FieldSubset {
     fn index_move(&self, index: u16) -> Field {
         self.get(index)
     }
 }
 
-impl<'a> ::core::iter::IntoIterator for FieldSubset {
+impl ::core::iter::IntoIterator for FieldSubset {
     type Item = Field;
     type IntoIter = ShortListIter<FieldSubset, Self::Item>;
 
@@ -343,13 +341,13 @@ impl EnumerantList {
     }
 }
 
-impl<'a> IndexMove<u16, Enumerant> for EnumerantList {
+impl IndexMove<u16, Enumerant> for EnumerantList {
     fn index_move(&self, index: u16) -> Enumerant {
         self.get(index)
     }
 }
 
-impl<'a> ::core::iter::IntoIterator for EnumerantList {
+impl ::core::iter::IntoIterator for EnumerantList {
     type Item = Enumerant;
     type IntoIter = ShortListIter<Self, Self::Item>;
 
@@ -416,13 +414,13 @@ impl AnnotationList {
     }
 }
 
-impl<'a> IndexMove<u32, Annotation> for AnnotationList {
+impl IndexMove<u32, Annotation> for AnnotationList {
     fn index_move(&self, index: u32) -> Annotation {
         self.get(index)
     }
 }
 
-impl<'a> ::core::iter::IntoIterator for AnnotationList {
+impl ::core::iter::IntoIterator for AnnotationList {
     type Item = Annotation;
     type IntoIter = ListIter<Self, Self::Item>;
 

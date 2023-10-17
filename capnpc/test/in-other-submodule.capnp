@@ -1,6 +1,6 @@
 @0xb52bd743a2d5af47;
 
-using Rust = import "rust.capnp";
+using Rust = import "/rust.capnp";
 
 $Rust.parentModule("baz");
 

@@ -655,6 +655,8 @@ struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
       inner2Bind = (baz = "text", innerBound = (foo = (int16Field = 123))),
       inner2Text = (baz = "text", innerBound = (foo = (int16Field = 123))),
       revFoo = [12, 34, 56]);
+
+  bindEnumList @20 :TestGenerics(List(TestEnum), Text);
 }
 
 struct TestEmptyStruct {}
@@ -783,7 +785,7 @@ const anyPointerConstants :TestAnyPointerConstants = (
 
 struct TestListOfAny {
   capList @0 :List(Capability);
-  #listList @1 :List(AnyList); # TODO(0.10): Make List(AnyList) work correctly in C++ generated code.
+  #listList @1 :List(AnyList); # TODO(someday): Make List(AnyList) work correctly in C++ generated code.
 }
 
 interface TestInterface {
@@ -810,6 +812,9 @@ interface TestPipeline {
 
   struct Box {
     cap @0 :TestInterface;
+  }
+  struct ListBox {
+    cap @0 :List(TestInterface);
   }
   struct AnyBox {
     cap @0 :Capability;

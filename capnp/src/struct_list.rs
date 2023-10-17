@@ -68,10 +68,7 @@ where
     T: crate::traits::OwnedStruct,
 {
     fn clone(&self) -> Reader<'a, T> {
-        Reader {
-            marker: self.marker,
-            reader: self.reader,
-        }
+        *self
     }
 }
 impl<'a, T> Copy for Reader<'a, T> where T: crate::traits::OwnedStruct {}

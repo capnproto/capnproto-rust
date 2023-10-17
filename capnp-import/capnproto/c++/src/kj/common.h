@@ -63,37 +63,37 @@
 KJ_BEGIN_HEADER
 
 #ifndef KJ_NO_COMPILER_CHECK
-// Technically, __cplusplus should be 201402L for C++14, but GCC 4.9 -- which is supported -- still
-// had it defined to 201300L even with -std=c++14.
-#if __cplusplus < 201300L && !__CDT_PARSER__ && !_MSC_VER
-  #error "This code requires C++14. Either your compiler does not support it or it is not enabled."
+#if __cplusplus < 202002L && !__CDT_PARSER__
+  #error "This code requires C++20. Either your compiler does not support it or it is not enabled."
   #ifdef __GNUC__
     // Compiler claims compatibility with GCC, so presumably supports -std.
-    #error "Pass -std=c++14 on the compiler command line to enable C++14."
+    #error "Pass -std=c++20 on the compiler command line to enable C++20."
   #endif
 #endif
 
 #ifdef __GNUC__
   #if __clang__
-    #if __clang_major__ < 5
-      #warning "This library requires at least Clang 5.0."
-    #elif __cplusplus >= 201402L && !__has_include(<initializer_list>)
-      #warning "Your compiler supports C++14 but your C++ standard library does not.  If your "\
+    #if __clang_major__ < 11
+      #warning "This library requires at least Clang 11.0."
+    #endif
+    #if __cplusplus >= 202002L && !(__has_include(<coroutine>) || __has_include(<experimental/coroutine>))
+      #warning "Your compiler supports C++20 but your C++ standard library does not.  If your "\
                "system has libc++ installed (as should be the case on e.g. Mac OSX), try adding "\
                "-stdlib=libc++ to your CXXFLAGS."
     #endif
   #else
-    #if __GNUC__ < 5
-      #warning "This library requires at least GCC 5.0."
-    #endif
+    #error "This library does not currently support GCC due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102051."
+    // #if __GNUC__ < 10
+    //   #warning "This library requires at least GCC 10.0."
+    // #endif
   #endif
 #elif defined(_MSC_VER)
-  #if _MSC_VER < 1910 && !defined(__clang__)
-    #error "You need Visual Studio 2017 or better to compile this code."
+  #if _MSC_VER < 1930 && !defined(__clang__)
+    #error "You need Visual Studio 2022 or better to compile this code."
   #endif
 #else
   #warning "I don't recognize your compiler. As of this writing, Clang, GCC, and Visual Studio "\
-           "are the only known compilers with enough C++14 support for this library. "\
+           "are the only known compilers with enough C++20 support for this library. "\
            "#define KJ_NO_COMPILER_CHECK to make this warning go away."
 #endif
 #endif
@@ -102,14 +102,6 @@ KJ_BEGIN_HEADER
 #include <cstring>
 #include <initializer_list>
 #include <string.h>
-
-#if __linux__ && __cplusplus > 201200L
-// Hack around stdlib bug with C++14 that exists on some Linux systems.
-// Apparently in this mode the C library decides not to define gets() but the C++ library still
-// tries to import it into the std namespace. This bug has been fixed at the source but is still
-// widely present in the wild e.g. on Ubuntu 14.04.
-#undef _GLIBCXX_HAVE_GETS
-#endif
 
 #if _WIN32
 // Windows likes to define macros for min() and max(). We just can't deal with this.
@@ -138,8 +130,8 @@ typedef unsigned char byte;
 // Common macros, especially for common yet compiler-specific features.
 
 // Detect whether RTTI and exceptions are enabled, assuming they are unless we have specific
-// evidence to the contrary.  Clients can always define KJ_NO_RTTI or KJ_NO_EXCEPTIONS explicitly
-// to override these checks.
+// evidence to the contrary.  Clients can always define KJ_NO_RTTI explicitly to override the
+// check. As of version 2, exceptions are required, so this produces an error otherwise.
 
 // TODO: Ideally we'd use __cpp_exceptions/__cpp_rtti not being defined as the first pass since
 //   that is the standard compliant way. However, it's unclear how to use those macros (or any
@@ -149,22 +141,22 @@ typedef unsigned char byte;
   #if !defined(KJ_NO_RTTI) && !__has_feature(cxx_rtti)
     #define KJ_NO_RTTI 1
   #endif
-  #if !defined(KJ_NO_EXCEPTIONS) && !__has_feature(cxx_exceptions)
-    #define KJ_NO_EXCEPTIONS 1
+  #if !__has_feature(cxx_exceptions)
+    #error "KJ requires C++ exceptions, please enable them"
   #endif
 #elif defined(__GNUC__)
   #if !defined(KJ_NO_RTTI) && !__GXX_RTTI
     #define KJ_NO_RTTI 1
   #endif
-  #if !defined(KJ_NO_EXCEPTIONS) && !__EXCEPTIONS
-    #define KJ_NO_EXCEPTIONS 1
+  #if !__EXCEPTIONS
+    #error "KJ requires C++ exceptions, please enable them"
   #endif
 #elif defined(_MSC_VER)
   #if !defined(KJ_NO_RTTI) && !defined(_CPPRTTI)
     #define KJ_NO_RTTI 1
   #endif
-  #if !defined(KJ_NO_EXCEPTIONS) && !defined(_CPPUNWIND)
-    #define KJ_NO_EXCEPTIONS 1
+  #if !defined(_CPPUNWIND)
+    #error "KJ requires C++ exceptions, please enable them"
   #endif
 #endif
 
@@ -618,7 +610,7 @@ template <> constexpr bool isIntegral<unsigned long long>() { return true; }
 template <typename T>
 struct CanConvert_ {
   static int sfinae(T);
-  static bool sfinae(...);
+  static char sfinae(...);
 };
 
 template <typename T, typename U>
@@ -785,15 +777,11 @@ static KJ_CONSTEXPR(const) MaxValue_ maxValue = MaxValue_();
 // A special constant which, when cast to an integer type, takes on the maximum possible value of
 // that type.  This is useful to use as e.g. a parameter to a function because it will be robust
 // in the face of changes to the parameter's type.
-//
-// `char` is not supported, but `signed char` and `unsigned char` are.
 
 static KJ_CONSTEXPR(const) MinValue_ minValue = MinValue_();
 // A special constant which, when cast to an integer type, takes on the minimum possible value
 // of that type.  This is useful to use as e.g. a parameter to a function because it will be robust
 // in the face of changes to the parameter's type.
-//
-// `char` is not supported, but `signed char` and `unsigned char` are.
 
 template <typename T>
 inline bool operator==(T t, MaxValue_) { return t == Decay<T>(maxValue); }
@@ -862,7 +850,6 @@ public:
     inline ptrdiff_t operator- (const Iterator& other) const { return value - other.value; }
 
     inline bool operator==(const Iterator& other) const { return value == other.value; }
-    inline bool operator!=(const Iterator& other) const { return value != other.value; }
     inline bool operator<=(const Iterator& other) const { return value <= other.value; }
     inline bool operator>=(const Iterator& other) const { return value >= other.value; }
     inline bool operator< (const Iterator& other) const { return value <  other.value; }
@@ -935,7 +922,6 @@ public:
     inline ptrdiff_t operator- (const Iterator& other) const { return index - other.index; }
 
     inline bool operator==(const Iterator& other) const { return index == other.index; }
-    inline bool operator!=(const Iterator& other) const { return index != other.index; }
     inline bool operator<=(const Iterator& other) const { return index <= other.index; }
     inline bool operator>=(const Iterator& other) const { return index >= other.index; }
     inline bool operator< (const Iterator& other) const { return index <  other.index; }
@@ -993,7 +979,6 @@ public:
   inline ptrdiff_t operator- (const MappedIterator& other) const { return inner - other.inner; }
 
   inline bool operator==(const MappedIterator& other) const { return inner == other.inner; }
-  inline bool operator!=(const MappedIterator& other) const { return inner != other.inner; }
   inline bool operator<=(const MappedIterator& other) const { return inner <= other.inner; }
   inline bool operator>=(const MappedIterator& other) const { return inner >= other.inner; }
   inline bool operator< (const MappedIterator& other) const { return inner <  other.inner; }
@@ -1066,18 +1051,17 @@ inline void dtor(T& location) {
 // forces the caller to handle the null case in order to satisfy the compiler, thus reliably
 // preventing null pointer dereferences at runtime.
 //
-// Maybe<T> can be implicitly constructed from T and from nullptr.
+// Maybe<T> can be implicitly constructed from T and from kj::none.
 // To read the value of a Maybe<T>, do:
 //
-//    KJ_IF_MAYBE(value, someFuncReturningMaybe()) {
-//      doSomething(*value);
+//    KJ_IF_SOME(value, someFuncReturningMaybe()) {
+//      doSomething(value);
 //    } else {
-//      maybeWasNull();
+//      maybeWasNone();
 //    }
 //
-// KJ_IF_MAYBE's first parameter is a variable name which will be defined within the following
-// block.  The variable will behave like a (guaranteed non-null) pointer to the Maybe's value,
-// though it may or may not actually be a pointer.
+// KJ_IF_SOME's first parameter is a variable name which will be defined within the following
+// block.  The variable will be a reference to the Maybe's value.
 //
 // Note that Maybe<T&> actually just wraps a pointer, whereas Maybe<T> wraps a T and a boolean
 // indicating nullness.
@@ -1265,7 +1249,6 @@ public:
   }
 
   inline bool operator==(decltype(nullptr)) const { return !isSet; }
-  inline bool operator!=(decltype(nullptr)) const { return isSet; }
 
   NullableValue(const T* t) = delete;
   NullableValue& operator=(const T* other) = delete;
@@ -1308,13 +1291,78 @@ inline T* readMaybe(const Maybe<T&>& maybe) { return maybe.ptr; }
 
 template <typename T>
 inline T* readMaybe(T* ptr) { return ptr; }
-// Allow KJ_IF_MAYBE to work on regular pointers.
+// Allow KJ_IF_SOME to work on regular pointers.
+
+#ifndef KJ_DEPRECATE_KJ_IF_MAYBE
+#define KJ_DEPRECATE_KJ_IF_MAYBE 1
+#endif
+
+#if KJ_DEPRECATE_KJ_IF_MAYBE
+[[deprecated("KJ_IF_MAYBE is deprecated and will be removed. Please use KJ_IF_SOME instead.")]]
+constexpr int KJ_IF_MAYBE_IS_DEPRECATED = 0;
+#define KJ_DEPRECATE_KJ_IF_MAYBE_STMT \
+    [[maybe_unused]] int KJ_UNIQUE_NAME(deprecation) = ::kj::_::KJ_IF_MAYBE_IS_DEPRECATED
+#else
+#define KJ_DEPRECATE_KJ_IF_MAYBE_STMT
+#endif
+// Before KJ_IF_SOME, we used KJ_IF_MAYBE, which does exactly the same thing as KJ_IF_SOME, but
+// provides a guaranteed-non-null pointer to the wrapped object instead of a reference. This has a
+// tendency to allow authors to inadvertently use pointers where they mean to use references. For
+// example, in `KJ_IF_MAYBE(obj, maybe) { KJ_LOG(INFO, obj); }` would stringify and log the address
+// of the object living in `maybe`, rather than the object itself as perhaps intended.
+//
+// Due to this footgun, we've deprecated KJ_IF_MAYBE in favor of KJ_IF_SOME. Please use KJ_IF_SOME.
+
+#ifndef KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR
+#define KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR 1
+#endif
+
+#if KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR
+#define KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR \
+    [[deprecated("Using nullptr as an empty Maybe is deprecated and will be removed. " \
+      "Please use kj::none for this purpose instead.")]]
+#else
+#define KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR
+#endif
+// Originally, we used `nullptr` to mean "an empty Maybe" in comparisons and initializations. For
+// example, `maybe == nullptr` would be true if `maybe` contained no value, and `Maybe<T>(nullptr)`
+// could be used to explicitly initialize an empty Maybe. This isn't the best design, because
+// `nullptr` could itself be a valid constructor parameter for the wrapped type T.
+//
+// Due to this flaw, we've deprecated using `nullptr` to mean "an empty Maybe" in favor of
+// `kj::none`. Please use `kj::none`.
+
+#if __GNUC__ || __clang__
+// Both clang and GCC understand the GCC set of pragma directives.
+#define KJ_SILENCE_DANGLING_ELSE_BEGIN \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wdangling-else\"")
+#define KJ_SILENCE_DANGLING_ELSE_END \
+    _Pragma("GCC diagnostic pop")
+#else  // __GNUC__
+// I guess we'll find out if MSVC needs similar warning suppression.
+#define KJ_SILENCE_DANGLING_ELSE_BEGIN
+#define KJ_SILENCE_DANGLING_ELSE_END
+#endif  // __GNUC__
 
 }  // namespace _ (private)
 
-#define KJ_IF_MAYBE(name, exp) if (auto name = ::kj::_::readMaybe(exp))
+#define KJ_IF_MAYBE(name, exp) \
+    if (KJ_DEPRECATE_KJ_IF_MAYBE_STMT; auto name = ::kj::_::readMaybe(exp))
 
-#if __GNUC__
+#define KJ_IF_SOME(name, exp) \
+    KJ_SILENCE_DANGLING_ELSE_BEGIN \
+    if (auto KJ_UNIQUE_NAME(_##name) = ::kj::_::readMaybe(exp)) \
+      if (auto& name = *KJ_UNIQUE_NAME(_##name); false) {} else \
+    KJ_SILENCE_DANGLING_ELSE_END
+
+struct None {};
+static constexpr None none;
+// A "none" value solely for use in comparisons with and initializations of Maybes. `kj::none` will
+// compare equal to all empty Maybes, and will compare not-equal to all non-empty Maybes. If you
+// construct or assign to a Maybe from `kj::none`, the constructed/assigned Maybe will be empty.
+
+#if __GNUC__ || __clang__
 // These two macros provide a friendly syntax to extract the value of a Maybe or return early.
 //
 // Use KJ_UNWRAP_OR_RETURN if you just want to return a simple value when the Maybe is null:
@@ -1347,6 +1395,9 @@ inline T* readMaybe(T* ptr) { return ptr; }
 // "statement expressions" extension. IIFEs don't do the trick here because a lambda cannot
 // return out of the parent scope. These macros should therefore only be used in projects that
 // target GCC or GCC-compatible compilers.
+//
+// `__GNUC__` is not defined when using LLVM's MSVC-compatible compiler driver `clang-cl` (even
+// though clang supports the required extension), hence the additional `|| __clang__`.
 
 #define KJ_UNWRAP_OR_RETURN(value, ...) \
   (*({ \
@@ -1379,32 +1430,35 @@ public:
   Maybe(T&& t): ptr(kj::mv(t)) {}
   Maybe(T& t): ptr(t) {}
   Maybe(const T& t): ptr(t) {}
-  Maybe(Maybe&& other): ptr(kj::mv(other.ptr)) { other = nullptr; }
+  Maybe(Maybe&& other): ptr(kj::mv(other.ptr)) { other = kj::none; }
   Maybe(const Maybe& other): ptr(other.ptr) {}
   Maybe(Maybe& other): ptr(other.ptr) {}
 
   template <typename U>
   Maybe(Maybe<U>&& other) {
-    KJ_IF_MAYBE(val, kj::mv(other)) {
-      ptr.emplace(kj::mv(*val));
-      other = nullptr;
+    KJ_IF_SOME(val, kj::mv(other)) {
+      ptr.emplace(kj::mv(val));
+      other = kj::none;
     }
   }
   template <typename U>
   Maybe(Maybe<U&>&& other) {
-    KJ_IF_MAYBE(val, other) {
-      ptr.emplace(*val);
-      other = nullptr;
+    KJ_IF_SOME(val, other) {
+      ptr.emplace(val);
+      other = kj::none;
     }
   }
   template <typename U>
   Maybe(const Maybe<U>& other) {
-    KJ_IF_MAYBE(val, other) {
-      ptr.emplace(*val);
+    KJ_IF_SOME(val, other) {
+      ptr.emplace(val);
     }
   }
 
+  KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR
   Maybe(decltype(nullptr)): ptr(nullptr) {}
+
+  Maybe(kj::None): ptr(nullptr) {}
 
   template <typename... Params>
   inline T& emplace(Params&&... params) {
@@ -1419,15 +1473,15 @@ public:
   inline Maybe& operator=(T& other) { ptr = other; return *this; }
   inline Maybe& operator=(const T& other) { ptr = other; return *this; }
 
-  inline Maybe& operator=(Maybe&& other) { ptr = kj::mv(other.ptr); other = nullptr; return *this; }
+  inline Maybe& operator=(Maybe&& other) { ptr = kj::mv(other.ptr); other = kj::none; return *this; }
   inline Maybe& operator=(Maybe& other) { ptr = other.ptr; return *this; }
   inline Maybe& operator=(const Maybe& other) { ptr = other.ptr; return *this; }
 
   template <typename U>
   Maybe& operator=(Maybe<U>&& other) {
-    KJ_IF_MAYBE(val, kj::mv(other)) {
-      ptr.emplace(kj::mv(*val));
-      other = nullptr;
+    KJ_IF_SOME(val, kj::mv(other)) {
+      ptr.emplace(kj::mv(val));
+      other = kj::none;
     } else {
       ptr = nullptr;
     }
@@ -1435,27 +1489,30 @@ public:
   }
   template <typename U>
   Maybe& operator=(const Maybe<U>& other) {
-    KJ_IF_MAYBE(val, other) {
-      ptr.emplace(*val);
+    KJ_IF_SOME(val, other) {
+      ptr.emplace(val);
     } else {
       ptr = nullptr;
     }
     return *this;
   }
 
+  KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR
   inline Maybe& operator=(decltype(nullptr)) { ptr = nullptr; return *this; }
 
+  KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR
   inline bool operator==(decltype(nullptr)) const { return ptr == nullptr; }
-  inline bool operator!=(decltype(nullptr)) const { return ptr != nullptr; }
+
+  inline Maybe& operator=(kj::None) { ptr = nullptr; return *this; }
+  inline bool operator==(kj::None) const { return ptr == nullptr; }
 
   inline bool operator==(const Maybe<T>& other) const {
     if (ptr == nullptr) {
-      return other == nullptr;
+      return other == kj::none;
     } else {
       return other.ptr != nullptr && *ptr == *other.ptr;
     }
   }
-  inline bool operator!=(const Maybe<T>& other) const { return !(*this == other); }
 
   Maybe(const T* t) = delete;
   Maybe& operator=(const T* other) = delete;
@@ -1534,7 +1591,7 @@ public:
   template <typename Func>
   auto map(Func&& f) & -> Maybe<decltype(f(instance<T&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(*ptr);
     }
@@ -1543,7 +1600,7 @@ public:
   template <typename Func>
   auto map(Func&& f) const & -> Maybe<decltype(f(instance<const T&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(*ptr);
     }
@@ -1552,7 +1609,7 @@ public:
   template <typename Func>
   auto map(Func&& f) && -> Maybe<decltype(f(instance<T&&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(kj::mv(*ptr));
     }
@@ -1561,7 +1618,7 @@ public:
   template <typename Func>
   auto map(Func&& f) const && -> Maybe<decltype(f(instance<const T&&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(kj::mv(*ptr));
     }
@@ -1612,7 +1669,11 @@ public:
   constexpr Maybe(Maybe<U>& other): ptr(other.ptr.operator U*()) {}
   template <typename U, typename = EnableIf<canConvert<const U*, T*>()>>
   constexpr Maybe(const Maybe<U>& other): ptr(other.ptr.operator const U*()) {}
+
+  KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR
   inline constexpr Maybe(decltype(nullptr)): ptr(nullptr) {}
+
+  inline constexpr Maybe(kj::None): ptr(nullptr) {}
 
   inline Maybe& operator=(T& other) { ptr = &other; return *this; }
   inline Maybe& operator=(T* other) { ptr = other; return *this; }
@@ -1627,8 +1688,10 @@ public:
   template <typename U>
   inline Maybe& operator=(const Maybe<U&>&& other) = delete;
 
+  KJ_DEPRECATE_EMPTY_MAYBE_FROM_NULLPTR_ATTR
   inline bool operator==(decltype(nullptr)) const { return ptr == nullptr; }
-  inline bool operator!=(decltype(nullptr)) const { return ptr != nullptr; }
+
+  inline bool operator==(kj::None) const { return ptr == nullptr; }
 
   T& orDefault(T& defaultValue) {
     if (ptr == nullptr) {
@@ -1648,7 +1711,7 @@ public:
   template <typename Func>
   auto map(Func&& f) -> Maybe<decltype(f(instance<T&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       return f(*ptr);
     }
@@ -1657,7 +1720,7 @@ public:
   template <typename Func>
   auto map(Func&& f) const -> Maybe<decltype(f(instance<const T&>()))> {
     if (ptr == nullptr) {
-      return nullptr;
+      return kj::none;
     } else {
       const T& ref = *ptr;
       return f(ref);
@@ -1804,7 +1867,7 @@ public:
         return i;
       }
     }
-    return nullptr;
+    return kj::none;
   }
   inline Maybe<size_t> findLast(const T& match) const {
     for (size_t i = size_; i--;) {
@@ -1812,7 +1875,7 @@ public:
         return i;
       }
     }
-    return nullptr;
+    return kj::none;
   }
 
   inline ArrayPtr<PropagateConst<T, byte>> asBytes() const {
@@ -1827,11 +1890,11 @@ public:
   }
 
   inline bool operator==(decltype(nullptr)) const { return size_ == 0; }
-  inline bool operator!=(decltype(nullptr)) const { return size_ != 0; }
 
   inline bool operator==(const ArrayPtr& other) const {
     if (size_ != other.size_) return false;
     if (isIntegral<RemoveConst<T>>()) {
+      if (size_ == 0) return true;
       return memcmp(ptr, other.ptr, size_ * sizeof(T)) == 0;
     }
     for (size_t i = 0; i < size_; i++) {
@@ -1839,7 +1902,6 @@ public:
     }
     return true;
   }
-  inline bool operator!=(const ArrayPtr& other) const { return !(*this == other); }
 
   template <typename U>
   inline bool operator==(const ArrayPtr<U>& other) const {
@@ -1849,8 +1911,6 @@ public:
     }
     return true;
   }
-  template <typename U>
-  inline bool operator!=(const ArrayPtr<U>& other) const { return !(*this == other); }
 
   template <typename... Attachments>
   Array<T> attach(Attachments&&... attachments) const KJ_WARN_UNUSED_RESULT;
@@ -1868,7 +1928,7 @@ template <>
 inline Maybe<size_t> ArrayPtr<const char>::findFirst(const char& c) const {
   const char* pos = reinterpret_cast<const char*>(memchr(ptr, c, size_));
   if (pos == nullptr) {
-    return nullptr;
+    return kj::none;
   } else {
     return pos - ptr;
   }
@@ -1878,7 +1938,7 @@ template <>
 inline Maybe<size_t> ArrayPtr<char>::findFirst(const char& c) const {
   char* pos = reinterpret_cast<char*>(memchr(ptr, c, size_));
   if (pos == nullptr) {
-    return nullptr;
+    return kj::none;
   } else {
     return pos - ptr;
   }
@@ -1888,7 +1948,7 @@ template <>
 inline Maybe<size_t> ArrayPtr<const byte>::findFirst(const byte& c) const {
   const byte* pos = reinterpret_cast<const byte*>(memchr(ptr, c, size_));
   if (pos == nullptr) {
-    return nullptr;
+    return kj::none;
   } else {
     return pos - ptr;
   }
@@ -1898,7 +1958,7 @@ template <>
 inline Maybe<size_t> ArrayPtr<byte>::findFirst(const byte& c) const {
   byte* pos = reinterpret_cast<byte*>(memchr(ptr, c, size_));
   if (pos == nullptr) {
-    return nullptr;
+    return kj::none;
   } else {
     return pos - ptr;
   }
@@ -1931,7 +1991,7 @@ To implicitCast(From&& from) {
 
 template <typename To, typename From>
 Maybe<To&> dynamicDowncastIfAvailable(From& from) {
-  // If RTTI is disabled, always returns nullptr.  Otherwise, works like dynamic_cast.  Useful
+  // If RTTI is disabled, always returns kj::none.  Otherwise, works like dynamic_cast.  Useful
   // in situations where dynamic_cast could allow an optimization, but isn't strictly necessary
   // for correctness.  It is highly recommended that you try to arrange all your dynamic_casts
   // this way, as a dynamic_cast that is necessary for correctness implies a flaw in the interface
@@ -1944,7 +2004,7 @@ Maybe<To&> dynamicDowncastIfAvailable(From& from) {
   }
 
 #if KJ_NO_RTTI
-  return nullptr;
+  return kj::none;
 #else
   return dynamic_cast<To*>(&from);
 #endif
@@ -1976,34 +2036,48 @@ namespace _ {  // private
 template <typename Func>
 class Deferred {
 public:
-  inline Deferred(Func&& func): func(kj::fwd<Func>(func)), canceled(false) {}
-  inline ~Deferred() noexcept(false) { if (!canceled) func(); }
+  Deferred(Func&& func): maybeFunc(kj::fwd<Func>(func)) {}
+  ~Deferred() noexcept(false) {
+    run();
+  }
   KJ_DISALLOW_COPY(Deferred);
 
-  // This move constructor is usually optimized away by the compiler.
-  inline Deferred(Deferred&& other): func(kj::fwd<Func>(other.func)), canceled(other.canceled) {
-    other.canceled = true;
+  Deferred(Deferred&&) = default;
+  // Since we use a kj::Maybe, the default move constructor does exactly what we want it to do.
+
+  void run() {
+    // Move `maybeFunc` to the local scope so that even if we throw, we destroy the functor we had.
+    auto maybeLocalFunc = kj::mv(maybeFunc);
+    KJ_IF_SOME(func, maybeLocalFunc) {
+      func();
+    }
   }
 
   void cancel() {
-    canceled = true;
+    maybeFunc = kj::none;
   }
 
 private:
-  Func func;
-  bool canceled;
+  kj::Maybe<Func> maybeFunc;
+  // Note that `Func` may actually be an lvalue reference because `kj::defer` takes its argument via
+  // universal reference. `kj::Maybe` has specializations for lvalue reference types, so this works
+  // out.
 };
 
 }  // namespace _ (private)
 
 template <typename Func>
 _::Deferred<Func> defer(Func&& func) {
-  // Returns an object which will invoke the given functor in its destructor.  The object is not
-  // copyable but is movable with the semantics you'd expect.  Since the return type is private,
-  // you need to assign to an `auto` variable.
+  // Returns an object which will invoke the given functor in its destructor. The object is not
+  // copyable but is move-constructable with the semantics you'd expect. Since the return type is
+  // private, you need to assign to an `auto` variable.
   //
   // The KJ_DEFER macro provides slightly more convenient syntax for the common case where you
   // want some code to run at current scope exit.
+  //
+  // KJ_DEFER does not support move-assignment for its returned objects. If you need to reuse the
+  // variable for your deferred function object, then you will want to write your own class for that
+  // purpose.
 
   return _::Deferred<Func>(kj::fwd<Func>(func));
 }

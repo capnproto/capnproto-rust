@@ -2,9 +2,9 @@
 
 name = "fill_random_values"
 version = "0.0.0"
-license = "MIT"
+license.workspace = true
 description = "library for generating random capnp data"
-edition = "2021"
+edition.workspace = true
 
 readme = "README.md"
 
@@ -12,10 +12,8 @@ keywords = ["encoding", "protocol", "serialization"]
 
 [dependencies]
 rand = "0.8.5"
-capnp-import = { path = "../../capnp-import" }
-
-[dependencies.capnp]
-path = "../../capnp"
+capnp-import.workspace = true
+capnp.workspace = true
 
 [[bin]]
 name = "fill_addressbook"

@@ -41,7 +41,6 @@ const ::capnp::_::RawSchema s_9fd69ebc87b9719c = {
   0, 2, nullptr, nullptr, nullptr, { &s_9fd69ebc87b9719c, nullptr, nullptr, 0, 0, nullptr }, false
 };
 #endif  // !CAPNP_LITE
-CAPNP_DEFINE_ENUM(Side_9fd69ebc87b9719c, 9fd69ebc87b9719c);
 static const ::capnp::_::AlignedData<33> b_d20b909fee733a8e = {
   {   0,   0,   0,   0,   5,   0,   6,   0,
     142,  58, 115, 238, 159, 144,  11, 210,
@@ -343,63 +342,3 @@ const ::capnp::_::RawSchema s_9d263a3630b7ebee = {
 #endif  // !CAPNP_LITE
 }  // namespace schemas
 }  // namespace capnp
-
-// =======================================================================================
-
-namespace capnp {
-namespace rpc {
-namespace twoparty {
-
-// VatId
-constexpr uint16_t VatId::_capnpPrivate::dataWordSize;
-constexpr uint16_t VatId::_capnpPrivate::pointerCount;
-#if !CAPNP_LITE
-constexpr ::capnp::Kind VatId::_capnpPrivate::kind;
-constexpr ::capnp::_::RawSchema const* VatId::_capnpPrivate::schema;
-#endif  // !CAPNP_LITE
-
-// ProvisionId
-constexpr uint16_t ProvisionId::_capnpPrivate::dataWordSize;
-constexpr uint16_t ProvisionId::_capnpPrivate::pointerCount;
-#if !CAPNP_LITE
-constexpr ::capnp::Kind ProvisionId::_capnpPrivate::kind;
-constexpr ::capnp::_::RawSchema const* ProvisionId::_capnpPrivate::schema;
-#endif  // !CAPNP_LITE
-
-// RecipientId
-constexpr uint16_t RecipientId::_capnpPrivate::dataWordSize;
-constexpr uint16_t RecipientId::_capnpPrivate::pointerCount;
-#if !CAPNP_LITE
-constexpr ::capnp::Kind RecipientId::_capnpPrivate::kind;
-constexpr ::capnp::_::RawSchema const* RecipientId::_capnpPrivate::schema;
-#endif  // !CAPNP_LITE
-
-// ThirdPartyCapId
-constexpr uint16_t ThirdPartyCapId::_capnpPrivate::dataWordSize;
-constexpr uint16_t ThirdPartyCapId::_capnpPrivate::pointerCount;
-#if !CAPNP_LITE
-constexpr ::capnp::Kind ThirdPartyCapId::_capnpPrivate::kind;
-constexpr ::capnp::_::RawSchema const* ThirdPartyCapId::_capnpPrivate::schema;
-#endif  // !CAPNP_LITE
-
-// JoinKeyPart
-constexpr uint16_t JoinKeyPart::_capnpPrivate::dataWordSize;
-constexpr uint16_t JoinKeyPart::_capnpPrivate::pointerCount;
-#if !CAPNP_LITE
-constexpr ::capnp::Kind JoinKeyPart::_capnpPrivate::kind;
-constexpr ::capnp::_::RawSchema const* JoinKeyPart::_capnpPrivate::schema;
-#endif  // !CAPNP_LITE
-
-// JoinResult
-constexpr uint16_t JoinResult::_capnpPrivate::dataWordSize;
-constexpr uint16_t JoinResult::_capnpPrivate::pointerCount;
-#if !CAPNP_LITE
-constexpr ::capnp::Kind JoinResult::_capnpPrivate::kind;
-constexpr ::capnp::_::RawSchema const* JoinResult::_capnpPrivate::schema;
-#endif  // !CAPNP_LITE
-
-
-}  // namespace
-}  // namespace
-}  // namespace
-

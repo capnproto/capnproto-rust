@@ -46,7 +46,7 @@ impl Indent {
     }
 }
 
-fn cvt<T>(r: crate::Result<T>) -> Result<T, fmt::Error> {
+fn cvt<T, E>(r: core::result::Result<T, E>) -> Result<T, fmt::Error> {
     match r {
         Ok(v) => Ok(v),
         Err(_) => Err(fmt::Error),
@@ -72,7 +72,9 @@ pub(crate) fn print(
         dynamic_value::Reader::Float32(x) => formatter.write_fmt(format_args!("{x}")),
         dynamic_value::Reader::Float64(x) => formatter.write_fmt(format_args!("{x}")),
         dynamic_value::Reader::Enum(e) => match cvt(e.get_enumerant())? {
-            Some(enumerant) => formatter.write_str(cvt(enumerant.get_proto().get_name())?),
+            Some(enumerant) => {
+                formatter.write_str(cvt(cvt(enumerant.get_proto().get_name())?.to_str())?)
+            }
             None => formatter.write_fmt(format_args!("{}", e.get_value())),
         },
         dynamic_value::Reader::Text(t) => formatter.write_fmt(format_args!("{t:?}")),
@@ -131,7 +133,7 @@ pub(crate) fn print(
                             indent2.comma(formatter)?;
                         }
                         indent2.maybe_newline(formatter)?;
-                        formatter.write_str(cvt(ff.get_proto().get_name())?)?;
+                        formatter.write_str(cvt(cvt(ff.get_proto().get_name())?.to_str())?)?;
                         formatter.write_str(" = ")?;
                         print(cvt(st.get(ff))?, formatter, indent2)?;
                         union_field = None;
@@ -144,7 +146,7 @@ pub(crate) fn print(
                         indent2.comma(formatter)?;
                     }
                     indent2.maybe_newline(formatter)?;
-                    formatter.write_str(cvt(field.get_proto().get_name())?)?;
+                    formatter.write_str(cvt(cvt(field.get_proto().get_name())?.to_str())?)?;
                     formatter.write_str(" = ")?;
                     print(cvt(st.get(field))?, formatter, indent2)?;
                 }
@@ -155,7 +157,7 @@ pub(crate) fn print(
                     indent2.comma(formatter)?;
                 }
                 indent2.maybe_newline(formatter)?;
-                formatter.write_str(cvt(ff.get_proto().get_name())?)?;
+                formatter.write_str(cvt(cvt(ff.get_proto().get_name())?.to_str())?)?;
                 formatter.write_str(" = ")?;
                 print(cvt(st.get(ff))?, formatter, indent2)?;
             }

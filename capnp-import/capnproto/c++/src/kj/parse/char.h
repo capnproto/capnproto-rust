@@ -45,7 +45,7 @@ public:
     const char* ptr = str;
 
     while (*ptr != '\0') {
-      if (input.atEnd() || input.current() != *ptr) return nullptr;
+      if (input.atEnd() || input.current() != *ptr) return kj::none;
       input.next();
       ++ptr;
     }
@@ -117,13 +117,13 @@ public:
 
   template <typename Input>
   Maybe<char> operator()(Input& input) const {
-    if (input.atEnd()) return nullptr;
+    if (input.atEnd()) return kj::none;
     unsigned char c = input.current();
     if (contains(c)) {
       input.next();
       return c;
     } else {
-      return nullptr;
+      return kj::none;
     }
   }
 
@@ -320,10 +320,10 @@ struct ParseHexByte {
 struct ParseOctEscape {
   inline char operator()(char first, Maybe<char> second, Maybe<char> third) const {
     char result = first - '0';
-    KJ_IF_MAYBE(digit1, second) {
-      result = (result << 3) | (*digit1 - '0');
-      KJ_IF_MAYBE(digit2, third) {
-        result = (result << 3) | (*digit2 - '0');
+    KJ_IF_SOME(digit1, second) {
+      result = (result << 3) | (digit1 - '0');
+      KJ_IF_SOME(digit2, third) {
+        result = (result << 3) | (digit2 - '0');
       }
     }
     return result;
