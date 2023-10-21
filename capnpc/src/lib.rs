@@ -73,7 +73,6 @@ mod pointer_constants;
 
 use std::{
     collections::HashMap,
-    env::current_dir,
     path::{Path, PathBuf},
 };
 

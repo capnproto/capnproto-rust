@@ -4091,7 +4091,7 @@ impl<'a> ListBuilder<'a> {
         }
     }
 
-    pub(crate) fn into_raw_bytes(&self) -> &'a mut [u8] {
+    pub(crate) fn as_raw_bytes(&self) -> &'a mut [u8] {
         if self.element_count == 0 {
             // Explictly handle this case to avoid forming a slice to a null pointer,
             // which would be undefined behavior.
