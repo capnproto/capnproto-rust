@@ -863,6 +863,81 @@ unsafe impl<'a> Allocator for ScratchSpaceHeapAllocator<'a> {
     }
 }
 
+/// An Allocator whose first and only segment is a backed by a user-provided buffer.
+/// If the segment fill up, subsequent allocations trigger panics.
+///
+/// Recall that an `Allocator` implementation must ensure that allocated segments are
+/// initially *zeroed*. `SingleSegmentAllocator` ensures that is the case by zeroing
+/// the entire buffer upon initial construction, and then zeroing any *potentially used*
+/// part of the buffer upon `deallocate_segment()`.
+///
+/// You can reuse a `SingleSegmentAllocator` by calling `message::Builder::into_allocator()`,
+/// or by initally passing it to `message::Builder::new()` as a `&mut SingleSegmentAllocator`.
+/// Such reuse can save significant amounts of zeroing.
+pub struct SingleSegmentAllocator<'a> {
+    segment: &'a mut [u8],
+    segment_allocated: bool,
+}
+
+impl<'a> SingleSegmentAllocator<'a> {
+    /// Writes zeroes into the entire buffer and constructs a new allocator from it.
+    ///
+    /// If the buffer is large, this operation could be relatively expensive. If you want to reuse
+    /// the same scratch space in a later message, you should reuse the entire
+    /// `SingleSegmentAllocator`, to avoid paying this full cost again.
+    pub fn new(segment: &'a mut [u8]) -> SingleSegmentAllocator<'a> {
+        #[cfg(not(feature = "unaligned"))]
+        {
+            if segment.as_ptr() as usize % BYTES_PER_WORD != 0 {
+                panic!(
+                    "Segment must be 8-byte aligned, or you must enable the \"unaligned\" \
+                        feature in the capnp crate"
+                );
+            }
+        }
+
+        // We need to ensure that the buffer is zeroed.
+        for b in &mut segment[..] {
+            *b = 0;
+        }
+        SingleSegmentAllocator {
+            segment,
+            segment_allocated: false,
+        }
+    }
+}
+
+unsafe impl<'a> Allocator for SingleSegmentAllocator<'a> {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
+        let available_word_count = self.segment.len() / BYTES_PER_WORD;
+        if (minimum_size as usize) > available_word_count {
+            panic!(
+                "Allocation too large: asked for {minimum_size} words, \
+                    but only {available_word_count} are available."
+            )
+        } else if self.segment_allocated {
+            panic!("Tried to allocated two segments in a SingleSegmentAllocator.")
+        } else {
+            self.segment_allocated = true;
+            (
+                self.segment.as_mut_ptr(),
+                (self.segment.len() / BYTES_PER_WORD) as u32,
+            )
+        }
+    }
+
+    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, _word_size: u32, words_used: u32) {
+        if ptr == self.segment.as_mut_ptr() {
+            // Rezero the slice to allow reuse of the allocator. We only need to write
+            // words that we know might contain nonzero values.
+            unsafe {
+                core::ptr::write_bytes(ptr, 0u8, (words_used as usize) * BYTES_PER_WORD);
+            }
+            self.segment_allocated = false;
+        }
+    }
+}
+
 #[cfg(feature = "alloc")]
 unsafe impl<'a, A> Allocator for &'a mut A
 where
