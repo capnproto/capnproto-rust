@@ -623,28 +623,31 @@ impl ::std::error::Error for Error {
 
 /// Helper struct that allows `MessageBuilder::get_segments_for_output()` to avoid heap allocations
 /// in the single-segment case.
-#[cfg(feature = "alloc")]
 pub enum OutputSegments<'a> {
     SingleSegment([&'a [u8]; 1]),
+
+    #[cfg(feature = "alloc")]
     MultiSegment(Vec<&'a [u8]>),
 }
 
-#[cfg(feature = "alloc")]
 impl<'a> core::ops::Deref for OutputSegments<'a> {
     type Target = [&'a [u8]];
     fn deref(&self) -> &[&'a [u8]] {
         match self {
             OutputSegments::SingleSegment(s) => s,
+
+            #[cfg(feature = "alloc")]
             OutputSegments::MultiSegment(v) => v,
         }
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'s> message::ReaderSegments for OutputSegments<'s> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         match self {
             OutputSegments::SingleSegment(s) => s.get(id as usize).copied(),
+
+            #[cfg(feature = "alloc")]
             OutputSegments::MultiSegment(v) => v.get(id as usize).copied(),
         }
     }
