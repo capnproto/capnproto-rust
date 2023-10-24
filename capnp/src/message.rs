@@ -73,15 +73,12 @@ use alloc::vec::Vec;
 use core::convert::From;
 
 use crate::any_pointer;
-#[cfg(feature = "alloc")]
 use crate::private::arena::{BuilderArena, BuilderArenaImpl};
 use crate::private::arena::{ReaderArena, ReaderArenaImpl};
 use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
-#[cfg(feature = "alloc")]
 use crate::traits::{FromPointerBuilder, SetPointerBuilder};
 use crate::traits::{FromPointerReader, Owned};
-#[cfg(feature = "alloc")]
 use crate::OutputSegments;
 use crate::Result;
 
@@ -344,7 +341,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
 where
     A: Allocator,
@@ -356,7 +352,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<A, T> From<TypedBuilder<T, A>> for TypedReader<Builder<A>, T>
 where
     A: Allocator,
@@ -404,7 +399,6 @@ pub unsafe trait Allocator {
 }
 
 /// A container used to build a message.
-#[cfg(feature = "alloc")]
 pub struct Builder<A>
 where
     A: Allocator,
@@ -412,10 +406,8 @@ where
     arena: BuilderArenaImpl<A>,
 }
 
-#[cfg(feature = "alloc")]
 unsafe impl<A> Send for Builder<A> where A: Send + Allocator {}
 
-#[cfg(feature = "alloc")]
 fn _assert_kinds() {
     fn _assert_send<T: Send>() {}
     fn _assert_reader<S: ReaderSegments + Send>() {
@@ -426,7 +418,6 @@ fn _assert_kinds() {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<A> Builder<A>
 where
     A: Allocator,
@@ -533,7 +524,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<A> ReaderSegments for Builder<A>
 where
     A: Allocator,
@@ -563,6 +553,19 @@ where
     message: Builder<A>,
 }
 
+// Defined separately because the A=HeapAllocator default type
+// argument is not allowed in no-alloc mode.
+// TODO(apibump): remove the A=HeapAllocator thing above?
+#[cfg(not(feature = "alloc"))]
+pub struct TypedBuilder<T, A>
+where
+    T: Owned,
+    A: Allocator,
+{
+    marker: ::core::marker::PhantomData<T>,
+    message: Builder<A>,
+}
+
 #[cfg(feature = "alloc")]
 impl<T> TypedBuilder<T, HeapAllocator>
 where
@@ -573,7 +576,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<T, A> TypedBuilder<T, A>
 where
     T: Owned,
@@ -623,7 +625,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<T, A> From<Builder<A>> for TypedBuilder<T, A>
 where
     T: Owned,
@@ -951,7 +952,6 @@ unsafe impl<'a> Allocator for SingleSegmentAllocator<'a> {
     }
 }
 
-#[cfg(feature = "alloc")]
 unsafe impl<'a, A> Allocator for &'a mut A
 where
     A: Allocator,

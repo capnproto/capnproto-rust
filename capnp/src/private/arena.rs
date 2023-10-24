@@ -20,17 +20,14 @@
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-#[cfg(feature = "alloc")]
 use core::slice;
 use core::u64;
 
 use crate::message;
-#[cfg(feature = "alloc")]
 use crate::message::Allocator;
 use crate::message::ReaderSegments;
 use crate::private::read_limiter::ReadLimiter;
 use crate::private::units::*;
-#[cfg(feature = "alloc")]
 use crate::OutputSegments;
 use crate::{Error, ErrorKind, Result};
 
@@ -163,7 +160,6 @@ pub trait BuilderArena: ReaderArena {
 }
 
 /// A wrapper around a memory segment used in building a message.
-#[cfg(feature = "alloc")]
 struct BuilderSegment {
     /// Pointer to the start of the segment.
     ptr: *mut u8,
@@ -177,17 +173,64 @@ struct BuilderSegment {
 }
 
 #[cfg(feature = "alloc")]
+type BuilderSegmentArray = Vec<BuilderSegment>;
+
+#[cfg(not(feature = "alloc"))]
+#[derive(Default)]
+struct BuilderSegmentArray {
+    // In the no-alloc case, we only allow a single segment.
+    segment: Option<BuilderSegment>,
+}
+
+#[cfg(not(feature = "alloc"))]
+impl BuilderSegmentArray {
+    fn len(&self) -> usize {
+        match self.segment {
+            Some(_) => 1,
+            None => 0,
+        }
+    }
+
+    fn push(&mut self, segment: BuilderSegment) {
+        if self.segment.is_some() {
+            panic!("multiple segments are not supported in no-alloc mode")
+        }
+        self.segment = Some(segment);
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
+impl core::ops::Index<usize> for BuilderSegmentArray {
+    type Output = BuilderSegment;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        assert_eq!(index, 0);
+        match &self.segment {
+            Some(s) => s,
+            None => panic!("no segment"),
+        }
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
+impl core::ops::IndexMut<usize> for BuilderSegmentArray {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        assert_eq!(index, 0);
+        match &mut self.segment {
+            Some(s) => s,
+            None => panic!("no segment"),
+        }
+    }
+}
+
 pub struct BuilderArenaImplInner<A>
 where
     A: Allocator,
 {
     allocator: Option<A>, // None if has already be deallocated.
-
-    // TODO(perf): Try using smallvec to avoid heap allocations in the single-segment case?
-    segments: Vec<BuilderSegment>,
+    segments: BuilderSegmentArray,
 }
 
-#[cfg(feature = "alloc")]
 pub struct BuilderArenaImpl<A>
 where
     A: Allocator,
@@ -195,7 +238,6 @@ where
     inner: BuilderArenaImplInner<A>,
 }
 
-#[cfg(feature = "alloc")]
 impl<A> BuilderArenaImpl<A>
 where
     A: Allocator,
@@ -204,7 +246,7 @@ where
         Self {
             inner: BuilderArenaImplInner {
                 allocator: Some(allocator),
-                segments: Vec::new(),
+                segments: Default::default(),
             },
         }
     }
@@ -227,18 +269,25 @@ where
             };
             OutputSegments::SingleSegment([slice])
         } else {
-            let mut v = Vec::with_capacity(reff.segments.len());
-            for seg in &reff.segments {
-                // See safety argument in above branch.
-                let slice = unsafe {
-                    slice::from_raw_parts(
-                        seg.ptr as *const _,
-                        seg.allocated as usize * BYTES_PER_WORD,
-                    )
-                };
-                v.push(slice);
+            #[cfg(feature = "alloc")]
+            {
+                let mut v = Vec::with_capacity(reff.segments.len());
+                for seg in &reff.segments {
+                    // See safety argument in above branch.
+                    let slice = unsafe {
+                        slice::from_raw_parts(
+                            seg.ptr as *const _,
+                            seg.allocated as usize * BYTES_PER_WORD,
+                        )
+                    };
+                    v.push(slice);
+                }
+                OutputSegments::MultiSegment(v)
             }
-            OutputSegments::MultiSegment(v)
+            #[cfg(not(feature = "alloc"))]
+            {
+                panic!("invalid number of segments: {}", reff.segments.len());
+            }
         }
     }
 
@@ -258,7 +307,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<A> ReaderArena for BuilderArenaImpl<A>
 where
     A: Allocator,
@@ -290,7 +338,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<A> BuilderArenaImplInner<A>
 where
     A: Allocator,
@@ -341,7 +388,15 @@ where
 
     fn deallocate_all(&mut self) {
         if let Some(a) = &mut self.allocator {
+            #[cfg(feature = "alloc")]
             for seg in &self.segments {
+                unsafe {
+                    a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
+                }
+            }
+
+            #[cfg(not(feature = "alloc"))]
+            if let Some(seg) = &self.segments.segment {
                 unsafe {
                     a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
                 }
@@ -355,7 +410,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<A> BuilderArena for BuilderArenaImpl<A>
 where
     A: Allocator,
@@ -377,7 +431,6 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<A> Drop for BuilderArenaImplInner<A>
 where
     A: Allocator,
