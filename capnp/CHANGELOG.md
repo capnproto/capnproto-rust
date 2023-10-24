@@ -1,3 +1,6 @@
+## v0.18.2
+- Add SingleSegmentAllocator, for use in no-alloc contexts.
+
 ## v0.18.1
 - Add #[inline] attribute to many text::Reader and text::Builder methods.
 
