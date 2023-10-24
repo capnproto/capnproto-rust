@@ -64,6 +64,55 @@ fn capnp_build_struct_test_impl(
     Promise::ok(())
 }
 
+fn try_getting_lambdas_to_work(
+    mut person_builder: person_capnp::Builder,
+) -> Promise<(), capnp::Error> {
+    let name = "Tom";
+    let custom_email = "tom@gmail.com";
+    //capnp_build!(person_builder, {name, birthdate: {day = 1, month = 1 + 1, year_as_text => year_builder}, email = custom_email});
+    // Proposed new syntax:
+    // capnp_build!(person_builder,
+    //              {name,
+    //              birthdate:
+    //                  {day = 1,
+    //                  month = 1 + 1,
+    //                  year_as_text => |year_builder| {year_builder.push_str("1990")}},
+    //              email = custom_email});
+    capnp_build!(person_builder, {
+        birthdate => |mut birthdate_builder: example_capnp::date::Builder | {
+                let day = 1;
+                birthdate_builder.set_day(day);
+                let month = 2 * day;
+                birthdate_builder.set_month(month);
+        },
+
+        birthdate: {year_as_text = "1990"}
+    });
+    let person_reader = person_builder.into_reader();
+    capnp_let!({birthdate: {month, year_as_text}} = person_reader);
+    assert_eq!(month, 2);
+    assert_eq!(year_as_text, "1990");
+    // Expansion start:
+
+    // person_builder.set_name(name.into());
+    // let mut birthdate_builder =
+    //     capnp_rpc::pry!(person_builder.reborrow().get_birthdate().into_result());
+    // birthdate_builder.set_day(1);
+    // birthdate_builder.set_month(1 + 1);
+    // /*let mut year_builder = capnp_rpc::pry!(birthdate_builder
+    // .reborrow()
+    // .get_year_as_text()
+    // .into_result());*/
+    // capnp_rpc::pry!(birthdate_builder
+    //     .reborrow()
+    //     .get_year_as_text()
+    //     .into_result())
+    // .push_str("1990");
+    // person_builder.set_email(custom_email.into());
+    // Expansion end
+    Promise::ok(())
+}
+
 // fn macro_usage_two(mut person_builder: person_capnp::Builder) -> Promise<(), capnp::Error> {
 //     //let birthdate_builder = capnp_rpc::pry!(person.get_birthdate());
 //     //birthdate_builder.set_day(1);
@@ -100,23 +149,23 @@ fn capnp_build_struct_test_impl(
 //     Promise::ok(())
 // }
 
-fn macro_usage_three(mut date_list: date_list::Builder) -> Promise<(), capnp::Error> {
-    //let x = date_list.get_dates().unwrap();
-    capnp_build!(date_list, {dates => dates});
-    //capnp_build!(dates, [{day = 1, month = 2, year_as_text = "1990"},
-    //                     {day = 2, month = 3, year_as_text = "1234"},
-    //                     {day = 7, month = 8, year_as_text = "2023"}]);
-    assert_eq!(dates.get(0).get_day(), 1);
-    let v = vec![(1, 2, 3), (4, 5, 6), (7, 8, 9)].into_iter();
-    let mut x = date_list.init_dates(v.len() as u32);
-    // let f =
-    //     |(x, y, z), w: example_capnp::date::Builder| {capnp_build!({day: x, month: y, year_as_text: z} = w);}
-    // let temp = x.reborrow().get(0);
-    // x.set_with_caveats(0, todo!());
-    // x.set_with_caveats(1, todo!());
-    // x.set_with_caveats(2, todo!());
-    Promise::ok(())
-}
+// fn macro_usage_three(mut date_list: date_list::Builder) -> Promise<(), capnp::Error> {
+//     //let x = date_list.get_dates().unwrap();
+//     capnp_build!(date_list, {dates => dates});
+//     //capnp_build!(dates, [{day = 1, month = 2, year_as_text = "1990"},
+//     //                     {day = 2, month = 3, year_as_text = "1234"},
+//     //                     {day = 7, month = 8, year_as_text = "2023"}]);
+//     assert_eq!(dates.get(0).get_day(), 1);
+//     let v = vec![(1, 2, 3), (4, 5, 6), (7, 8, 9)].into_iter();
+//     let mut x = date_list.init_dates(v.len() as u32);
+//     // let f =
+//     //     |(x, y, z), w: example_capnp::date::Builder| {capnp_build!({day: x, month: y, year_as_text: z} = w);}
+//     // let temp = x.reborrow().get(0);
+//     // x.set_with_caveats(0, todo!());
+//     // x.set_with_caveats(1, todo!());
+//     // x.set_with_caveats(2, todo!());
+//     Promise::ok(())
+// }
 
 fn macro_usage_four(
     mut date_list: capnp::struct_list::Builder<example_capnp::date::Owned>,
@@ -153,7 +202,8 @@ async fn capnp_build_test() -> capnp::Result<()> {
     //let person_builder = person_message.get_root()?;
     let mut message = capnp::message::Builder::new_default();
     let person_builder = message.init_root::<person_capnp::Builder>();
-    capnp_build_struct_test_impl(person_builder).await //?;
+    //capnp_build_struct_test_impl(person_builder).await //?;
+    try_getting_lambdas_to_work(person_builder).await
 
     //let person: person_capnp::Builder = message.init_root::<person_capnp::Builder>();
     //macro_usage_two(person).await?;

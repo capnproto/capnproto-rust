@@ -71,8 +71,8 @@ fn process_struct_field_pattern(
         CapnpBuildFieldPattern::PatternAssignment(name, pat) => {
             build_with_pattern(&subject, &name, pat.fields.into_iter())
         }
-        CapnpBuildFieldPattern::BuilderExtraction(name1, name2) => {
-            extract_symbol(&subject, &name1, &name2)
+        CapnpBuildFieldPattern::BuilderExtraction(name1, closure) => {
+            extract_symbol_new(&subject, &name1, &closure)
         }
     };
     Ok(res)
@@ -82,7 +82,7 @@ fn process_struct_field_pattern(
 fn assign_from_expression(builder: &Ident, field: &Ident, expr: &syn::Expr) -> TokenStream2 {
     let field_setter = format_ident!("set_{}", field);
     quote! {
-        #builder.reborrow().#field_setter(#expr);
+        #builder.reborrow().#field_setter((#expr).into());
     }
 }
 
@@ -106,7 +106,18 @@ fn build_with_pattern<T: Iterator<Item = CapnpBuildFieldPattern>>(
 fn extract_symbol(builder: &Ident, field: &Ident, symbol_to_extract: &Ident) -> TokenStream2 {
     let field_accessor = format_ident!("get_{}", field);
     quote! {
-        let mut #symbol_to_extract = capnp_rpc::pry!(#builder.reborrow().#field_accessor().into_result());
+        let mut #symbol_to_extract = (capnp_rpc::pry!(#builder.reborrow().#field_accessor().into_result()));
+    }
+}
+
+fn extract_symbol_new(
+    builder: &Ident,
+    field: &Ident,
+    closure_to_execute: &syn::ExprClosure,
+) -> TokenStream2 {
+    let field_accessor = format_ident!("get_{}", field);
+    quote! {
+        (#closure_to_execute)(capnp_rpc::pry!(#builder.reborrow().#field_accessor().into_result()));
     }
 }
 

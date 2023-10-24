@@ -24,10 +24,11 @@ pub struct CapnpBuild {
 }
 
 pub enum CapnpBuildPattern {
-    StructPattern(CapnpBuildStruct),
-    ListPattern(ListPattern),
+    StructPattern(CapnpBuildStruct), // {...}
+    ListPattern(ListPattern),        // [...]
 }
 
+// {field1, field2, ...}
 pub struct CapnpAnonStruct<FieldPattern: Parse> {
     pub brace_token: Brace,
     pub fields: Punctuated<FieldPattern, Token![,]>,
@@ -47,8 +48,8 @@ pub enum ListElementPattern {
 pub enum CapnpBuildFieldPattern {
     Name(Ident),                                // name
     ExpressionAssignment(Ident, syn::Expr),     // name = expr
-    PatternAssignment(Ident, CapnpBuildStruct), // name : pat
-    BuilderExtraction(Ident, Ident),            // name => name
+    PatternAssignment(Ident, CapnpBuildStruct), // name : pat TODO Make it accept ListPattern by saying "CapnpBuildPattern" here
+    BuilderExtraction(Ident, syn::ExprClosure), // name => closure
 }
 
 pub enum CapnpLetFieldPattern {
