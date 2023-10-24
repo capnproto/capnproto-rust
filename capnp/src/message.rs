@@ -871,6 +871,9 @@ unsafe impl<'a> Allocator for ScratchSpaceHeapAllocator<'a> {
 /// An Allocator whose first and only segment is a backed by a user-provided buffer.
 /// If the segment fill up, subsequent allocations trigger panics.
 ///
+/// The main purpose of this struct is to be used in situations where heap allocation
+/// is not available.
+///
 /// Recall that an `Allocator` implementation must ensure that allocated segments are
 /// initially *zeroed*. `SingleSegmentAllocator` ensures that is the case by zeroing
 /// the entire buffer upon initial construction, and then zeroing any *potentially used*
