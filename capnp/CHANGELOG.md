@@ -1,3 +1,7 @@
+## v0.18.3
+- Make BuilderArena usable in no-alloc contexts. Only single-segment messages
+  are supported.
+
 ## v0.18.2
 - Add SingleSegmentAllocator, for use in no-alloc contexts.
 
