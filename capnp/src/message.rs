@@ -927,11 +927,16 @@ unsafe impl<'a> Allocator for SingleSegmentAllocator<'a> {
     }
 
     unsafe fn deallocate_segment(&mut self, ptr: *mut u8, _word_size: u32, words_used: u32) {
-        if ptr == self.segment.as_mut_ptr() {
+        let seg_ptr = self.segment.as_mut_ptr();
+        if ptr == seg_ptr {
             // Rezero the slice to allow reuse of the allocator. We only need to write
             // words that we know might contain nonzero values.
             unsafe {
-                core::ptr::write_bytes(ptr, 0u8, (words_used as usize) * BYTES_PER_WORD);
+                core::ptr::write_bytes(
+                    seg_ptr, // miri isn't happy if we use ptr instead
+                    0u8,
+                    (words_used as usize) * BYTES_PER_WORD,
+                );
             }
             self.segment_allocated = false;
         }
