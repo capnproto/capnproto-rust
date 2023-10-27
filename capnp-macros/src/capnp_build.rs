@@ -1,81 +1,137 @@
+use capnp::traits::OwnedStruct;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, ToTokens};
 use syn::{punctuated::Punctuated, Ident, Token};
 
-use crate::parse::{CapnpBuildFieldPattern, CapnpBuildPattern, ListElementPattern};
+use crate::parse::{
+    CapnpBuildFieldPattern, CapnpBuildPattern, CapnpBuildStruct, ListElementPattern, ListPattern,
+};
 
-type Expr = TokenStream2;
-type PatternStruct = dyn Iterator<Item = (Ident, Expr)>;
-type PatternList = dyn Iterator<Item = Expr>;
-
-pub fn process_build_pry(
-    subject: Ident,
-    build_pattern: CapnpBuildPattern,
-) -> syn::Result<TokenStream2> {
-    let mut res = TokenStream2::new();
+pub fn process_build_pry(builder: Ident, build_pattern: CapnpBuildPattern) -> TokenStream2 {
     match build_pattern {
         CapnpBuildPattern::StructPattern(struct_pattern) => {
-            for field_pat in struct_pattern.fields.into_iter() {
-                let to_append = process_struct_field_pattern(&subject, field_pat);
-                res.extend(to_append);
-            }
+            process_struct_pattern(&builder, struct_pattern)
         }
-        CapnpBuildPattern::ListPattern(list_pattern) => match list_pattern {
-            crate::parse::ListPattern::ListComprehension => todo!(),
-            crate::parse::ListPattern::ListElements(elements) => {
-                let enumerated: Vec<(usize, ListElementPattern)> =
-                    elements.into_iter().enumerate().collect();
-                let len = enumerated.len();
-                //let initializer = format_ident!("init_{}", &subject);
-                //res.extend(quote!(#.#initializer(#len)));
-                for (idx, field_pat) in enumerated {
-                    let to_append = match field_pat {
-                        crate::parse::ListElementPattern::SimpleExpression(expr) => {
-                            quote!(#subject.set(#idx, #expr); )
-                        }
-                        crate::parse::ListElementPattern::StructPattern(struct_pattern) => {
-                            let mut struct_res = TokenStream2::new();
-                            let struct_name: Ident = format_ident!("_struct_{}", &subject);
-                            struct_res.extend(quote!(let mut #struct_name = #subject.reborrow().get(#idx as u32);));
-                            // TODO Create struct builder with a given name first
-                            for field_pat in struct_pattern.fields.into_iter() {
-                                let to_append =
-                                    process_struct_field_pattern(&struct_name, field_pat);
-                                struct_res.extend(to_append);
-                            }
-                            struct_res
-                        }
-                        crate::parse::ListElementPattern::ListPattern(list_pattern) => todo!(),
-                    };
-                    res.extend(to_append);
-                }
-            }
-        },
+        CapnpBuildPattern::ListPattern(list_pattern) => {
+            process_list_pattern(&builder, list_pattern)
+        }
     }
-    Ok(res)
 }
 
-fn process_struct_field_pattern(
-    subject: &Ident,
-    field_pat: CapnpBuildFieldPattern,
-) -> syn::Result<TokenStream2> {
-    let res = match field_pat {
-        CapnpBuildFieldPattern::Name(name) => {
-            let x: syn::ExprPath = syn::parse2(name.to_token_stream())?;
-            let x: syn::Expr = syn::Expr::Path(x);
-            assign_from_expression(&subject, &name, &x)
+fn process_struct_pattern(builder: &Ident, struct_pattern: CapnpBuildStruct) -> TokenStream2 {
+    let mut res = TokenStream2::new();
+    for field_pattern in struct_pattern.fields.into_iter() {
+        let to_append = match field_pattern {
+            // name
+            CapnpBuildFieldPattern::Name(name) => {
+                let x: syn::ExprPath = syn::parse2(name.to_token_stream()).unwrap(); //We know name is an Ident and therefore a Path
+                let x: syn::Expr = syn::Expr::Path(x);
+                assign_from_expression(&builder, &name, &x)
+            }
+            // name = expr
+            CapnpBuildFieldPattern::ExpressionAssignment(name, expr) => {
+                assign_from_expression(&builder, &name, &expr)
+            }
+            // name : {...}
+            CapnpBuildFieldPattern::PatternAssignment(
+                name,
+                CapnpBuildPattern::StructPattern(struct_pattern),
+            ) => {
+                let struct_builder = format_ident!("{}_builder", name);
+                let temp = extract_symbol(&builder, &name, &struct_builder);
+                let temp2 = process_struct_pattern(&struct_builder, struct_pattern);
+                quote! {
+                    #temp
+                    #temp2
+                }
+            }
+            // name : [...]
+            CapnpBuildFieldPattern::PatternAssignment(
+                name,
+                CapnpBuildPattern::ListPattern(list_pattern),
+            ) => {
+                let list_builder = format_ident!("{}_builder", name);
+                let list_initializer = format_ident!("init_{}", name);
+                let length = get_list_size(&list_pattern);
+                let temp = quote!(let mut #list_builder = #builder.reborrow().#list_initializer(#length as u32););
+                let temp2 = process_list_pattern(&list_builder, list_pattern);
+                quote! {
+                    #temp
+                    #temp2
+                }
+            }
+            // name => |...|{...}
+            CapnpBuildFieldPattern::BuilderExtraction(name, closure) => {
+                extract_symbol_new(&builder, &name, &closure)
+            }
+        };
+        res.extend(to_append);
+    }
+    res
+}
+
+fn process_list_pattern(builder: &Ident, list_pattern: ListPattern) -> TokenStream2 {
+    match list_pattern {
+        // [for x in y {...}]
+        ListPattern::ListComprehension(for_expr) => {
+            let syn::ExprForLoop {
+                pat, expr, body, ..
+            } = for_expr;
+            let syn::Pat::Tuple(t) = *pat else {
+                panic!("Argument for capnp_build's list comprehension requires a tuple (item_builder, contents)");
+            };
+            if t.elems.len() != 2 {
+                panic!(
+                    "Argument for capnp_build's list comprehension requires has to have 2 elements"
+                );
+            }
+            let (item_builder, pattern_part) = (t.elems.first().unwrap(), t.elems.last().unwrap());
+            let index_name = format_ident!("{}_listcomprehension_index", builder);
+            quote! {
+                for (#index_name, #pattern_part) in #expr.enumerate() {
+                    let mut #item_builder = #builder.reborrow().get(#index_name as u32);
+                    #body;
+                }
+            }
         }
-        CapnpBuildFieldPattern::ExpressionAssignment(name, expr) => {
-            assign_from_expression(&subject, &name, &expr)
+        // [=a, =b, [...], {...}]
+        ListPattern::ListElements(elems) => {
+            let mut res = TokenStream2::new();
+            for (i, item) in elems.into_iter().enumerate() {
+                let i = i as u32;
+                let to_append = match item {
+                    ListElementPattern::SimpleExpression(expr) => {
+                        // TODO Doesn't support structs from value, as in =some_struct_builder_expr
+                        quote! {
+                            #builder.reborrow().set(#i, (#expr).into());
+                        }
+                    }
+                    ListElementPattern::StructPattern(struct_pattern) => {
+                        let struct_builder = format_ident!("{}_builder_{}", builder, i);
+                        let temp = quote!(let mut #struct_builder = #builder.reborrow().get(#i););
+                        let temp2 = process_struct_pattern(&struct_builder, struct_pattern);
+                        quote! {
+                            #temp
+                            #temp2
+                        }
+                    }
+                    ListElementPattern::ListPattern(list_pattern) => {
+                        let list_builder = format_ident!("{}_builder_{}", builder, i);
+                        let length = get_list_size(&list_pattern);
+                        let temp =
+                            quote!(let mut #list_builder = #builder.reborrow().init(#i, #length););
+                        let temp2 = process_list_pattern(&list_builder, list_pattern);
+                        quote! {
+                            #temp
+                            #temp2
+                        }
+                    }
+                };
+                res.extend(to_append);
+            }
+            res
         }
-        CapnpBuildFieldPattern::PatternAssignment(name, pat) => {
-            build_with_pattern(&subject, &name, pat.fields.into_iter())
-        }
-        CapnpBuildFieldPattern::BuilderExtraction(name1, closure) => {
-            extract_symbol_new(&subject, &name1, &closure)
-        }
-    };
-    Ok(res)
+    }
 }
 
 // builder, {field = value}
@@ -87,20 +143,20 @@ fn assign_from_expression(builder: &Ident, field: &Ident, expr: &syn::Expr) -> T
 }
 
 // builder, {field : {pattern..}}
-fn build_with_pattern<T: Iterator<Item = CapnpBuildFieldPattern>>(
-    builder: &Ident,
-    field: &Ident,
-    pattern: T,
-) -> TokenStream2 {
-    let field_builder_name = format_ident!("{}_builder", field);
-    let acquire_field_symbol = extract_symbol(&builder, &field, &field_builder_name);
-    let assignments = pattern
-        .map(|inner_field| process_struct_field_pattern(&field_builder_name, inner_field).unwrap());
-    quote! {
-        #acquire_field_symbol
-        #(#assignments)*
-    }
-}
+// fn build_with_pattern<T: Iterator<Item = CapnpBuildFieldPattern>>(
+//     builder: &Ident,
+//     field: &Ident,
+//     pattern: T,
+// ) -> TokenStream2 {
+//     let field_builder_name = format_ident!("{}_builder", field);
+//     let acquire_field_symbol = extract_symbol(&builder, &field, &field_builder_name);
+//     let assignments = pattern
+//         .map(|inner_field| process_struct_field_pattern(&field_builder_name, inner_field).unwrap());
+//     quote! {
+//         #acquire_field_symbol
+//         #(#assignments)*
+//     }
+// }
 
 // builder, {field => symbol_to_extract}
 fn extract_symbol(builder: &Ident, field: &Ident, symbol_to_extract: &Ident) -> TokenStream2 {
@@ -124,7 +180,7 @@ fn extract_symbol_new(
 // list_builder, [=expr..]
 fn build_list_with_elements(
     list_builder: Ident,
-    elements: Punctuated<Expr, Token![,]>,
+    elements: Punctuated<syn::Expr, Token![,]>,
 ) -> TokenStream2 {
     let enumerated: Vec<TokenStream2> = elements
         .into_iter()
@@ -136,7 +192,7 @@ fn build_list_with_elements(
     }
 }
 
-fn build_list_with_patterns_struct<T: Iterator<Item = (Ident, Expr)>>(
+fn build_list_with_patterns_struct<T: Iterator<Item = (Ident, syn::Expr)>>(
     list_builder: Ident,
     struct_builder: Ident,
     pattern_struct: T,
@@ -166,6 +222,21 @@ where
         .map(|(idx, expr)| quote!(#idx, #expr));
     quote! {
         #( #list_builder.set(#structs); )*
+    }
+}
+
+fn get_list_size(list_pattern: &ListPattern) -> TokenStream2 {
+    match list_pattern {
+        ListPattern::ListComprehension(for_expr) => {
+            let it = &for_expr.expr;
+            quote! {
+                #it.len()
+            }
+        }
+        ListPattern::ListElements(elems) => {
+            let res = elems.len();
+            quote!(#res)
+        }
     }
 }
 
@@ -264,3 +335,35 @@ where
 //         assert_eq!(lhs.to_string(), rhs.to_string());
 //     }
 // }
+
+// Legacy list code
+//  CapnpBuildPattern::ListPattern(list_pattern) => match list_pattern {
+//     crate::parse::ListPattern::ListComprehension(for_expr) => todo!(),
+//     crate::parse::ListPattern::ListElements(elements) => {
+//         let enumerated: Vec<(usize, ListElementPattern)> =
+//             elements.into_iter().enumerate().collect();
+//         let len = enumerated.len();
+//         //let initializer = format_ident!("init_{}", &builder);
+//         //res.extend(quote!(#.#initializer(#len)));
+//         for (idx, field_pat) in enumerated {
+//             let to_append = match field_pat {
+//                 crate::parse::ListElementPattern::SimpleExpression(expr) => {
+//                     quote!(#builder.set(#idx, #expr); )
+//                 }
+//                 crate::parse::ListElementPattern::StructPattern(struct_pattern) => {
+//                     let mut struct_res = TokenStream2::new();
+//                     let struct_name: Ident = format_ident!("_struct_{}", &builder);
+//                     struct_res.extend(quote!(let mut #struct_name = #builder.reborrow().get(#idx as u32);));
+//                     // TODO Create struct builder with a given name first
+//                     let to_append = process_struct_pattern(&struct_name, struct_pattern);
+//                     struct_res.extend(to_append);
+//                     struct_res
+//                 }
+//                 crate::parse::ListElementPattern::ListPattern(list_pattern) => todo!(),
+//             };
+//             res.extend(to_append);
+//         }
+//     }
+// },
+// }
+//Ok(res)

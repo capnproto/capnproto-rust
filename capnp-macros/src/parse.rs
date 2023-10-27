@@ -35,8 +35,8 @@ pub struct CapnpAnonStruct<FieldPattern: Parse> {
 }
 
 pub enum ListPattern {
-    ListComprehension, // for RustPattern in IteratorExpression {BlockExpression}
-    ListElements(Punctuated<ListElementPattern, Token![,]>), // [= 13, = 12, ]
+    ListComprehension(syn::ExprForLoop), // for RustPattern in IteratorExpression {BlockExpression}
+    ListElements(Punctuated<ListElementPattern, Token![,]>), // [= 13, = 12, ] or [[...], [...], [...]] or [{...}, {...}, {...}]
 }
 
 pub enum ListElementPattern {
@@ -46,10 +46,10 @@ pub enum ListElementPattern {
 }
 
 pub enum CapnpBuildFieldPattern {
-    Name(Ident),                                // name
-    ExpressionAssignment(Ident, syn::Expr),     // name = expr
-    PatternAssignment(Ident, CapnpBuildStruct), // name : pat TODO Make it accept ListPattern by saying "CapnpBuildPattern" here
-    BuilderExtraction(Ident, syn::ExprClosure), // name => closure
+    Name(Ident),                                 // name
+    ExpressionAssignment(Ident, syn::Expr),      // name = expr
+    PatternAssignment(Ident, CapnpBuildPattern), // name : pat
+    BuilderExtraction(Ident, syn::ExprClosure),  // name => closure
 }
 
 pub enum CapnpLetFieldPattern {
@@ -134,7 +134,7 @@ impl Parse for ListPattern {
         bracketed!(content in input);
         let res: Self;
         if content.peek(Token![for]) {
-            res = Self::ListComprehension;
+            res = Self::ListComprehension(content.parse()?);
         } else {
             res =
                 Self::ListElements(content.parse_terminated(ListElementPattern::parse, Token![,])?);
@@ -155,7 +155,6 @@ impl Parse for ListElementPattern {
             res = Self::StructPattern(input.parse()?);
         }
         Ok(res)
-        //
     }
 }
 

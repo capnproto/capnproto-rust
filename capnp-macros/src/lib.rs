@@ -27,7 +27,7 @@ pub fn capnp_build(input: TokenStream) -> TokenStream {
         build_pattern,
         ..
     } = syn::parse_macro_input!(input as CapnpBuild);
-    let result = process_build_pry(subject, build_pattern).unwrap();
+    let result = process_build_pry(subject, build_pattern);
     result.into()
 }
 
