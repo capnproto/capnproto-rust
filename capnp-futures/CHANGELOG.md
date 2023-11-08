@@ -1,3 +1,6 @@
+## v0.17.1
+- Backport serialize_packed fixes.
+
 ## v0.17.0
 - Follow v0.17.0 release of other capnp crates.
 
