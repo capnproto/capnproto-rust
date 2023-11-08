@@ -90,8 +90,9 @@ mod capnp_build {
         fn test_impl(
             mut struct_builder: test_schema_capnp::test_struct::Builder,
         ) -> Promise<(), capnp::Error> {
+            capnp_build!(struct_builder, {struct_field: {uint_field = 1}}); // deleting this line fails the test
             capnp_build!(struct_builder, {struct_field => |mut inner_struct_builder: test_schema_capnp::test_struct::Builder| {
-                if 2 + 2 == 4 {
+                if inner_struct_builder.reborrow_as_reader().get_uint_field() != 0 {
                     inner_struct_builder.set_uint_field(13);
                 } else {
                     inner_struct_builder.set_uint_field(14);
