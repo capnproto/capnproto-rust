@@ -117,6 +117,12 @@ where
                                         // add a byte for the count of pass-through words
                                         *buf_size = 10
                                     }
+                                    if *buf_pos >= *buf_size {
+                                        // Skip the BufferingWord stage, because
+                                        // there is nothing left to buffer.
+                                        *stage = PackedReadStage::DrainingBuffer;
+                                        *buf_pos = 1;
+                                    }
                                 }
                             }
                         }
@@ -139,6 +145,11 @@ where
                 PackedReadStage::BufferingWord => {
                     match Pin::new(&mut *inner).poll_read(cx, &mut buf[*buf_pos..*buf_size])? {
                         Poll::Pending => return Poll::Pending,
+                        Poll::Ready(0) => {
+                            return Poll::Ready(Err(std::io::Error::from(
+                                std::io::ErrorKind::UnexpectedEof,
+                            )))
+                        }
                         Poll::Ready(n) => {
                             *buf_pos += n;
                             if *buf_pos >= *buf_size {
@@ -701,5 +712,17 @@ pub mod test {
             futures::executor::block_on(Box::pin(try_read_message(&words[..], Default::default())))
                 .expect("reading");
         assert!(message.is_none());
+    }
+
+    #[test]
+    fn eof_mid_message() {
+        let words = vec![0xfe, 0x3, 0x3];
+        let result =
+            futures::executor::block_on(Box::pin(try_read_message(&words[..], Default::default())));
+
+        match result {
+            Ok(_) => panic!("expected error"),
+            Err(e) => assert_eq!(e.kind, capnp::ErrorKind::PrematureEndOfFile),
+        }
     }
 }
