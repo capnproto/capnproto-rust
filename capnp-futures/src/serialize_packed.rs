@@ -100,6 +100,9 @@ where
                     match Pin::new(&mut *inner).poll_read(cx, &mut buf[*buf_pos..2])? {
                         Poll::Pending => return Poll::Pending,
                         Poll::Ready(n) => {
+                            if n == 0 {
+                                return Poll::Ready(Ok(0));
+                            }
                             *buf_pos += n;
                             if *buf_pos >= 2 {
                                 let tag = buf[0];
@@ -179,6 +182,9 @@ where
                         match Pin::new(&mut *inner).poll_read(cx, &mut outbuf[0..upper_bound])? {
                             Poll::Pending => return Poll::Pending,
                             Poll::Ready(n) => {
+                                if n == 0 {
+                                    return Poll::Ready(Ok(0));
+                                }
                                 if n >= *num_run_bytes_remaining {
                                     *stage = PackedReadStage::Start;
                                 }
