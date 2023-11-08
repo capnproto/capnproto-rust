@@ -524,7 +524,7 @@ where
 #[cfg(test)]
 pub mod test {
     use crate::serialize::test::{BlockingRead, BlockingWrite};
-    use crate::serialize_packed::{PackedRead, PackedWrite};
+    use crate::serialize_packed::{try_read_message, PackedRead, PackedWrite};
     use capnp::message::ReaderSegments;
     use futures::{AsyncReadExt, AsyncWriteExt};
     use quickcheck::{quickcheck, TestResult};
@@ -690,5 +690,16 @@ pub mod test {
     #[test]
     fn check_packed_round_trip_async() {
         quickcheck(round_trip as fn(usize, usize, Vec<Vec<capnp::Word>>) -> TestResult);
+    }
+
+    #[test]
+    fn read_empty() {
+        let words = vec![];
+        // Before https://github.com/capnproto/capnproto-rust/pull/446
+        // this would loop forever.
+        let message =
+            futures::executor::block_on(Box::pin(try_read_message(&words[..], Default::default())))
+                .expect("reading");
+        assert!(message.is_none());
     }
 }
