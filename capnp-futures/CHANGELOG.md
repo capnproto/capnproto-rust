@@ -1,3 +1,7 @@
+## v0.18.1
+- Fix two bugs in serialize_packed::PackedRead where a premature end-of-file
+  could trigger an infinite loop.
+
 ## v0.18.0
 - Follow v0.18.0 release of other capnp crates.
 

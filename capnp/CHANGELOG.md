@@ -1,3 +1,6 @@
+## v0.18.4
+- Map std::io::ErrorKind::UnexpectedEof to capnp::ErrorKind::PrematureEndOfFile.
+
 ## v0.18.3
 - Make BuilderArena usable in no-alloc contexts. Only single-segment messages
   are supported.
