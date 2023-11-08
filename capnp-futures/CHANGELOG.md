@@ -1,3 +1,6 @@
+## v0.15.3
+- Backport serialize_packed fixes.
+
 ## v0.15.2
 - Fix capnp dependency to not be '-alpha'.
 
