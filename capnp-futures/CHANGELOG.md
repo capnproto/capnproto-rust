@@ -1,3 +1,6 @@
+## v0.14.3
+- Backport serialize_packed fixes.
+
 ## v0.14.2
 - Add serialize_packed module.
 

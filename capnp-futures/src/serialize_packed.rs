@@ -83,6 +83,9 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
                     match Pin::new(&mut *inner).poll_read(cx, &mut buf[*buf_pos..2])? {
                         Poll::Pending => return Poll::Pending,
                         Poll::Ready(n) => {
+                            if n == 0 {
+                                return Poll::Ready(Ok(0));
+                            }
                             *buf_pos += n;
                             if *buf_pos >= 2 {
                                 let tag = buf[0];
@@ -97,6 +100,12 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
                                         // add a byte for the count of pass-through words
                                         *buf_size = 10
                                     }
+                                }
+                                if *buf_pos >= *buf_size {
+                                    // Skip the BufferingWord stage, because
+                                    // there is nothing left to buffer.
+                                    *stage = PackedReadStage::DrainingBuffer;
+                                    *buf_pos = 1;
                                 }
                             }
                         }
@@ -120,6 +129,11 @@ impl <R> AsyncRead for PackedRead<R> where R: AsyncRead + Unpin {
                     match Pin::new(&mut *inner).poll_read(cx,
                                                           &mut buf[*buf_pos..*buf_size])? {
                         Poll::Pending => return Poll::Pending,
+                        Poll::Ready(0) => {
+                            return Poll::Ready(Err(std::io::Error::from(
+                                std::io::ErrorKind::UnexpectedEof,
+                            )))
+                        }
                         Poll::Ready(n) => {
                             *buf_pos += n;
                             if *buf_pos >= *buf_size {
