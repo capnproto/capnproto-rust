@@ -463,6 +463,7 @@ impl core::convert::From<::std::io::Error> for Error {
             | io::ErrorKind::ConnectionReset
             | io::ErrorKind::ConnectionAborted
             | io::ErrorKind::NotConnected => ErrorKind::Disconnected,
+            io::ErrorKind::UnexpectedEof => ErrorKind::PrematureEndOfFile,
             _ => ErrorKind::Failed,
         };
         #[cfg(feature = "alloc")]
