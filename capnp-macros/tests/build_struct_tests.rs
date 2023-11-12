@@ -1,6 +1,5 @@
 capnp_import::capnp_import!("tests/test_schema.capnp");
 use capnp::capability::Promise;
-use capnp::IntoResult; // Required for the macro to work
 use capnp_macros::capnp_build;
 
 // for better test names

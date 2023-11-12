@@ -48,7 +48,7 @@ fn process_struct_pattern(builder: &Ident, struct_pattern: CapnpBuildStruct) -> 
                 let struct_builder = format_ident!("{}_builder", name);
                 let field_accessor = format_ident!("get_{}", name);
                 let head = quote! (
-                    let mut #struct_builder = (capnp_rpc::pry!(#builder.reborrow().#field_accessor().into_result()));
+                    let mut #struct_builder = (::capnp_rpc::pry!(#builder.reborrow().#field_accessor()));
                 );
                 let tail = process_struct_pattern(&struct_builder, struct_pattern);
                 quote!(#head #tail)
@@ -71,7 +71,7 @@ fn process_struct_pattern(builder: &Ident, struct_pattern: CapnpBuildStruct) -> 
             CapnpBuildFieldPattern::BuilderExtraction(name, closure) => {
                 let field_accessor = format_ident!("get_{}", name);
                 quote! {
-                    (#closure)(capnp_rpc::pry!(#builder.reborrow().#field_accessor().into_result()));
+                    (#closure)(::capnp_rpc::pry!(::capnp::IntoResult::into_result(#builder.reborrow().#field_accessor())));
                 }
             }
         };

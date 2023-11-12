@@ -1,7 +1,6 @@
 capnp_import::capnp_import!("tests/test_schema.capnp");
 
 use capnp::capability::Promise;
-use capnp::IntoResult;
 use capnp_macros::capnp_let;
 use test_schema_capnp::test_struct;
 

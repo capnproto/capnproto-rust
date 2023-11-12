@@ -4,7 +4,6 @@
 capnp_import::capnp_import!("tests/example.capnp");
 
 use capnp::capability::Promise;
-use capnp::IntoResult;
 use capnp_macros::{capnp_build, capnp_let};
 use example_capnp::date_list;
 use example_capnp::person as person_capnp;

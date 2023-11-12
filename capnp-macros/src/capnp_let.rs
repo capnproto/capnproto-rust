@@ -14,21 +14,21 @@ pub fn process_let_pry(pat: CapnpLetStruct, expr: Ident) -> TokenStream2 {
                 let field_accessor = format_ident!("get_{}", name);
                 quote! {
                     let #name = #expr.reborrow().#field_accessor();
-                    let #name = capnp_rpc::pry!(#name.into_result());
+                    let #name = ::capnp_rpc::pry!(::capnp::IntoResult::into_result(#name));
                 }
             }
             CapnpLetFieldPattern::ExtractToSymbol(name, symbol) => {
                 let field_accessor = format_ident!("get_{}", name);
                 quote! {
                     let #symbol = #expr.reborrow().#field_accessor();
-                    let #symbol = capnp_rpc::pry!(#symbol.into_result());
+                    let #symbol = ::capnp_rpc::pry!(::capnp::IntoResult::into_result(#symbol));
                 }
             }
             CapnpLetFieldPattern::ExtractWithPattern(name, struct_pattern) => {
                 let field_accessor = format_ident!("get_{}", name);
                 let head = quote! {
                     let #name = #expr.reborrow().#field_accessor();
-                    let #name = capnp_rpc::pry!(#name.into_result());
+                    let #name = ::capnp_rpc::pry!(#name);
                 };
                 let tail = process_let_pry(struct_pattern, name);
                 quote!(#head #tail)
