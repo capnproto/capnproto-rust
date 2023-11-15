@@ -276,7 +276,7 @@ fn u32_to_segments_count(val: u32) -> Result<usize> {
     result.ok_or_else(|| Error::from_kind(ErrorKind::FourByteLengthTooBigForUSize))
 }
 
-/// Converts 32 bit vlaue which represents encoded segment length to usize segment length in bytes
+/// Converts 32 bit value which represents encoded segment length to usize segment length in bytes
 fn u32_to_segment_length_bytes(val: u32) -> Result<usize> {
     // This convertion can fail on 8 or 16 bit machines.
     let length_in_words: Option<usize> = val.try_into().ok();
