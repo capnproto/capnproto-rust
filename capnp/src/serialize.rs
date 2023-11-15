@@ -386,7 +386,7 @@ where
 
     let info = no_alloc_buffer_segments::ReadSegmentTableResult {
         segments_count: segment_count,
-        segment_table_length_bytes: num_segment_counts_read * 8,
+        segment_table_length_bytes: (num_segment_counts_read + 1) * 4,
         total_segments_length_bytes: total_body_words as usize * 8,
     };
 

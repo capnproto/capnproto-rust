@@ -2217,6 +2217,39 @@ mod tests {
         CheckTestMessage::check_test_message(message_reader.get().unwrap());
     }
 
+    #[test]
+    fn test_read_message_no_alloc_multi_segment() {
+        use crate::test_capnp::test_all_types;
+
+        let builder_options = message::HeapAllocator::new()
+            .first_segment_words(1)
+            .allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
+        let mut typed_builder =
+            TypedBuilder::<test_all_types::Owned>::new(message::Builder::new(builder_options));
+        init_test_message(typed_builder.init_root());
+
+        CheckTestMessage::check_test_message(typed_builder.get_root().unwrap());
+        CheckTestMessage::check_test_message(typed_builder.get_root_as_reader().unwrap());
+
+        let mut buffer = Word::allocate_zeroed_vec(512);
+
+        capnp::serialize::write_message(
+            Word::words_to_bytes_mut(&mut buffer),
+            typed_builder.borrow_inner(),
+        )
+        .unwrap();
+
+        let mut read_buffer = Word::allocate_zeroed_vec(512);
+        let reader = capnp::serialize::read_message_no_alloc(
+            &mut Word::words_to_bytes(&buffer),
+            ReaderOptions::new(),
+            Word::words_to_bytes_mut(&mut read_buffer),
+        )
+        .unwrap();
+        let message_reader = TypedReader::<_, test_all_types::Owned>::new(reader);
+        CheckTestMessage::check_test_message(message_reader.get().unwrap());
+    }
+
     #[cfg_attr(miri, ignore)]
     #[test]
     fn test_raw_code_generator_request_path() {
