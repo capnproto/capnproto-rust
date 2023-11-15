@@ -27,5 +27,9 @@ name = "canonicalize"
 path = "fuzzers/canonicalize.rs"
 
 [[bin]]
+name = "serialize_packed_read_no_alloc"
+path = "fuzzers/serialize_packed_read_no_alloc.rs"
+
+[[bin]]
 name = "test_all_types"
 path = "fuzzers/test_all_types.rs"

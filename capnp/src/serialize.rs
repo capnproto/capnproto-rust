@@ -222,12 +222,24 @@ impl SegmentLengthsBuilder {
         }
     }
 
-    /// Pushes a new segment length. The `n`th time (starting at 0) this is called specifies the length of
-    /// the segment with ID `n`.
+    #[deprecated(since = "0.18.6", note = "use `try_push_segment` instead")]
     pub fn push_segment(&mut self, length_in_words: usize) {
         self.segment_indices
             .push((self.total_words, self.total_words + length_in_words));
         self.total_words += length_in_words;
+    }
+
+    /// Pushes a new segment length. The `n`th time (starting at 0) this is called specifies the length of
+    /// the segment with ID `n`. If the segment overflows the total word count, then this returns
+    /// a MessageSizeOverflow error.
+    pub fn try_push_segment(&mut self, length_in_words: usize) -> Result<()> {
+        self.segment_indices
+            .push((self.total_words, self.total_words + length_in_words));
+        self.total_words = self
+            .total_words
+            .checked_add(length_in_words)
+            .ok_or_else(|| Error::from_kind(ErrorKind::MessageSizeOverflow))?;
+        Ok(())
     }
 
     /// Constructs an `OwnedSegments`, allocating a single buffer of 8-byte aligned memory to hold
@@ -350,7 +362,7 @@ where
         )));
     }
 
-    let mut total_body_words = u32::from_le_bytes(buffer[4..8].try_into().unwrap());
+    let mut total_body_words: usize = u32::from_le_bytes(buffer[4..8].try_into().unwrap()) as usize;
     let mut num_segment_counts_read = 1;
     while num_segment_counts_read < segment_count {
         let start = (num_segment_counts_read + 1) * 4;
@@ -361,18 +373,27 @@ where
 
         read.read(&mut buffer[start..end])?;
 
-        total_body_words += u32::from_le_bytes(buffer[start..(start + 4)].try_into().unwrap());
+        total_body_words = total_body_words
+            .checked_add(
+                u32::from_le_bytes(buffer[start..(start + 4)].try_into().unwrap()) as usize,
+            )
+            .ok_or_else(|| Error::from_kind(ErrorKind::MessageSizeOverflow))?;
+
         num_segment_counts_read += 1;
         if num_segment_counts_read < segment_count {
-            total_body_words += u32::from_le_bytes(buffer[(start + 4)..end].try_into().unwrap());
+            total_body_words = total_body_words
+                .checked_add(
+                    u32::from_le_bytes(buffer[(start + 4)..end].try_into().unwrap()) as usize,
+                )
+                .ok_or_else(|| Error::from_kind(ErrorKind::MessageSizeOverflow))?;
         }
         num_segment_counts_read += 1;
     }
 
     if let Some(limit) = options.traversal_limit_in_words {
-        if total_body_words as usize > limit {
+        if total_body_words > limit {
             return Err(Error::from_kind(ErrorKind::MessageTooLarge(
-                total_body_words as usize,
+                total_body_words,
             )));
         }
     }
@@ -387,7 +408,7 @@ where
     let info = no_alloc_buffer_segments::ReadSegmentTableResult {
         segments_count: segment_count,
         segment_table_length_bytes: (num_segment_counts_read + 1) * 4,
-        total_segments_length_bytes: total_body_words as usize * 8,
+        total_segments_length_bytes: total_body_words * 8,
     };
 
     let segments = NoAllocSliceSegments::from_segment_table(buffer, info);
@@ -448,14 +469,14 @@ where
 
     let mut segment_lengths_builder = SegmentLengthsBuilder::with_capacity(segment_count);
     segment_lengths_builder
-        .push_segment(u32::from_le_bytes(buf[4..8].try_into().unwrap()) as usize);
+        .try_push_segment(u32::from_le_bytes(buf[4..8].try_into().unwrap()) as usize)?;
     if segment_count > 1 {
         if segment_count < 4 {
             read.read_exact(&mut buf)?;
             for idx in 0..(segment_count - 1) {
                 let segment_len =
                     u32::from_le_bytes(buf[(idx * 4)..(idx + 1) * 4].try_into().unwrap()) as usize;
-                segment_lengths_builder.push_segment(segment_len);
+                segment_lengths_builder.try_push_segment(segment_len)?;
             }
         } else {
             let mut segment_sizes = vec![0u8; (segment_count & !1) * 4];
@@ -464,7 +485,7 @@ where
                 let segment_len =
                     u32::from_le_bytes(segment_sizes[(idx * 4)..(idx + 1) * 4].try_into().unwrap())
                         as usize;
-                segment_lengths_builder.push_segment(segment_len);
+                segment_lengths_builder.try_push_segment(segment_len)?;
             }
         }
     }
