@@ -322,10 +322,8 @@ pub fn try_read_message_no_alloc<R>(
 where
     R: Read,
 {
-    if !cfg!(feature = "unaligned") {
-        if buffer.as_ptr() as usize % BYTES_PER_WORD != 0 {
-            return Err(Error::from_kind(ErrorKind::UnalignedSegment));
-        }
+    if !cfg!(feature = "unaligned") && buffer.as_ptr() as usize % BYTES_PER_WORD != 0 {
+        return Err(Error::from_kind(ErrorKind::UnalignedSegment));
     }
 
     if buffer.len() < 8 {
