@@ -17,8 +17,8 @@ pub fn serialize_read_message_no_alloc() {
 
         let reader = serialize::read_message_no_alloc(
             &mut Word::words_to_bytes(&out_buffer),
-            message::ReaderOptions::new(),
             Word::words_to_bytes_mut(&mut read_buffer),
+            message::ReaderOptions::new(),
         )
         .unwrap();
 

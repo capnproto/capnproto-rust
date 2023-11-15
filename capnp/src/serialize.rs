@@ -316,8 +316,8 @@ where
 /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
 pub fn try_read_message_no_alloc<R>(
     mut read: R,
-    options: message::ReaderOptions,
     buffer: &mut [u8],
+    options: message::ReaderOptions,
 ) -> Result<Option<message::Reader<NoAllocBufferSegments<&[u8]>>>>
 where
     R: Read,
@@ -401,13 +401,13 @@ where
 /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
 pub fn read_message_no_alloc<R>(
     read: R,
-    options: message::ReaderOptions,
     buffer: &mut [u8],
+    options: message::ReaderOptions,
 ) -> Result<message::Reader<NoAllocBufferSegments<&[u8]>>>
 where
     R: Read,
 {
-    match try_read_message_no_alloc(read, options, buffer)? {
+    match try_read_message_no_alloc(read, buffer, options)? {
         Some(m) => Ok(m),
         None => Err(Error::from_kind(ErrorKind::PrematureEndOfFile)),
     }

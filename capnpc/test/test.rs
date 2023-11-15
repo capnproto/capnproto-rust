@@ -2209,8 +2209,8 @@ mod tests {
         let mut read_buffer = Word::allocate_zeroed_vec(512);
         let reader = capnp::serialize::read_message_no_alloc(
             &mut Word::words_to_bytes(&buffer),
-            ReaderOptions::new(),
             Word::words_to_bytes_mut(&mut read_buffer),
+            ReaderOptions::new(),
         )
         .unwrap();
         let message_reader = TypedReader::<_, test_all_types::Owned>::new(reader);
@@ -2242,8 +2242,8 @@ mod tests {
         let mut read_buffer = Word::allocate_zeroed_vec(512);
         let reader = capnp::serialize::read_message_no_alloc(
             &mut Word::words_to_bytes(&buffer),
-            ReaderOptions::new(),
             Word::words_to_bytes_mut(&mut read_buffer),
+            ReaderOptions::new(),
         )
         .unwrap();
         let message_reader = TypedReader::<_, test_all_types::Owned>::new(reader);

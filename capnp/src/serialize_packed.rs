@@ -261,14 +261,14 @@ where
 /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
 pub fn read_message_no_alloc<R>(
     read: R,
-    options: message::ReaderOptions,
     buffer: &mut [u8],
+    options: message::ReaderOptions,
 ) -> Result<crate::message::Reader<serialize::NoAllocBufferSegments<&[u8]>>>
 where
     R: BufRead,
 {
     let packed_read = PackedRead { inner: read };
-    serialize::read_message_no_alloc(packed_read, options, buffer)
+    serialize::read_message_no_alloc(packed_read, buffer, options)
 }
 
 /// Like try_read_message(), but does not allocate.
@@ -278,14 +278,14 @@ where
 /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
 pub fn try_read_message_no_alloc<R>(
     read: R,
-    options: message::ReaderOptions,
     buffer: &mut [u8],
+    options: message::ReaderOptions,
 ) -> Result<Option<crate::message::Reader<serialize::NoAllocBufferSegments<&[u8]>>>>
 where
     R: BufRead,
 {
     let packed_read = PackedRead { inner: read };
-    serialize::try_read_message_no_alloc(packed_read, options, buffer)
+    serialize::try_read_message_no_alloc(packed_read, buffer, options)
 }
 
 struct PackedWrite<W>
