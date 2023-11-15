@@ -23,10 +23,9 @@
 //! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream),
 //! where each message is preceded by a segment table indicating the size of its segments.
 
-mod no_alloc_buffer_segments;
+pub(crate) mod no_alloc_buffer_segments;
 pub use no_alloc_buffer_segments::{NoAllocBufferSegments, NoAllocSliceSegments};
 
-#[cfg(feature = "alloc")]
 use crate::io::{Read, Write};
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
@@ -36,10 +35,8 @@ use core::convert::TryInto;
 use core::ops::Deref;
 
 use crate::message;
-#[cfg(feature = "alloc")]
 use crate::private::units::BYTES_PER_WORD;
 use crate::Result;
-#[cfg(feature = "alloc")]
 use crate::{Error, ErrorKind};
 
 pub const SEGMENTS_COUNT_LIMIT: usize = 512;
@@ -312,6 +309,90 @@ where
     )?))
 }
 
+/// Like `try_read_message()`, but does not allocate any memory.
+pub fn try_read_message_no_alloc<R>(
+    mut read: R,
+    options: message::ReaderOptions,
+    buffer: &mut [u8],
+) -> Result<Option<message::Reader<NoAllocBufferSegments<&[u8]>>>>
+where
+    R: Read,
+{
+    if buffer.len() < 8 {
+        panic!("buffer not large enough");
+    }
+
+    // read the first Word, which contains segment_count and the 1st segment length
+    {
+        let n = read.read(&mut buffer[0..8])?;
+        if n == 0 {
+            // Clean EOF on message boundary
+            return Ok(None);
+        } else if n < 8 {
+            read.read_exact(&mut buffer[n..8])?;
+        }
+    }
+
+    let segment_count =
+        u32::from_le_bytes(buffer[0..4].try_into().unwrap()).wrapping_add(1) as usize;
+
+    if segment_count >= SEGMENTS_COUNT_LIMIT || segment_count == 0 {
+        return Err(Error::from_kind(ErrorKind::InvalidNumberOfSegments(
+            segment_count,
+        )));
+    }
+
+    let mut total_body_words = u32::from_le_bytes(buffer[4..8].try_into().unwrap());
+    let mut num_segment_counts_read = 1;
+    while num_segment_counts_read < segment_count {
+        let start = num_segment_counts_read * 8;
+        let end = start + 8;
+        read.read(&mut buffer[start..end])?;
+        total_body_words += u32::from_le_bytes(buffer[start..(start + 4)].try_into().unwrap());
+        num_segment_counts_read += 1;
+        if num_segment_counts_read < segment_count {
+            total_body_words += u32::from_le_bytes(buffer[(start + 4)..end].try_into().unwrap());
+        }
+        num_segment_counts_read += 1;
+    }
+
+    if let Some(limit) = options.traversal_limit_in_words {
+        if total_body_words as usize > limit {
+            return Err(Error::from_kind(ErrorKind::MessageTooLarge(
+                total_body_words as usize,
+            )));
+        }
+    }
+
+    let start = num_segment_counts_read * 8;
+    let end = start + total_body_words as usize;
+    read.read_exact(&mut buffer[start..end])?;
+
+    let info = no_alloc_buffer_segments::ReadSegmentTableResult {
+        segments_count: segment_count,
+        segment_table_length_bytes: num_segment_counts_read * 8,
+        total_segments_length_bytes: total_body_words as usize * 8,
+    };
+
+    let segments = NoAllocSliceSegments::from_segment_table(buffer, info);
+    Ok(Some(crate::message::Reader::new(segments, options)))
+}
+
+/// Like `read_message()`, but does not allocate.
+pub fn read_message_no_alloc<R>(
+    read: R,
+    options: message::ReaderOptions,
+    buffer: &mut [u8],
+) -> Result<message::Reader<NoAllocBufferSegments<&[u8]>>>
+where
+    R: Read,
+{
+    match try_read_message_no_alloc(read, options, buffer)? {
+        Some(m) => Ok(m),
+        None => Err(Error::from_kind(ErrorKind::PrematureEndOfFile)),
+    }
+}
+
 /// Reads a segment table from `read` and returns the total number of words across all
 /// segments, as well as the segment offsets.
 ///
@@ -440,7 +521,6 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8
 ///
 /// The only source of errors from this function are `write.write_all()` calls. If you pass in
 /// a writer that never returns an error, then this function will never return an error.
-#[cfg(feature = "alloc")]
 pub fn write_message<W, A>(mut write: W, message: &message::Builder<A>) -> Result<()>
 where
     W: Write,
@@ -453,7 +533,6 @@ where
 
 /// Like `write_message()`, but takes a `ReaderSegments`, allowing it to be
 /// used on `message::Reader` objects (via `into_segments()`).
-#[cfg(feature = "alloc")]
 pub fn write_message_segments<W, R>(mut write: W, segments: &R) -> Result<()>
 where
     W: Write,
@@ -463,7 +542,6 @@ where
     write_segments(&mut write, segments)
 }
 
-#[cfg(feature = "alloc")]
 fn write_segment_table<W>(write: &mut W, segments: &[&[u8]]) -> Result<()>
 where
     W: Write,
@@ -474,7 +552,6 @@ where
 /// Writes a segment table to `write`.
 ///
 /// `segments` must contain at least one segment.
-#[cfg(feature = "alloc")]
 fn write_segment_table_internal<W, R>(write: &mut W, segments: &R) -> Result<()>
 where
     W: Write,
@@ -505,27 +582,35 @@ where
             }
             write.write_all(&buf)?;
         } else {
-            let mut buf = vec![0; (segment_count & !1) * 4];
-            for idx in 1..segment_count {
-                buf[(idx - 1) * 4..idx * 4].copy_from_slice(
-                    &((segments.get_segment(idx as u32).unwrap().len() / BYTES_PER_WORD) as u32)
-                        .to_le_bytes(),
-                );
-            }
-            if segment_count % 2 == 0 {
-                let start_idx = buf.len() - 4;
-                for b in &mut buf[start_idx..] {
-                    *b = 0
+            #[cfg(feature = "alloc")]
+            {
+                let mut buf = vec![0; (segment_count & !1) * 4];
+                for idx in 1..segment_count {
+                    buf[(idx - 1) * 4..idx * 4].copy_from_slice(
+                        &((segments.get_segment(idx as u32).unwrap().len() / BYTES_PER_WORD)
+                            as u32)
+                            .to_le_bytes(),
+                    );
                 }
+                if segment_count % 2 == 0 {
+                    let start_idx = buf.len() - 4;
+                    for b in &mut buf[start_idx..] {
+                        *b = 0
+                    }
+                }
+                write.write_all(&buf)?;
             }
-            write.write_all(&buf)?;
+
+            #[cfg(not(feature = "alloc"))]
+            {
+                unreachable!("multi-segment message builders are not supported in no-alloc mode")
+            }
         }
     }
     Ok(())
 }
 
 /// Writes segments to `write`.
-#[cfg(feature = "alloc")]
 fn write_segments<W, R: message::ReaderSegments + ?Sized>(write: &mut W, segments: &R) -> Result<()>
 where
     W: Write,
@@ -540,7 +625,6 @@ where
     Ok(())
 }
 
-#[cfg(feature = "alloc")]
 fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) -> usize {
     // Table size
     let len = segments.len();
@@ -557,7 +641,6 @@ fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) ->
 ///
 /// Multiply this by 8 (or `std::mem::size_of::<capnp::Word>()`) to get the number of bytes
 /// that [`write_message()`](fn.write_message.html) will write.
-#[cfg(feature = "alloc")]
 pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>) -> usize
 where
     A: crate::message::Allocator,

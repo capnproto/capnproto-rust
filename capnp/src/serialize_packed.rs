@@ -25,9 +25,7 @@
 use crate::io::{BufRead, Read, Write};
 use core::{mem, ptr, slice};
 
-#[cfg(feature = "alloc")]
 use crate::message;
-#[cfg(feature = "alloc")]
 use crate::serialize;
 use crate::{Error, ErrorKind, Result};
 
@@ -256,6 +254,32 @@ where
     serialize::try_read_message(packed_read, options)
 }
 
+/// Like read_message(), but does not allocate.
+pub fn read_message_no_alloc<R>(
+    read: R,
+    options: message::ReaderOptions,
+    buffer: &mut [u8],
+) -> Result<crate::message::Reader<serialize::NoAllocBufferSegments<&[u8]>>>
+where
+    R: BufRead,
+{
+    let packed_read = PackedRead { inner: read };
+    serialize::read_message_no_alloc(packed_read, options, buffer)
+}
+
+/// Like try_read_message(), but does not allocate.
+pub fn try_read_message_no_alloc<R>(
+    read: R,
+    options: message::ReaderOptions,
+    buffer: &mut [u8],
+) -> Result<Option<crate::message::Reader<serialize::NoAllocBufferSegments<&[u8]>>>>
+where
+    R: BufRead,
+{
+    let packed_read = PackedRead { inner: read };
+    serialize::try_read_message_no_alloc(packed_read, options, buffer)
+}
+
 struct PackedWrite<W>
 where
     W: Write,
@@ -408,7 +432,6 @@ where
 ///
 /// The only source of errors from this function are `write.write_all()` calls. If you pass in
 /// a writer that never returns an error, then this function will never return an error.
-#[cfg(feature = "alloc")]
 pub fn write_message<W, A>(write: W, message: &crate::message::Builder<A>) -> Result<()>
 where
     W: Write,
