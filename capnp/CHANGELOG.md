@@ -1,3 +1,7 @@
+## v0.18.5
+- Add read_message_no_alloc() and try_read_message_no_alloc() in serialize and serialize_packed.
+- Enable write_message() in no-alloc mode.
+
 ## v0.18.4
 - Map std::io::ErrorKind::UnexpectedEof to capnp::ErrorKind::PrematureEndOfFile.
 
