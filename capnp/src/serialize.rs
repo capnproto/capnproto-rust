@@ -319,7 +319,7 @@ where
     R: Read,
 {
     if buffer.len() < 8 {
-        panic!("buffer not large enough");
+        return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough))
     }
 
     // read the first Word, which contains segment_count and the 1st segment length
@@ -347,7 +347,12 @@ where
     while num_segment_counts_read < segment_count {
         let start = num_segment_counts_read * 8;
         let end = start + 8;
+        if buffer.len() < end {
+            return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough))
+        }
+
         read.read(&mut buffer[start..end])?;
+
         total_body_words += u32::from_le_bytes(buffer[start..(start + 4)].try_into().unwrap());
         num_segment_counts_read += 1;
         if num_segment_counts_read < segment_count {
@@ -366,6 +371,9 @@ where
 
     let start = num_segment_counts_read * 8;
     let end = start + total_body_words as usize;
+    if buffer.len() < end {
+        return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough))
+    }
     read.read_exact(&mut buffer[start..end])?;
 
     let info = no_alloc_buffer_segments::ReadSegmentTableResult {
