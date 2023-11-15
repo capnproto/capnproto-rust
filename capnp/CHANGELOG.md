@@ -1,3 +1,8 @@
+## v0.18.6
+- Add overflow checking during segment table reading, to prevent some potential denial
+  of service attacks on 32-bit targets.
+- Deprecate SegmentLengthsBuilder::push_segment() in favor of try_push_segment().
+
 ## v0.18.5
 - Add read_message_no_alloc() and try_read_message_no_alloc() in serialize and serialize_packed.
 - Enable write_message() in no-alloc mode.
