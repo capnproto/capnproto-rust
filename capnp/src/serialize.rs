@@ -321,7 +321,7 @@ where
     R: Read,
 {
     if buffer.len() < 8 {
-        return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough))
+        return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough));
     }
 
     // read the first Word, which contains segment_count and the 1st segment length
@@ -350,7 +350,7 @@ where
         let start = num_segment_counts_read * 8;
         let end = start + 8;
         if buffer.len() < end {
-            return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough))
+            return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough));
         }
 
         read.read(&mut buffer[start..end])?;
@@ -374,7 +374,7 @@ where
     let start = num_segment_counts_read * 8;
     let end = start + total_body_words as usize;
     if buffer.len() < end {
-        return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough))
+        return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough));
     }
     read.read_exact(&mut buffer[start..end])?;
 
