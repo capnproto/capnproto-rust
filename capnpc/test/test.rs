@@ -1717,6 +1717,7 @@ mod tests {
         }
     }
 
+    #[cfg(target_pointer_width = "64")]
     #[test]
     fn long_u64_list() {
         use crate::test_capnp::test_all_types;
@@ -1759,6 +1760,7 @@ mod tests {
         message.init_root::<test_all_types::Builder<'_>>();
     }
 
+    #[cfg(target_pointer_width = "64")]
     #[test]
     fn long_struct_list() {
         use crate::test_capnp::test_lists;
@@ -1788,6 +1790,7 @@ mod tests {
         }
     }
 
+    #[cfg(target_pointer_width = "64")]
     #[test]
     fn long_list_list() {
         use crate::test_capnp::test_lists;
