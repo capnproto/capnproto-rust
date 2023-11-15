@@ -25,9 +25,7 @@
 use crate::io::{BufRead, Read, Write};
 use core::{mem, ptr, slice};
 
-#[cfg(feature = "alloc")]
 use crate::message;
-#[cfg(feature = "alloc")]
 use crate::serialize;
 use crate::{Error, ErrorKind, Result};
 
@@ -256,6 +254,40 @@ where
     serialize::try_read_message(packed_read, options)
 }
 
+/// Like read_message(), but does not allocate.
+/// Stores the message in `buffer`. Returns a `BufferNotLargeEnough`
+/// error if the buffer is not large enough.
+/// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
+/// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
+pub fn read_message_no_alloc<R>(
+    read: R,
+    buffer: &mut [u8],
+    options: message::ReaderOptions,
+) -> Result<crate::message::Reader<serialize::NoAllocBufferSegments<&[u8]>>>
+where
+    R: BufRead,
+{
+    let packed_read = PackedRead { inner: read };
+    serialize::read_message_no_alloc(packed_read, buffer, options)
+}
+
+/// Like try_read_message(), but does not allocate.
+/// Stores the message in `buffer`. Returns a `BufferNotLargeEnough`
+/// error if the buffer is not large enough.
+/// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
+/// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
+pub fn try_read_message_no_alloc<R>(
+    read: R,
+    buffer: &mut [u8],
+    options: message::ReaderOptions,
+) -> Result<Option<crate::message::Reader<serialize::NoAllocBufferSegments<&[u8]>>>>
+where
+    R: BufRead,
+{
+    let packed_read = PackedRead { inner: read };
+    serialize::try_read_message_no_alloc(packed_read, buffer, options)
+}
+
 struct PackedWrite<W>
 where
     W: Write,
@@ -408,7 +440,6 @@ where
 ///
 /// The only source of errors from this function are `write.write_all()` calls. If you pass in
 /// a writer that never returns an error, then this function will never return an error.
-#[cfg(feature = "alloc")]
 pub fn write_message<W, A>(write: W, message: &crate::message::Builder<A>) -> Result<()>
 where
     W: Write,

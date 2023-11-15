@@ -10,10 +10,10 @@ use super::SEGMENTS_COUNT_LIMIT;
 
 const U32_LEN_IN_BYTES: usize = core::mem::size_of::<u32>();
 
-struct ReadSegmentTableResult {
-    segments_count: usize,
-    segment_table_length_bytes: usize,
-    total_segments_length_bytes: usize,
+pub(crate) struct ReadSegmentTableResult {
+    pub segments_count: usize,
+    pub segment_table_length_bytes: usize,
+    pub total_segments_length_bytes: usize,
 }
 
 fn read_segment_table(slice: &[u8], options: ReaderOptions) -> Result<ReadSegmentTableResult> {
@@ -108,7 +108,7 @@ pub struct NoAllocBufferSegments<T> {
 }
 
 impl<T> NoAllocBufferSegments<T> {
-    fn from_segment_table(buffer: T, info: ReadSegmentTableResult) -> Self {
+    pub(crate) fn from_segment_table(buffer: T, info: ReadSegmentTableResult) -> Self {
         if info.segments_count == 1 {
             let message_length = info.segment_table_length_bytes + info.total_segments_length_bytes;
             Self {
