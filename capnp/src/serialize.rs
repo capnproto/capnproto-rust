@@ -233,12 +233,13 @@ impl SegmentLengthsBuilder {
     /// the segment with ID `n`. If the segment overflows the total word count, then this returns
     /// a MessageSizeOverflow error.
     pub fn try_push_segment(&mut self, length_in_words: usize) -> Result<()> {
-        self.segment_indices
-            .push((self.total_words, self.total_words + length_in_words));
-        self.total_words = self
+        let new_total_words = self
             .total_words
             .checked_add(length_in_words)
             .ok_or_else(|| Error::from_kind(ErrorKind::MessageSizeOverflow))?;
+        self.segment_indices
+            .push((self.total_words, new_total_words));
+        self.total_words = new_total_words;
         Ok(())
     }
 
@@ -883,6 +884,17 @@ pub mod test {
         buf.extend([255, 255, 255, 255]); // 0 segments
         assert!(read_segment_table(&mut &buf[..], message::ReaderOptions::new()).is_err());
         buf.clear();
+    }
+
+    #[test]
+    fn test_read_segment_table_overflow() {
+        let mut buf = vec![];
+
+        buf.extend([1, 0, 0, 0]); // 2 segments
+        buf.extend([0xff, 0xff, 0xff, 0xff]); // 2^32 - 1 words
+        buf.extend([2, 0, 0, 0]); // 2 words
+        buf.extend([0, 0, 0, 0]); // padding
+        assert!(read_segment_table(&mut &buf[..], message::ReaderOptions::new()).is_err());
     }
 
     #[test]

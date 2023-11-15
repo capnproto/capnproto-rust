@@ -86,6 +86,12 @@ jobs:
       - name: Test no default features
         run: cargo miri test --package capnp --package capnpc-test --no-default-features
 
+      - name: Test default features 32-bit
+        run: cargo miri test --package capnp --package capnpc-test --target i686-unknown-linux-gnu
+
+      - name: Test no default features 32-bit
+        run: cargo miri test --package capnp --package capnpc-test --no-default-features --target i686-unknown-linux-gnu
+
       - name: Test sync_reader
         run: cargo miri test --package capnp --package capnpc-test --features sync_reader
 
