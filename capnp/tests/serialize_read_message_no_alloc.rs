@@ -9,11 +9,11 @@ pub fn serialize_read_message_no_alloc() {
         let mut msg = message::Builder::new(allocator);
         msg.set_root("hello world!").unwrap();
 
-        let mut out_buffer = Word::allocate_zeroed_vec(512);
+        let mut out_buffer = [capnp::word(0, 0, 0, 0, 0, 0, 0, 0); 256];
 
         serialize::write_message(Word::words_to_bytes_mut(&mut out_buffer), &msg).unwrap();
 
-        let mut read_buffer = Word::allocate_zeroed_vec(512);
+        let mut read_buffer = [capnp::word(0, 0, 0, 0, 0, 0, 0, 0); 256];
 
         let reader = serialize::read_message_no_alloc(
             &mut Word::words_to_bytes(&out_buffer),
