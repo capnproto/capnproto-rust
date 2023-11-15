@@ -312,6 +312,8 @@ where
 /// Like `try_read_message()`, but does not allocate any memory.
 /// Stores the message in `buffer`. Returns a `BufferNotLargeEnough`
 /// error if the buffer is not large enough.
+/// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
+/// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
 pub fn try_read_message_no_alloc<R>(
     mut read: R,
     options: message::ReaderOptions,
@@ -397,6 +399,8 @@ where
 /// Like `read_message()`, but does not allocate.
 /// Stores the message in `buffer`. Returns a `BufferNotLargeEnough`
 /// error if the buffer is not large enough.
+/// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
+/// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
 pub fn read_message_no_alloc<R>(
     read: R,
     options: message::ReaderOptions,
