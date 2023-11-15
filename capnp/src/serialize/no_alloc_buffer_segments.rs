@@ -107,6 +107,26 @@ pub struct NoAllocBufferSegments<T> {
     segment_type: NoAllocBufferSegmentType,
 }
 
+impl<T> NoAllocBufferSegments<T> {
+    fn from_segment_table(buffer: T, info: ReadSegmentTableResult) -> Self {
+        if info.segments_count == 1 {
+            let message_length = info.segment_table_length_bytes + info.total_segments_length_bytes;
+            Self {
+                buffer,
+                segment_type: NoAllocBufferSegmentType::SingleSegment(
+                    info.segment_table_length_bytes,
+                    message_length,
+                ),
+            }
+        } else {
+            Self {
+                buffer,
+                segment_type: NoAllocBufferSegmentType::MultipleSegments,
+            }
+        }
+    }
+}
+
 impl<'b> NoAllocBufferSegments<&'b [u8]> {
     /// Reads a serialized message (including a segment table) from a buffer and takes ownership, without copying.
     /// The buffer is allowed to extend beyond the end of the message. On success, updates `slice` to point
@@ -123,20 +143,7 @@ impl<'b> NoAllocBufferSegments<&'b [u8]> {
         let message = &slice[..message_length];
         *slice = &slice[message_length..];
 
-        if segment_table_info.segments_count == 1 {
-            Ok(Self {
-                buffer: message,
-                segment_type: NoAllocBufferSegmentType::SingleSegment(
-                    segment_table_info.segment_table_length_bytes,
-                    message_length,
-                ),
-            })
-        } else {
-            Ok(Self {
-                buffer: message,
-                segment_type: NoAllocBufferSegmentType::MultipleSegments,
-            })
-        }
+        Ok(Self::from_segment_table(message, segment_table_info))
     }
 }
 
@@ -148,23 +155,7 @@ impl<T: Deref<Target = [u8]>> NoAllocBufferSegments<T> {
     /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
     pub fn from_buffer(buffer: T, options: ReaderOptions) -> Result<Self> {
         let segment_table_info = read_segment_table(&buffer, options)?;
-        let message_length = segment_table_info.segment_table_length_bytes
-            + segment_table_info.total_segments_length_bytes;
-
-        if segment_table_info.segments_count == 1 {
-            Ok(Self {
-                buffer,
-                segment_type: NoAllocBufferSegmentType::SingleSegment(
-                    segment_table_info.segment_table_length_bytes,
-                    message_length,
-                ),
-            })
-        } else {
-            Ok(Self {
-                buffer,
-                segment_type: NoAllocBufferSegmentType::MultipleSegments,
-            })
-        }
+        Ok(Self::from_segment_table(buffer, segment_table_info))
     }
 }
 
