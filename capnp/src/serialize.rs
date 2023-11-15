@@ -353,7 +353,7 @@ where
     let mut total_body_words = u32::from_le_bytes(buffer[4..8].try_into().unwrap());
     let mut num_segment_counts_read = 1;
     while num_segment_counts_read < segment_count {
-        let start = num_segment_counts_read * 8;
+        let start = (num_segment_counts_read + 1) * 4;
         let end = start + 8;
         if buffer.len() < end {
             return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough));
