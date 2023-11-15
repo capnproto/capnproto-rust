@@ -255,6 +255,8 @@ where
 }
 
 /// Like read_message(), but does not allocate.
+/// Stores the message in `buffer`. Returns a `BufferNotLargeEnough`
+/// error if the buffer is not large enough.
 pub fn read_message_no_alloc<R>(
     read: R,
     options: message::ReaderOptions,
@@ -268,6 +270,8 @@ where
 }
 
 /// Like try_read_message(), but does not allocate.
+/// Stores the message in `buffer`. Returns a `BufferNotLargeEnough`
+/// error if the buffer is not large enough.
 pub fn try_read_message_no_alloc<R>(
     read: R,
     options: message::ReaderOptions,
