@@ -1,3 +1,7 @@
+## v0.18.2
+- Fix overflow bug in read_message that could potentially lead to denial of service
+  attacks on 32-bit targets.
+
 ## v0.18.1
 - Fix two bugs in serialize_packed::PackedRead where a premature end-of-file
   could trigger an infinite loop.
