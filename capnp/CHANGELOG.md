@@ -1,3 +1,6 @@
+## v0.18.7
+- Update try_push_segment() to avoid possible overflow panic in 32-bit mode.
+
 ## v0.18.6
 - Add overflow checking during segment table reading, to prevent some potential denial
   of service attacks on 32-bit targets.
