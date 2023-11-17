@@ -881,7 +881,7 @@ unsafe impl<'a> Allocator for ScratchSpaceHeapAllocator<'a> {
 /// part of the buffer upon `deallocate_segment()`.
 ///
 /// You can reuse a `SingleSegmentAllocator` by calling `message::Builder::into_allocator()`,
-/// or by initally passing it to `message::Builder::new()` as a `&mut SingleSegmentAllocator`.
+/// or by initially passing it to `message::Builder::new()` as a `&mut SingleSegmentAllocator`.
 /// Such reuse can save significant amounts of zeroing.
 pub struct SingleSegmentAllocator<'a> {
     segment: &'a mut [u8],
@@ -917,6 +917,76 @@ impl<'a> SingleSegmentAllocator<'a> {
 }
 
 unsafe impl<'a> Allocator for SingleSegmentAllocator<'a> {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
+        let available_word_count = self.segment.len() / BYTES_PER_WORD;
+        if (minimum_size as usize) > available_word_count {
+            panic!(
+                "Allocation too large: asked for {minimum_size} words, \
+                    but only {available_word_count} are available."
+            )
+        } else if self.segment_allocated {
+            panic!("Tried to allocated two segments in a SingleSegmentAllocator.")
+        } else {
+            self.segment_allocated = true;
+            (
+                self.segment.as_mut_ptr(),
+                (self.segment.len() / BYTES_PER_WORD) as u32,
+            )
+        }
+    }
+
+    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, _word_size: u32, words_used: u32) {
+        let seg_ptr = self.segment.as_mut_ptr();
+        if ptr == seg_ptr {
+            // Rezero the slice to allow reuse of the allocator. We only need to write
+            // words that we know might contain nonzero values.
+            unsafe {
+                core::ptr::write_bytes(
+                    seg_ptr, // miri isn't happy if we use ptr instead
+                    0u8,
+                    (words_used as usize) * BYTES_PER_WORD,
+                );
+            }
+            self.segment_allocated = false;
+        }
+    }
+}
+
+/// An Allocator which contains the buffer inside of it.
+/// If the segment fill up, subsequent allocations trigger panics.
+///
+/// The main purpose of this struct is to be used in situations where heap allocation
+/// is not available.
+///
+/// You can reuse a `InnerBufferAllocator` by calling `message::Builder::into_allocator()`,
+/// or by initially passing it to `message::Builder::new()` as a `&mut InnerBufferAllocator`.
+/// Such reuse can save significant amounts of zeroing.
+
+pub struct InnerBufferAllocator<const N: usize> {
+    segment: [u8; N],
+    segment_allocated: bool,
+}
+
+impl<const N: usize> InnerBufferAllocator<N> {
+    pub fn new() -> Self {
+        #[cfg(not(feature = "unaligned"))]
+        {
+            if N % BYTES_PER_WORD != 0 {
+                panic!(
+                    "Segment must be 8-byte aligned, or you must enable the \"unaligned\" \
+                        feature in the capnp crate"
+                );
+            }
+        }
+
+        InnerBufferAllocator {
+            segment: [0; N],
+            segment_allocated: false,
+        }
+    }
+}
+
+unsafe impl<const N: usize> Allocator for InnerBufferAllocator<N> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         let available_word_count = self.segment.len() / BYTES_PER_WORD;
         if (minimum_size as usize) > available_word_count {
