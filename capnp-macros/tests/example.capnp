@@ -13,3 +13,11 @@ struct Date {
   month @1 :UInt8;
   day @2 :UInt8;
 }
+
+struct TextList {
+  items @0 :List(Text);
+}
+
+struct DateList {
+  dates @0 :List(Date);
+}

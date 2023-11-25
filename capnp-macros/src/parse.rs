@@ -3,71 +3,22 @@ use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     token::Brace,
-    Ident, Token,
+    Token,
 };
 
-pub struct CapnpLet {
-    pub anon_struct: CapnpAnonStruct,
-    pub equal_token: Token![=],
-    pub ident: Ident,
-}
-
-pub struct CapnpAnonStruct {
+// {field1, field2, ...}
+pub struct CapnpAnonStruct<FieldPattern: Parse> {
     pub brace_token: Brace,
-    pub fields: Punctuated<CapnpField, Token![,]>,
+    pub fields: Punctuated<FieldPattern, Token![,]>,
 }
 
-pub struct CapnpField {
-    pub lhs: Ident,
-    pub colon_token: Option<Token![:]>,
-    pub rhs: Box<CapnpFieldPat>,
-}
-
-pub enum CapnpFieldPat {
-    AnonStruct(CapnpAnonStruct),
-    Ident(Ident),
-}
-
-impl Parse for CapnpLet {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(CapnpLet {
-            anon_struct: input.parse()?,
-            equal_token: input.parse()?,
-            ident: input.parse()?,
-        })
-    }
-}
-
-impl Parse for CapnpAnonStruct {
+impl<FieldPattern: Parse> Parse for CapnpAnonStruct<FieldPattern> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         Ok(CapnpAnonStruct {
             brace_token: braced!(content in input),
-            fields: content.parse_terminated(CapnpField::parse, Token![,])?,
-        })
-    }
-}
-
-impl Parse for CapnpField {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lhs: Ident = input.parse()?;
-        let colon_token: Option<Token![:]> = input.parse()?;
-        let rhs: Box<CapnpFieldPat>;
-        if colon_token.is_none() {
-            // {.., lhs, ..}
-            rhs = Box::new(CapnpFieldPat::Ident(lhs.clone()));
-        } else if input.peek(Brace) {
-            // {.., lhs: {...}, ..}
-            rhs = Box::new(CapnpFieldPat::AnonStruct(CapnpAnonStruct::parse(input)?));
-        } else {
-            // {.., lhs: rhs, ..}
-            rhs = Box::new(CapnpFieldPat::Ident(input.parse()?));
-        }
-
-        Ok(CapnpField {
-            lhs,
-            colon_token,
-            rhs,
+            //fields: syn::punctuated::Punctuated::parse_terminated(&content)?,
+            fields: content.parse_terminated(FieldPattern::parse, Token![,])?,
         })
     }
 }
