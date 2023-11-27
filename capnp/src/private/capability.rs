@@ -22,10 +22,15 @@
 #![cfg(feature = "alloc")]
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::cell::RefCell;
 
 use crate::any_pointer;
 use crate::capability::{Params, Promise, RemotePromise, Request, Results};
 use crate::MessageSize;
+
+thread_local! {
+    pub static CURRENT_THIS: RefCell<Option<*const dyn Fn() -> Box<dyn ClientHook>>> = Default::default();
+}
 
 pub trait ResponseHook {
     fn get(&self) -> crate::Result<any_pointer::Reader<'_>>;

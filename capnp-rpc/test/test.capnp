@@ -79,6 +79,7 @@ interface Bootstrap {
   testCallOrder @4 () -> (cap: TestCallOrder);
   testMoreStuff @5 () -> (cap: TestMoreStuff);
   testCapabilityServerSet @6 () -> (cap: TestCapabilityServerSet);
+  testRecursiveClientFactorial @7 () -> (cap: TestRecursiveClientFactorial);
 }
 
 interface TestInterface {
@@ -182,4 +183,8 @@ interface TestCapabilityServerSet {
 
   createHandle @0 () -> (handle :Handle);
   checkHandle @1 (handle: Handle) -> (isOurs :Bool);
+}
+
+interface TestRecursiveClientFactorial {
+  fact @0 (n: Int32) -> (res :Int32);
 }

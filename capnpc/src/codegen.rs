@@ -2745,6 +2745,10 @@ fn generate_node(
                     params.params, server_base, params.where_clause
                 )),
                 indent(server_interior),
+                indent(line(format!("fn this_client<'a>(&'a mut self) -> Client<{}> {{", params.params))), // are these generics ALWAYS the same as the Client generics? It seems like so.
+                indent(indent(Line(format!("::capnp::private::capability::CURRENT_THIS.with_borrow(|curr_this| <Client<{}> as ::capnp::capability::FromClientHook>::new(", params.params)))), // Should replace ::capnp with {capnp} maybe?
+                indent(indent(Line(fmt!(ctx, "unsafe {{&*curr_this.unwrap() as &dyn Fn() -> Box<dyn ({capnp}::private::capability::ClientHook)>}}()))")))),
+                indent(line("}")),
                 line("}"),
             ]));
 

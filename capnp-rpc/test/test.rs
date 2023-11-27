@@ -1014,3 +1014,22 @@ fn capability_server_set_rpc() {
         Ok(())
     })
 }
+#[test]
+fn recursive_client() {
+    rpc_top_level(|_spawner, client| async move {
+        let response1 = client
+            .test_recursive_client_factorial_request()
+            .send()
+            .promise
+            .await?;
+        let client1 = response1.get()?.get_cap()?;
+
+        let mut req = client1.fact_request();
+        req.get().set_n(4);
+
+        let res = req.send().promise.await?;
+        assert_eq!(res.get()?.get_res(), 24);
+
+        Ok(())
+    })
+}
