@@ -484,15 +484,7 @@ pub fn line(inner: impl ToString) -> FormattedText {
 fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
     match ft {
         Indent(ft) => to_lines(ft, indent + 1),
-        Branch(fts) => {
-            let mut result = Vec::new();
-            for ft in fts {
-                for line in &to_lines(ft, indent) {
-                    result.push(line.clone()); // TODO there's probably a better way to do this.
-                }
-            }
-            result
-        }
+        Branch(fts) => fts.iter().flat_map(|ft| to_lines(ft, indent)).collect(),
         Line(s) => {
             let mut s1: String = " ".repeat(indent * 2);
             s1.push_str(s);
@@ -505,10 +497,10 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
 fn stringify(ft: &FormattedText) -> String {
     let mut result = to_lines(ft, 0).join("\n");
     result.push('\n');
-    result.to_string()
+    result
 }
 
-const RUST_KEYWORDS: [&str; 53] = [
+const RUST_KEYWORDS: &[&str] = &[
     "abstract", "alignof", "as", "be", "become", "box", "break", "const", "continue", "crate",
     "do", "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl", "in", "let",
     "loop", "macro", "match", "mod", "move", "mut", "offsetof", "once", "override", "priv", "proc",
