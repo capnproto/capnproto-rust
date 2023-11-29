@@ -1645,7 +1645,7 @@ where
         match self.state {
             DisconnectorState::Connected => unreachable!(),
             DisconnectorState::Disconnecting => {
-                cx.waker().clone().wake();
+                cx.waker().wake_by_ref();
                 Poll::Pending
             }
             DisconnectorState::Disconnected => Poll::Ready(Ok(())),
@@ -1967,8 +1967,7 @@ where
     VatId: 'static,
 {
     variant: PipelineVariant<VatId>,
-    redirect_later:
-        Option<RefCell<futures::future::Shared<Promise<Response<VatId>, ::capnp::Error>>>>,
+    redirect_later: Option<RefCell<futures::future::Shared<Promise<Response<VatId>, Error>>>>,
     connection_state: Rc<ConnectionState<VatId>>,
 
     #[allow(dead_code)]

@@ -165,6 +165,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::let_underscore_future)]
     fn static_lifetime_not_required_funcs() {
         let (mut write, mut read) = async_byte_channel::channel();
         let _ = serialize::try_read_message(&mut read, message::ReaderOptions::default());

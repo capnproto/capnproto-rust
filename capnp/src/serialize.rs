@@ -400,7 +400,7 @@ where
     }
 
     let start = (num_segment_counts_read + 1) * 4;
-    let end = start + (total_body_words as usize * 8);
+    let end = start + (total_body_words * 8);
     if buffer.len() < end {
         return Err(Error::from_kind(ErrorKind::BufferNotLargeEnough));
     }
