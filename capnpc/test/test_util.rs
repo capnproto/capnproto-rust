@@ -565,8 +565,28 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
             .downcast::<::capnp::dynamic_list::Builder<'_>>();
         uint64_list.set(0, 11111111111111111111u64.into()).unwrap();
     }
-
-    // ...
+    {
+        let mut float32_list = builder
+            .reborrow()
+            .initn_named("float32List", 4)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        float32_list.set(0, 5555.5f32.into()).unwrap();
+        float32_list.set(1, f32::INFINITY.into()).unwrap();
+        float32_list.set(2, (-f32::INFINITY).into()).unwrap();
+        float32_list.set(3, f32::NAN.into()).unwrap();
+    }
+    {
+        let mut float64_list = builder
+            .reborrow()
+            .initn_named("float64List", 4)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        float64_list.set(0, 7777.75f64.into()).unwrap();
+        float64_list.set(1, f64::INFINITY.into()).unwrap();
+        float64_list.set(2, (-f64::INFINITY).into()).unwrap();
+        float64_list.set(3, f64::NAN.into()).unwrap();
+    }
     {
         let mut text_list: capnp::dynamic_list::Builder<'_> = builder
             .reborrow()
@@ -577,7 +597,6 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
         text_list.set(1, "xyzzy".into()).unwrap();
         text_list.set(2, "thud".into()).unwrap();
     }
-
     {
         let mut data_list: capnp::dynamic_list::Builder<'_> = builder
             .reborrow()
@@ -771,7 +790,24 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
             uint64_list.get(0).unwrap().downcast()
         );
     }
-
+    {
+        let float32_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("float32List").unwrap().downcast();
+        assert_eq!(4, float32_list.len());
+        assert_eq!(5555.5f32, float32_list.get(0).unwrap().downcast());
+        assert_eq!(f32::INFINITY, float32_list.get(1).unwrap().downcast());
+        assert_eq!(-f32::INFINITY, float32_list.get(2).unwrap().downcast());
+        assert!(float32_list.get(3).unwrap().downcast::<f32>().is_nan());
+    }
+    {
+        let float64_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("float64List").unwrap().downcast();
+        assert_eq!(4, float64_list.len());
+        assert_eq!(7777.75f64, float64_list.get(0).unwrap().downcast());
+        assert_eq!(f64::INFINITY, float64_list.get(1).unwrap().downcast());
+        assert_eq!(-f64::INFINITY, float64_list.get(2).unwrap().downcast());
+        assert!(float64_list.get(3).unwrap().downcast::<f64>().is_nan());
+    }
     {
         let text_list: capnp::dynamic_list::Reader<'_> =
             reader.get_named("textList").unwrap().downcast();
@@ -1124,7 +1160,48 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
             uint64_list.get(0).unwrap().downcast()
         );
     }
-
+    {
+        let mut float32_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("float32List")
+            .unwrap()
+            .downcast();
+        assert_eq!(4, float32_list.len());
+        assert_eq!(
+            5555.5f32,
+            float32_list.reborrow().get(0).unwrap().downcast()
+        );
+        assert_eq!(
+            f32::INFINITY,
+            float32_list.reborrow().get(1).unwrap().downcast()
+        );
+        assert_eq!(
+            -f32::INFINITY,
+            float32_list.reborrow().get(2).unwrap().downcast()
+        );
+        assert!(float32_list.get(3).unwrap().downcast::<f32>().is_nan());
+    }
+    {
+        let mut float64_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("float64List")
+            .unwrap()
+            .downcast();
+        assert_eq!(4, float64_list.len());
+        assert_eq!(
+            7777.75f64,
+            float64_list.reborrow().get(0).unwrap().downcast()
+        );
+        assert_eq!(
+            f64::INFINITY,
+            float64_list.reborrow().get(1).unwrap().downcast()
+        );
+        assert_eq!(
+            -f64::INFINITY,
+            float64_list.reborrow().get(2).unwrap().downcast()
+        );
+        assert!(float64_list.get(3).unwrap().downcast::<f64>().is_nan());
+    }
     {
         let mut text_list: capnp::dynamic_list::Builder<'_> =
             builder.reborrow().get_named("textList").unwrap().downcast();
