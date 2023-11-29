@@ -108,6 +108,8 @@ mod split;
 mod task_set;
 pub mod twoparty;
 
+use capnp::message;
+
 pub trait OutgoingMessage {
     fn get_body(&mut self) -> ::capnp::Result<::capnp::any_pointer::Builder>;
     fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader>;
@@ -117,8 +119,8 @@ pub trait OutgoingMessage {
     fn send(
         self: Box<Self>,
     ) -> (
-        Promise<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>, ::capnp::Error>,
-        Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
+        Promise<Rc<message::Builder<message::HeapAllocator>>, Error>,
+        Rc<message::Builder<message::HeapAllocator>>,
     );
 
     fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator>;
