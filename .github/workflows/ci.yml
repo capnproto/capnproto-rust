@@ -25,8 +25,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install Rust
-      run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
 
     - name: Install Cap'n Proto
       run: |
@@ -65,11 +66,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          profile: minimal
-          toolchain: nightly
-          override: true
           components: miri
 
       - name: Setup miri
@@ -108,8 +106,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Rust
-      run: rustup update ${{ env.minrust }} --no-self-update && rustup default ${{ env.minrust }}
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ env.minrust }}
 
     - name: Install Cap'n Proto
       run: |
@@ -134,13 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly
-          override: true
-          profile: minimal
           components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check --unstable-features --error-on-unformatted
+      - run: cargo fmt --all -- --check --unstable-features --error-on-unformatted
