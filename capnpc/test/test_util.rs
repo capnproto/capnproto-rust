@@ -644,6 +644,15 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
             .set_named("textField", "structlist 3".into())
             .unwrap();
     }
+    {
+        let mut enum_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .initn_named("enumList", 2)
+            .unwrap()
+            .downcast();
+        enum_list.set(0, TestEnum::Foo.into()).unwrap();
+        enum_list.set(1, TestEnum::Garply.into()).unwrap();
+    }
 }
 
 pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
@@ -912,6 +921,37 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
                 .get_named("textField")
                 .unwrap()
                 .downcast::<capnp::text::Reader<'_>>()
+        );
+    }
+    {
+        let enum_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("enumList").unwrap().downcast();
+        assert_eq!(2, enum_list.len());
+        assert_eq!(
+            "foo",
+            enum_list
+                .get(0)
+                .unwrap()
+                .downcast::<capnp::dynamic_value::Enum>()
+                .get_enumerant()
+                .unwrap()
+                .unwrap()
+                .get_proto()
+                .get_name()
+                .unwrap()
+        );
+        assert_eq!(
+            "garply",
+            enum_list
+                .get(1)
+                .unwrap()
+                .downcast::<capnp::dynamic_value::Enum>()
+                .get_enumerant()
+                .unwrap()
+                .unwrap()
+                .get_proto()
+                .get_name()
+                .unwrap()
         );
     }
 }
@@ -1331,6 +1371,38 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
                 .unwrap()
                 .into_reader()
                 .downcast::<capnp::text::Reader<'_>>()
+        );
+    }
+    {
+        let mut enum_list: capnp::dynamic_list::Builder<'_> =
+            builder.reborrow().get_named("enumList").unwrap().downcast();
+        assert_eq!(2, enum_list.len());
+        assert_eq!(
+            "foo",
+            enum_list
+                .reborrow()
+                .get(0)
+                .unwrap()
+                .downcast::<capnp::dynamic_value::Enum>()
+                .get_enumerant()
+                .unwrap()
+                .unwrap()
+                .get_proto()
+                .get_name()
+                .unwrap()
+        );
+        assert_eq!(
+            "garply",
+            enum_list
+                .get(1)
+                .unwrap()
+                .downcast::<capnp::dynamic_value::Enum>()
+                .get_enumerant()
+                .unwrap()
+                .unwrap()
+                .get_proto()
+                .get_name()
+                .unwrap()
         );
     }
 }
