@@ -377,15 +377,15 @@ macro_rules! fmt(
 pub(crate) use fmt;
 
 fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<String> {
-    match path.as_ref().file_stem() {
-        None => Err(Error::failed(format!(
+    if let Some(stem) = path.as_ref().file_stem() {
+        stem.to_owned()
+            .into_string()
+            .map_err(|os_string| Error::failed(format!("bad filename: {os_string:?}")))
+    } else {
+        Err(Error::failed(format!(
             "file has no stem: {:?}",
             path.as_ref()
-        ))),
-        Some(stem) => match stem.to_owned().into_string() {
-            Err(os_string) => Err(Error::failed(format!("bad filename: {os_string:?}"))),
-            Ok(s) => Ok(s),
-        },
+        )))
     }
 }
 
