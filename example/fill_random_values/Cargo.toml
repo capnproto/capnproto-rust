@@ -26,3 +26,6 @@ path = "fill_addressbook.rs"
 [[bin]]
 name = "fill_shapes"
 path = "fill_shapes.rs"
+
+[lints]
+workspace = true

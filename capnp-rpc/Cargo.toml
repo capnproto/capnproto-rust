@@ -21,3 +21,9 @@ features = ["std"]
 [dependencies]
 capnp-futures = { version = "0.18.0", path = "../capnp-futures" }
 capnp = {version = "0.18.0", path = "../capnp"}
+
+#[lints]
+#workspace = true
+
+[lints.clippy]
+type_complexity = "allow"  # this should be removed in future

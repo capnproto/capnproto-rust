@@ -2146,6 +2146,7 @@ mod wire_helpers {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub unsafe fn copy_pointer(
         dst_arena: &mut dyn BuilderArena,
         dst_segment_id: u32,

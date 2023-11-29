@@ -40,3 +40,10 @@ std = ["embedded-io?/std"]
 # message readers to be `Sync`. Note that AtomicUsize is not supported by all
 # rustc targets.
 sync_reader = []
+
+#[lints]
+#workspace = true
+
+[lints.clippy]
+type_complexity = "allow"  # this should be removed in future
+missing_safety_doc = "allow"  # this should be removed in future
