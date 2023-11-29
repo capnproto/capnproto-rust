@@ -51,7 +51,7 @@
 //! use capnp::message::{self, TypedBuilder, TypedReader};
 //!
 //! fn main() {
-//!     let mut builder = TypedBuilder::<simple_struct::Owned>::new_default();
+//!     let mut builder = TypedBuilder::<simple_struct::Owned>::default();
 //!     let mut builder_root = builder.init_root();
 //!     builder_root.set_x(10);
 //!     builder_root.set_y(20);
@@ -462,7 +462,7 @@ where
 
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
         if self.arena.is_empty() {
-            any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
+            any_pointer::Reader::new(layout::PointerReader::default()).get_as()
         } else {
             let (segment_start, _segment_len) = self.arena.get_segment(0)?;
             let pointer_reader = layout::PointerReader::get_root(
@@ -571,8 +571,19 @@ impl<T> TypedBuilder<T, HeapAllocator>
 where
     T: Owned,
 {
+    #[deprecated(since = "0.18.7", note = "use `TypedBuilder::default()`")]
     pub fn new_default() -> Self {
-        Self::new(Builder::new_default())
+        Self::default()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T> Default for TypedBuilder<T, HeapAllocator>
+where
+    T: Owned,
+{
+    fn default() -> Self {
+        Self::new(Builder::default())
     }
 }
 
@@ -764,7 +775,17 @@ fn test_allocate_max() {
 impl Builder<HeapAllocator> {
     /// Constructs a new `message::Builder<HeapAllocator>` whose first segment has length
     /// `SUGGESTED_FIRST_SEGMENT_WORDS`.
+    #[deprecated(since = "0.18.7", note = "use `Builder::default()`")]
     pub fn new_default() -> Self {
+        Self::default()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Default for Builder<HeapAllocator> {
+    /// Constructs a new `message::Builder<HeapAllocator>` whose first segment has length
+    /// `SUGGESTED_FIRST_SEGMENT_WORDS`.
+    fn default() -> Self {
         Self::new(HeapAllocator::new())
     }
 }

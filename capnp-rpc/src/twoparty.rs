@@ -151,7 +151,7 @@ where
         _first_segment_word_size: u32,
     ) -> Box<dyn crate::OutgoingMessage> {
         Box::new(OutgoingMessage {
-            message: ::capnp::message::Builder::new_default(),
+            message: ::capnp::message::Builder::default(),
             sender: self.inner.borrow().sender.clone(),
         })
     }

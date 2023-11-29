@@ -32,7 +32,7 @@ pub mod addressbook {
     use capnp::message::{Builder, HeapAllocator, TypedBuilder, TypedReader};
 
     pub fn build_address_book() -> TypedReader<Builder<HeapAllocator>, address_book::Owned> {
-        let mut message = TypedBuilder::<address_book::Owned>::new_default();
+        let mut message = TypedBuilder::<address_book::Owned>::default();
         {
             let address_book = message.init_root();
 

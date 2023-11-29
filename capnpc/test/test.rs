@@ -340,7 +340,7 @@ mod tests {
     fn test_complex_list() {
         use crate::test_capnp::{test_complex_list, AnEnum};
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
 
         let mut test_complex_list = message.init_root::<test_complex_list::Builder<'_>>();
 
@@ -504,8 +504,8 @@ mod tests {
     fn test_list_list_set_elem() {
         use crate::test_capnp::test_complex_list;
 
-        let mut message1 = message::Builder::new_default();
-        let mut message2 = message::Builder::new_default();
+        let mut message1 = message::Builder::default();
+        let mut message2 = message::Builder::default();
 
         let mut test_complex_list1 = message1.init_root::<test_complex_list::Builder<'_>>();
         let mut test_complex_list2 = message2.init_root::<test_complex_list::Builder<'_>>();
@@ -538,7 +538,7 @@ mod tests {
         use crate::test_capnp::{test_defaults, TestEnum};
 
         {
-            let message = message::Builder::new_default();
+            let message = message::Builder::default();
             let test_defaults = message
                 .get_root_as_reader::<test_defaults::Reader<'_>>()
                 .expect("get_root_as_reader()");
@@ -546,13 +546,13 @@ mod tests {
         }
 
         {
-            let mut message = message::Builder::new_default();
+            let mut message = message::Builder::default();
             let test_defaults = message.init_root::<test_defaults::Builder<'_>>();
             CheckTestMessage::check_test_message(test_defaults);
         }
 
         {
-            let mut message = message::Builder::new_default();
+            let mut message = message::Builder::default();
             let mut test_defaults = message
                 .get_root::<test_defaults::Builder<'_>>()
                 .expect("get_root()");
@@ -615,7 +615,7 @@ mod tests {
     fn test_any_pointer() {
         use crate::test_capnp::{test_any_pointer, test_big_struct, test_empty_struct};
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         let mut test_any_pointer = message.init_root::<test_any_pointer::Builder<'_>>();
 
         test_any_pointer
@@ -654,7 +654,7 @@ mod tests {
         }
 
         {
-            let mut message = message::Builder::new_default();
+            let mut message = message::Builder::default();
             let mut test_big_struct = message.init_root::<test_big_struct::Builder<'_>>();
             test_big_struct.set_int32_field(-12345);
             test_any_pointer
@@ -664,7 +664,7 @@ mod tests {
         }
 
         fn _test_lifetimes(body: test_big_struct::Reader<'_>) {
-            let mut message = message::Builder::new_default();
+            let mut message = message::Builder::default();
             message.set_root(body).unwrap();
         }
     }
@@ -673,7 +673,7 @@ mod tests {
     fn test_writable_struct_pointer() {
         use crate::test_capnp::test_big_struct;
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         let mut big_struct = message.init_root::<test_big_struct::Builder<'_>>();
 
         let neg_seven: u64 = (-7i64) as u64;
@@ -715,7 +715,7 @@ mod tests {
                 .set_uint32_field(4294967265);
 
             // Alas, we need to make a copy to appease the reborrow checker.
-            let mut other_message = message::Builder::new_default();
+            let mut other_message = message::Builder::default();
             other_message
                 .set_root(
                     big_struct
@@ -770,8 +770,8 @@ mod tests {
     fn test_field_get_option() -> capnp::Result<()> {
         use crate::test_capnp::test_field_get_option as subject;
 
-        let mut message_set = message::Builder::new_default();
-        let mut message_unset = message::Builder::new_default();
+        let mut message_set = message::Builder::default();
+        let mut message_unset = message::Builder::default();
 
         let mut test_set = message_set.init_root::<subject::Builder<'_>>();
         let mut test_unset = message_unset.init_root::<subject::Builder<'_>>();
@@ -853,7 +853,7 @@ mod tests {
     fn test_generic_one_parameter() {
         use crate::test_capnp::brand_once;
 
-        let mut message_for_brand = message::Builder::new_default();
+        let mut message_for_brand = message::Builder::default();
         let mut branded = message_for_brand.init_root::<brand_once::Builder<'_>>();
         {
             let branded_field = branded.reborrow().init_branded_field();
@@ -878,7 +878,7 @@ mod tests {
     fn test_generic_two_parameter() {
         use crate::test_capnp::brand_twice;
 
-        let mut message_for_brand = message::Builder::new_default();
+        let mut message_for_brand = message::Builder::default();
         let mut branded = message_for_brand.init_root::<brand_twice::Builder<'_>>();
         {
             let mut baz = branded.reborrow().init_baz_field();
@@ -919,7 +919,7 @@ mod tests {
     fn test_generics() {
         use crate::test_capnp::{test_all_types, test_generics};
         use capnp::text;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         let mut root: test_generics::Builder<'_, test_all_types::Owned, text::Owned> =
             message.init_root();
         init_test_message(root.reborrow().get_foo().unwrap());
@@ -953,7 +953,7 @@ mod tests {
     fn test_generic_union() {
         use crate::test_capnp::{test_all_types, test_generics_union};
         use capnp::primitive_list;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let mut root: test_generics_union::Builder<
                 '_,
@@ -1001,7 +1001,7 @@ mod tests {
         use crate::test_capnp::{test_all_types, test_generics_groups};
         use capnp::primitive_list;
         {
-            let mut message = message::Builder::new_default();
+            let mut message = message::Builder::default();
             {
                 let mut root: test_generics_groups::Builder<
                     '_,
@@ -1027,7 +1027,7 @@ mod tests {
         }
 
         {
-            let mut message = message::Builder::new_default();
+            let mut message = message::Builder::default();
             {
                 let mut root: test_generics_groups::inner::Builder<
                     '_,
@@ -1065,7 +1065,7 @@ mod tests {
     fn test_union() {
         use crate::test_capnp::test_union;
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         let mut union_struct = message.init_root::<test_union::Builder<'_>>();
 
         union_struct.reborrow().get_union0().set_u0f0s0(());
@@ -1094,7 +1094,7 @@ mod tests {
         use crate::test_capnp::{test_union, test_union_defaults};
 
         {
-            let message = message::Builder::new_default();
+            let message = message::Builder::default();
             let reader = message
                 .get_root_as_reader::<test_union_defaults::Reader<'_>>()
                 .expect("get_root_as_reader()");
@@ -1198,8 +1198,8 @@ mod tests {
     fn test_set_root() {
         use crate::test_capnp::test_big_struct;
 
-        let mut message1 = message::Builder::new_default();
-        let mut message2 = message::Builder::new_default();
+        let mut message1 = message::Builder::default();
+        let mut message2 = message::Builder::default();
         let mut struct1 = message1.init_root::<test_big_struct::Builder<'_>>();
         struct1.set_uint8_field(3);
         message2.set_root(struct1.into_reader()).unwrap();
@@ -1212,7 +1212,7 @@ mod tests {
     fn upgrade_struct() {
         use crate::test_capnp::{test_new_version, test_old_version};
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let mut old_version = message.init_root::<test_old_version::Builder<'_>>();
             old_version.set_old1(123);
@@ -1256,7 +1256,7 @@ mod tests {
     fn upgraded_struct_read_as_old() {
         use crate::test_capnp::{test_new_version, test_old_version};
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let mut new_version = message.init_root::<test_new_version::Builder<'_>>();
             new_version.set_old1(123);
@@ -1288,7 +1288,7 @@ mod tests {
     fn upgrade_union() {
         use crate::test_capnp::{test_new_union_version, test_old_union_version};
         // This tests for a specific case that was broken originally.
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let mut old_version = message.init_root::<test_old_union_version::Builder<'_>>();
             old_version.set_b(123);
@@ -1310,7 +1310,7 @@ mod tests {
         use crate::test_capnp::{test_any_pointer, test_lists};
 
         {
-            let mut builder = message::Builder::new_default();
+            let mut builder = message::Builder::default();
             let mut root = builder.init_root::<test_any_pointer::Builder<'_>>();
             {
                 let mut list = root
@@ -1334,7 +1334,7 @@ mod tests {
         }
 
         {
-            let mut builder = message::Builder::new_default();
+            let mut builder = message::Builder::default();
             let mut root = builder.init_root::<test_any_pointer::Builder<'_>>();
             {
                 let mut list = root
@@ -1433,7 +1433,7 @@ mod tests {
         let segment0 = &segment0_outer[..7]; // everything except the trailing 3 words
 
         {
-            let mut message_builder = capnp::message::Builder::new_default();
+            let mut message_builder = capnp::message::Builder::default();
 
             let segment_array = &[capnp::Word::words_to_bytes(segment0)];
             let message_reader = message::Reader::new(
@@ -1458,7 +1458,7 @@ mod tests {
     fn all_types() {
         use crate::test_capnp::test_all_types;
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         init_test_message(message.init_root());
         let mut root = message.get_root::<test_all_types::Builder<'_>>().unwrap();
         CheckTestMessage::check_test_message(root.reborrow());
@@ -1483,11 +1483,11 @@ mod tests {
         use crate::test_capnp::test_all_types;
 
         {
-            let mut message = message::Builder::new_default();
+            let mut message = message::Builder::default();
 
             init_test_message(message.init_root::<test_all_types::Builder<'_>>());
 
-            let mut message2 = message::Builder::new_default();
+            let mut message2 = message::Builder::default();
             let mut all_types2 = message2.init_root::<test_all_types::Builder<'_>>();
 
             all_types2
@@ -1656,7 +1656,7 @@ mod tests {
             .get_root::<test_all_types::Reader<'_>>()
             .unwrap();
         assert!(reader.total_size().is_err());
-        let mut builder = ::capnp::message::Builder::new_default();
+        let mut builder = ::capnp::message::Builder::default();
         assert!(builder.set_root(reader).is_err());
     }
 
@@ -1664,7 +1664,7 @@ mod tests {
     fn text_builder_int_underflow() {
         use crate::test_capnp::test_any_pointer;
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let mut root = message.init_root::<test_any_pointer::Builder<'_>>();
             let _: ::capnp::data::Builder<'_> = root.reborrow().get_any_pointer_field().initn_as(0);
@@ -1709,7 +1709,7 @@ mod tests {
             assert!(result.is_err());
         }
 
-        let mut message_builder = message::Builder::new_default();
+        let mut message_builder = message::Builder::default();
         let builder_root =
             message_builder.init_root::<crate::test_capnp::test_any_pointer::Builder<'_>>();
         match builder_root.get_any_pointer_field().set_as(root) {
@@ -1729,7 +1729,7 @@ mod tests {
         let length: u32 = 1 << 27;
         let step_exponent = 18;
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let root: test_all_types::Builder<'_> = message.init_root();
             let mut list = root.init_u_int64_list(length);
@@ -1743,7 +1743,7 @@ mod tests {
             }
         }
 
-        let mut message2 = message::Builder::new_default();
+        let mut message2 = message::Builder::default();
         {
             let root: test_all_types::Reader<'_> = message.get_root_as_reader().unwrap();
             let mut root2: test_all_types::Builder<'_> = message2.init_root();
@@ -1772,7 +1772,7 @@ mod tests {
         let length: u32 = 1 << 27;
         let step_exponent = 18;
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let root: test_lists::Builder<'_> = message.init_root();
             let mut list = root.init_list64(length);
@@ -1802,7 +1802,7 @@ mod tests {
         let length: u32 = 1 << 27;
         let step_exponent = 18;
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let root: test_lists::Builder<'_> = message.init_root();
             let mut list = root.init_int32_list_list(length);
@@ -1832,7 +1832,7 @@ mod tests {
     fn traversal_limit_exceeded() {
         use crate::test_capnp::test_all_types;
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         init_test_message(message.init_root());
 
         let segments = message.get_segments_for_output();
@@ -1850,7 +1850,7 @@ mod tests {
     fn void_list_amplification() {
         use crate::test_capnp::{test_all_types, test_any_pointer};
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let root = message.init_root::<test_any_pointer::Builder<'_>>();
             let _: ::capnp::primitive_list::Builder<'_, ()> =
@@ -1873,7 +1873,7 @@ mod tests {
     fn empty_struct_list_amplification() {
         use crate::test_capnp::{test_all_types, test_any_pointer, test_empty_struct};
 
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let root = message.init_root::<test_any_pointer::Builder<'_>>();
             let _: ::capnp::struct_list::Builder<'_, test_empty_struct::Owned> =
@@ -1920,14 +1920,14 @@ mod tests {
             .unwrap();
         reader.total_size().unwrap();
 
-        let mut builder = ::capnp::message::Builder::new_default();
+        let mut builder = ::capnp::message::Builder::default();
         assert!(builder.set_root(reader).is_err()); // read limit exceeded
     }
 
     #[test]
     fn null_struct_fields() {
         use crate::test_capnp::test_all_types;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let mut test = message.init_root::<test_all_types::Builder<'_>>();
             test.set_text_field("Hello");
@@ -1959,17 +1959,17 @@ mod tests {
     #[test]
     fn set_with_caveats() {
         use crate::test_capnp::test_all_types;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         let root: test_all_types::Builder<'_> = message.init_root();
         let mut list = root.init_struct_list(2);
         {
-            let mut message1 = message::Builder::new_default();
+            let mut message1 = message::Builder::default();
             let mut root1: test_all_types::Builder<'_> = message1.init_root();
             root1.set_int8_field(11);
             list.set_with_caveats(0, root1.into_reader()).unwrap();
         }
         {
-            let mut message2 = message::Builder::new_default();
+            let mut message2 = message::Builder::default();
             let mut root2: test_all_types::Builder<'_> = message2.init_root();
             init_test_message(root2.reborrow());
             list.set_with_caveats(1, root2.into_reader()).unwrap();
@@ -1984,7 +1984,7 @@ mod tests {
     fn get_raw_struct_data() {
         use crate::test_capnp::test_all_types;
         use capnp::traits::HasStructSize;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         let mut root: test_all_types::Builder<'_> = message.init_root();
         root.set_int8_field(3);
         root.set_int16_field(0x0abb);
@@ -2002,7 +2002,7 @@ mod tests {
     #[test]
     fn get_raw_list_data() {
         use crate::test_capnp::test_all_types;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         let mut root: test_all_types::Builder<'_> = message.init_root();
         {
             let mut uint16_list = root.reborrow().init_u_int16_list(5);
@@ -2031,7 +2031,7 @@ mod tests {
     #[test]
     fn get_struct_pointer_section() {
         use crate::test_capnp::test_all_types;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         let mut root: test_all_types::Builder<'_> = message.init_root();
         init_test_message(root.reborrow().init_struct_field());
         let pointers = ::capnp::raw::get_struct_pointer_section(root.into_reader());
@@ -2042,7 +2042,7 @@ mod tests {
     #[test]
     fn struct_list_iterator() {
         use crate::test_capnp::test_all_types;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let root: test_all_types::Builder<'_> = message.init_root();
             let mut struct_list = root.init_struct_list(6);
@@ -2096,7 +2096,7 @@ mod tests {
     #[test]
     fn name_annotation() {
         use crate::test_capnp::renamed_struct;
-        let mut message = message::Builder::new_default();
+        let mut message = message::Builder::default();
         {
             let mut root: renamed_struct::Builder<'_> = message.init_root();
             root.set_good_field_name(true);
@@ -2126,7 +2126,7 @@ mod tests {
     fn test_typed_builder_reader() {
         use crate::test_capnp::test_all_types;
 
-        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::new_default();
+        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::default();
         init_test_message(typed_builder.init_root());
 
         CheckTestMessage::check_test_message(typed_builder.get_root().unwrap());
@@ -2145,7 +2145,7 @@ mod tests {
     fn test_slice_segments() {
         use crate::test_capnp::test_all_types;
 
-        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::new_default();
+        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::default();
         init_test_message(typed_builder.init_root());
 
         CheckTestMessage::check_test_message(typed_builder.get_root().unwrap());
@@ -2172,7 +2172,7 @@ mod tests {
     fn test_no_alloc_slice_segments() {
         use crate::test_capnp::test_all_types;
 
-        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::new_default();
+        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::default();
         init_test_message(typed_builder.init_root());
 
         CheckTestMessage::check_test_message(typed_builder.get_root().unwrap());
@@ -2199,7 +2199,7 @@ mod tests {
     fn test_read_message_no_alloc() {
         use crate::test_capnp::test_all_types;
 
-        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::new_default();
+        let mut typed_builder = TypedBuilder::<test_all_types::Owned>::default();
         init_test_message(typed_builder.init_root());
 
         CheckTestMessage::check_test_message(typed_builder.get_root().unwrap());

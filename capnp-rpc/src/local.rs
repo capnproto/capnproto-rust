@@ -90,7 +90,7 @@ struct Results {
 impl Results {
     fn new(fulfiller: oneshot::Sender<Box<dyn ResultsDoneHook>>) -> Self {
         Self {
-            message: Some(::capnp::message::Builder::new_default()),
+            message: Some(::capnp::message::Builder::default()),
             cap_table: Vec::new(),
             results_done_fulfiller: Some(fulfiller),
         }
@@ -191,7 +191,7 @@ impl Request {
         client: Box<dyn ClientHook>,
     ) -> Self {
         Self {
-            message: message::Builder::new_default(),
+            message: message::Builder::default(),
             cap_table: Vec::new(),
             interface_id,
             method_id,

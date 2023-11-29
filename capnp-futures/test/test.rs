@@ -114,7 +114,7 @@ mod tests {
 
         let io = futures::future::join(done_reading, write_queue.map(|_| ()));
 
-        let mut m = capnp::message::Builder::new_default();
+        let mut m = capnp::message::Builder::default();
         populate_address_book(m.init_root());
 
         spawner.spawn_local(sender.send(m).map(|_| ())).unwrap();
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn single_segment() {
-        fill_and_send_message(capnp::message::Builder::new_default());
+        fill_and_send_message(capnp::message::Builder::default());
     }
 
     #[test]
@@ -169,7 +169,7 @@ mod tests {
     fn static_lifetime_not_required_funcs() {
         let (mut write, mut read) = async_byte_channel::channel();
         let _ = serialize::try_read_message(&mut read, message::ReaderOptions::default());
-        let _ = serialize::write_message(&mut write, message::Builder::new_default());
+        let _ = serialize::write_message(&mut write, message::Builder::default());
     }
 
     #[test]

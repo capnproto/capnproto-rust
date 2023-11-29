@@ -352,7 +352,7 @@ fn pipelining_return_null() {
 
 #[test]
 fn null_capability() {
-    let mut message = ::capnp::message::Builder::new_default();
+    let mut message = ::capnp::message::Builder::default();
     let root: crate::test_capnp::test_all_types::Builder = message.get_root().unwrap();
 
     // In capnproto-c++, this would return a BrokenCap. Here, it returns a decode error.

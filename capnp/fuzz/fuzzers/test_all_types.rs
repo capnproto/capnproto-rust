@@ -129,7 +129,7 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
     root.total_size()?;
     traverse(root)?;
 
-    let mut message = message::Builder::new_default();
+    let mut message = message::Builder::default();
     message.set_root(root)?;
 
     assert_equal(

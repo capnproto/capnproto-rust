@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let memory = instance.exports.get_memory("memory")?;
 
     let mut expected_total: i32 = 0;
-    let mut message = capnp::message::Builder::new_default();
+    let mut message = capnp::message::Builder::default();
     {
         let root: wasm_hello_world_capnp::foo::Builder = message.init_root();
         let mut numbers = root.init_numbers(10);

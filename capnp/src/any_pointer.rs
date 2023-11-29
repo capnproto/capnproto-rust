@@ -292,7 +292,7 @@ impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
 #[cfg(feature = "alloc")]
 #[test]
 fn init_clears_value() {
-    let mut message = crate::message::Builder::new_default();
+    let mut message = crate::message::Builder::default();
     {
         let root: crate::any_pointer::Builder = message.init_root();
         let mut list: crate::primitive_list::Builder<u16> = root.initn_as(10);

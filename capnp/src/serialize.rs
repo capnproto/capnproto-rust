@@ -1073,7 +1073,7 @@ pub mod test {
     #[test]
     fn compute_serialized_size() {
         const LIST_LENGTH_IN_WORDS: u32 = 5;
-        let mut m = message::Builder::new_default();
+        let mut m = message::Builder::default();
         {
             let root: crate::any_pointer::Builder = m.init_root();
             let _list_builder: crate::primitive_list::Builder<u64> =

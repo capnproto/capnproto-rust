@@ -28,7 +28,7 @@ pub mod addressbook {
     use capnp::serialize_packed;
 
     pub fn write_address_book() -> ::capnp::Result<()> {
-        let mut message = ::capnp::message::Builder::new_default();
+        let mut message = ::capnp::message::Builder::default();
         {
             let address_book = message.init_root::<address_book::Builder>();
 

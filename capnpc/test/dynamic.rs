@@ -5,7 +5,7 @@ use capnp::{dynamic_list, dynamic_struct, dynamic_value};
 
 #[test]
 fn test_dynamic_reader() {
-    let mut builder = message::Builder::new_default();
+    let mut builder = message::Builder::default();
     let root: test_all_types::Builder<'_> = builder.init_root();
     let mut root: dynamic_value::Builder<'_> = root.into();
 
@@ -18,7 +18,7 @@ fn test_dynamic_reader() {
 
 #[test]
 fn test_dynamic_builder() {
-    let mut builder = message::Builder::new_default();
+    let mut builder = message::Builder::default();
     let root: test_all_types::Builder<'_> = builder.init_root();
     let mut root: dynamic_value::Builder<'_> = root.into();
     test_util::dynamic_init_test_message(root.reborrow().downcast());
@@ -32,7 +32,7 @@ fn test_dynamic_builder() {
 fn test_defaults() {
     use crate::test_capnp::test_defaults;
 
-    let message = message::Builder::new_default();
+    let message = message::Builder::default();
     let test_defaults = message
         .get_root_as_reader::<test_defaults::Reader<'_>>()
         .expect("get_root_as_reader()");
@@ -44,7 +44,7 @@ fn test_defaults() {
 fn test_defaults_builder() {
     use crate::test_capnp::test_defaults;
 
-    let mut message = message::Builder::new_default();
+    let mut message = message::Builder::default();
     let test_defaults = message.get_root::<test_defaults::Builder<'_>>().unwrap();
     let root: dynamic_value::Builder<'_> = test_defaults.into();
     test_util::dynamic_check_test_message_builder(root.downcast());
@@ -54,7 +54,7 @@ fn test_defaults_builder() {
 fn test_unions() {
     use crate::test_capnp::test_union;
     use capnp::{dynamic_struct, dynamic_value};
-    let mut message = message::Builder::new_default();
+    let mut message = message::Builder::default();
     let mut root: test_union::Builder<'_> = message.init_root();
     root.reborrow().get_union0().set_u0f1s32(1234567);
     root.reborrow().get_union1().set_u1f1sp("foo");
@@ -150,7 +150,7 @@ fn test_unions() {
 fn test_generics() {
     use crate::test_capnp::{test_all_types, test_generics};
     use capnp::text;
-    let mut message = message::Builder::new_default();
+    let mut message = message::Builder::default();
     let root: test_generics::Builder<'_, test_all_types::Owned, text::Owned> = message.init_root();
 
     let root: dynamic_value::Builder<'_> = root.into();
@@ -179,7 +179,7 @@ fn test_generics() {
 #[test]
 fn test_generic_annotation() -> ::capnp::Result<()> {
     use crate::test_capnp::{test_generics, test_use_generics};
-    let mut message = message::Builder::new_default();
+    let mut message = message::Builder::default();
     let root: test_use_generics::Builder<'_> = message.init_root();
     let root: dynamic_value::Builder<'_> = root.into();
     let root: dynamic_struct::Builder<'_> = root.downcast();
@@ -198,7 +198,7 @@ fn test_generic_annotation() -> ::capnp::Result<()> {
 fn test_complex_list() {
     use crate::test_capnp::test_complex_list;
 
-    let mut message = message::Builder::new_default();
+    let mut message = message::Builder::default();
     let root = message.init_root::<test_complex_list::Builder<'_>>();
     let root: dynamic_value::Builder<'_> = root.into();
     let mut root: dynamic_struct::Builder<'_> = root.downcast();
@@ -237,7 +237,7 @@ fn test_complex_list() {
 #[test]
 fn test_stringify() {
     use crate::test_capnp::{test_all_types, TestEnum};
-    let mut message = message::Builder::new_default();
+    let mut message = message::Builder::default();
     let mut root: test_all_types::Builder<'_> = message.init_root();
     root.set_int8_field(3);
     root.set_enum_field(TestEnum::Bar);

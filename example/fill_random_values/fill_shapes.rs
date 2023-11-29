@@ -141,7 +141,7 @@ impl SvgBuilder {
 }
 
 pub fn main() {
-    let mut message = ::capnp::message::Builder::new_default();
+    let mut message = ::capnp::message::Builder::default();
     let mut canvas = message.init_root::<shapes_capnp::canvas::Builder>();
 
     let mut filler = Filler::new(::rand::thread_rng(), 10);

@@ -2209,7 +2209,7 @@ where
                 }
                 _ => {
                     self.variant = Some(ResultsVariant::LocallyRedirected(
-                        ::capnp::message::Builder::new_default(),
+                        ::capnp::message::Builder::default(),
                         Vec::new(),
                     ));
                 }

@@ -59,7 +59,7 @@ impl Request {
     pub fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> Self {
         Self {
             error,
-            message: ::capnp::message::Builder::new_default(),
+            message: ::capnp::message::Builder::default(),
             cap_table: Vec::new(),
         }
     }

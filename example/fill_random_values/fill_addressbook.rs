@@ -10,7 +10,7 @@ pub mod fill_capnp {
 }
 
 pub fn main() {
-    let mut message = ::capnp::message::Builder::new_default();
+    let mut message = ::capnp::message::Builder::default();
     let mut addressbook = message.init_root::<addressbook_capnp::address_book::Builder>();
 
     let mut filler = Filler::new(::rand::thread_rng(), 10);

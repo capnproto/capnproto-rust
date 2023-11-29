@@ -1348,7 +1348,7 @@ mod wire_helpers {
 
         if (*orig_ref).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListBuilder::new_default(arena));
+                return Ok(ListBuilder::new(arena));
             }
             let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                 arena,
@@ -1478,7 +1478,7 @@ mod wire_helpers {
 
         if (*orig_ref).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListBuilder::new_default(arena));
+                return Ok(ListBuilder::new(arena));
             }
             let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                 arena,
@@ -2352,9 +2352,9 @@ mod wire_helpers {
     ) -> Result<StructReader<'a>> {
         if (*reff).is_null() {
             match default {
-                None => return Ok(StructReader::new_default()),
+                None => return Ok(StructReader::default()),
                 Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() => {
-                    return Ok(StructReader::new_default())
+                    return Ok(StructReader::default())
                 }
                 Some(d) => {
                     reff = d.as_ptr() as *const _;
@@ -2440,7 +2440,7 @@ mod wire_helpers {
     ) -> Result<ListReader<'_>> {
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListReader::new_default());
+                return Ok(ListReader::default());
             }
             reff = default_value as *const _;
             arena = &super::NULL_ARENA;
@@ -2842,15 +2842,22 @@ pub struct PointerReader<'a> {
     nesting_limit: i32,
 }
 
-impl<'a> PointerReader<'a> {
-    pub fn new_default<'b>() -> PointerReader<'b> {
-        PointerReader {
+impl<'a> Default for PointerReader<'a> {
+    fn default() -> Self {
+        Self {
             arena: &NULL_ARENA,
             segment_id: 0,
             cap_table: Default::default(),
             pointer: ptr::null(),
             nesting_limit: 0x7fffffff,
         }
+    }
+}
+
+impl<'a> PointerReader<'a> {
+    #[deprecated(since = "0.18.7", note = "use `PointerReader::default()`")]
+    pub fn new_default() -> Self {
+        Self::default()
     }
 
     pub fn get_root(
@@ -3375,9 +3382,9 @@ pub struct StructReader<'a> {
     nesting_limit: i32,
 }
 
-impl<'a> StructReader<'a> {
-    pub fn new_default<'b>() -> StructReader<'b> {
-        StructReader {
+impl<'a> Default for StructReader<'a> {
+    fn default() -> Self {
+        Self {
             arena: &NULL_ARENA,
             segment_id: 0,
             cap_table: Default::default(),
@@ -3387,6 +3394,13 @@ impl<'a> StructReader<'a> {
             pointer_count: 0,
             nesting_limit: 0x7fffffff,
         }
+    }
+}
+
+impl<'a> StructReader<'a> {
+    #[deprecated(since = "0.18.7", note = "use `StructReader::default()`")]
+    pub fn new_default() -> Self {
+        Self::default()
     }
 
     pub fn imbue(&mut self, cap_table: CapTableReader) {
@@ -3479,7 +3493,7 @@ impl<'a> StructReader<'a> {
                 nesting_limit: self.nesting_limit,
             }
         } else {
-            PointerReader::new_default()
+            PointerReader::default()
         }
     }
 
@@ -3786,9 +3800,9 @@ pub struct ListReader<'a> {
     element_size: ElementSize,
 }
 
-impl<'a> ListReader<'a> {
-    pub fn new_default<'b>() -> ListReader<'b> {
-        ListReader {
+impl<'a> Default for ListReader<'a> {
+    fn default() -> Self {
+        Self {
             arena: &NULL_ARENA,
             segment_id: 0,
             cap_table: Default::default(),
@@ -3800,6 +3814,13 @@ impl<'a> ListReader<'a> {
             struct_pointer_count: 0,
             nesting_limit: 0x7fffffff,
         }
+    }
+}
+
+impl<'a> ListReader<'a> {
+    #[deprecated(since = "0.18.7", note = "use `ListReader::default()`")]
+    pub fn new_default() -> Self {
+        Self::default()
     }
 
     pub fn imbue(&mut self, cap_table: CapTableReader) {
@@ -3996,8 +4017,14 @@ pub struct ListBuilder<'a> {
 
 impl<'a> ListBuilder<'a> {
     #[inline]
-    pub fn new_default(arena: &mut dyn BuilderArena) -> ListBuilder<'_> {
-        ListBuilder {
+    #[deprecated(since = "0.18.7", note = "use `ListBuilder::new()`")]
+    pub fn new_default(arena: &'a mut dyn BuilderArena) -> Self {
+        Self::new(arena)
+    }
+
+    #[inline]
+    pub fn new(arena: &'a mut dyn BuilderArena) -> Self {
+        Self {
             arena,
             segment_id: 0,
             cap_table: Default::default(),
