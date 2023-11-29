@@ -194,7 +194,12 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
         text_list.set(2, "thud".into());
     }
 
-    // ...
+    {
+        let mut data_list = builder.reborrow().init_data_list(3);
+        data_list.set(0, b"oops");
+        data_list.set(1, b"exhausted");
+        data_list.set(2, b"rfc3092");
+    }
 
     {
         let mut struct_list = builder.reborrow().init_struct_list(3);
@@ -410,7 +415,13 @@ check_test_message_impl(($mod:ident::$typ:ident) => (
                 assert_eq!("thud", text_list.reborrow().get(2).unwrap());
             }
 
-            // ...
+            {
+                let mut data_list = reader.reborrow().get_data_list().unwrap();
+                assert_eq!(3, data_list.len());
+                assert_eq!(b"oops", data_list.reborrow().get(0).unwrap());
+                assert_eq!(b"exhausted", data_list.reborrow().get(1).unwrap());
+                assert_eq!(b"rfc3092", data_list.reborrow().get(2).unwrap());
+            }
 
             {
                 let mut struct_list = reader.reborrow().get_struct_list().unwrap();

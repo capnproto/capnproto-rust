@@ -61,6 +61,12 @@ impl<'a> Reader<'a> {
         let l = self.len();
         ListIter::new(self, l)
     }
+
+    pub fn reborrow<'b>(&'b self) -> Reader<'b> {
+        Reader {
+            reader: self.reader,
+        }
+    }
 }
 
 impl<'a> FromPointerReader<'a> for Reader<'a> {
