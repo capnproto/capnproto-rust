@@ -504,6 +504,68 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
         int8_list.set(0, 111i8.into()).unwrap();
         int8_list.set(1, (-111i8).into()).unwrap();
     }
+    {
+        let mut int16_list = builder
+            .reborrow()
+            .initn_named("int16List", 2)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        int16_list.set(0, 11111i16.into()).unwrap();
+        int16_list.set(1, (-11111i16).into()).unwrap();
+    }
+    {
+        let mut int32_list = builder
+            .reborrow()
+            .initn_named("int32List", 2)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        int32_list.set(0, 111111111i32.into()).unwrap();
+        int32_list.set(1, (-111111111i32).into()).unwrap();
+    }
+    {
+        let mut int64_list = builder
+            .reborrow()
+            .initn_named("int64List", 2)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        int64_list.set(0, 1111111111111111111i64.into()).unwrap();
+        int64_list.set(1, (-1111111111111111111i64).into()).unwrap();
+    }
+    {
+        let mut uint8_list = builder
+            .reborrow()
+            .initn_named("uInt8List", 2)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        uint8_list.set(0, 111u8.into()).unwrap();
+        uint8_list.set(1, 222u8.into()).unwrap();
+    }
+    {
+        let mut uint16_list = builder
+            .reborrow()
+            .initn_named("uInt16List", 2)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        uint16_list.set(0, 33333u16.into()).unwrap();
+        uint16_list.set(1, 44444u16.into()).unwrap();
+    }
+    {
+        let mut uint32_list = builder
+            .reborrow()
+            .initn_named("uInt32List", 1)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        uint32_list.set(0, 3333333333u32.into()).unwrap();
+    }
+    {
+        let mut uint64_list = builder
+            .reborrow()
+            .initn_named("uInt64List", 1)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        uint64_list.set(0, 11111111111111111111u64.into()).unwrap();
+    }
+
     // ...
     {
         let mut text_list: capnp::dynamic_list::Builder<'_> = builder
@@ -652,6 +714,62 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
         assert_eq!(2, int8_list.len());
         assert_eq!(111i8, int8_list.get(0).unwrap().downcast());
         assert_eq!(-111i8, int8_list.get(1).unwrap().downcast());
+    }
+    {
+        let int16_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("int16List").unwrap().downcast();
+        assert_eq!(2, int16_list.len());
+        assert_eq!(11111i16, int16_list.get(0).unwrap().downcast());
+        assert_eq!(-11111i16, int16_list.get(1).unwrap().downcast());
+    }
+    {
+        let int32_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("int32List").unwrap().downcast();
+        assert_eq!(2, int32_list.len());
+        assert_eq!(111111111i32, int32_list.get(0).unwrap().downcast());
+        assert_eq!(-111111111i32, int32_list.get(1).unwrap().downcast());
+    }
+    {
+        let int64_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("int64List").unwrap().downcast();
+        assert_eq!(2, int64_list.len());
+        assert_eq!(
+            1111111111111111111i64,
+            int64_list.get(0).unwrap().downcast()
+        );
+        assert_eq!(
+            -1111111111111111111i64,
+            int64_list.get(1).unwrap().downcast()
+        );
+    }
+    {
+        let uint8_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("uInt8List").unwrap().downcast();
+        assert_eq!(2, uint8_list.len());
+        assert_eq!(111u8, uint8_list.get(0).unwrap().downcast());
+        assert_eq!(222u8, uint8_list.get(1).unwrap().downcast());
+    }
+    {
+        let uint16_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("uInt16List").unwrap().downcast();
+        assert_eq!(2, uint16_list.len());
+        assert_eq!(33333u16, uint16_list.get(0).unwrap().downcast());
+        assert_eq!(44444u16, uint16_list.get(1).unwrap().downcast());
+    }
+    {
+        let uint32_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("uInt32List").unwrap().downcast();
+        assert_eq!(1, uint32_list.len());
+        assert_eq!(3333333333u32, uint32_list.get(0).unwrap().downcast());
+    }
+    {
+        let uint64_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("uInt64List").unwrap().downcast();
+        assert_eq!(1, uint64_list.len());
+        assert_eq!(
+            11111111111111111111u64,
+            uint64_list.get(0).unwrap().downcast()
+        );
     }
 
     {
@@ -922,6 +1040,89 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
         assert_eq!(2, int8_list.len());
         assert_eq!(111i8, int8_list.reborrow().get(0).unwrap().downcast());
         assert_eq!(-111i8, int8_list.reborrow().get(1).unwrap().downcast());
+    }
+    {
+        let mut int16_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("int16List")
+            .unwrap()
+            .downcast();
+        assert_eq!(2, int16_list.len());
+        assert_eq!(11111i16, int16_list.reborrow().get(0).unwrap().downcast());
+        assert_eq!(-11111i16, int16_list.reborrow().get(1).unwrap().downcast());
+    }
+    {
+        let mut int32_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("int32List")
+            .unwrap()
+            .downcast();
+        assert_eq!(2, int32_list.len());
+        assert_eq!(
+            111111111i32,
+            int32_list.reborrow().get(0).unwrap().downcast()
+        );
+        assert_eq!(
+            -111111111i32,
+            int32_list.reborrow().get(1).unwrap().downcast()
+        );
+    }
+    {
+        let mut int64_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("int64List")
+            .unwrap()
+            .downcast();
+        assert_eq!(2, int64_list.len());
+        assert_eq!(
+            1111111111111111111i64,
+            int64_list.reborrow().get(0).unwrap().downcast()
+        );
+        assert_eq!(
+            -1111111111111111111i64,
+            int64_list.reborrow().get(1).unwrap().downcast()
+        );
+    }
+    {
+        let mut uint8_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("uInt8List")
+            .unwrap()
+            .downcast();
+        assert_eq!(2, uint8_list.len());
+        assert_eq!(111u8, uint8_list.reborrow().get(0).unwrap().downcast());
+        assert_eq!(222u8, uint8_list.reborrow().get(1).unwrap().downcast());
+    }
+    {
+        let mut uint16_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("uInt16List")
+            .unwrap()
+            .downcast();
+        assert_eq!(2, uint16_list.len());
+        assert_eq!(33333u16, uint16_list.reborrow().get(0).unwrap().downcast());
+        assert_eq!(44444u16, uint16_list.reborrow().get(1).unwrap().downcast());
+    }
+    {
+        let uint32_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("uInt32List")
+            .unwrap()
+            .downcast();
+        assert_eq!(1, uint32_list.len());
+        assert_eq!(3333333333u32, uint32_list.get(0).unwrap().downcast());
+    }
+    {
+        let uint64_list: capnp::dynamic_list::Builder<'_> = builder
+            .reborrow()
+            .get_named("uInt64List")
+            .unwrap()
+            .downcast();
+        assert_eq!(1, uint64_list.len());
+        assert_eq!(
+            11111111111111111111u64,
+            uint64_list.get(0).unwrap().downcast()
+        );
     }
 
     {
