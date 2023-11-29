@@ -1,0 +1,40 @@
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+name: Code Coverage
+
+jobs:
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Cap'n Proto
+        run: |
+            export DEBIAN_FRONTEND=noninteractive
+            sudo apt-get install -y capnproto libcapnp-dev
+
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run llvm-cov
+        run:  |
+          for features in \
+            "--no-default-features" \
+            "--features sync_reader" \
+            "--features unaligned"
+          do
+            cargo llvm-cov --no-report --doctests --workspace $features
+          done
+          cargo llvm-cov report --lcov --output-path lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
