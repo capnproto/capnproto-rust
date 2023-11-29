@@ -1443,35 +1443,22 @@ mod tests {
 
         let mut message = message::Builder::new_default();
         init_test_message(message.init_root());
-        CheckTestMessage::check_test_message(
-            message.get_root::<test_all_types::Builder<'_>>().unwrap(),
-        );
-        CheckTestMessage::check_test_message(
-            message
-                .get_root::<test_all_types::Builder<'_>>()
-                .unwrap()
-                .into_reader(),
-        );
-    }
+        let mut root = message.get_root::<test_all_types::Builder<'_>>().unwrap();
+        CheckTestMessage::check_test_message(root.reborrow());
+        CheckTestMessage::check_test_message(root.reborrow().into_reader());
 
-    #[test]
-    fn all_types_multi_segment() {
-        use crate::test_capnp::test_all_types;
-
+        // Now force there to be multiple segments.
         let builder_options = message::HeapAllocator::new()
             .first_segment_words(1)
             .allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
-        let mut message = message::Builder::new(builder_options);
-        init_test_message(message.init_root());
-        CheckTestMessage::check_test_message(
-            message.get_root::<test_all_types::Builder<'_>>().unwrap(),
-        );
-        CheckTestMessage::check_test_message(
-            message
-                .get_root::<test_all_types::Builder<'_>>()
-                .unwrap()
-                .into_reader(),
-        );
+        let mut message2 = message::Builder::new(builder_options);
+        init_test_message(message2.init_root());
+        let mut root2 = message2.get_root::<test_all_types::Builder<'_>>().unwrap();
+        CheckTestMessage::check_test_message(root2.reborrow());
+        CheckTestMessage::check_test_message(root2.reborrow().into_reader());
+
+        // Far pointer overhead does not get counted in total_size().
+        assert_eq!(root.total_size().unwrap(), root2.total_size().unwrap());
     }
 
     #[test]
