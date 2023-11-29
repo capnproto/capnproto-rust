@@ -705,7 +705,7 @@ pub mod test {
 
     #[test]
     fn read_empty() {
-        let words = vec![];
+        let words = [];
         // Before https://github.com/capnproto/capnproto-rust/pull/446
         // this would loop forever.
         let message =
@@ -716,7 +716,7 @@ pub mod test {
 
     #[test]
     fn eof_mid_message() {
-        let words = vec![0xfe, 0x3, 0x3];
+        let words = [0xfe, 0x3, 0x3];
         let result =
             futures::executor::block_on(Box::pin(try_read_message(&words[..], Default::default())));
 

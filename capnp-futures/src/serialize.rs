@@ -563,7 +563,7 @@ pub mod test {
         ) -> Poll<io::Result<usize>> {
             if self.idx == 0 {
                 self.idx = self.blocking_period;
-                cx.waker().clone().wake();
+                cx.waker().wake_by_ref();
                 Poll::Pending
             } else {
                 let len = cmp::min(self.idx, buf.len());
@@ -619,7 +619,7 @@ pub mod test {
         ) -> Poll<io::Result<usize>> {
             if self.idx == 0 {
                 self.idx = self.blocking_period;
-                cx.waker().clone().wake();
+                cx.waker().wake_by_ref();
                 Poll::Pending
             } else {
                 let len = cmp::min(self.idx, buf.len());

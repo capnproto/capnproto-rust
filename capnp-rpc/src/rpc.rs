@@ -1645,7 +1645,7 @@ where
         match self.state {
             DisconnectorState::Connected => unreachable!(),
             DisconnectorState::Disconnecting => {
-                cx.waker().clone().wake();
+                cx.waker().wake_by_ref();
                 Poll::Pending
             }
             DisconnectorState::Disconnected => Poll::Ready(Ok(())),

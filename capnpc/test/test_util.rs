@@ -527,7 +527,7 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
 }
 
 pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
-    assert_eq!((), reader.get_named("voidField").unwrap().downcast());
+    reader.get_named("voidField").unwrap().downcast::<()>();
     assert_eq!(
         true,
         reader.get_named("boolField").unwrap().downcast::<bool>()
@@ -716,14 +716,11 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
 }
 
 pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Builder<'_>) {
-    assert_eq!(
-        (),
-        builder
-            .reborrow()
-            .get_named("voidField")
-            .unwrap()
-            .downcast()
-    );
+    builder
+        .reborrow()
+        .get_named("voidField")
+        .unwrap()
+        .downcast::<()>();
     assert_eq!(
         true,
         builder
