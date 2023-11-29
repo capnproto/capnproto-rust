@@ -30,7 +30,7 @@ jobs:
             "--features sync_reader" \
             "--features unaligned"
           do
-            cargo llvm-cov --no-report --doctests --workspace $features
+            cargo llvm-cov --no-report --include-build-script --doctests --workspace $features
           done
           cargo llvm-cov report --lcov --output-path lcov.info
 
