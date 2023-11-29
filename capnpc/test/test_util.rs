@@ -188,6 +188,15 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
     // ...
 
     {
+        let mut text_list = builder.reborrow().init_text_list(3);
+        text_list.set(0, "plugh".into());
+        text_list.set(1, "xyzzy".into());
+        text_list.set(2, "thud".into());
+    }
+
+    // ...
+
+    {
         let mut struct_list = builder.reborrow().init_struct_list(3);
         struct_list
             .reborrow()
@@ -389,6 +398,16 @@ check_test_message_impl(($mod:ident::$typ:ident) => (
                 assert_eq!(false, bool_list.get(1));
                 assert_eq!(false, bool_list.get(2));
                 assert_eq!(true, bool_list.get(3));
+            }
+
+            // ...
+
+            {
+                let mut text_list = reader.reborrow().get_text_list().unwrap();
+                assert_eq!(3, text_list.len());
+                assert_eq!("plugh", text_list.reborrow().get(0).unwrap());
+                assert_eq!("xyzzy", text_list.reborrow().get(1).unwrap());
+                assert_eq!("thud", text_list.reborrow().get(2).unwrap());
             }
 
             // ...
