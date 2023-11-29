@@ -483,7 +483,16 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
     builder
         .set_named("enumField", TestEnum::Corge.into())
         .unwrap();
-    builder.reborrow().initn_named("voidList", 3).unwrap();
+    {
+        let mut void_list = builder
+            .reborrow()
+            .initn_named("voidList", 6)
+            .unwrap()
+            .downcast::<::capnp::dynamic_list::Builder<'_>>();
+        for ii in 0..6 {
+            void_list.set(ii, ().into()).unwrap();
+        }
+    }
     {
         let mut bool_list = builder
             .reborrow()
@@ -718,6 +727,14 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
             .get_name()
             .unwrap()
     );
+    {
+        let void_list: capnp::dynamic_list::Reader<'_> =
+            reader.get_named("voidList").unwrap().downcast();
+        assert_eq!(6, void_list.len());
+        for ii in 0..6 {
+            let () = void_list.get(ii).unwrap().downcast();
+        }
+    }
     {
         let bool_list: capnp::dynamic_list::Reader<'_> =
             reader.get_named("boolList").unwrap().downcast();
@@ -1059,7 +1076,14 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
             .get_name()
             .unwrap()
     );
-
+    {
+        let mut void_list: capnp::dynamic_list::Builder<'_> =
+            builder.reborrow().get_named("voidList").unwrap().downcast();
+        assert_eq!(6, void_list.len());
+        for ii in 0..6 {
+            let () = void_list.reborrow().get(ii).unwrap().downcast();
+        }
+    }
     {
         let mut bool_list: capnp::dynamic_list::Builder<'_> =
             builder.reborrow().get_named("boolList").unwrap().downcast();
@@ -1069,7 +1093,6 @@ pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Bu
         assert_eq!(false, bool_list.reborrow().get(2).unwrap().downcast());
         assert_eq!(true, bool_list.reborrow().get(3).unwrap().downcast());
     }
-
     {
         let mut int8_list: capnp::dynamic_list::Builder<'_> =
             builder.reborrow().get_named("int8List").unwrap().downcast();
