@@ -47,4 +47,18 @@ pub fn primitive_list_as_slice() {
             &[0xab, 0xcd, 0xde, 0xff]
         );
     }
+
+    {
+        // Test the case when the list elements are InlineComposite.
+        use capnp::{schema_capnp, struct_list};
+        let nodelist = msg.initn_root::<struct_list::Builder<schema_capnp::node::Owned>>(2);
+        nodelist.get(0).set_id(0xabcd);
+        let mut u64list = msg.get_root::<primitive_list::Builder<u64>>().unwrap();
+        assert!(u64list.as_slice().is_none());
+        assert_eq!(u64list.get(0), 0xabcd);
+
+        let u64list = u64list.into_reader();
+        assert!(u64list.as_slice().is_none());
+        assert_eq!(u64list.get(0), 0xabcd);
+    }
 }
