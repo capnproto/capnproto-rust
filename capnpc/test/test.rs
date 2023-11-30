@@ -1230,6 +1230,7 @@ mod tests {
         }
         {
             let mut new_version = message.get_root::<test_new_version::Builder<'_>>().unwrap();
+            assert!(!new_version.has_new2());
             new_version.reborrow().get_new2().unwrap();
             assert_eq!(
                 new_version.reborrow().get_new3().unwrap().get_int8_field(),
