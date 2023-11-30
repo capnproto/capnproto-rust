@@ -1265,6 +1265,14 @@ mod tests {
             assert_eq!(names.get(0).unwrap(), "alice");
             assert_eq!(names.get(1).unwrap(), "bob");
         }
+        {
+            let mut old_version = message.get_root::<test_old_version::Builder<'_>>().unwrap();
+            assert_eq!(old_version.reborrow().get_old1(), 123);
+            let mut names = old_version.get_old4().unwrap();
+            assert_eq!(names.len(), 2);
+            assert_eq!(names.reborrow().get(0).unwrap(), "alice");
+            assert_eq!(names.reborrow().get(1).unwrap(), "bob");
+        }
     }
 
     #[test]
