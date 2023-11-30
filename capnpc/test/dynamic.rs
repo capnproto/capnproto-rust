@@ -103,6 +103,8 @@ fn test_unions() {
     {
         let mut u: dynamic_struct::Builder<'_> =
             dynamic.reborrow().get_named("union0").unwrap().downcast();
+        assert!(u.has_named("u0f1s32").unwrap());
+        assert!(!u.has_named("u0f1s16").unwrap());
         assert_eq!(
             "u0f1s32",
             u.reborrow()
