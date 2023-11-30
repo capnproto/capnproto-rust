@@ -3684,7 +3684,10 @@ impl<'a> StructBuilder<'a> {
         }
     }
 
-    #[inline]
+    #[deprecated(
+        since = "0.18.8",
+        note = "use `.reborrow().get_pointer_field()` instead"
+    )]
     pub fn get_pointer_field_mut(&mut self, ptr_index: WirePointerCount) -> PointerBuilder<'_> {
         PointerBuilder {
             arena: self.arena,
