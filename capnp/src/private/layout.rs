@@ -3484,11 +3484,7 @@ impl<'a> StructReader<'a> {
 
     #[inline]
     pub fn is_pointer_field_null(&self, ptr_index: WirePointerCount) -> bool {
-        if ptr_index < self.pointer_count as WirePointerCount {
-            unsafe { (*self.pointers.add(ptr_index)).is_null() }
-        } else {
-            true
-        }
+        self.get_pointer_field(ptr_index).is_null()
     }
 
     pub fn total_size(&self) -> Result<MessageSize> {
