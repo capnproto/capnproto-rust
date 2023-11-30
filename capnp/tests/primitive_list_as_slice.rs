@@ -3,8 +3,24 @@
 use capnp::{message, primitive_list};
 
 #[test]
-pub fn scratch_space_heap_allocator() {
+pub fn primitive_list_as_slice() {
     let mut msg = message::Builder::new_default();
+
+    {
+        let mut void_list = msg.initn_root::<primitive_list::Builder<()>>(0);
+        assert_eq!(void_list.as_slice().unwrap().len(), 0);
+        assert_eq!(void_list.into_reader().as_slice().unwrap().len(), 0);
+    }
+
+    {
+        let mut void_list = msg.initn_root::<primitive_list::Builder<()>>(5);
+        assert_eq!(void_list.as_slice().unwrap(), &[(), (), (), (), ()]);
+        assert_eq!(
+            void_list.into_reader().as_slice().unwrap(),
+            &[(), (), (), (), ()]
+        );
+    }
+
     {
         let mut u8list = msg.initn_root::<primitive_list::Builder<u8>>(0);
         assert_eq!(u8list.as_slice().unwrap().len(), 0);

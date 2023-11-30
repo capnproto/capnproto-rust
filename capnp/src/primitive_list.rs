@@ -117,13 +117,14 @@ impl<'a, T: PrimitiveElement> Reader<'a, T> {
     pub fn as_slice(&self) -> Option<&[T]> {
         if self.reader.get_element_size() == T::element_size() {
             let bytes = self.reader.into_raw_bytes();
-            Some(unsafe {
-                use core::slice;
-                slice::from_raw_parts(
-                    bytes.as_ptr() as *mut T,
-                    8 * bytes.len() / (data_bits_per_element(T::element_size())) as usize,
-                )
-            })
+            let bits_per_element = data_bits_per_element(T::element_size()) as usize;
+            let slice_length = if bits_per_element > 0 {
+                8 * bytes.len() / bits_per_element
+            } else {
+                // This is a List(Void).
+                self.len() as usize
+            };
+            Some(unsafe { core::slice::from_raw_parts(bytes.as_ptr() as *mut T, slice_length) })
         } else {
             None
         }
@@ -175,11 +176,15 @@ where
     pub fn as_slice(&mut self) -> Option<&mut [T]> {
         if self.builder.get_element_size() == T::element_size() {
             let bytes = self.builder.as_raw_bytes();
+            let bits_per_element = data_bits_per_element(T::element_size()) as usize;
+            let slice_length = if bits_per_element > 0 {
+                8 * bytes.len() / bits_per_element
+            } else {
+                // This is a List(Void).
+                self.len() as usize
+            };
             Some(unsafe {
-                core::slice::from_raw_parts_mut(
-                    bytes.as_mut_ptr() as *mut T,
-                    8 * bytes.len() / (data_bits_per_element(T::element_size())) as usize,
-                )
+                core::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut T, slice_length)
             })
         } else {
             None
