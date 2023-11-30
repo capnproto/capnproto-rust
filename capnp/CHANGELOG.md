@@ -1,3 +1,7 @@
+## v0.18.8
+- Deprecate StructBuilder::get_pointer_field_mut().
+- Improve docstring on dynamic_struct::Reader::has().
+
 ## v0.18.7
 - Update try_push_segment() to avoid possible overflow panic in 32-bit mode.
 
