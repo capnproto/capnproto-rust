@@ -1229,6 +1229,22 @@ mod tests {
             names.set(1, "bob".into());
         }
         {
+            let new_version = message
+                .get_root_as_reader::<test_new_version::Reader<'_>>()
+                .unwrap();
+            assert!(!new_version.has_new2());
+            new_version.get_new2().unwrap();
+            assert_eq!(
+                new_version.reborrow().get_new3().unwrap().get_int8_field(),
+                -123
+            );
+
+            let names = new_version.get_old4().unwrap();
+            assert_eq!(names.len(), 2);
+            assert_eq!(names.get(0).get_text_field().unwrap(), "alice");
+            assert_eq!(names.get(1).get_text_field().unwrap(), "bob");
+        }
+        {
             let mut new_version = message.get_root::<test_new_version::Builder<'_>>().unwrap();
             assert!(!new_version.has_new2());
             new_version.reborrow().get_new2().unwrap();
