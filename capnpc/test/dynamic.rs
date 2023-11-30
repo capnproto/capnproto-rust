@@ -67,6 +67,8 @@ fn test_unions() {
     let dynamic: dynamic_struct::Reader<'_> = dynamic.downcast();
     {
         let u: dynamic_struct::Reader<'_> = dynamic.get_named("union0").unwrap().downcast();
+        assert!(u.has_named("u0f1s32").unwrap());
+        assert!(!u.has_named("u0f1s16").unwrap());
         assert_eq!(
             "u0f1s32",
             u.which().unwrap().unwrap().get_proto().get_name().unwrap()
