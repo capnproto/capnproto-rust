@@ -11,6 +11,7 @@ members = [
     "capnpc",
     "capnp-futures",
     "capnp-rpc",
+    "capnp-conv",
 
     # testing and examples
     "async-byte-channel",
@@ -32,4 +33,5 @@ members = [
 default-members = [
     "capnp",
     "capnpc",
+    "capnp-conv",
 ]
