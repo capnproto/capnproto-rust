@@ -1,3 +1,6 @@
+## v0.18.9
+- Add support for List(Void) in primitive_list::as_slice().
+
 ## v0.18.8
 - Deprecate StructBuilder::get_pointer_field_mut().
 - Improve docstring on dynamic_struct::Reader::has().
