@@ -148,8 +148,9 @@ jobs:
             sudo apt-get install -y capnproto libcapnp-dev
 
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: nightly-2023-11-30
           components: clippy
       - uses: actions-rs-plus/clippy-check@v2
         with:
