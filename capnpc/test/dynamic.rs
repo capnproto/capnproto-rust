@@ -156,6 +156,7 @@ fn test_generics() {
     let root: dynamic_value::Builder<'_> = root.into();
     let mut root: dynamic_struct::Builder<'_> = root.downcast();
 
+    #[allow(clippy::disallowed_names)]
     let foo = root.reborrow().get_named("foo").unwrap();
     test_util::dynamic_init_test_message(foo.downcast());
 

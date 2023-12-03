@@ -137,3 +137,21 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt --all -- --check --unstable-features --error-on-unformatted
+
+  clippy:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Cap'n Proto
+        run: |
+            export DEBIAN_FRONTEND=noninteractive
+            sudo apt-get install -y capnproto libcapnp-dev
+
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2023-11-30
+          components: clippy
+      - uses: actions-rs-plus/clippy-check@v2
+        with:
+          args: --all --all-targets

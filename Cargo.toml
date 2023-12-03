@@ -33,3 +33,5 @@ default-members = [
     "capnp",
     "capnpc",
 ]
+
+[workspace.lints]

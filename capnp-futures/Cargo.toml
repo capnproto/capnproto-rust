@@ -27,3 +27,6 @@ features = ["executor"]
 [dev-dependencies]
 capnp = { version = "0.18.0", path = "../capnp", features = ["quickcheck"] }
 quickcheck = "1"
+
+[lints]
+workspace = true

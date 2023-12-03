@@ -736,12 +736,10 @@ fn embargo_success() {
             call5.promise,
         ])
         .map(|responses| {
-            let mut counter = 0;
-            for r in responses?.into_iter() {
-                if counter != r.get()?.get_n() {
+            for (counter, r) in responses?.into_iter().enumerate() {
+                if counter != r.get()?.get_n() as usize {
                     return Err(Error::failed("calls arrived out of order".to_string()));
                 }
-                counter += 1;
             }
             Ok(())
         })

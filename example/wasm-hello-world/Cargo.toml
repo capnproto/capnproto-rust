@@ -16,3 +16,6 @@ path = "../../capnp"
 
 [build-dependencies.capnpc]
 path = "../../capnpc"
+
+[lints]
+workspace = true
