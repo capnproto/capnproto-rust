@@ -251,3 +251,70 @@ fn test_stringify() {
     let stringified = format!("{:?}", root.into_reader());
     assert_eq!(stringified, "(voidField = (), boolField = false, int8Field = 3, int16Field = 0, int32Field = 0, int64Field = 0, uInt8Field = 0, uInt16Field = 0, uInt32Field = 0, uInt64Field = 0, float32Field = 0, float64Field = 0, textField = \"hello world\", dataField = 0x\"01020304057fff\", structField = (voidField = (), boolField = false, int8Field = 0, int16Field = 0, int32Field = 0, int64Field = 0, uInt8Field = 0, uInt16Field = 0, uInt32Field = 123456, uInt64Field = 0, float32Field = 0, float64Field = 0, enumField = foo), enumField = bar, boolList = [false, true])");
 }
+
+#[test]
+fn test_stringify_union_list() {
+    use crate::test_capnp::test_union;
+    use capnp::struct_list;
+    let mut message = message::Builder::new_default();
+    let mut root: struct_list::Builder<'_, test_union::Owned> = message.initn_root(2);
+    {
+        let mut union0 = root.reborrow().get(0).get_union0();
+        union0.set_u0f0s8(10);
+    }
+    {
+        let mut union0 = root.reborrow().get(1).get_union0();
+        union0.set_u0f0s32(111111);
+    }
+
+    let stringified = format!("{:#?}", root.into_reader());
+    assert_eq!(
+        stringified,
+        r#"[
+  (
+    union0 = (
+      u0f0s8 = 10
+    ),
+    union1 = (
+      u1f0s0 = ()
+    ),
+    union2 = (
+      u2f0s1 = false
+    ),
+    union3 = (
+      u3f0s1 = false
+    ),
+    bit0 = false,
+    bit2 = false,
+    bit3 = false,
+    bit4 = false,
+    bit5 = false,
+    bit6 = false,
+    bit7 = false,
+    byte0 = 0
+  ),
+  (
+    union0 = (
+      u0f0s32 = 111111
+    ),
+    union1 = (
+      u1f0s0 = ()
+    ),
+    union2 = (
+      u2f0s1 = false
+    ),
+    union3 = (
+      u3f0s1 = false
+    ),
+    bit0 = false,
+    bit2 = false,
+    bit3 = false,
+    bit4 = false,
+    bit5 = false,
+    bit6 = false,
+    bit7 = false,
+    byte0 = 0
+  )
+]"#
+    );
+}
