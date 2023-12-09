@@ -235,3 +235,14 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect> F
         ))
     }
 }
+
+impl<'a, T: Copy + TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect>
+    core::fmt::Debug for Reader<'a, T>
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Debug::fmt(
+            &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(*self),
+            f,
+        )
+    }
+}

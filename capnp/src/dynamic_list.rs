@@ -406,3 +406,12 @@ impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
         pointer.set_list(&value.reader, canonicalize)
     }
 }
+
+impl<'a> core::fmt::Debug for Reader<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Debug::fmt(
+            &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(*self),
+            f,
+        )
+    }
+}

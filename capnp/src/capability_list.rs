@@ -295,3 +295,12 @@ impl<'a, T: FromClientHook> From<Builder<'a, T>> for crate::dynamic_value::Build
         ))
     }
 }
+
+impl<'a, T: FromClientHook> core::fmt::Debug for Reader<'a, T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Debug::fmt(
+            &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow()),
+            f,
+        )
+    }
+}

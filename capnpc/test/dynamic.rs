@@ -318,3 +318,75 @@ fn test_stringify_union_list() {
 ]"#
     );
 }
+
+#[test]
+fn test_stringify_prim_list() {
+    use capnp::primitive_list;
+    let mut message = message::Builder::new_default();
+    let mut root: primitive_list::Builder<'_, u16> = message.initn_root(3);
+    root.set(0, 5);
+    root.set(1, 6);
+    root.set(2, 7);
+
+    let stringified = format!("{:?}", root.into_reader());
+    assert_eq!(stringified, "[5, 6, 7]");
+}
+
+#[test]
+fn test_stringify_enum_list() {
+    use crate::test_capnp::TestEnum;
+    use capnp::enum_list;
+    let mut message = message::Builder::new_default();
+    let mut root: enum_list::Builder<'_, TestEnum> = message.initn_root(2);
+    root.set(0, TestEnum::Bar);
+    root.set(1, TestEnum::Garply);
+
+    let stringified = format!("{:?}", root.into_reader());
+    assert_eq!(stringified, "[bar, garply]");
+}
+
+#[test]
+fn test_stringify_text_list() {
+    use capnp::text_list;
+    let mut message = message::Builder::new_default();
+    let mut root: text_list::Builder<'_> = message.initn_root(4);
+    root.set(0, "abcd".into());
+    root.set(1, "efgh".into());
+    root.set(2, "ijkl".into());
+    root.set(3, "mnop".into());
+
+    let stringified = format!("{:?}", root.into_reader());
+    assert_eq!(stringified, "[\"abcd\", \"efgh\", \"ijkl\", \"mnop\"]");
+}
+
+#[test]
+fn test_stringify_data_list() {
+    let mut message = message::Builder::new_default();
+    let mut root: capnp::data_list::Builder<'_> = message.initn_root(2);
+    root.set(0, &[11, 12]);
+    root.set(1, &[22, 23]);
+
+    let stringified = format!("{:?}", root.into_reader());
+    assert_eq!(stringified, "[0x\"0b0c\", 0x\"1617\"]");
+}
+
+#[test]
+fn test_stringify_list_list() {
+    use capnp::{list_list, primitive_list};
+    let mut message = message::Builder::new_default();
+    let mut root: list_list::Builder<'_, primitive_list::Owned<i32>> = message.initn_root(2);
+    {
+        let mut l0 = root.reborrow().init(0, 3);
+        l0.set(0, 1111);
+        l0.set(1, 2222);
+        l0.set(2, 3333);
+    }
+
+    {
+        let mut l1 = root.reborrow().init(1, 1);
+        l1.set(0, 123456);
+    }
+
+    let stringified = format!("{:?}", root.into_reader());
+    assert_eq!(stringified, "[[1111, 2222, 3333], [123456]]");
+}

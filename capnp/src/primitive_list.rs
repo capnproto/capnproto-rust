@@ -282,3 +282,14 @@ impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Builder<'a, T
         ))
     }
 }
+
+impl<'a, T: Copy + PrimitiveElement + crate::introspect::Introspect> core::fmt::Debug
+    for Reader<'a, T>
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Debug::fmt(
+            &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(*self),
+            f,
+        )
+    }
+}

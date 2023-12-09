@@ -294,3 +294,12 @@ impl<'a, T: crate::traits::Owned> From<Builder<'a, T>> for crate::dynamic_value:
         ))
     }
 }
+
+impl<'a, T: crate::traits::Owned> core::fmt::Debug for Reader<'a, T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Debug::fmt(
+            &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(*self),
+            f,
+        )
+    }
+}
