@@ -1,3 +1,6 @@
+## v0.18.10
+- Add Debug impl for primitive_list::Reader, struct_list::Reader, and others.
+
 ## v0.18.9
 - Add support for List(Void) in primitive_list::as_slice().
 
