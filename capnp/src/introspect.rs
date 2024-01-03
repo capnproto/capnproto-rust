@@ -203,7 +203,7 @@ primitive_introspect!(f64, Float64);
 
 /// Type information that gets included in the generated code for every
 /// user-defined Cap'n Proto struct.
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct RawStructSchema {
     /// The Node (as defined in schema.capnp), as a single segment message.
     pub encoded_node: &'static [crate::Word],
@@ -213,8 +213,9 @@ pub struct RawStructSchema {
 
     /// Map from discriminant value to field index.
     pub members_by_discriminant: &'static [u16],
-    //
-    // TODO: members_by_name, allowing fast field lookup by name.
+
+    // Map field name to field index.
+    pub members_by_name: std::collections::HashMap<&'static str, u16>,
 }
 
 /// A RawStructSchema with branding information, i.e. resolution of type parameters.
