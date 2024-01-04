@@ -65,7 +65,7 @@ impl StructSchema {
 
         while lower < upper {
             if name == candidate_name {
-                return Ok(Some(self.get_fields()?.get(candidate_index)))
+                return Ok(Some(self.get_fields()?.get(candidate_index)));
             } else if candidate_name < name {
                 lower = mid + 1;
             } else {
