@@ -758,9 +758,26 @@ pub mod node {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 12, 13];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[6, 7, 8, 9, 10, 11];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+            ("annotation", 11),
+            ("annotations", 5),
+            ("const", 10),
+            ("displayName", 1),
+            ("displayNamePrefixLength", 2),
+            ("enum", 8),
+            ("file", 6),
+            ("id", 0),
+            ("interface", 9),
+            ("isGeneric", 13),
+            ("nestedNodes", 4),
+            ("parameters", 12),
+            ("scopeId", 3),
+            ("struct", 7),
+        ];
         pub const TYPE_ID: u64 = 0xe682_ab4c_f923_a417;
     }
     pub enum Which<A0, A1, A2, A3, A4> {
@@ -1069,9 +1086,11 @@ pub mod node {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("name", 0)];
             pub const TYPE_ID: u64 = 0xb952_1bcc_f10f_a3b1;
         }
     }
@@ -1387,9 +1406,11 @@ pub mod node {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("id", 1), ("name", 0)];
             pub const TYPE_ID: u64 = 0xdebf_55bb_fa0f_c242;
         }
     }
@@ -1794,9 +1815,12 @@ pub mod node {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] =
+                &[("docComment", 1), ("id", 0), ("members", 2)];
             pub const TYPE_ID: u64 = 0xf38e_1de3_0413_57ae;
         }
 
@@ -2094,9 +2118,11 @@ pub mod node {
                         encoded_node: &ENCODED_NODE,
                         nonunion_members: NONUNION_MEMBERS,
                         members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                        members_by_name: MEMBERS_BY_NAME,
                     };
                 pub static NONUNION_MEMBERS: &[u16] = &[0];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+                pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("docComment", 0)];
                 pub const TYPE_ID: u64 = 0xc2ba_9038_898e_1fa2;
             }
         }
@@ -2589,9 +2615,19 @@ pub mod node {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 6];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+                ("dataWordCount", 0),
+                ("discriminantCount", 4),
+                ("discriminantOffset", 5),
+                ("fields", 6),
+                ("isGroup", 3),
+                ("pointerCount", 1),
+                ("preferredListEncoding", 2),
+            ];
             pub const TYPE_ID: u64 = 0x9ea0_b19b_37fb_4435;
         }
     }
@@ -2902,9 +2938,11 @@ pub mod node {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("enumerants", 0)];
             pub const TYPE_ID: u64 = 0xb54a_b336_4333_f598;
         }
     }
@@ -3286,9 +3324,11 @@ pub mod node {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("methods", 0), ("superclasses", 1)];
             pub const TYPE_ID: u64 = 0xe827_53cf_f0c2_218f;
         }
     }
@@ -3647,9 +3687,11 @@ pub mod node {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("type", 0), ("value", 1)];
             pub const TYPE_ID: u64 = 0xb18a_a5ac_7a0d_9420;
         }
     }
@@ -4301,9 +4343,25 @@ pub mod node {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+                ("targetsAnnotation", 12),
+                ("targetsConst", 2),
+                ("targetsEnum", 3),
+                ("targetsEnumerant", 4),
+                ("targetsField", 6),
+                ("targetsFile", 1),
+                ("targetsGroup", 8),
+                ("targetsInterface", 9),
+                ("targetsMethod", 10),
+                ("targetsParam", 11),
+                ("targetsStruct", 5),
+                ("targetsUnion", 7),
+                ("type", 0),
+            ];
             pub const TYPE_ID: u64 = 0xec16_19d4_400a_0290;
         }
     }
@@ -4796,9 +4854,19 @@ pub mod field {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 6];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[4, 5];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+            ("annotations", 2),
+            ("codeOrder", 1),
+            ("discriminantValue", 3),
+            ("group", 5),
+            ("name", 0),
+            ("ordinal", 6),
+            ("slot", 4),
+        ];
         pub const TYPE_ID: u64 = 0x9aad_50a4_1f4a_f45f;
     }
     pub enum Which<A0, A1> {
@@ -5232,9 +5300,16 @@ pub mod field {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+                ("defaultValue", 2),
+                ("hadExplicitDefault", 3),
+                ("offset", 0),
+                ("type", 1),
+            ];
             pub const TYPE_ID: u64 = 0xc423_0547_6bb4_746f;
         }
     }
@@ -5503,9 +5578,11 @@ pub mod field {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("typeId", 0)];
             pub const TYPE_ID: u64 = 0xcafc_cddb_68db_1d11;
         }
     }
@@ -5809,9 +5886,11 @@ pub mod field {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("explicit", 1), ("implicit", 0)];
             pub const TYPE_ID: u64 = 0xbb90_d5c2_8787_0be6;
         }
         pub enum Which {
@@ -6198,9 +6277,12 @@ pub mod enumerant {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] =
+            &[("annotations", 2), ("codeOrder", 1), ("name", 0)];
         pub const TYPE_ID: u64 = 0x978a_7ceb_dc54_9a4d;
     }
 }
@@ -6526,9 +6608,11 @@ pub mod superclass {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("brand", 1), ("id", 0)];
         pub const TYPE_ID: u64 = 0xa996_2a9e_d0a4_d7f8;
     }
 }
@@ -7152,9 +7236,20 @@ pub mod method {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 6, 7];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+            ("annotations", 4),
+            ("codeOrder", 1),
+            ("implicitParameters", 7),
+            ("name", 0),
+            ("paramBrand", 5),
+            ("paramStructType", 2),
+            ("resultBrand", 6),
+            ("resultStructType", 3),
+        ];
         pub const TYPE_ID: u64 = 0x9500_cce2_3b33_4d80;
     }
 }
@@ -7811,10 +7906,32 @@ pub mod type_ {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+        ];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+            ("anyPointer", 18),
+            ("bool", 1),
+            ("data", 13),
+            ("enum", 15),
+            ("float32", 10),
+            ("float64", 11),
+            ("int16", 3),
+            ("int32", 4),
+            ("int64", 5),
+            ("int8", 2),
+            ("interface", 17),
+            ("list", 14),
+            ("struct", 16),
+            ("text", 12),
+            ("uint16", 7),
+            ("uint32", 8),
+            ("uint64", 9),
+            ("uint8", 6),
+            ("void", 0),
         ];
         pub const TYPE_ID: u64 = 0xd073_78ed_e1f9_cc60;
     }
@@ -8152,9 +8269,11 @@ pub mod type_ {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("elementType", 0)];
             pub const TYPE_ID: u64 = 0x87e7_3925_0a60_ea97;
         }
     }
@@ -8482,9 +8601,11 @@ pub mod type_ {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("brand", 1), ("typeId", 0)];
             pub const TYPE_ID: u64 = 0x9e0e_7871_1a7f_87a9;
         }
     }
@@ -8813,9 +8934,11 @@ pub mod type_ {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("brand", 1), ("typeId", 0)];
             pub const TYPE_ID: u64 = 0xac3a_6f60_ef4c_c6d3;
         }
     }
@@ -9144,9 +9267,11 @@ pub mod type_ {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("brand", 1), ("typeId", 0)];
             pub const TYPE_ID: u64 = 0xed8b_ca69_f7fb_0cbf;
         }
     }
@@ -9464,9 +9589,15 @@ pub mod type_ {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+                ("implicitMethodParameter", 2),
+                ("parameter", 1),
+                ("unconstrained", 0),
+            ];
             pub const TYPE_ID: u64 = 0xc257_3fe8_a23e_49f1;
         }
         pub enum Which<A0, A1, A2> {
@@ -9835,9 +9966,16 @@ pub mod type_ {
                         encoded_node: &ENCODED_NODE,
                         nonunion_members: NONUNION_MEMBERS,
                         members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                        members_by_name: MEMBERS_BY_NAME,
                     };
                 pub static NONUNION_MEMBERS: &[u16] = &[];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2, 3];
+                pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+                    ("anyKind", 0),
+                    ("capability", 3),
+                    ("list", 2),
+                    ("struct", 1),
+                ];
                 pub const TYPE_ID: u64 = 0x8e3b_5f79_fe59_3656;
             }
             pub enum Which {
@@ -10153,9 +10291,12 @@ pub mod type_ {
                         encoded_node: &ENCODED_NODE,
                         nonunion_members: NONUNION_MEMBERS,
                         members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                        members_by_name: MEMBERS_BY_NAME,
                     };
                 pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+                pub static MEMBERS_BY_NAME: &[(&str, u16)] =
+                    &[("parameterIndex", 1), ("scopeId", 0)];
                 pub const TYPE_ID: u64 = 0x9dd1_f724_f461_4a85;
             }
         }
@@ -10437,9 +10578,11 @@ pub mod type_ {
                         encoded_node: &ENCODED_NODE,
                         nonunion_members: NONUNION_MEMBERS,
                         members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                        members_by_name: MEMBERS_BY_NAME,
                     };
                 pub static NONUNION_MEMBERS: &[u16] = &[0];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+                pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("parameterIndex", 0)];
                 pub const TYPE_ID: u64 = 0xbaef_c912_0c56_e274;
             }
         }
@@ -10751,9 +10894,11 @@ pub mod brand {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("scopes", 0)];
         pub const TYPE_ID: u64 = 0x9034_55f0_6065_422b;
     }
 
@@ -11128,9 +11273,12 @@ pub mod brand {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[1, 2];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] =
+                &[("bind", 1), ("inherit", 2), ("scopeId", 0)];
             pub const TYPE_ID: u64 = 0xabd7_3485_a963_6bc9;
         }
         pub enum Which<A0> {
@@ -11484,9 +11632,11 @@ pub mod brand {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("type", 1), ("unbound", 0)];
             pub const TYPE_ID: u64 = 0xc863_cd16_969e_e7fc;
         }
         pub enum Which<A0> {
@@ -12303,10 +12453,32 @@ pub mod value {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+        ];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+            ("anyPointer", 18),
+            ("bool", 1),
+            ("data", 13),
+            ("enum", 15),
+            ("float32", 10),
+            ("float64", 11),
+            ("int16", 3),
+            ("int32", 4),
+            ("int64", 5),
+            ("int8", 2),
+            ("interface", 17),
+            ("list", 14),
+            ("struct", 16),
+            ("text", 12),
+            ("uint16", 7),
+            ("uint32", 8),
+            ("uint64", 9),
+            ("uint8", 6),
+            ("void", 0),
         ];
         pub const TYPE_ID: u64 = 0xce23_dcd2_d7b0_0c9b;
     }
@@ -12727,9 +12899,11 @@ pub mod annotation {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("brand", 2), ("id", 0), ("value", 1)];
         pub const TYPE_ID: u64 = 0xf1c8_950d_ab25_7542;
     }
 }
@@ -13176,9 +13350,11 @@ pub mod capnp_version {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("major", 0), ("micro", 2), ("minor", 1)];
         pub const TYPE_ID: u64 = 0xd85d_305b_7d83_9963;
     }
 }
@@ -13701,9 +13877,16 @@ pub mod code_generator_request {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
+            ("capnpVersion", 2),
+            ("nodes", 0),
+            ("requestedFiles", 1),
+            ("sourceInfo", 3),
+        ];
         pub const TYPE_ID: u64 = 0xbfc5_46f6_210a_d7ce;
     }
 
@@ -14109,9 +14292,12 @@ pub mod code_generator_request {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+            pub static MEMBERS_BY_NAME: &[(&str, u16)] =
+                &[("filename", 1), ("id", 0), ("imports", 2)];
             pub const TYPE_ID: u64 = 0xcfea_0eb0_2e81_0062;
         }
 
@@ -14438,9 +14624,11 @@ pub mod code_generator_request {
                         encoded_node: &ENCODED_NODE,
                         nonunion_members: NONUNION_MEMBERS,
                         members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                        members_by_name: MEMBERS_BY_NAME,
                     };
                 pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+                pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("id", 0), ("name", 1)];
                 pub const TYPE_ID: u64 = 0xae50_4193_1223_57e5;
             }
         }

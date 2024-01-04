@@ -1840,31 +1840,29 @@ fn generate_members_by_discriminant(
 fn generate_members_by_name(
     node_reader: schema_capnp::node::Reader,
 ) -> ::capnp::Result<FormattedText> {
-    use capnp::schema_capnp::field;
     let st = match node_reader.which()? {
         schema_capnp::node::Struct(st) => st,
         _ => return Err(Error::failed("not a struct".into())),
     };
 
-    let mut members_by_name = HashMap::new();
+    let mut members_by_name = Vec::new();
     for (index, field) in st.get_fields()?.iter().enumerate() {
         match get_field_name(field) {
-            Ok(name) => members_by_name.insert(name, index),
+            Ok(name) => members_by_name.push((name, index)),
             _ => (),
         }
     }
+    members_by_name.sort_by_key(|k| k.0);
 
     let mut members_by_name_string: String =
-        "pub MEMBERS_BY_NAME : HashMap<&'static str, u16> = HashMap::from([".into();
-    let mut idx = 0;
-    for (name, index) in members_by_name.iter() {
-        members_by_name_string += &format!("({}, {})", *name, *index);
-        if idx + 1 < members_by_name.len() {
-            nonunion_string += ",";
-            idx += 1;
+        "pub static MEMBERS_BY_NAME : &[(&str, u16)] = &[".into();
+    for (i, (name, index)) in members_by_name.iter().enumerate() {
+        members_by_name_string += &format!("(\"{}\", {})", *name, *index);
+        if i + 1 < members_by_name.len() {
+            members_by_name_string += ",";
         }
     }
-    members_by_name_string += "]);";
+    members_by_name_string += "];";
 
     Ok(Branch(vec![Line(members_by_name_string)]))
 }
