@@ -1847,9 +1847,8 @@ fn generate_members_by_name(
 
     let mut members_by_name = Vec::new();
     for (index, field) in st.get_fields()?.iter().enumerate() {
-        match get_field_name(field) {
-            Ok(name) => members_by_name.push((name, index)),
-            _ => (),
+        if let Ok(name) = get_field_name(field) {
+            members_by_name.push((name, index));
         }
     }
     members_by_name.sort_by_key(|k| k.0);

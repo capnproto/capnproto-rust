@@ -57,19 +57,16 @@ impl StructSchema {
 
     /// Looks up a field by name using binary search. Returns `None` if no matching field is found.
     pub fn find_field_by_name(&self, name: &str) -> Result<Option<Field>> {
-        self.raw.generic.members_by_name;
         let mut lower: usize = 0;
         let mut upper: usize = self.raw.generic.members_by_name.len();
         let mut mid: usize = (lower + upper) / 2;
         let (mut candidate_name, mut candidate_index) = self.raw.generic.members_by_name[mid];
 
         while lower < upper {
-            if name == candidate_name {
-                return Ok(Some(self.get_fields()?.get(candidate_index)));
-            } else if candidate_name < name {
-                lower = mid + 1;
-            } else {
-                upper = mid;
+            match name.cmp(candidate_name) {
+                std::cmp::Ordering::Equal => return Ok(Some(self.get_fields()?.get(candidate_index))),
+                std::cmp::Ordering::Greater => lower = mid + 1,
+                std::cmp::Ordering::Less => upper = mid,
             }
             mid = (lower + upper) / 2;
             (candidate_name, candidate_index) = self.raw.generic.members_by_name[mid];
