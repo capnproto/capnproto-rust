@@ -1,3 +1,6 @@
+## v0.18.11
+- Add PartialOrd impls for text::Reader.
+
 ## v0.18.10
 - Add Debug impl for primitive_list::Reader, struct_list::Reader, and others.
 
