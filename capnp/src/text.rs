@@ -42,7 +42,7 @@ impl crate::introspect::Introspect for Owned {
 /// Wrapper around utf-8 encoded text.
 /// This is defined as a tuple struct to allow pattern matching
 /// on it via byte literals (for example `text::Reader(b"hello")`).
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub struct Reader<'a>(pub &'a [u8]);
 
 impl<'a> core::cmp::PartialEq<&'a str> for Reader<'a> {
@@ -54,6 +54,18 @@ impl<'a> core::cmp::PartialEq<&'a str> for Reader<'a> {
 impl<'a> core::cmp::PartialEq<Reader<'a>> for &'a str {
     fn eq(&self, other: &Reader<'a>) -> bool {
         self.as_bytes() == other.as_bytes()
+    }
+}
+
+impl<'a> core::cmp::PartialOrd<&'a str> for Reader<'a> {
+    fn partial_cmp(&self, other: &&'a str) -> Option<core::cmp::Ordering> {
+        self.as_bytes().partial_cmp(other.as_bytes())
+    }
+}
+
+impl<'a> core::cmp::PartialOrd<Reader<'a>> for &'a str {
+    fn partial_cmp(&self, other: &Reader<'a>) -> Option<core::cmp::Ordering> {
+        self.as_bytes().partial_cmp(other.as_bytes())
     }
 }
 
