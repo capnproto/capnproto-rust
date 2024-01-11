@@ -59,14 +59,16 @@ impl<'a> core::cmp::PartialEq<Reader<'a>> for &'a str {
     }
 }
 
-impl<'a> core::cmp::PartialEq<String> for Reader<'a> {
+#[cfg(feature = "alloc")]
+impl<'a> core::cmp::PartialEq<alloc::string::String> for Reader<'a> {
     #[inline]
-    fn eq(&self, other: &String) -> bool {
+    fn eq(&self, other: &alloc::string::String) -> bool {
         self.as_bytes() == other.as_bytes()
     }
 }
 
-impl<'a> core::cmp::PartialEq<Reader<'a>> for String {
+#[cfg(feature = "alloc")]
+impl<'a> core::cmp::PartialEq<Reader<'a>> for alloc::string::String {
     #[inline]
     fn eq(&self, other: &Reader<'a>) -> bool {
         self.as_bytes() == other.as_bytes()
