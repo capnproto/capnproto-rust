@@ -1,3 +1,6 @@
+## v0.18.13
+- Add PartialEq impls for text::Reader <-> String.
+
 ## v0.18.12
 - Regenerate schema_capnp.rs after fixing overly-restrictive lifetimes for struct lists.
 
