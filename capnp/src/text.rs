@@ -46,24 +46,42 @@ impl crate::introspect::Introspect for Owned {
 pub struct Reader<'a>(pub &'a [u8]);
 
 impl<'a> core::cmp::PartialEq<&'a str> for Reader<'a> {
+    #[inline]
     fn eq(&self, other: &&'a str) -> bool {
         self.as_bytes() == other.as_bytes()
     }
 }
 
 impl<'a> core::cmp::PartialEq<Reader<'a>> for &'a str {
+    #[inline]
+    fn eq(&self, other: &Reader<'a>) -> bool {
+        self.as_bytes() == other.as_bytes()
+    }
+}
+
+impl<'a> core::cmp::PartialEq<String> for Reader<'a> {
+    #[inline]
+    fn eq(&self, other: &String) -> bool {
+        self.as_bytes() == other.as_bytes()
+    }
+}
+
+impl<'a> core::cmp::PartialEq<Reader<'a>> for String {
+    #[inline]
     fn eq(&self, other: &Reader<'a>) -> bool {
         self.as_bytes() == other.as_bytes()
     }
 }
 
 impl<'a> core::cmp::PartialOrd<&'a str> for Reader<'a> {
+    #[inline]
     fn partial_cmp(&self, other: &&'a str) -> Option<core::cmp::Ordering> {
         self.as_bytes().partial_cmp(other.as_bytes())
     }
 }
 
 impl<'a> core::cmp::PartialOrd<Reader<'a>> for &'a str {
+    #[inline]
     fn partial_cmp(&self, other: &Reader<'a>) -> Option<core::cmp::Ordering> {
         self.as_bytes().partial_cmp(other.as_bytes())
     }
