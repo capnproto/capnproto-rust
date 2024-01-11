@@ -17,6 +17,8 @@ pub fn text_comparisons() {
     assert!(str1 < "zzzz");
     assert!("aaaa" < str2);
     assert_eq!(str1, "abcde");
+    assert_eq!(str1, "abcde".to_string());
     assert_eq!("fghij", str2);
+    assert_eq!("fghij".to_string(), str2);
     assert_ne!(str1, str2);
 }
