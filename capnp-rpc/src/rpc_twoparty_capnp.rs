@@ -361,7 +361,7 @@ pub mod vat_id {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("side", 0)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0];
         pub const TYPE_ID: u64 = 0xd20b_909f_ee73_3a8e;
     }
 }
@@ -635,7 +635,7 @@ pub mod provision_id {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("joinId", 0)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0];
         pub const TYPE_ID: u64 = 0xb88d_09a9_c5f3_9817;
     }
 }
@@ -878,7 +878,7 @@ pub mod recipient_id {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[];
         pub const TYPE_ID: u64 = 0x89f3_89b6_fd40_82c1;
     }
 }
@@ -1122,7 +1122,7 @@ pub mod third_party_cap_id {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[];
         pub const TYPE_ID: u64 = 0xb47f_4979_672c_b59d;
     }
 }
@@ -1453,8 +1453,7 @@ pub mod join_key_part {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] =
-            &[("joinId", 0), ("partCount", 1), ("partNum", 2)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1, 2];
         pub const TYPE_ID: u64 = 0x95b2_9059_097f_ca83;
     }
 }
@@ -1799,7 +1798,7 @@ pub mod join_result {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("cap", 2), ("joinId", 0), ("succeeded", 1)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[2, 0, 1];
         pub const TYPE_ID: u64 = 0x9d26_3a36_30b7_ebee;
     }
 }

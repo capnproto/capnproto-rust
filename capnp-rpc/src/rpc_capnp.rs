@@ -1059,22 +1059,7 @@ pub mod message {
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] =
             &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
-            ("abort", 1),
-            ("accept", 11),
-            ("bootstrap", 8),
-            ("call", 2),
-            ("disembargo", 13),
-            ("finish", 4),
-            ("join", 12),
-            ("obsoleteDelete", 9),
-            ("obsoleteSave", 7),
-            ("provide", 10),
-            ("release", 6),
-            ("resolve", 5),
-            ("return", 3),
-            ("unimplemented", 0),
-        ];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 11, 8, 2, 13, 4, 12, 9, 7, 10, 6, 5, 3, 0];
         pub const TYPE_ID: u64 = 0x91b7_9f1f_808d_b032;
     }
     pub enum Which<A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13> {
@@ -1440,8 +1425,7 @@ pub mod bootstrap {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] =
-            &[("deprecatedObjectId", 1), ("questionId", 0)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
         pub const TYPE_ID: u64 = 0xe94c_cf80_3117_6ec4;
     }
 }
@@ -1944,15 +1928,7 @@ pub mod call {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 6];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
-            ("allowThirdPartyTailCall", 6),
-            ("interfaceId", 2),
-            ("methodId", 3),
-            ("params", 4),
-            ("questionId", 0),
-            ("sendResultsTo", 5),
-            ("target", 1),
-        ];
+        pub static MEMBERS_BY_NAME: &[u16] = &[6, 2, 3, 4, 0, 5, 1];
         pub const TYPE_ID: u64 = 0x836a_53ce_789d_4cd4;
     }
 
@@ -2312,8 +2288,7 @@ pub mod call {
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2];
-            pub static MEMBERS_BY_NAME: &[(&str, u16)] =
-                &[("caller", 0), ("thirdParty", 2), ("yourself", 1)];
+            pub static MEMBERS_BY_NAME: &[u16] = &[0, 2, 1];
             pub const TYPE_ID: u64 = 0xdae8_b0f6_1aab_5f99;
         }
         pub enum Which<A0> {
@@ -2882,16 +2857,7 @@ pub mod return_ {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[2, 3, 4, 5, 6, 7];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
-            ("acceptFromThirdParty", 7),
-            ("answerId", 0),
-            ("canceled", 4),
-            ("exception", 3),
-            ("releaseParamCaps", 1),
-            ("results", 2),
-            ("resultsSentElsewhere", 5),
-            ("takeFromOtherQuestion", 6),
-        ];
+        pub static MEMBERS_BY_NAME: &[u16] = &[7, 0, 4, 3, 1, 2, 5, 6];
         pub const TYPE_ID: u64 = 0x9e19_b28d_3db3_573a;
     }
     pub enum Which<A0, A1, A2> {
@@ -3213,7 +3179,7 @@ pub mod finish {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("questionId", 0), ("releaseResultCaps", 1)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0xd37d_2eb2_c2f8_0e63;
     }
 }
@@ -3620,8 +3586,7 @@ pub mod resolve {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[1, 2];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] =
-            &[("cap", 1), ("exception", 2), ("promiseId", 0)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 2, 0];
         pub const TYPE_ID: u64 = 0xbbc2_9655_fa89_086e;
     }
     pub enum Which<A0, A1> {
@@ -3935,7 +3900,7 @@ pub mod release {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("id", 0), ("referenceCount", 1)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0xad1a_6c0d_7dd0_7497;
     }
 }
@@ -4263,7 +4228,7 @@ pub mod disembargo {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("context", 1), ("target", 0)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
         pub const TYPE_ID: u64 = 0xf964_368b_0fbd_3711;
     }
 
@@ -4632,12 +4597,7 @@ pub mod disembargo {
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2, 3];
-            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
-                ("accept", 2),
-                ("provide", 3),
-                ("receiverLoopback", 1),
-                ("senderLoopback", 0),
-            ];
+            pub static MEMBERS_BY_NAME: &[u16] = &[2, 3, 1, 0];
             pub const TYPE_ID: u64 = 0xd562_b4df_655b_dd4d;
         }
         pub enum Which {
@@ -5019,8 +4979,7 @@ pub mod provide {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] =
-            &[("questionId", 0), ("recipient", 2), ("target", 1)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 2, 1];
         pub const TYPE_ID: u64 = 0x9c6a_046b_fbc1_ac5a;
     }
 }
@@ -5365,8 +5324,7 @@ pub mod accept {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] =
-            &[("embargo", 2), ("provision", 1), ("questionId", 0)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[2, 1, 0];
         pub const TYPE_ID: u64 = 0xd4c9_b562_9055_4016;
     }
 }
@@ -5737,8 +5695,7 @@ pub mod join {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] =
-            &[("keyPart", 2), ("questionId", 0), ("target", 1)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[2, 0, 1];
         pub const TYPE_ID: u64 = 0xfbe1_9804_90e0_01af;
     }
 }
@@ -6081,7 +6038,7 @@ pub mod message_target {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("importedCap", 0), ("promisedAnswer", 1)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0x95bc_1454_5813_fbc1;
     }
     pub enum Which<A0> {
@@ -6448,7 +6405,7 @@ pub mod payload {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("capTable", 1), ("content", 0)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
         pub const TYPE_ID: u64 = 0x9a0e_6122_3d96_743b;
     }
 }
@@ -6965,15 +6922,7 @@ pub mod cap_descriptor {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[6];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2, 3, 4, 5];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
-            ("attachedFd", 6),
-            ("none", 0),
-            ("receiverAnswer", 4),
-            ("receiverHosted", 3),
-            ("senderHosted", 1),
-            ("senderPromise", 2),
-            ("thirdPartyHosted", 5),
-        ];
+        pub static MEMBERS_BY_NAME: &[u16] = &[6, 0, 4, 3, 1, 2, 5];
         pub const TYPE_ID: u64 = 0x8523_ddc4_0b86_b8b0;
     }
     pub enum Which<A0, A1> {
@@ -7340,7 +7289,7 @@ pub mod promised_answer {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("questionId", 0), ("transform", 1)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0xd800_b1d6_cd6f_1ca0;
     }
 
@@ -7658,7 +7607,7 @@ pub mod promised_answer {
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1];
-            pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("getPointerField", 1), ("noop", 0)];
+            pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
             pub const TYPE_ID: u64 = 0xf316_9444_1556_9081;
         }
         pub enum Which {
@@ -7982,7 +7931,7 @@ pub mod third_party_cap_descriptor {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[("id", 0), ("vineId", 1)];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0xd370_07fd_e1f0_027d;
     }
 }
@@ -8416,13 +8365,7 @@ pub mod exception {
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
-        pub static MEMBERS_BY_NAME: &[(&str, u16)] = &[
-            ("obsoleteDurability", 2),
-            ("obsoleteIsCallersFault", 1),
-            ("reason", 0),
-            ("trace", 4),
-            ("type", 3),
-        ];
+        pub static MEMBERS_BY_NAME: &[u16] = &[2, 1, 0, 4, 3];
         pub const TYPE_ID: u64 = 0xd625_b706_3acf_691a;
     }
 

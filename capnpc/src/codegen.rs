@@ -1854,9 +1854,9 @@ fn generate_members_by_name(
     members_by_name.sort_by_key(|k| k.0);
 
     let mut members_by_name_string: String =
-        "pub static MEMBERS_BY_NAME : &[(&str, u16)] = &[".into();
-    for (i, (name, index)) in members_by_name.iter().enumerate() {
-        members_by_name_string += &format!("(\"{}\", {})", *name, *index);
+        "pub static MEMBERS_BY_NAME : &[u16] = &[".into();
+    for (i, (_, index)) in members_by_name.iter().enumerate() {
+        members_by_name_string += &format!("{}", *index);
         if i + 1 < members_by_name.len() {
             members_by_name_string += ",";
         }

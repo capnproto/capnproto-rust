@@ -215,7 +215,7 @@ pub struct RawStructSchema {
     pub members_by_discriminant: &'static [u16],
 
     // Sorted array of field names with matching field index.
-    pub members_by_name: &'static [(&'static str, u16)],
+    pub members_by_name: &'static [u16],
 }
 
 /// A RawStructSchema with branding information, i.e. resolution of type parameters.
