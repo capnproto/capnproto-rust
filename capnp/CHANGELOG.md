@@ -1,3 +1,6 @@
+## v0.18.12
+- Regenerate schema_capnp.rs after fixing overly-restrictive lifetimes for struct lists.
+
 ## v0.18.11
 - Add PartialOrd impls for text::Reader.
 
