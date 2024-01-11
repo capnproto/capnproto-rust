@@ -1145,23 +1145,15 @@ fn generate_setter(
                             Line(fmt!(ctx,
                                 "<{} as {capnp}::traits::SetPointerBuilder>::set_pointer_builder(self.builder.reborrow().get_pointer_field({}), value, false)",
                                 typ.type_string(ctx, Leaf::Reader("'_"))?,
-                                offset)));
-                        (
-                            Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
-                            Some(typ.type_string(ctx, Leaf::Builder("'a"))?),
-                        )
+                                      offset)));
                     } else {
                         setter_interior.push(
                             Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
-                        (
-                            Some(reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?),
-                            Some(
-                                reg_field
-                                    .get_type()?
-                                    .type_string(ctx, Leaf::Builder("'a"))?,
-                            ),
-                        )
                     }
+                    (
+                        Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
+                        Some(typ.type_string(ctx, Leaf::Builder("'a"))?),
+                    )
                 }
                 type_::Interface(_) => {
                     setter_interior.push(Line(format!(
