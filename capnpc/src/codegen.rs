@@ -1099,7 +1099,7 @@ fn generate_setter(
                         Some(fmt!(ctx, "{capnp}::data::Builder<'a>")),
                     )
                 }
-                type_::List(ot1) => {
+                type_::List(_) => {
                     return_result = true;
                     setter_interior.push(
                         Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
@@ -1108,24 +1108,14 @@ fn generate_setter(
                     initter_interior.push(
                         Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({offset}), size)")));
 
-                    match ot1.get_element_type()?.which()? {
-                        type_::List(_) => (
-                            Some(reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?),
-                            Some(
-                                reg_field
-                                    .get_type()?
-                                    .type_string(ctx, Leaf::Builder("'a"))?,
-                            ),
+                    (
+                        Some(reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?),
+                        Some(
+                            reg_field
+                                .get_type()?
+                                .type_string(ctx, Leaf::Builder("'a"))?,
                         ),
-                        _ => (
-                            Some(reg_field.get_type()?.type_string(ctx, Leaf::Reader("'a"))?),
-                            Some(
-                                reg_field
-                                    .get_type()?
-                                    .type_string(ctx, Leaf::Builder("'a"))?,
-                            ),
-                        ),
-                    }
+                    )
                 }
                 type_::Enum(e) => {
                     let id = e.get_type_id();

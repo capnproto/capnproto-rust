@@ -2280,4 +2280,14 @@ mod tests {
         assert!(!generator_context.node_map.is_empty());
         assert!(!generator_context.scope_map.is_empty());
     }
+
+    // At one point, the lifetimes in the generated code made the following function
+    // fail to typecheck.
+    #[allow(unused)]
+    fn set_struct_list<'a, 'b>(
+        mut b: crate::test_capnp::test_all_types::Builder<'a>,
+        r: crate::test_capnp::test_all_types::Reader<'b>,
+    ) -> ::capnp::Result<()> {
+        b.set_struct_list(r.get_struct_list()?)
+    }
 }

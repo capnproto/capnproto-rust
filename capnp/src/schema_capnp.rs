@@ -328,7 +328,7 @@ pub mod node {
         #[inline]
         pub fn set_nested_nodes(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::node::nested_node::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::node::nested_node::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(1),
@@ -361,7 +361,7 @@ pub mod node {
         #[inline]
         pub fn set_annotations(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::annotation::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::annotation::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(2),
@@ -448,7 +448,7 @@ pub mod node {
         #[inline]
         pub fn set_parameters(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::node::parameter::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::node::parameter::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(5),
@@ -1659,7 +1659,7 @@ pub mod node {
             pub fn set_members(
                 &mut self,
                 value: crate::struct_list::Reader<
-                    'a,
+                    '_,
                     crate::schema_capnp::node::source_info::member::Owned,
                 >,
             ) -> crate::Result<()> {
@@ -2394,7 +2394,7 @@ pub mod node {
             #[inline]
             pub fn set_fields(
                 &mut self,
-                value: crate::struct_list::Reader<'a, crate::schema_capnp::field::Owned>,
+                value: crate::struct_list::Reader<'_, crate::schema_capnp::field::Owned>,
             ) -> crate::Result<()> {
                 crate::traits::SetPointerBuilder::set_pointer_builder(
                     self.builder.reborrow().get_pointer_field(3),
@@ -2810,7 +2810,7 @@ pub mod node {
             #[inline]
             pub fn set_enumerants(
                 &mut self,
-                value: crate::struct_list::Reader<'a, crate::schema_capnp::enumerant::Owned>,
+                value: crate::struct_list::Reader<'_, crate::schema_capnp::enumerant::Owned>,
             ) -> crate::Result<()> {
                 crate::traits::SetPointerBuilder::set_pointer_builder(
                     self.builder.reborrow().get_pointer_field(3),
@@ -3137,7 +3137,7 @@ pub mod node {
             #[inline]
             pub fn set_methods(
                 &mut self,
-                value: crate::struct_list::Reader<'a, crate::schema_capnp::method::Owned>,
+                value: crate::struct_list::Reader<'_, crate::schema_capnp::method::Owned>,
             ) -> crate::Result<()> {
                 crate::traits::SetPointerBuilder::set_pointer_builder(
                     self.builder.reborrow().get_pointer_field(3),
@@ -3173,7 +3173,7 @@ pub mod node {
             #[inline]
             pub fn set_superclasses(
                 &mut self,
-                value: crate::struct_list::Reader<'a, crate::schema_capnp::superclass::Owned>,
+                value: crate::struct_list::Reader<'_, crate::schema_capnp::superclass::Owned>,
             ) -> crate::Result<()> {
                 crate::traits::SetPointerBuilder::set_pointer_builder(
                     self.builder.reborrow().get_pointer_field(4),
@@ -4580,7 +4580,7 @@ pub mod field {
         #[inline]
         pub fn set_annotations(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::annotation::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::annotation::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(1),
@@ -6076,7 +6076,7 @@ pub mod enumerant {
         #[inline]
         pub fn set_annotations(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::annotation::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::annotation::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(1),
@@ -6847,7 +6847,7 @@ pub mod method {
         #[inline]
         pub fn set_annotations(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::annotation::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::annotation::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(1),
@@ -6932,7 +6932,7 @@ pub mod method {
         #[inline]
         pub fn set_implicit_parameters(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::node::parameter::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::node::parameter::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(4),
@@ -10657,7 +10657,7 @@ pub mod brand {
         #[inline]
         pub fn set_scopes(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::brand::scope::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::brand::scope::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
@@ -10981,7 +10981,7 @@ pub mod brand {
             #[inline]
             pub fn set_bind(
                 &mut self,
-                value: crate::struct_list::Reader<'a, crate::schema_capnp::brand::binding::Owned>,
+                value: crate::struct_list::Reader<'_, crate::schema_capnp::brand::binding::Owned>,
             ) -> crate::Result<()> {
                 self.builder.set_data_field::<u16>(4, 0);
                 crate::traits::SetPointerBuilder::set_pointer_builder(
@@ -13440,7 +13440,7 @@ pub mod code_generator_request {
         #[inline]
         pub fn set_nodes(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::node::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::node::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
@@ -13477,7 +13477,7 @@ pub mod code_generator_request {
         pub fn set_requested_files(
             &mut self,
             value: crate::struct_list::Reader<
-                'a,
+                '_,
                 crate::schema_capnp::code_generator_request::requested_file::Owned,
             >,
         ) -> crate::Result<()> {
@@ -13543,7 +13543,7 @@ pub mod code_generator_request {
         #[inline]
         pub fn set_source_info(
             &mut self,
-            value: crate::struct_list::Reader<'a, crate::schema_capnp::node::source_info::Owned>,
+            value: crate::struct_list::Reader<'_, crate::schema_capnp::node::source_info::Owned>,
         ) -> crate::Result<()> {
             crate::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(3),
@@ -13972,7 +13972,7 @@ pub mod code_generator_request {
             pub fn set_imports(
                 &mut self,
                 value: crate::struct_list::Reader<
-                    'a,
+                    '_,
                     crate::schema_capnp::code_generator_request::requested_file::import::Owned,
                 >,
             ) -> crate::Result<()> {
