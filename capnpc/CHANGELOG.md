@@ -1,3 +1,6 @@
+## v0.18.1
+- Fix overly-restrictive lifetimes in setters of certain list fields.
+
 ## v0.18.0
 - Update for lazier utf-8 validation.
 
