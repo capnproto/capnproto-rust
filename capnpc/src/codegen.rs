@@ -1140,16 +1140,9 @@ fn generate_setter(
                     return_result = true;
                     initter_interior.push(
                       Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({offset}), 0)")));
-                    if typ.is_branded()? {
-                        setter_interior.push(
-                            Line(fmt!(ctx,
-                                "<{} as {capnp}::traits::SetPointerBuilder>::set_pointer_builder(self.builder.reborrow().get_pointer_field({}), value, false)",
-                                typ.type_string(ctx, Leaf::Reader("'_"))?,
-                                      offset)));
-                    } else {
-                        setter_interior.push(
-                            Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
-                    }
+                    setter_interior.push(
+                        Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
+
                     (
                         Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
                         Some(typ.type_string(ctx, Leaf::Builder("'a"))?),
