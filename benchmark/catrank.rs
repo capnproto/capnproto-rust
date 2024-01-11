@@ -84,7 +84,7 @@ impl crate::TestCase for CatRank {
                 snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as usize]);
             }
 
-            result.set_snippet(snippet[..].into());
+            result.set_snippet(&snippet[..]);
         }
 
         good_count

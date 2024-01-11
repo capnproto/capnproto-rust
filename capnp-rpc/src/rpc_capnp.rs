@@ -350,7 +350,7 @@ pub mod message {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -1285,7 +1285,7 @@ pub mod bootstrap {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -1633,7 +1633,7 @@ pub mod call {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -2122,7 +2122,7 @@ pub mod call {
             }
         }
 
-        impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -2522,7 +2522,7 @@ pub mod return_ {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -3049,7 +3049,7 @@ pub mod finish {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -3383,7 +3383,7 @@ pub mod resolve {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -3772,7 +3772,7 @@ pub mod release {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -4081,7 +4081,7 @@ pub mod disembargo {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -4418,7 +4418,7 @@ pub mod disembargo {
             }
         }
 
-        impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -4795,7 +4795,7 @@ pub mod provide {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -5161,7 +5161,7 @@ pub mod accept {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -5513,7 +5513,7 @@ pub mod join {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -5883,7 +5883,7 @@ pub mod message_target {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -6235,7 +6235,7 @@ pub mod payload {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -6289,7 +6289,7 @@ pub mod payload {
         #[inline]
         pub fn set_cap_table(
             &mut self,
-            value: ::capnp::struct_list::Reader<'a, crate::rpc_capnp::cap_descriptor::Owned>,
+            value: ::capnp::struct_list::Reader<'_, crate::rpc_capnp::cap_descriptor::Owned>,
         ) -> ::capnp::Result<()> {
             ::capnp::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(1),
@@ -6619,7 +6619,7 @@ pub mod cap_descriptor {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -7123,7 +7123,7 @@ pub mod promised_answer {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -7171,7 +7171,7 @@ pub mod promised_answer {
         #[inline]
         pub fn set_transform(
             &mut self,
-            value: ::capnp::struct_list::Reader<'a, crate::rpc_capnp::promised_answer::op::Owned>,
+            value: ::capnp::struct_list::Reader<'_, crate::rpc_capnp::promised_answer::op::Owned>,
         ) -> ::capnp::Result<()> {
             ::capnp::traits::SetPointerBuilder::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
@@ -7475,7 +7475,7 @@ pub mod promised_answer {
             }
         }
 
-        impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+        impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
             fn set_pointer_builder(
                 mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
                 value: Self,
@@ -7792,7 +7792,7 @@ pub mod third_party_cap_descriptor {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -8134,7 +8134,7 @@ pub mod exception {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -8168,8 +8168,15 @@ pub mod exception {
             )
         }
         #[inline]
-        pub fn set_reason(&mut self, value: ::capnp::text::Reader<'_>) {
-            self.builder.reborrow().get_pointer_field(0).set_text(value);
+        pub fn set_reason<_T: ::capnp::traits::SetPointerBuilder<::capnp::text::Owned>>(
+            &mut self,
+            value: _T,
+        ) {
+            let _ = ::capnp::traits::SetPointerBuilder::set_pointer_builder(
+                self.builder.reborrow().get_pointer_field(0),
+                value,
+                false,
+            );
         }
         #[inline]
         pub fn init_reason(self, size: u32) -> ::capnp::text::Builder<'a> {
@@ -8214,8 +8221,15 @@ pub mod exception {
             )
         }
         #[inline]
-        pub fn set_trace(&mut self, value: ::capnp::text::Reader<'_>) {
-            self.builder.reborrow().get_pointer_field(1).set_text(value);
+        pub fn set_trace<_T: ::capnp::traits::SetPointerBuilder<::capnp::text::Owned>>(
+            &mut self,
+            value: _T,
+        ) {
+            let _ = ::capnp::traits::SetPointerBuilder::set_pointer_builder(
+                self.builder.reborrow().get_pointer_field(1),
+                value,
+                false,
+            );
         }
         #[inline]
         pub fn init_trace(self, size: u32) -> ::capnp::text::Builder<'a> {

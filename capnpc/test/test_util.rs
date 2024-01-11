@@ -34,7 +34,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
     builder.set_u_int64_field(12345678901234567890);
     builder.set_float32_field(1234.5);
     builder.set_float64_field(-123e45);
-    builder.set_text_field("foo".into());
+    builder.set_text_field("foo");
     builder.set_data_field(b"bar");
     {
         let mut sub_builder = builder.reborrow().init_struct_field();
@@ -50,14 +50,14 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
         sub_builder.set_u_int64_field(345678901234567890);
         sub_builder.set_float32_field(-1.25e-10);
         sub_builder.set_float64_field(345f64);
-        sub_builder.set_text_field("baz".into());
+        sub_builder.set_text_field("baz");
         sub_builder.set_data_field(b"qux");
         {
             let mut sub_sub_builder = sub_builder.reborrow().init_struct_field();
-            sub_sub_builder.set_text_field("nested".into());
+            sub_sub_builder.set_text_field("nested");
             sub_sub_builder
                 .init_struct_field()
-                .set_text_field("really nested".into());
+                .set_text_field("really nested");
         }
         sub_builder.set_enum_field(TestEnum::Baz);
 
@@ -157,15 +157,15 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
             struct_list
                 .reborrow()
                 .get(0)
-                .set_text_field("x structlist 1".into());
+                .set_text_field("x structlist 1");
             struct_list
                 .reborrow()
                 .get(1)
-                .set_text_field("x structlist 2".into());
+                .set_text_field("x structlist 2");
             struct_list
                 .reborrow()
                 .get(2)
-                .set_text_field("x structlist 3".into());
+                .set_text_field("x structlist 3");
         }
 
         let mut enum_list = sub_builder.reborrow().init_enum_list(3);
@@ -203,18 +203,9 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
 
     {
         let mut struct_list = builder.reborrow().init_struct_list(3);
-        struct_list
-            .reborrow()
-            .get(0)
-            .set_text_field("structlist 1".into());
-        struct_list
-            .reborrow()
-            .get(1)
-            .set_text_field("structlist 2".into());
-        struct_list
-            .reborrow()
-            .get(2)
-            .set_text_field("structlist 3".into());
+        struct_list.reborrow().get(0).set_text_field("structlist 1");
+        struct_list.reborrow().get(1).set_text_field("structlist 2");
+        struct_list.reborrow().get(2).set_text_field("structlist 3");
     }
 
     // ...

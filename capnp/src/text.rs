@@ -306,7 +306,7 @@ impl<'a> crate::traits::FromPointerBuilder<'a> for Builder<'a> {
     }
 }
 
-impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a>,
@@ -317,15 +317,33 @@ impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
     }
 }
 
-// Extra impl to make any_pointer::Builder::set_as() and similar methods work
-// more smoothly.
-impl<'a> crate::traits::SetPointerBuilder for &'a str {
+// Text field setters are generated with a signature like
+// ```
+//   set_foo<T : SetPointerBuilder<text::Owned>>(&mut self, value: T)
+// ```
+// Combined with the below impls of `SetPointerBuilder`, this
+// allows text fields to be conveniently set from values
+// of type `&str`.
+
+impl<'a> crate::traits::SetPointerBuilder<Owned> for &'a str {
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: &'a str,
         _canonicalize: bool,
     ) -> Result<()> {
         pointer.set_text(value.into());
+        Ok(())
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> crate::traits::SetPointerBuilder<Owned> for &'a alloc::string::String {
+    fn set_pointer_builder<'b>(
+        mut pointer: crate::private::layout::PointerBuilder<'b>,
+        value: &'a alloc::string::String,
+        _canonicalize: bool,
+    ) -> Result<()> {
+        pointer.set_text(value.as_str().into());
         Ok(())
     }
 }

@@ -252,7 +252,7 @@ pub mod vat_id {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -531,7 +531,7 @@ pub mod provision_id {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -801,7 +801,7 @@ pub mod recipient_id {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -1044,7 +1044,7 @@ pub mod third_party_cap_id {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -1300,7 +1300,7 @@ pub mod join_key_part {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,
@@ -1635,7 +1635,7 @@ pub mod join_result {
         }
     }
 
-    impl<'a> ::capnp::traits::SetPointerBuilder for Reader<'a> {
+    impl<'a> ::capnp::traits::SetPointerBuilder<Owned> for Reader<'a> {
         fn set_pointer_builder(
             mut pointer: ::capnp::private::layout::PointerBuilder<'_>,
             value: Self,

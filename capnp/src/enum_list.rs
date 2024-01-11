@@ -195,7 +195,7 @@ impl<'a, T: Into<u16> + TryFrom<u16, Error = NotInSchema>> Builder<'a, T> {
     }
 }
 
-impl<'a, T> crate::traits::SetPointerBuilder for Reader<'a, T> {
+impl<'a, T> crate::traits::SetPointerBuilder<Owned<T>> for Reader<'a, T> {
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a, T>,

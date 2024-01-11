@@ -35,32 +35,32 @@ mod tests {
         {
             let mut alice = people.reborrow().get(0);
             alice.set_id(123);
-            alice.set_name("Alice".into());
-            alice.set_email("alice@example.com".into());
+            alice.set_name("Alice");
+            alice.set_email("alice@example.com");
             {
                 let mut alice_phones = alice.reborrow().init_phones(1);
-                alice_phones.reborrow().get(0).set_number("555-1212".into());
+                alice_phones.reborrow().get(0).set_number("555-1212");
                 alice_phones
                     .reborrow()
                     .get(0)
                     .set_type(person::phone_number::Type::Mobile);
             }
-            alice.get_employment().set_school("MIT".into());
+            alice.get_employment().set_school("MIT");
         }
 
         {
             let mut bob = people.get(1);
             bob.set_id(456);
-            bob.set_name("Bob".into());
-            bob.set_email("bob@example.com".into());
+            bob.set_name("Bob");
+            bob.set_email("bob@example.com");
             {
                 let mut bob_phones = bob.reborrow().init_phones(2);
-                bob_phones.reborrow().get(0).set_number("555-4567".into());
+                bob_phones.reborrow().get(0).set_number("555-4567");
                 bob_phones
                     .reborrow()
                     .get(0)
                     .set_type(person::phone_number::Type::Home);
-                bob_phones.reborrow().get(1).set_number("555-7654".into());
+                bob_phones.reborrow().get(1).set_number("555-7654");
                 bob_phones
                     .reborrow()
                     .get(1)

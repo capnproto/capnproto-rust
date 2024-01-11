@@ -236,7 +236,7 @@ impl<'a, T: PrimitiveElement> Builder<'a, T> {
     }
 }
 
-impl<'a, T> crate::traits::SetPointerBuilder for Reader<'a, T>
+impl<'a, T> crate::traits::SetPointerBuilder<Owned<T>> for Reader<'a, T>
 where
     T: PrimitiveElement,
 {
