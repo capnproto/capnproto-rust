@@ -20,6 +20,9 @@
 // THE SOFTWARE.
 
 //! UTF-8 encoded text.
+//!
+//! A `text::Reader<'a>` wraps a `&'a [u8]` that is expected but not guaranteed
+//! to contain UTF-8 encoded text.
 
 use core::str;
 
