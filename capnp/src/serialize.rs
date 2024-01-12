@@ -222,13 +222,6 @@ impl SegmentLengthsBuilder {
         }
     }
 
-    #[deprecated(since = "0.18.6", note = "use `try_push_segment` instead")]
-    pub fn push_segment(&mut self, length_in_words: usize) {
-        self.segment_indices
-            .push((self.total_words, self.total_words + length_in_words));
-        self.total_words += length_in_words;
-    }
-
     /// Pushes a new segment length. The `n`th time (starting at 0) this is called specifies the length of
     /// the segment with ID `n`. If the segment overflows the total word count, then this returns
     /// a MessageSizeOverflow error.

@@ -3685,19 +3685,6 @@ impl<'a> StructBuilder<'a> {
         }
     }
 
-    #[deprecated(
-        since = "0.18.8",
-        note = "use `.reborrow().get_pointer_field()` instead"
-    )]
-    pub fn get_pointer_field_mut(&mut self, ptr_index: WirePointerCount) -> PointerBuilder<'_> {
-        PointerBuilder {
-            arena: self.arena,
-            segment_id: self.segment_id,
-            cap_table: self.cap_table,
-            pointer: unsafe { self.pointers.add(ptr_index) },
-        }
-    }
-
     #[inline]
     pub fn is_pointer_field_null(&self, ptr_index: WirePointerCount) -> bool {
         unsafe { (*self.pointers.add(ptr_index)).is_null() }
