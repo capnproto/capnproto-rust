@@ -66,44 +66,26 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
             .set_bool_list(&[false, true, false, true, true])
             .unwrap();
 
-        {
-            let mut int8_list = sub_builder.reborrow().init_int8_list(4);
-            int8_list.set(0, 12);
-            int8_list.set(1, -34);
-            int8_list.set(2, -0x80);
-            int8_list.set(3, 0x7f);
-        }
-        {
-            let mut int16_list = sub_builder.reborrow().init_int16_list(4);
-            int16_list.set(0, 1234);
-            int16_list.set(1, -5678);
-            int16_list.set(2, -0x8000);
-            int16_list.set(3, 0x7fff);
-        }
-        {
-            let mut int32_list = sub_builder.reborrow().init_int32_list(4);
-            int32_list.set(0, 12345678);
-            int32_list.set(1, -90123456);
-            int32_list.set(2, -0x80000000);
-            int32_list.set(3, 0x7fffffff);
-        }
-        {
-            let mut int64_list = sub_builder.reborrow().init_int64_list(4);
-            int64_list.set(0, 123456789012345);
-            int64_list.set(1, -678901234567890);
-            int64_list.set(2, -0x8000000000000000);
-            int64_list.set(3, 0x7fffffffffffffff);
-        }
+        sub_builder.set_int8_list(&[12, -34, -0x80, 0x7f]).unwrap();
+        sub_builder
+            .set_int16_list(&[1234, -5678, -0x8000, 0x7fff])
+            .unwrap();
+        sub_builder
+            .set_int32_list(&[12345678, -90123456, -0x80000000, 0x7fffffff])
+            .unwrap();
+        sub_builder
+            .set_int64_list(&[
+                123456789012345,
+                -678901234567890,
+                -0x8000000000000000,
+                0x7fffffffffffffff,
+            ])
+            .unwrap();
 
         sub_builder.set_u_int8_list(&[12, 34, 0, 0xff]).unwrap();
-
-        {
-            let mut uint16_list = sub_builder.reborrow().init_u_int16_list(4);
-            uint16_list.set(0, 1234);
-            uint16_list.set(1, 5678);
-            uint16_list.set(2, 0);
-            uint16_list.set(3, 0xffff);
-        }
+        sub_builder
+            .set_u_int16_list(&[1234, 5678, 0, 0xffff])
+            .unwrap();
 
         {
             let mut uint32_list = sub_builder.reborrow().init_u_int32_list(4);
@@ -121,15 +103,9 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
             uint64_list.set(3, 0xffffffffffffffff);
         }
 
-        {
-            let mut float32_list = sub_builder.reborrow().init_float32_list(6);
-            float32_list.set(0, 0f32);
-            float32_list.set(1, 1234567f32);
-            float32_list.set(2, 1e37);
-            float32_list.set(3, -1e37);
-            float32_list.set(4, 1e-37);
-            float32_list.set(5, -1e-37);
-        }
+        sub_builder
+            .set_float32_list(&[0f32, 1234567f32, 1e37, -1e37, 1e-37, -1e-37])
+            .unwrap();
 
         {
             let mut float64_list = sub_builder.reborrow().init_float64_list(6);
