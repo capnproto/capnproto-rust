@@ -62,14 +62,20 @@ impl ResponseHook for Response {
 struct Params {
     request: message::Builder<message::HeapAllocator>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
+    this_cap: Box<dyn ClientHook>,
 }
 
 impl Params {
     fn new(
         request: message::Builder<message::HeapAllocator>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
+        this_cap: Box<dyn ClientHook>,
     ) -> Self {
-        Self { request, cap_table }
+        Self {
+            request,
+            cap_table,
+            this_cap,
+        }
     }
 }
 
@@ -78,6 +84,10 @@ impl ParamsHook for Params {
         let mut result: any_pointer::Reader = self.request.get_root_as_reader()?;
         result.imbue(&self.cap_table);
         Ok(result)
+    }
+
+    fn this_cap(&self) -> Box<dyn ClientHook> {
+        self.this_cap.add_ref()
     }
 }
 
@@ -218,7 +228,7 @@ impl RequestHook for Request {
             method_id,
             client,
         } = tmp;
-        let params = Params::new(message, cap_table);
+        let params = Params::new(message, cap_table, client.add_ref());
 
         let (results_done_fulfiller, results_done_promise) =
             oneshot::channel::<Box<dyn ResultsDoneHook>>();

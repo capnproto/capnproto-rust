@@ -107,6 +107,7 @@ pub trait ResultsHook {
 
 pub trait ParamsHook {
     fn get(&self) -> crate::Result<crate::any_pointer::Reader<'_>>;
+    fn this_cap(&self) -> Box<dyn ClientHook>;
 }
 
 // Where should this live?

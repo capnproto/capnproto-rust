@@ -237,6 +237,9 @@ impl<T> Params<T> {
     {
         self.hook.get()?.get_as()
     }
+    pub fn this_cap<C: FromClientHook>(&self) -> C {
+        FromClientHook::new(self.hook.this_cap())
+    }
 }
 
 /// The return values of a method, written in-place by the method body.
