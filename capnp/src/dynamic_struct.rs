@@ -526,7 +526,9 @@ impl<'a> Builder<'a> {
                         );
                         match value {
                             dynamic_value::Reader::Text(t) => target.set_as(t),
-                            dynamic_value::Reader::Data(t) => target.set_as(t),
+                            dynamic_value::Reader::Data(t) => {
+                                target.set_as::<crate::data::Owned>(t)
+                            }
                             dynamic_value::Reader::Struct(s) => target.set_as(s),
                             dynamic_value::Reader::List(l) => target.set_as(l),
                             dynamic_value::Reader::Capability(_) => Err(Error::from_kind(
@@ -773,7 +775,7 @@ impl<'a> Builder<'a> {
     }
 }
 
-impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+impl<'a> crate::traits::SetPointerBuilder<crate::any_pointer::Owned> for Reader<'a> {
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a>,

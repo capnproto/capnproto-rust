@@ -57,7 +57,7 @@ fn test_unions() {
     let mut message = message::Builder::new_default();
     let mut root: test_union::Builder<'_> = message.init_root();
     root.reborrow().get_union0().set_u0f1s32(1234567);
-    root.reborrow().get_union1().set_u1f1sp("foo".into());
+    root.reborrow().get_union1().set_u1f1sp("foo");
     root.reborrow().get_union2().set_u2f0s1(true);
     root.reborrow()
         .get_union3()
@@ -241,7 +241,7 @@ fn test_stringify() {
     let mut root: test_all_types::Builder<'_> = message.init_root();
     root.set_int8_field(3);
     root.set_enum_field(TestEnum::Bar);
-    root.set_text_field("hello world".into());
+    root.set_text_field("hello world");
     root.set_data_field(&[1, 2, 3, 4, 5, 127, 255]);
     let mut bool_list = root.reborrow().init_bool_list(2);
     bool_list.set(0, false);

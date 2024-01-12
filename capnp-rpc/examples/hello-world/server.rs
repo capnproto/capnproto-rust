@@ -39,7 +39,7 @@ impl hello_world::Server for HelloWorldImpl {
         let name = pry!(pry!(request.get_name()).to_str());
         let message = format!("Hello, {name}!");
 
-        results.get().init_reply().set_message(message[..].into());
+        results.get().init_reply().set_message(&message[..]);
 
         Promise::ok(())
     }

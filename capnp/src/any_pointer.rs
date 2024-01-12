@@ -111,7 +111,7 @@ impl<'a> FromPointerReader<'a> for Reader<'a> {
     }
 }
 
-impl<'a> crate::traits::SetPointerBuilder for Reader<'a> {
+impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a>,
@@ -165,7 +165,10 @@ impl<'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as<From: SetPointerBuilder>(&mut self, value: From) -> Result<()> {
+    pub fn set_as<T: crate::traits::Owned>(
+        &mut self,
+        value: impl SetPointerBuilder<T>,
+    ) -> Result<()> {
         SetPointerBuilder::set_pointer_builder(self.builder.reborrow(), value, false)
     }
 

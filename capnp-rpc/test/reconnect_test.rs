@@ -76,7 +76,7 @@ impl test_interface::Server for TestInterfaceImpl {
         );
         {
             let mut results = results.get();
-            results.set_x(s[..].into());
+            results.set_x(&s[..]);
         }
         if let Some(fut) = self.inner.borrow().block.as_ref() {
             Promise::from_future(fut.clone())

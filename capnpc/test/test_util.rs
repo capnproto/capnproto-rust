@@ -34,7 +34,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
     builder.set_u_int64_field(12345678901234567890);
     builder.set_float32_field(1234.5);
     builder.set_float64_field(-123e45);
-    builder.set_text_field("foo".into());
+    builder.set_text_field("foo");
     builder.set_data_field(b"bar");
     {
         let mut sub_builder = builder.reborrow().init_struct_field();
@@ -50,70 +50,42 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
         sub_builder.set_u_int64_field(345678901234567890);
         sub_builder.set_float32_field(-1.25e-10);
         sub_builder.set_float64_field(345f64);
-        sub_builder.set_text_field("baz".into());
+        sub_builder.set_text_field("baz");
         sub_builder.set_data_field(b"qux");
         {
             let mut sub_sub_builder = sub_builder.reborrow().init_struct_field();
-            sub_sub_builder.set_text_field("nested".into());
+            sub_sub_builder.set_text_field("nested");
             sub_sub_builder
                 .init_struct_field()
-                .set_text_field("really nested".into());
+                .set_text_field("really nested");
         }
         sub_builder.set_enum_field(TestEnum::Baz);
 
         sub_builder.reborrow().init_void_list(3);
-        {
-            let mut bool_list = sub_builder.reborrow().init_bool_list(5);
-            bool_list.set(0, false);
-            bool_list.set(1, true);
-            bool_list.set(2, false);
-            bool_list.set(3, true);
-            bool_list.set(4, true);
-        }
-        {
-            let mut int8_list = sub_builder.reborrow().init_int8_list(4);
-            int8_list.set(0, 12);
-            int8_list.set(1, -34);
-            int8_list.set(2, -0x80);
-            int8_list.set(3, 0x7f);
-        }
-        {
-            let mut int16_list = sub_builder.reborrow().init_int16_list(4);
-            int16_list.set(0, 1234);
-            int16_list.set(1, -5678);
-            int16_list.set(2, -0x8000);
-            int16_list.set(3, 0x7fff);
-        }
-        {
-            let mut int32_list = sub_builder.reborrow().init_int32_list(4);
-            int32_list.set(0, 12345678);
-            int32_list.set(1, -90123456);
-            int32_list.set(2, -0x80000000);
-            int32_list.set(3, 0x7fffffff);
-        }
-        {
-            let mut int64_list = sub_builder.reborrow().init_int64_list(4);
-            int64_list.set(0, 123456789012345);
-            int64_list.set(1, -678901234567890);
-            int64_list.set(2, -0x8000000000000000);
-            int64_list.set(3, 0x7fffffffffffffff);
-        }
+        sub_builder
+            .set_bool_list(&[false, true, false, true, true])
+            .unwrap();
 
-        {
-            let mut uint8_list = sub_builder.reborrow().init_u_int8_list(4);
-            uint8_list.set(0, 12);
-            uint8_list.set(1, 34);
-            uint8_list.set(2, 0);
-            uint8_list.set(3, 0xff);
-        }
+        sub_builder.set_int8_list(&[12, -34, -0x80, 0x7f]).unwrap();
+        sub_builder
+            .set_int16_list(&[1234, -5678, -0x8000, 0x7fff])
+            .unwrap();
+        sub_builder
+            .set_int32_list(&[12345678, -90123456, -0x80000000, 0x7fffffff])
+            .unwrap();
+        sub_builder
+            .set_int64_list(&[
+                123456789012345,
+                -678901234567890,
+                -0x8000000000000000,
+                0x7fffffffffffffff,
+            ])
+            .unwrap();
 
-        {
-            let mut uint16_list = sub_builder.reborrow().init_u_int16_list(4);
-            uint16_list.set(0, 1234);
-            uint16_list.set(1, 5678);
-            uint16_list.set(2, 0);
-            uint16_list.set(3, 0xffff);
-        }
+        sub_builder.set_u_int8_list(&[12, 34, 0, 0xff]).unwrap();
+        sub_builder
+            .set_u_int16_list(&[1234, 5678, 0, 0xffff])
+            .unwrap();
 
         {
             let mut uint32_list = sub_builder.reborrow().init_u_int32_list(4);
@@ -131,15 +103,9 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
             uint64_list.set(3, 0xffffffffffffffff);
         }
 
-        {
-            let mut float32_list = sub_builder.reborrow().init_float32_list(6);
-            float32_list.set(0, 0f32);
-            float32_list.set(1, 1234567f32);
-            float32_list.set(2, 1e37);
-            float32_list.set(3, -1e37);
-            float32_list.set(4, 1e-37);
-            float32_list.set(5, -1e-37);
-        }
+        sub_builder
+            .set_float32_list(&[0f32, 1234567f32, 1e37, -1e37, 1e-37, -1e-37])
+            .unwrap();
 
         {
             let mut float64_list = sub_builder.reborrow().init_float64_list(6);
@@ -157,21 +123,20 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
             struct_list
                 .reborrow()
                 .get(0)
-                .set_text_field("x structlist 1".into());
+                .set_text_field("x structlist 1");
             struct_list
                 .reborrow()
                 .get(1)
-                .set_text_field("x structlist 2".into());
+                .set_text_field("x structlist 2");
             struct_list
                 .reborrow()
                 .get(2)
-                .set_text_field("x structlist 3".into());
+                .set_text_field("x structlist 3");
         }
 
-        let mut enum_list = sub_builder.reborrow().init_enum_list(3);
-        enum_list.set(0, TestEnum::Qux);
-        enum_list.set(1, TestEnum::Bar);
-        enum_list.set(2, TestEnum::Grault);
+        sub_builder
+            .set_enum_list(&[TestEnum::Qux, TestEnum::Bar, TestEnum::Grault])
+            .unwrap();
     }
     builder.set_enum_field(TestEnum::Corge);
 
@@ -187,12 +152,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
 
     // ...
 
-    {
-        let mut text_list = builder.reborrow().init_text_list(3);
-        text_list.set(0, "plugh".into());
-        text_list.set(1, "xyzzy".into());
-        text_list.set(2, "thud".into());
-    }
+    builder.set_text_list(&["plugh", "xyzzy", "thud"]).unwrap();
 
     {
         let mut data_list = builder.reborrow().init_data_list(3);
@@ -203,18 +163,9 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
 
     {
         let mut struct_list = builder.reborrow().init_struct_list(3);
-        struct_list
-            .reborrow()
-            .get(0)
-            .set_text_field("structlist 1".into());
-        struct_list
-            .reborrow()
-            .get(1)
-            .set_text_field("structlist 2".into());
-        struct_list
-            .reborrow()
-            .get(2)
-            .set_text_field("structlist 3".into());
+        struct_list.reborrow().get(0).set_text_field("structlist 1");
+        struct_list.reborrow().get(1).set_text_field("structlist 2");
+        struct_list.reborrow().get(2).set_text_field("structlist 3");
     }
 
     // ...

@@ -195,13 +195,42 @@ impl<'a, T: Into<u16> + TryFrom<u16, Error = NotInSchema>> Builder<'a, T> {
     }
 }
 
-impl<'a, T> crate::traits::SetPointerBuilder for Reader<'a, T> {
+impl<'a, T> crate::traits::SetPointerBuilder<Owned<T>> for Reader<'a, T> {
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a, T>,
         canonicalize: bool,
     ) -> Result<()> {
         pointer.set_list(&value.reader, canonicalize)
+    }
+}
+
+impl<'a, T: Copy + Into<u16>> crate::traits::SetPointerBuilder<Owned<T>> for &'a [T] {
+    fn set_pointer_builder<'b>(
+        pointer: crate::private::layout::PointerBuilder<'b>,
+        value: &'a [T],
+        _canonicalize: bool,
+    ) -> Result<()> {
+        let builder = pointer.init_list(
+            crate::private::layout::ElementSize::TwoBytes,
+            value.len() as u32,
+        );
+        for (idx, v) in value.iter().enumerate() {
+            <u16 as PrimitiveElement>::set(&builder, idx as u32, (*v).into())
+        }
+        Ok(())
+    }
+}
+
+impl<'a, T: Copy + Into<u16>, const N: usize> crate::traits::SetPointerBuilder<Owned<T>>
+    for &'a [T; N]
+{
+    fn set_pointer_builder<'b>(
+        pointer: crate::private::layout::PointerBuilder<'b>,
+        value: &'a [T; N],
+        canonicalize: bool,
+    ) -> Result<()> {
+        crate::traits::SetPointerBuilder::set_pointer_builder(pointer, &value[..], canonicalize)
     }
 }
 

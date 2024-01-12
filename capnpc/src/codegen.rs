@@ -1008,10 +1008,16 @@ fn generate_setter(
         initn_interior.push(init_discrim);
     }
 
+    enum MaybeReader {
+        None,
+        Generic(String),
+        Nongeneric(String),
+    }
+
     let mut return_result = false;
     let mut result = Vec::new();
 
-    let (maybe_reader_type, maybe_builder_type): (Option<String>, Option<String>) = match field
+    let (maybe_reader_type, maybe_builder_type): (MaybeReader, Option<String>) = match field
         .which()?
     {
         field::Group(group) => {
@@ -1032,7 +1038,10 @@ fn generate_setter(
 
             initter_interior.push(line("self.builder.into()"));
 
-            (None, Some(format!("{the_mod}::Builder<'a{params_string}>")))
+            (
+                MaybeReader::None,
+                Some(format!("{the_mod}::Builder<'a{params_string}>")),
+            )
         }
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
@@ -1040,7 +1049,7 @@ fn generate_setter(
             match typ.which().expect("unrecognized type") {
                 type_::Void(()) => {
                     setter_param = "_value".to_string();
-                    (Some("()".to_string()), None)
+                    (MaybeReader::Nongeneric("()".to_string()), None)
                 }
                 type_::Bool(()) => {
                     match prim_default(&reg_field.get_default_value()?)? {
@@ -1055,7 +1064,7 @@ fn generate_setter(
                             )));
                         }
                     }
-                    (Some("bool".to_string()), None)
+                    (MaybeReader::Nongeneric("bool".to_string()), None)
                 }
                 _ if typ.is_prim()? => {
                     let tstr = typ.type_string(ctx, Leaf::Reader("'a"))?;
@@ -1071,18 +1080,19 @@ fn generate_setter(
                             )));
                         }
                     };
-                    (Some(tstr), None)
+                    (MaybeReader::Nongeneric(tstr), None)
                 }
                 type_::Text(()) => {
-                    setter_interior.push(Line(format!(
-                        "self.builder.reborrow().get_pointer_field({offset}).set_text(value);"
+                    // The text::Reader impl of SetPointerBuilder never fails, so we can unwrap().
+                    setter_interior.push(Line(fmt!(ctx,
+                        "{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false).unwrap()"
                     )));
                     initter_interior.push(Line(format!(
                         "self.builder.get_pointer_field({offset}).init_text(size)"
                     )));
                     initter_params.push("size: u32");
                     (
-                        Some(fmt!(ctx, "{capnp}::text::Reader<'_>")),
+                        MaybeReader::Generic(fmt!(ctx, "{capnp}::text::Owned")),
                         Some(fmt!(ctx, "{capnp}::text::Builder<'a>")),
                     )
                 }
@@ -1095,11 +1105,12 @@ fn generate_setter(
                     )));
                     initter_params.push("size: u32");
                     (
-                        Some(fmt!(ctx, "{capnp}::data::Reader<'_>")),
+                        MaybeReader::Nongeneric(fmt!(ctx, "{capnp}::data::Reader<'_>")),
                         Some(fmt!(ctx, "{capnp}::data::Builder<'a>")),
                     )
                 }
-                type_::List(_) => {
+                type_::List(ls) => {
+                    let et = ls.get_element_type()?;
                     return_result = true;
                     setter_interior.push(
                         Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
@@ -1108,8 +1119,33 @@ fn generate_setter(
                     initter_interior.push(
                         Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({offset}), size)")));
 
+                    let mr = match et.which()? {
+                        type_::Void(())
+                        | type_::Bool(())
+                        | type_::Int8(())
+                        | type_::Int16(())
+                        | type_::Int32(())
+                        | type_::Int64(())
+                        | type_::Uint8(())
+                        | type_::Uint16(())
+                        | type_::Uint32(())
+                        | type_::Uint64(())
+                        | type_::Float32(())
+                        | type_::Float64(())
+                        | type_::Enum(_)
+                        | type_::Text(()) => {
+                            // There are multiple SetPointerBuilder impls.
+                            MaybeReader::Generic(
+                                reg_field.get_type()?.type_string(ctx, Leaf::Owned)?,
+                            )
+                        }
+                        _ => MaybeReader::Nongeneric(
+                            reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?,
+                        ),
+                    };
+
                     (
-                        Some(reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?),
+                        mr,
                         Some(
                             reg_field
                                 .get_type()?
@@ -1134,7 +1170,7 @@ fn generate_setter(
                             _ => return Err(Error::failed("enum default not an Enum".to_string())),
                         }
                     };
-                    (Some(the_mod), None)
+                    (MaybeReader::Nongeneric(the_mod), None)
                 }
                 type_::Struct(_) => {
                     return_result = true;
@@ -1144,7 +1180,7 @@ fn generate_setter(
                         Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
 
                     (
-                        Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
+                        MaybeReader::Nongeneric(typ.type_string(ctx, Leaf::Reader("'_"))?),
                         Some(typ.type_string(ctx, Leaf::Builder("'a"))?),
                     )
                 }
@@ -1152,7 +1188,10 @@ fn generate_setter(
                     setter_interior.push(Line(format!(
                         "self.builder.reborrow().get_pointer_field({offset}).set_capability(value.client.hook);"
                     )));
-                    (Some(typ.type_string(ctx, Leaf::Client)?), None)
+                    (
+                        MaybeReader::Nongeneric(typ.type_string(ctx, Leaf::Client)?),
+                        None,
+                    )
                 }
                 type_::AnyPointer(_) => {
                     if typ.is_parameter()? {
@@ -1173,32 +1212,51 @@ fn generate_setter(
                         result.push(line("}"));
 
                         (
-                            Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
+                            MaybeReader::Generic(typ.type_string(ctx, Leaf::Owned)?),
                             Some(builder_type),
                         )
                     } else {
                         initter_interior.push(Line(fmt!(ctx,"let mut result = {capnp}::any_pointer::Builder::new(self.builder.get_pointer_field({offset}));")));
                         initter_interior.push(line("result.clear();"));
                         initter_interior.push(line("result"));
-                        (None, Some(fmt!(ctx, "{capnp}::any_pointer::Builder<'a>")))
+                        (
+                            MaybeReader::None,
+                            Some(fmt!(ctx, "{capnp}::any_pointer::Builder<'a>")),
+                        )
                     }
                 }
                 _ => return Err(Error::failed("unrecognized type".to_string())),
             }
         }
     };
-    if let Some(reader_type) = &maybe_reader_type {
-        let return_type = if return_result {
-            fmt!(ctx, "-> {capnp}::Result<()>")
-        } else {
-            "".into()
-        };
-        result.push(line("#[inline]"));
-        result.push(Line(format!(
-            "pub fn set_{styled_name}(&mut self, {setter_param}: {reader_type}) {return_type} {{"
-        )));
-        result.push(indent(setter_interior));
-        result.push(line("}"));
+    match maybe_reader_type {
+        MaybeReader::Nongeneric(reader_type) => {
+            let return_type = if return_result {
+                fmt!(ctx, "-> {capnp}::Result<()>")
+            } else {
+                "".into()
+            };
+            result.push(line("#[inline]"));
+            result.push(Line(format!(
+                "pub fn set_{styled_name}(&mut self, {setter_param}: {reader_type}) {return_type} {{"
+            )));
+            result.push(indent(setter_interior));
+            result.push(line("}"));
+        }
+        MaybeReader::Generic(owned_type) => {
+            let return_type = if return_result {
+                fmt!(ctx, "-> {capnp}::Result<()>")
+            } else {
+                "".into()
+            };
+            result.push(line("#[inline]"));
+            result.push(Line(fmt!(ctx,
+                "pub fn set_{styled_name}<_T: {capnp}::traits::SetPointerBuilder<{owned_type}>>(&mut self, {setter_param}: _T) {return_type} {{"
+            )));
+            result.push(indent(setter_interior));
+            result.push(line("}"));
+        }
+        MaybeReader::None => (),
     }
     if let Some(builder_type) = maybe_builder_type {
         result.push(line("#[inline]"));
@@ -2303,7 +2361,7 @@ fn generate_node(
 
                 from_pointer_builder_impl,
                 Line(fmt!(ctx,
-                    "impl <'a,{0}> {capnp}::traits::SetPointerBuilder for Reader<'a,{0}> {1} {{",
+                    "impl <'a,{0}> {capnp}::traits::SetPointerBuilder<Owned<{0}>> for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
                 indent(Line(fmt!(ctx,"fn set_pointer_builder(mut pointer: {capnp}::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> {capnp}::Result<()> {{ pointer.set_struct(&value.reader, canonicalize) }}"))),
                 line("}"),
@@ -2699,7 +2757,7 @@ fn generate_node(
 
             mod_interior.push(Branch(vec![
                 Line(fmt!(ctx,
-                    "impl <{0}> {capnp}::traits::SetPointerBuilder for Client<{0}> {1} {{",
+                    "impl <{0}> {capnp}::traits::SetPointerBuilder<Owned<{0}>> for Client<{0}> {1} {{",
                     params.params, params.where_clause)),
                 indent(vec![
                             Line(fmt!(ctx,"fn set_pointer_builder(mut pointer: {capnp}::private::layout::PointerBuilder<'_>, from: Self, _canonicalize: bool) -> {capnp}::Result<()> {{")),
