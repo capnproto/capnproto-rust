@@ -1054,10 +1054,12 @@ pub mod message {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] =
             &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 11, 8, 2, 13, 4, 12, 9, 7, 10, 6, 5, 3, 0];
         pub const TYPE_ID: u64 = 0x91b7_9f1f_808d_b032;
     }
     pub enum Which<A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13> {
@@ -1419,9 +1421,11 @@ pub mod bootstrap {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
         pub const TYPE_ID: u64 = 0xe94c_cf80_3117_6ec4;
     }
 }
@@ -1920,9 +1924,11 @@ pub mod call {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 6];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[6, 2, 3, 4, 0, 5, 1];
         pub const TYPE_ID: u64 = 0x836a_53ce_789d_4cd4;
     }
 
@@ -2278,9 +2284,11 @@ pub mod call {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2];
+            pub static MEMBERS_BY_NAME: &[u16] = &[0, 2, 1];
             pub const TYPE_ID: u64 = 0xdae8_b0f6_1aab_5f99;
         }
         pub enum Which<A0> {
@@ -2845,9 +2853,11 @@ pub mod return_ {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[2, 3, 4, 5, 6, 7];
+        pub static MEMBERS_BY_NAME: &[u16] = &[7, 0, 4, 3, 1, 2, 5, 6];
         pub const TYPE_ID: u64 = 0x9e19_b28d_3db3_573a;
     }
     pub enum Which<A0, A1, A2> {
@@ -3165,9 +3175,11 @@ pub mod finish {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0xd37d_2eb2_c2f8_0e63;
     }
 }
@@ -3570,9 +3582,11 @@ pub mod resolve {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[1, 2];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 2, 0];
         pub const TYPE_ID: u64 = 0xbbc2_9655_fa89_086e;
     }
     pub enum Which<A0, A1> {
@@ -3882,9 +3896,11 @@ pub mod release {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0xad1a_6c0d_7dd0_7497;
     }
 }
@@ -4208,9 +4224,11 @@ pub mod disembargo {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
         pub const TYPE_ID: u64 = 0xf964_368b_0fbd_3711;
     }
 
@@ -4575,9 +4593,11 @@ pub mod disembargo {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2, 3];
+            pub static MEMBERS_BY_NAME: &[u16] = &[2, 3, 1, 0];
             pub const TYPE_ID: u64 = 0xd562_b4df_655b_dd4d;
         }
         pub enum Which {
@@ -4955,9 +4975,11 @@ pub mod provide {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 2, 1];
         pub const TYPE_ID: u64 = 0x9c6a_046b_fbc1_ac5a;
     }
 }
@@ -5298,9 +5320,11 @@ pub mod accept {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[2, 1, 0];
         pub const TYPE_ID: u64 = 0xd4c9_b562_9055_4016;
     }
 }
@@ -5667,9 +5691,11 @@ pub mod join {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[2, 0, 1];
         pub const TYPE_ID: u64 = 0xfbe1_9804_90e0_01af;
     }
 }
@@ -6008,9 +6034,11 @@ pub mod message_target {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0x95bc_1454_5813_fbc1;
     }
     pub enum Which<A0> {
@@ -6373,9 +6401,11 @@ pub mod payload {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
         pub const TYPE_ID: u64 = 0x9a0e_6122_3d96_743b;
     }
 }
@@ -6888,9 +6918,11 @@ pub mod cap_descriptor {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[6];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2, 3, 4, 5];
+        pub static MEMBERS_BY_NAME: &[u16] = &[6, 0, 4, 3, 1, 2, 5];
         pub const TYPE_ID: u64 = 0x8523_ddc4_0b86_b8b0;
     }
     pub enum Which<A0, A1> {
@@ -7253,9 +7285,11 @@ pub mod promised_answer {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0xd800_b1d6_cd6f_1ca0;
     }
 
@@ -7569,9 +7603,11 @@ pub mod promised_answer {
                     encoded_node: &ENCODED_NODE,
                     nonunion_members: NONUNION_MEMBERS,
                     members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                    members_by_name: MEMBERS_BY_NAME,
                 };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1];
+            pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
             pub const TYPE_ID: u64 = 0xf316_9444_1556_9081;
         }
         pub enum Which {
@@ -7891,9 +7927,11 @@ pub mod third_party_cap_descriptor {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
         pub const TYPE_ID: u64 = 0xd370_07fd_e1f0_027d;
     }
 }
@@ -8323,9 +8361,11 @@ pub mod exception {
                 encoded_node: &ENCODED_NODE,
                 nonunion_members: NONUNION_MEMBERS,
                 members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
+                members_by_name: MEMBERS_BY_NAME,
             };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
+        pub static MEMBERS_BY_NAME: &[u16] = &[2, 1, 0, 4, 3];
         pub const TYPE_ID: u64 = 0xd625_b706_3acf_691a;
     }
 

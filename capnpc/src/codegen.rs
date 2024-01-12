@@ -1812,6 +1812,35 @@ fn generate_members_by_discriminant(
     Ok(Branch(vec![Line(nonunion_string), Line(members_by_disc)]))
 }
 
+fn generate_members_by_name(
+    node_reader: schema_capnp::node::Reader,
+) -> ::capnp::Result<FormattedText> {
+    let st = match node_reader.which()? {
+        schema_capnp::node::Struct(st) => st,
+        _ => return Err(Error::failed("not a struct".into())),
+    };
+
+    let mut members_by_name = Vec::new();
+    for (index, field) in st.get_fields()?.iter().enumerate() {
+        if let Ok(name) = get_field_name(field) {
+            members_by_name.push((name, index));
+        }
+    }
+    members_by_name.sort_by_key(|k| k.0);
+
+    let mut members_by_name_string: String =
+        "pub static MEMBERS_BY_NAME : &[u16] = &[".into();
+    for (i, (_, index)) in members_by_name.iter().enumerate() {
+        members_by_name_string += &format!("{}", *index);
+        if i + 1 < members_by_name.len() {
+            members_by_name_string += ",";
+        }
+    }
+    members_by_name_string += "];";
+
+    Ok(Branch(vec![Line(members_by_name_string)]))
+}
+
 // We need this to work around the fact that Rust does not allow typedefs
 // with unused type parameters.
 fn get_ty_params_of_brand(
@@ -1980,11 +2009,13 @@ fn generate_node(
                     Line("encoded_node: &ENCODED_NODE,".into()),
                     Line("nonunion_members: NONUNION_MEMBERS,".into()),
                     Line("members_by_discriminant: MEMBERS_BY_DISCRIMINANT,".into()),
+                    Line("members_by_name: MEMBERS_BY_NAME,".into()),
                 ]),
                 Line("};".into()),
             ]));
 
             private_mod_interior.push(generate_members_by_discriminant(*node_reader)?);
+            private_mod_interior.push(generate_members_by_name(*node_reader)?);
 
             let fields = struct_reader.get_fields()?;
             for field in fields {

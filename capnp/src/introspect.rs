@@ -213,8 +213,9 @@ pub struct RawStructSchema {
 
     /// Map from discriminant value to field index.
     pub members_by_discriminant: &'static [u16],
-    //
-    // TODO: members_by_name, allowing fast field lookup by name.
+
+    // Sorted array of field names with matching field index.
+    pub members_by_name: &'static [u16],
 }
 
 /// A RawStructSchema with branding information, i.e. resolution of type parameters.
