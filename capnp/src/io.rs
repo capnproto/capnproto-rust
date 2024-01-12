@@ -95,12 +95,8 @@ mod embedded_io_impls {
 
     impl<W: embedded_io::Write> Write for W {
         fn write_all(&mut self, buf: &[u8]) -> Result<()> {
-            embedded_io::Write::write_all(self, buf).map_err(|e| match e {
-                embedded_io::WriteAllError::WriteZero => {
-                    crate::Error::from_kind(crate::ErrorKind::Failed)
-                }
-                embedded_io::WriteAllError::Other(e) => crate::Error::from_kind(e.kind().into()),
-            })?;
+            embedded_io::Write::write_all(self, buf)
+                .map_err(|e| crate::Error::from_kind(e.kind().into()))?;
             Ok(())
         }
     }
