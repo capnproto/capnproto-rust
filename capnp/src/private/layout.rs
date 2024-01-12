@@ -2030,7 +2030,7 @@ mod wire_helpers {
 
                 (*reff).set_list_size_and_count(element_size, value.element_count);
 
-                // Be careful to avoid coping any bytes past the end of the list.
+                // Be careful to avoid copying any bytes past the end of the list.
                 // TODO(perf) Is ptr::copy_nonoverlapping faster if word-aligned?
                 // If so, then perhaps we should only drop to the byte-index level
                 // in the canonicalize=true case.
