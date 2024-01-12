@@ -1119,12 +1119,28 @@ fn generate_setter(
                     initter_interior.push(
                         Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({offset}), size)")));
 
-                    let mr = if et.is_prim()? {
-                        MaybeReader::Generic(reg_field.get_type()?.type_string(ctx, Leaf::Owned)?)
-                    } else {
-                        MaybeReader::Nongeneric(
+                    let mr = match et.which()? {
+                        type_::Void(())
+                        | type_::Bool(())
+                        | type_::Int8(())
+                        | type_::Int16(())
+                        | type_::Int32(())
+                        | type_::Int64(())
+                        | type_::Uint8(())
+                        | type_::Uint16(())
+                        | type_::Uint32(())
+                        | type_::Uint64(())
+                        | type_::Float32(())
+                        | type_::Float64(())
+                        | type_::Text(()) => {
+                            // There are multiple SetPointerBuilder impls.
+                            MaybeReader::Generic(
+                                reg_field.get_type()?.type_string(ctx, Leaf::Owned)?,
+                            )
+                        }
+                        _ => MaybeReader::Nongeneric(
                             reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?,
-                        )
+                        ),
                     };
 
                     (

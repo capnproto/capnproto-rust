@@ -194,6 +194,38 @@ impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
     }
 }
 
+impl<'a, T: AsRef<str>> crate::traits::SetPointerBuilder<Owned> for &'a [T] {
+    #[inline]
+    fn set_pointer_builder<'b>(
+        pointer: PointerBuilder<'b>,
+        value: &'a [T],
+        _canonicalize: bool,
+    ) -> Result<()> {
+        let mut builder = pointer.init_list(
+            crate::private::layout::ElementSize::Pointer,
+            value.len() as u32,
+        );
+        for (idx, v) in value.iter().enumerate() {
+            builder
+                .reborrow()
+                .get_pointer_element(idx as u32)
+                .set_text(v.as_ref().into());
+        }
+        Ok(())
+    }
+}
+
+impl<'a, T: AsRef<str>, const N: usize> crate::traits::SetPointerBuilder<Owned> for &'a [T; N] {
+    #[inline]
+    fn set_pointer_builder<'b>(
+        pointer: PointerBuilder<'b>,
+        value: &'a [T; N],
+        canonicalize: bool,
+    ) -> Result<()> {
+        crate::traits::SetPointerBuilder::set_pointer_builder(pointer, &value[..], canonicalize)
+    }
+}
+
 impl<'a> ::core::iter::IntoIterator for Reader<'a> {
     type Item = Result<crate::text::Reader<'a>>;
     type IntoIter = ListIter<Reader<'a>, Self::Item>;

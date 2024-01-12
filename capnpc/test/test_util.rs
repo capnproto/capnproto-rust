@@ -153,12 +153,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
 
     // ...
 
-    {
-        let mut text_list = builder.reborrow().init_text_list(3);
-        text_list.set(0, "plugh".into());
-        text_list.set(1, "xyzzy".into());
-        text_list.set(2, "thud".into());
-    }
+    builder.set_text_list(&["plugh", "xyzzy", "thud"]).unwrap();
 
     {
         let mut data_list = builder.reborrow().init_data_list(3);
