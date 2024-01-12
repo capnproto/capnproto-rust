@@ -134,10 +134,9 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
                 .set_text_field("x structlist 3");
         }
 
-        let mut enum_list = sub_builder.reborrow().init_enum_list(3);
-        enum_list.set(0, TestEnum::Qux);
-        enum_list.set(1, TestEnum::Bar);
-        enum_list.set(2, TestEnum::Grault);
+        sub_builder
+            .set_enum_list(&[TestEnum::Qux, TestEnum::Bar, TestEnum::Grault])
+            .unwrap();
     }
     builder.set_enum_field(TestEnum::Corge);
 

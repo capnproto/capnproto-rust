@@ -1132,6 +1132,7 @@ fn generate_setter(
                         | type_::Uint64(())
                         | type_::Float32(())
                         | type_::Float64(())
+                        | type_::Enum(_)
                         | type_::Text(()) => {
                             // There are multiple SetPointerBuilder impls.
                             MaybeReader::Generic(
