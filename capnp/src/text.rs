@@ -307,6 +307,7 @@ impl<'a> crate::traits::FromPointerBuilder<'a> for Builder<'a> {
 }
 
 impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
+    #[inline]
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a>,
@@ -326,6 +327,7 @@ impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
 // of type `&str`.
 
 impl<'a> crate::traits::SetPointerBuilder<Owned> for &'a str {
+    #[inline]
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: &'a str,
@@ -338,6 +340,7 @@ impl<'a> crate::traits::SetPointerBuilder<Owned> for &'a str {
 
 #[cfg(feature = "alloc")]
 impl<'a> crate::traits::SetPointerBuilder<Owned> for &'a alloc::string::String {
+    #[inline]
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: &'a alloc::string::String,
