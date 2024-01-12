@@ -923,6 +923,7 @@ mod tests {
         let mut root: test_generics::Builder<'_, test_all_types::Owned, text::Owned> =
             message.init_root();
         init_test_message(root.reborrow().get_foo().unwrap());
+        root.reborrow().set_bar("garply").unwrap();
         root.reborrow().get_dub().unwrap().set_foo("Hello").unwrap();
         {
             let mut bar: ::capnp::primitive_list::Builder<'_, u8> =
@@ -940,6 +941,7 @@ mod tests {
         CheckTestMessage::check_test_message(root.reborrow().get_foo().unwrap());
         let root_reader = root.into_reader();
         CheckTestMessage::check_test_message(root_reader.get_foo().unwrap());
+        assert_eq!("garply", root_reader.get_bar().unwrap());
         let dub_reader = root_reader.get_dub().unwrap();
         assert_eq!("Hello", dub_reader.get_foo().unwrap());
         let bar_reader = dub_reader.get_bar().unwrap();
