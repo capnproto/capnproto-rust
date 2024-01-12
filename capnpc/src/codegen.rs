@@ -1109,7 +1109,8 @@ fn generate_setter(
                         Some(fmt!(ctx, "{capnp}::data::Builder<'a>")),
                     )
                 }
-                type_::List(_) => {
+                type_::List(ls) => {
+                    let et = ls.get_element_type()?;
                     return_result = true;
                     setter_interior.push(
                         Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
@@ -1118,10 +1119,16 @@ fn generate_setter(
                     initter_interior.push(
                         Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({offset}), size)")));
 
-                    (
+                    let mr = if et.is_prim()? {
+                        MaybeReader::Generic(reg_field.get_type()?.type_string(ctx, Leaf::Owned)?)
+                    } else {
                         MaybeReader::Nongeneric(
                             reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?,
-                        ),
+                        )
+                    };
+
+                    (
+                        mr,
                         Some(
                             reg_field
                                 .get_type()?

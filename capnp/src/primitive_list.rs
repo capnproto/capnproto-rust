@@ -240,12 +240,46 @@ impl<'a, T> crate::traits::SetPointerBuilder<Owned<T>> for Reader<'a, T>
 where
     T: PrimitiveElement,
 {
+    #[inline]
     fn set_pointer_builder<'b>(
         mut pointer: PointerBuilder<'b>,
         value: Reader<'a, T>,
         canonicalize: bool,
     ) -> Result<()> {
         pointer.set_list(&value.reader, canonicalize)
+    }
+}
+
+impl<'a, T> crate::traits::SetPointerBuilder<Owned<T>> for &'a [T]
+where
+    T: PrimitiveElement + Copy,
+{
+    #[inline]
+    fn set_pointer_builder<'b>(
+        pointer: PointerBuilder<'b>,
+        value: &'a [T],
+        _canonicalize: bool,
+    ) -> Result<()> {
+        let builder =
+            pointer.init_list(<T as PrimitiveElement>::element_size(), value.len() as u32);
+        for (idx, v) in value.iter().enumerate() {
+            PrimitiveElement::set(&builder, idx as u32, *v)
+        }
+        Ok(())
+    }
+}
+
+impl<'a, T, const N: usize> crate::traits::SetPointerBuilder<Owned<T>> for &'a [T; N]
+where
+    T: PrimitiveElement + Copy,
+{
+    #[inline]
+    fn set_pointer_builder<'b>(
+        pointer: PointerBuilder<'b>,
+        value: &'a [T; N],
+        canonicalize: bool,
+    ) -> Result<()> {
+        crate::traits::SetPointerBuilder::set_pointer_builder(pointer, &value[..], canonicalize)
     }
 }
 

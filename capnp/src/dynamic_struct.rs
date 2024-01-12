@@ -526,7 +526,9 @@ impl<'a> Builder<'a> {
                         );
                         match value {
                             dynamic_value::Reader::Text(t) => target.set_as(t),
-                            dynamic_value::Reader::Data(t) => target.set_as(t),
+                            dynamic_value::Reader::Data(t) => {
+                                target.set_as::<crate::data::Owned>(t)
+                            }
                             dynamic_value::Reader::Struct(s) => target.set_as(s),
                             dynamic_value::Reader::List(l) => target.set_as(l),
                             dynamic_value::Reader::Capability(_) => Err(Error::from_kind(

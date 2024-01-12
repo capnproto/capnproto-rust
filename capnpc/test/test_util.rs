@@ -62,14 +62,10 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
         sub_builder.set_enum_field(TestEnum::Baz);
 
         sub_builder.reborrow().init_void_list(3);
-        {
-            let mut bool_list = sub_builder.reborrow().init_bool_list(5);
-            bool_list.set(0, false);
-            bool_list.set(1, true);
-            bool_list.set(2, false);
-            bool_list.set(3, true);
-            bool_list.set(4, true);
-        }
+        sub_builder
+            .set_bool_list(&[false, true, false, true, true])
+            .unwrap();
+
         {
             let mut int8_list = sub_builder.reborrow().init_int8_list(4);
             int8_list.set(0, 12);
@@ -99,13 +95,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
             int64_list.set(3, 0x7fffffffffffffff);
         }
 
-        {
-            let mut uint8_list = sub_builder.reborrow().init_u_int8_list(4);
-            uint8_list.set(0, 12);
-            uint8_list.set(1, 34);
-            uint8_list.set(2, 0);
-            uint8_list.set(3, 0xff);
-        }
+        sub_builder.set_u_int8_list(&[12, 34, 0, 0xff]).unwrap();
 
         {
             let mut uint16_list = sub_builder.reborrow().init_u_int16_list(4);

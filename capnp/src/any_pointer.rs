@@ -165,9 +165,9 @@ impl<'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as<From: SetPointerBuilder<impl crate::traits::Owned>>(
+    pub fn set_as<T: crate::traits::Owned>(
         &mut self,
-        value: From,
+        value: impl SetPointerBuilder<T>,
     ) -> Result<()> {
         SetPointerBuilder::set_pointer_builder(self.builder.reborrow(), value, false)
     }
