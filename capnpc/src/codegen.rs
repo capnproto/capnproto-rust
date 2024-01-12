@@ -1083,8 +1083,9 @@ fn generate_setter(
                     (MaybeReader::Nongeneric(tstr), None)
                 }
                 type_::Text(()) => {
+                    // The text::Reader impl of SetPointerBuilder never fails, so we can unwrap().
                     setter_interior.push(Line(fmt!(ctx,
-                        "let _ = {capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false);"
+                        "{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false).unwrap()"
                     )));
                     initter_interior.push(Line(format!(
                         "self.builder.get_pointer_field({offset}).init_text(size)"
