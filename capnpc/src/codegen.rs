@@ -1219,7 +1219,7 @@ fn generate_setter(
             result.push(indent(setter_interior));
             result.push(line("}"));
         }
-        MaybeReader::Generic(reader_type) => {
+        MaybeReader::Generic(owned_type) => {
             let return_type = if return_result {
                 fmt!(ctx, "-> {capnp}::Result<()>")
             } else {
@@ -1227,7 +1227,7 @@ fn generate_setter(
             };
             result.push(line("#[inline]"));
             result.push(Line(fmt!(ctx,
-                "pub fn set_{styled_name}<_T: {capnp}::traits::SetPointerBuilder<{reader_type}>>(&mut self, {setter_param}: _T) {return_type} {{"
+                "pub fn set_{styled_name}<_T: {capnp}::traits::SetPointerBuilder<{owned_type}>>(&mut self, {setter_param}: _T) {return_type} {{"
             )));
             result.push(indent(setter_interior));
             result.push(line("}"));
