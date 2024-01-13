@@ -450,7 +450,7 @@ where
         root.get_as()
     }
 
-    pub fn set_root<From: ::capnp::traits::SetPointerBuilder<impl ::capnp::traits::Owned>>(
+    pub fn set_root<From: ::capnp::traits::SetterInput<impl ::capnp::traits::Owned>>(
         &mut self,
         value: From,
     ) -> ::capnp::Result<()> {

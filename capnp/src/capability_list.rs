@@ -253,7 +253,7 @@ where
     }
 }
 
-impl<'a, T> crate::traits::SetPointerBuilder<Owned<T>> for Reader<'a, T>
+impl<'a, T> crate::traits::SetterInput<Owned<T>> for Reader<'a, T>
 where
     T: FromClientHook,
 {

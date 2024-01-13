@@ -77,7 +77,7 @@ use crate::private::arena::{BuilderArena, BuilderArenaImpl};
 use crate::private::arena::{ReaderArena, ReaderArenaImpl};
 use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
-use crate::traits::{FromPointerBuilder, SetPointerBuilder};
+use crate::traits::{FromPointerBuilder, SetterInput};
 use crate::traits::{FromPointerReader, Owned};
 use crate::OutputSegments;
 use crate::Result;
@@ -477,7 +477,7 @@ where
     }
 
     /// Sets the root to a deep copy of the given value.
-    pub fn set_root<T: Owned>(&mut self, value: impl SetPointerBuilder<T>) -> Result<()> {
+    pub fn set_root<T: Owned>(&mut self, value: impl SetterInput<T>) -> Result<()> {
         let mut root = self.get_root_internal();
         root.set_as(value)
     }
@@ -485,7 +485,7 @@ where
     /// Sets the root to a canonicalized version of `value`. If this was the first action taken
     /// on this `Builder`, then a subsequent call to `get_segments_for_output()` should return
     /// a single segment, containing the full canonicalized message.
-    pub fn set_root_canonical<T: Owned>(&mut self, value: impl SetPointerBuilder<T>) -> Result<()> {
+    pub fn set_root_canonical<T: Owned>(&mut self, value: impl SetterInput<T>) -> Result<()> {
         if self.arena.is_empty() {
             self.arena
                 .allocate_segment(1)
@@ -494,7 +494,7 @@ where
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
         let pointer = layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start);
-        SetPointerBuilder::set_pointer_builder(pointer, value, true)?;
+        SetterInput::set_pointer_builder(pointer, value, true)?;
         assert_eq!(self.get_segments_for_output().len(), 1);
         Ok(())
     }

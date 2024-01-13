@@ -59,12 +59,12 @@ pub trait FromPointerReader<'a>: Sized {
 /// nonetheless as a type parameter, e.g. for a generic container that owns a Cap'n Proto
 /// message of type `T: capnp::traits::Owned`.
 pub trait Owned: crate::introspect::Introspect {
-    type Reader<'a>: FromPointerReader<'a> + SetPointerBuilder<Self>;
+    type Reader<'a>: FromPointerReader<'a> + SetterInput<Self>;
     type Builder<'a>: FromPointerBuilder<'a>;
 }
 
 pub trait OwnedStruct: crate::introspect::Introspect {
-    type Reader<'a>: From<StructReader<'a>> + SetPointerBuilder<Self> + IntoInternalStructReader<'a>;
+    type Reader<'a>: From<StructReader<'a>> + SetterInput<Self> + IntoInternalStructReader<'a>;
     type Builder<'a>: From<StructBuilder<'a>> + HasStructSize;
 }
 
@@ -80,7 +80,8 @@ pub trait FromPointerBuilder<'a>: Sized {
     ) -> Result<Self>;
 }
 
-pub trait SetPointerBuilder<Receiver: ?Sized> {
+/// A trait marking types that can be passed as inputs to setter methods.
+pub trait SetterInput<Receiver: ?Sized> {
     fn set_pointer_builder(
         builder: PointerBuilder<'_>,
         from: Self,

@@ -236,7 +236,7 @@ impl<'a, T: PrimitiveElement> Builder<'a, T> {
     }
 }
 
-impl<'a, T> crate::traits::SetPointerBuilder<Owned<T>> for Reader<'a, T>
+impl<'a, T> crate::traits::SetterInput<Owned<T>> for Reader<'a, T>
 where
     T: PrimitiveElement,
 {
@@ -250,7 +250,7 @@ where
     }
 }
 
-impl<'a, T> crate::traits::SetPointerBuilder<Owned<T>> for &'a [T]
+impl<'a, T> crate::traits::SetterInput<Owned<T>> for &'a [T]
 where
     T: PrimitiveElement + Copy,
 {
@@ -269,7 +269,7 @@ where
     }
 }
 
-impl<'a, T, const N: usize> crate::traits::SetPointerBuilder<Owned<T>> for &'a [T; N]
+impl<'a, T, const N: usize> crate::traits::SetterInput<Owned<T>> for &'a [T; N]
 where
     T: PrimitiveElement + Copy,
 {
@@ -279,7 +279,7 @@ where
         value: &'a [T; N],
         canonicalize: bool,
     ) -> Result<()> {
-        crate::traits::SetPointerBuilder::set_pointer_builder(pointer, &value[..], canonicalize)
+        crate::traits::SetterInput::set_pointer_builder(pointer, &value[..], canonicalize)
     }
 }
 

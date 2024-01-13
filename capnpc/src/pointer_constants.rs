@@ -30,9 +30,7 @@ pub struct WordArrayDeclarationOptions {
     pub public: bool,
 }
 
-fn word_array_declaration_aux<
-    T: ::capnp::traits::SetPointerBuilder<impl ::capnp::traits::Owned>,
->(
+fn word_array_declaration_aux<T: ::capnp::traits::SetterInput<impl ::capnp::traits::Owned>>(
     ctx: &GeneratorContext,
     name: &str,
     value: T,

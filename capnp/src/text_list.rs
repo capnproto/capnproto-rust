@@ -184,7 +184,7 @@ impl<'a> Builder<'a> {
     }
 }
 
-impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
+impl<'a> crate::traits::SetterInput<Owned> for Reader<'a> {
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a>,
@@ -194,7 +194,7 @@ impl<'a> crate::traits::SetPointerBuilder<Owned> for Reader<'a> {
     }
 }
 
-impl<'a, T: AsRef<str>> crate::traits::SetPointerBuilder<Owned> for &'a [T] {
+impl<'a, T: AsRef<str>> crate::traits::SetterInput<Owned> for &'a [T] {
     #[inline]
     fn set_pointer_builder<'b>(
         pointer: PointerBuilder<'b>,
@@ -215,14 +215,14 @@ impl<'a, T: AsRef<str>> crate::traits::SetPointerBuilder<Owned> for &'a [T] {
     }
 }
 
-impl<'a, T: AsRef<str>, const N: usize> crate::traits::SetPointerBuilder<Owned> for &'a [T; N] {
+impl<'a, T: AsRef<str>, const N: usize> crate::traits::SetterInput<Owned> for &'a [T; N] {
     #[inline]
     fn set_pointer_builder<'b>(
         pointer: PointerBuilder<'b>,
         value: &'a [T; N],
         canonicalize: bool,
     ) -> Result<()> {
-        crate::traits::SetPointerBuilder::set_pointer_builder(pointer, &value[..], canonicalize)
+        crate::traits::SetterInput::set_pointer_builder(pointer, &value[..], canonicalize)
     }
 }
 

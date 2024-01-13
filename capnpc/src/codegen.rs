@@ -1083,9 +1083,9 @@ fn generate_setter(
                     (MaybeReader::Nongeneric(tstr), None)
                 }
                 type_::Text(()) => {
-                    // The text::Reader impl of SetPointerBuilder never fails, so we can unwrap().
+                    // The text::Reader impl of SetterInput never fails, so we can unwrap().
                     setter_interior.push(Line(fmt!(ctx,
-                        "{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false).unwrap()"
+                        "{capnp}::traits::SetterInput::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false).unwrap()"
                     )));
                     initter_interior.push(Line(format!(
                         "self.builder.get_pointer_field({offset}).init_text(size)"
@@ -1113,7 +1113,7 @@ fn generate_setter(
                     let et = ls.get_element_type()?;
                     return_result = true;
                     setter_interior.push(
-                        Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
+                        Line(fmt!(ctx,"{capnp}::traits::SetterInput::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
 
                     initter_params.push("size: u32");
                     initter_interior.push(
@@ -1134,7 +1134,7 @@ fn generate_setter(
                         | type_::Float64(())
                         | type_::Enum(_)
                         | type_::Text(()) => {
-                            // There are multiple SetPointerBuilder impls.
+                            // There are multiple SetterInput impls.
                             MaybeReader::Generic(
                                 reg_field.get_type()?.type_string(ctx, Leaf::Owned)?,
                             )
@@ -1177,7 +1177,7 @@ fn generate_setter(
                     initter_interior.push(
                       Line(fmt!(ctx,"{capnp}::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({offset}), 0)")));
                     setter_interior.push(
-                        Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
+                        Line(fmt!(ctx,"{capnp}::traits::SetterInput::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
 
                     (
                         MaybeReader::Nongeneric(typ.type_string(ctx, Leaf::Reader("'_"))?),
@@ -1196,7 +1196,7 @@ fn generate_setter(
                 type_::AnyPointer(_) => {
                     if typ.is_parameter()? {
                         initter_interior.push(Line(fmt!(ctx,"{capnp}::any_pointer::Builder::new(self.builder.get_pointer_field({offset})).init_as()")));
-                        setter_interior.push(Line(fmt!(ctx,"{capnp}::traits::SetPointerBuilder::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
+                        setter_interior.push(Line(fmt!(ctx,"{capnp}::traits::SetterInput::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
                         return_result = true;
 
                         let builder_type = typ.type_string(ctx, Leaf::Builder("'a"))?;
@@ -1251,7 +1251,7 @@ fn generate_setter(
             };
             result.push(line("#[inline]"));
             result.push(Line(fmt!(ctx,
-                "pub fn set_{styled_name}<_T: {capnp}::traits::SetPointerBuilder<{owned_type}>>(&mut self, {setter_param}: _T) {return_type} {{"
+                "pub fn set_{styled_name}<_T: {capnp}::traits::SetterInput<{owned_type}>>(&mut self, {setter_param}: _T) {return_type} {{"
             )));
             result.push(indent(setter_interior));
             result.push(line("}"));
@@ -2361,7 +2361,7 @@ fn generate_node(
 
                 from_pointer_builder_impl,
                 Line(fmt!(ctx,
-                    "impl <'a,{0}> {capnp}::traits::SetPointerBuilder<Owned<{0}>> for Reader<'a,{0}> {1} {{",
+                    "impl <'a,{0}> {capnp}::traits::SetterInput<Owned<{0}>> for Reader<'a,{0}> {1} {{",
                     params.params, params.where_clause)),
                 indent(Line(fmt!(ctx,"fn set_pointer_builder(mut pointer: {capnp}::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> {capnp}::Result<()> {{ pointer.set_struct(&value.reader, canonicalize) }}"))),
                 line("}"),
@@ -2757,7 +2757,7 @@ fn generate_node(
 
             mod_interior.push(Branch(vec![
                 Line(fmt!(ctx,
-                    "impl <{0}> {capnp}::traits::SetPointerBuilder<Owned<{0}>> for Client<{0}> {1} {{",
+                    "impl <{0}> {capnp}::traits::SetterInput<Owned<{0}>> for Client<{0}> {1} {{",
                     params.params, params.where_clause)),
                 indent(vec![
                             Line(fmt!(ctx,"fn set_pointer_builder(mut pointer: {capnp}::private::layout::PointerBuilder<'_>, from: Self, _canonicalize: bool) -> {capnp}::Result<()> {{")),
