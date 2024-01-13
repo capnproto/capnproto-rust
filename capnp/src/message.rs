@@ -572,7 +572,17 @@ where
     T: Owned,
 {
     pub fn new_default() -> Self {
-        Self::new(Builder::new_default())
+        Default::default()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T> Default for TypedBuilder<T, HeapAllocator>
+where
+    T: Owned,
+{
+    fn default() -> Self {
+        Self::new(Builder::default())
     }
 }
 
