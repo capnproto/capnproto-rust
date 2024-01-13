@@ -450,9 +450,9 @@ where
         root.get_as()
     }
 
-    pub fn set_root<From: ::capnp::traits::SetterInput<impl ::capnp::traits::Owned>>(
+    pub fn set_root<T: ::capnp::traits::Owned>(
         &mut self,
-        value: From,
+        value: impl ::capnp::traits::SetterInput<T>,
     ) -> ::capnp::Result<()> {
         use capnp::traits::ImbueMut;
         let mut root: ::capnp::any_pointer::Builder = self.builder.get_root()?;
