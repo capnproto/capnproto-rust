@@ -65,12 +65,12 @@ impl StructSchema {
         let mut candidate_name = fields.get(candidate_index).get_proto().get_name()?;
 
         while lower < upper {
-            if name == candidate_name {
-                return Ok(Some(fields.get(candidate_index)));
-            } else if candidate_name < name {
-                lower = mid + 1;
-            } else {
-                upper = mid;
+            use core::cmp::Ordering;
+            match (&name).partial_cmp(&candidate_name) {
+                Some(Ordering::Equal) => return Ok(Some(fields.get(candidate_index))),
+                Some(Ordering::Greater) => lower = mid + 1,
+                Some(Ordering::Less) => upper = mid,
+                None => unreachable!(),
             }
             mid = (lower + upper) / 2;
             candidate_index = self.raw.generic.members_by_name[mid];
