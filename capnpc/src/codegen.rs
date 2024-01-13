@@ -1008,16 +1008,10 @@ fn generate_setter(
         initn_interior.push(init_discrim);
     }
 
-    enum MaybeReader {
-        None,
-        Generic(String),
-        Nongeneric(String),
-    }
-
     let mut return_result = false;
     let mut result = Vec::new();
 
-    let (maybe_reader_type, maybe_builder_type): (MaybeReader, Option<String>) = match field
+    let (maybe_reader_type, maybe_builder_type): (Option<String>, Option<String>) = match field
         .which()?
     {
         field::Group(group) => {
@@ -1038,10 +1032,7 @@ fn generate_setter(
 
             initter_interior.push(line("self.builder.into()"));
 
-            (
-                MaybeReader::None,
-                Some(format!("{the_mod}::Builder<'a{params_string}>")),
-            )
+            (None, Some(format!("{the_mod}::Builder<'a{params_string}>")))
         }
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
@@ -1049,7 +1040,7 @@ fn generate_setter(
             match typ.which().expect("unrecognized type") {
                 type_::Void(()) => {
                     setter_param = "_value".to_string();
-                    (MaybeReader::Nongeneric("()".to_string()), None)
+                    (Some("()".to_string()), None)
                 }
                 type_::Bool(()) => {
                     match prim_default(&reg_field.get_default_value()?)? {
@@ -1064,7 +1055,7 @@ fn generate_setter(
                             )));
                         }
                     }
-                    (MaybeReader::Nongeneric("bool".to_string()), None)
+                    (Some("bool".to_string()), None)
                 }
                 _ if typ.is_prim()? => {
                     let tstr = typ.type_string(ctx, Leaf::Reader("'a"))?;
@@ -1080,7 +1071,7 @@ fn generate_setter(
                             )));
                         }
                     };
-                    (MaybeReader::Nongeneric(tstr), None)
+                    (Some(tstr), None)
                 }
                 type_::Text(()) => {
                     // The text::Reader impl of SetterInput never fails, so we can unwrap().
@@ -1092,7 +1083,10 @@ fn generate_setter(
                     )));
                     initter_params.push("size: u32");
                     (
-                        MaybeReader::Generic(fmt!(ctx, "{capnp}::text::Owned")),
+                        Some(fmt!(
+                            ctx,
+                            "impl {capnp}::traits::SetterInput<{capnp}::text::Owned>"
+                        )),
                         Some(fmt!(ctx, "{capnp}::text::Builder<'a>")),
                     )
                 }
@@ -1105,7 +1099,7 @@ fn generate_setter(
                     )));
                     initter_params.push("size: u32");
                     (
-                        MaybeReader::Nongeneric(fmt!(ctx, "{capnp}::data::Reader<'_>")),
+                        Some(fmt!(ctx, "{capnp}::data::Reader<'_>")),
                         Some(fmt!(ctx, "{capnp}::data::Builder<'a>")),
                     )
                 }
@@ -1135,17 +1129,17 @@ fn generate_setter(
                         | type_::Enum(_)
                         | type_::Text(()) => {
                             // There are multiple SetterInput impls.
-                            MaybeReader::Generic(
-                                reg_field.get_type()?.type_string(ctx, Leaf::Owned)?,
+                            fmt!(
+                                ctx,
+                                "impl {capnp}::traits::SetterInput<{}>",
+                                reg_field.get_type()?.type_string(ctx, Leaf::Owned)?
                             )
                         }
-                        _ => MaybeReader::Nongeneric(
-                            reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?,
-                        ),
+                        _ => reg_field.get_type()?.type_string(ctx, Leaf::Reader("'_"))?,
                     };
 
                     (
-                        mr,
+                        Some(mr),
                         Some(
                             reg_field
                                 .get_type()?
@@ -1170,7 +1164,7 @@ fn generate_setter(
                             _ => return Err(Error::failed("enum default not an Enum".to_string())),
                         }
                     };
-                    (MaybeReader::Nongeneric(the_mod), None)
+                    (Some(the_mod), None)
                 }
                 type_::Struct(_) => {
                     return_result = true;
@@ -1180,7 +1174,7 @@ fn generate_setter(
                         Line(fmt!(ctx,"{capnp}::traits::SetterInput::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
 
                     (
-                        MaybeReader::Nongeneric(typ.type_string(ctx, Leaf::Reader("'_"))?),
+                        Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
                         Some(typ.type_string(ctx, Leaf::Builder("'a"))?),
                     )
                 }
@@ -1188,10 +1182,7 @@ fn generate_setter(
                     setter_interior.push(Line(format!(
                         "self.builder.reborrow().get_pointer_field({offset}).set_capability(value.client.hook);"
                     )));
-                    (
-                        MaybeReader::Nongeneric(typ.type_string(ctx, Leaf::Client)?),
-                        None,
-                    )
+                    (Some(typ.type_string(ctx, Leaf::Client)?), None)
                 }
                 type_::AnyPointer(_) => {
                     if typ.is_parameter()? {
@@ -1212,51 +1203,36 @@ fn generate_setter(
                         result.push(line("}"));
 
                         (
-                            MaybeReader::Generic(typ.type_string(ctx, Leaf::Owned)?),
+                            Some(fmt!(
+                                ctx,
+                                "impl {capnp}::traits::SetterInput<{}>",
+                                typ.type_string(ctx, Leaf::Owned)?
+                            )),
                             Some(builder_type),
                         )
                     } else {
                         initter_interior.push(Line(fmt!(ctx,"let mut result = {capnp}::any_pointer::Builder::new(self.builder.get_pointer_field({offset}));")));
                         initter_interior.push(line("result.clear();"));
                         initter_interior.push(line("result"));
-                        (
-                            MaybeReader::None,
-                            Some(fmt!(ctx, "{capnp}::any_pointer::Builder<'a>")),
-                        )
+                        (None, Some(fmt!(ctx, "{capnp}::any_pointer::Builder<'a>")))
                     }
                 }
                 _ => return Err(Error::failed("unrecognized type".to_string())),
             }
         }
     };
-    match maybe_reader_type {
-        MaybeReader::Nongeneric(reader_type) => {
-            let return_type = if return_result {
-                fmt!(ctx, "-> {capnp}::Result<()>")
-            } else {
-                "".into()
-            };
-            result.push(line("#[inline]"));
-            result.push(Line(format!(
-                "pub fn set_{styled_name}(&mut self, {setter_param}: {reader_type}) {return_type} {{"
-            )));
-            result.push(indent(setter_interior));
-            result.push(line("}"));
-        }
-        MaybeReader::Generic(owned_type) => {
-            let return_type = if return_result {
-                fmt!(ctx, "-> {capnp}::Result<()>")
-            } else {
-                "".into()
-            };
-            result.push(line("#[inline]"));
-            result.push(Line(fmt!(ctx,
-                "pub fn set_{styled_name}<_T: {capnp}::traits::SetterInput<{owned_type}>>(&mut self, {setter_param}: _T) {return_type} {{"
-            )));
-            result.push(indent(setter_interior));
-            result.push(line("}"));
-        }
-        MaybeReader::None => (),
+    if let Some(reader_type) = maybe_reader_type {
+        let return_type = if return_result {
+            fmt!(ctx, "-> {capnp}::Result<()>")
+        } else {
+            "".into()
+        };
+        result.push(line("#[inline]"));
+        result.push(Line(format!(
+            "pub fn set_{styled_name}(&mut self, {setter_param}: {reader_type}) {return_type} {{"
+        )));
+        result.push(indent(setter_interior));
+        result.push(line("}"));
     }
     if let Some(builder_type) = maybe_builder_type {
         result.push(line("#[inline]"));
