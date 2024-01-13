@@ -97,14 +97,21 @@ pub trait SetterInput<Receiver: ?Sized> {
     ) -> Result<()>;
 }
 
+/// A trait for types that can be "imbued" with capabilities.
+/// A newly-read message from the network might contain capability pointers
+/// but until the message has been imbued with the actual capabilities,
+/// those pointers will not be usable.
 pub trait Imbue<'a> {
     fn imbue(&mut self, caps: &'a CapTable);
 }
 
+/// Like `Imbue`, but the capability table is mutable.
 pub trait ImbueMut<'a> {
     fn imbue_mut(&mut self, caps: &'a mut CapTable);
 }
 
+/// User-defined Cap'n Proto structs and interfaces are statically assigned a
+/// 64-bit type ID. This trait allows the ID to be retrieved.
 pub trait HasTypeId {
     const TYPE_ID: u64;
 }
@@ -177,6 +184,7 @@ impl<U, T: IndexMove<u32, U>> ::core::iter::DoubleEndedIterator for ListIter<T, 
     }
 }
 
+/// Iterator for a list whose indices are of type `u16`.
 pub struct ShortListIter<T, U> {
     marker: PhantomData<U>,
     list: T,
