@@ -287,15 +287,16 @@ pub mod node {
             )
         }
         #[inline]
-        pub fn set_display_name<_T: crate::traits::SetterInput<crate::text::Owned>>(
+        pub fn set_display_name(
             &mut self,
-            value: _T,
+            value: impl crate::traits::SetterInput<crate::text::Owned>,
         ) {
-            let _ = crate::traits::SetterInput::set_pointer_builder(
+            crate::traits::SetterInput::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
                 value,
                 false,
-            );
+            )
+            .unwrap()
         }
         #[inline]
         pub fn init_display_name(self, size: u32) -> crate::text::Builder<'a> {
@@ -1001,15 +1002,13 @@ pub mod node {
                 )
             }
             #[inline]
-            pub fn set_name<_T: crate::traits::SetterInput<crate::text::Owned>>(
-                &mut self,
-                value: _T,
-            ) {
-                let _ = crate::traits::SetterInput::set_pointer_builder(
+            pub fn set_name(&mut self, value: impl crate::traits::SetterInput<crate::text::Owned>) {
+                crate::traits::SetterInput::set_pointer_builder(
                     self.builder.reborrow().get_pointer_field(0),
                     value,
                     false,
-                );
+                )
+                .unwrap()
             }
             #[inline]
             pub fn init_name(self, size: u32) -> crate::text::Builder<'a> {
@@ -1304,15 +1303,13 @@ pub mod node {
                 )
             }
             #[inline]
-            pub fn set_name<_T: crate::traits::SetterInput<crate::text::Owned>>(
-                &mut self,
-                value: _T,
-            ) {
-                let _ = crate::traits::SetterInput::set_pointer_builder(
+            pub fn set_name(&mut self, value: impl crate::traits::SetterInput<crate::text::Owned>) {
+                crate::traits::SetterInput::set_pointer_builder(
                     self.builder.reborrow().get_pointer_field(0),
                     value,
                     false,
-                );
+                )
+                .unwrap()
             }
             #[inline]
             pub fn init_name(self, size: u32) -> crate::text::Builder<'a> {
@@ -1657,15 +1654,16 @@ pub mod node {
                 )
             }
             #[inline]
-            pub fn set_doc_comment<_T: crate::traits::SetterInput<crate::text::Owned>>(
+            pub fn set_doc_comment(
                 &mut self,
-                value: _T,
+                value: impl crate::traits::SetterInput<crate::text::Owned>,
             ) {
-                let _ = crate::traits::SetterInput::set_pointer_builder(
+                crate::traits::SetterInput::set_pointer_builder(
                     self.builder.reborrow().get_pointer_field(0),
                     value,
                     false,
-                );
+                )
+                .unwrap()
             }
             #[inline]
             pub fn init_doc_comment(self, size: u32) -> crate::text::Builder<'a> {
@@ -2051,15 +2049,16 @@ pub mod node {
                     )
                 }
                 #[inline]
-                pub fn set_doc_comment<_T: crate::traits::SetterInput<crate::text::Owned>>(
+                pub fn set_doc_comment(
                     &mut self,
-                    value: _T,
+                    value: impl crate::traits::SetterInput<crate::text::Owned>,
                 ) {
-                    let _ = crate::traits::SetterInput::set_pointer_builder(
+                    crate::traits::SetterInput::set_pointer_builder(
                         self.builder.reborrow().get_pointer_field(0),
                         value,
                         false,
-                    );
+                    )
+                    .unwrap()
                 }
                 #[inline]
                 pub fn init_doc_comment(self, size: u32) -> crate::text::Builder<'a> {
@@ -4603,12 +4602,13 @@ pub mod field {
             )
         }
         #[inline]
-        pub fn set_name<_T: crate::traits::SetterInput<crate::text::Owned>>(&mut self, value: _T) {
-            let _ = crate::traits::SetterInput::set_pointer_builder(
+        pub fn set_name(&mut self, value: impl crate::traits::SetterInput<crate::text::Owned>) {
+            crate::traits::SetterInput::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
                 value,
                 false,
-            );
+            )
+            .unwrap()
         }
         #[inline]
         pub fn init_name(self, size: u32) -> crate::text::Builder<'a> {
@@ -6111,12 +6111,13 @@ pub mod enumerant {
             )
         }
         #[inline]
-        pub fn set_name<_T: crate::traits::SetterInput<crate::text::Owned>>(&mut self, value: _T) {
-            let _ = crate::traits::SetterInput::set_pointer_builder(
+        pub fn set_name(&mut self, value: impl crate::traits::SetterInput<crate::text::Owned>) {
+            crate::traits::SetterInput::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
                 value,
                 false,
-            );
+            )
+            .unwrap()
         }
         #[inline]
         pub fn init_name(self, size: u32) -> crate::text::Builder<'a> {
@@ -6874,12 +6875,13 @@ pub mod method {
             )
         }
         #[inline]
-        pub fn set_name<_T: crate::traits::SetterInput<crate::text::Owned>>(&mut self, value: _T) {
-            let _ = crate::traits::SetterInput::set_pointer_builder(
+        pub fn set_name(&mut self, value: impl crate::traits::SetterInput<crate::text::Owned>) {
+            crate::traits::SetterInput::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
                 value,
                 false,
-            );
+            )
+            .unwrap()
         }
         #[inline]
         pub fn init_name(self, size: u32) -> crate::text::Builder<'a> {
@@ -11930,13 +11932,14 @@ pub mod value {
             self.builder.set_data_field::<f64>(1, value);
         }
         #[inline]
-        pub fn set_text<_T: crate::traits::SetterInput<crate::text::Owned>>(&mut self, value: _T) {
+        pub fn set_text(&mut self, value: impl crate::traits::SetterInput<crate::text::Owned>) {
             self.builder.set_data_field::<u16>(0, 12);
-            let _ = crate::traits::SetterInput::set_pointer_builder(
+            crate::traits::SetterInput::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
                 value,
                 false,
-            );
+            )
+            .unwrap()
         }
         #[inline]
         pub fn init_text(self, size: u32) -> crate::text::Builder<'a> {
@@ -14064,15 +14067,16 @@ pub mod code_generator_request {
                 )
             }
             #[inline]
-            pub fn set_filename<_T: crate::traits::SetterInput<crate::text::Owned>>(
+            pub fn set_filename(
                 &mut self,
-                value: _T,
+                value: impl crate::traits::SetterInput<crate::text::Owned>,
             ) {
-                let _ = crate::traits::SetterInput::set_pointer_builder(
+                crate::traits::SetterInput::set_pointer_builder(
                     self.builder.reborrow().get_pointer_field(0),
                     value,
                     false,
-                );
+                )
+                .unwrap()
             }
             #[inline]
             pub fn init_filename(self, size: u32) -> crate::text::Builder<'a> {
@@ -14472,15 +14476,16 @@ pub mod code_generator_request {
                     )
                 }
                 #[inline]
-                pub fn set_name<_T: crate::traits::SetterInput<crate::text::Owned>>(
+                pub fn set_name(
                     &mut self,
-                    value: _T,
+                    value: impl crate::traits::SetterInput<crate::text::Owned>,
                 ) {
-                    let _ = crate::traits::SetterInput::set_pointer_builder(
+                    crate::traits::SetterInput::set_pointer_builder(
                         self.builder.reborrow().get_pointer_field(0),
                         value,
                         false,
-                    );
+                    )
+                    .unwrap()
                 }
                 #[inline]
                 pub fn init_name(self, size: u32) -> crate::text::Builder<'a> {

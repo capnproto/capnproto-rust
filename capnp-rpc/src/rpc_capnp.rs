@@ -8168,9 +8168,9 @@ pub mod exception {
             )
         }
         #[inline]
-        pub fn set_reason<_T: ::capnp::traits::SetterInput<::capnp::text::Owned>>(
+        pub fn set_reason(
             &mut self,
-            value: _T,
+            value: impl ::capnp::traits::SetterInput<::capnp::text::Owned>,
         ) {
             ::capnp::traits::SetterInput::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(0),
@@ -8222,9 +8222,9 @@ pub mod exception {
             )
         }
         #[inline]
-        pub fn set_trace<_T: ::capnp::traits::SetterInput<::capnp::text::Owned>>(
+        pub fn set_trace(
             &mut self,
-            value: _T,
+            value: impl ::capnp::traits::SetterInput<::capnp::text::Owned>,
         ) {
             ::capnp::traits::SetterInput::set_pointer_builder(
                 self.builder.reborrow().get_pointer_field(1),
