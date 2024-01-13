@@ -81,10 +81,18 @@ pub trait FromPointerBuilder<'a>: Sized {
 }
 
 /// A trait marking types that can be passed as inputs to setter methods.
+/// `Receiver` is intended to be an `Owned`, representing the destination type.
+///
+/// This trait allows setters to support multiple types of input. For example,
+/// a text field setter accepts values of type `&str` and of type `text::Reader`.
 pub trait SetterInput<Receiver: ?Sized> {
+    /// Copies the values from `input` into `builder`, where `builder`
+    /// represents the backing memory of a `<Receiver as Owned>::Builder`.
+    ///
+    /// End user code should never need to call this method directly.
     fn set_pointer_builder(
         builder: PointerBuilder<'_>,
-        from: Self,
+        input: Self,
         canonicalize: bool,
     ) -> Result<()>;
 }
