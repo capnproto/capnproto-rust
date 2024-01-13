@@ -765,6 +765,15 @@ impl Builder<HeapAllocator> {
     /// Constructs a new `message::Builder<HeapAllocator>` whose first segment has length
     /// `SUGGESTED_FIRST_SEGMENT_WORDS`.
     pub fn new_default() -> Self {
+        Default::default()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Default for Builder<HeapAllocator> {
+    /// Constructs a new `message::Builder<HeapAllocator>` whose first segment has length
+    /// `SUGGESTED_FIRST_SEGMENT_WORDS`.
+    fn default() -> Self {
         Self::new(HeapAllocator::new())
     }
 }
