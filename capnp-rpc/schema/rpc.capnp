@@ -415,6 +415,30 @@ struct Call {
   # `acceptFromThirdParty`.  Level 3 implementations should set this true.  Otherwise, the callee
   # will have to proxy the return in the case of a tail call to a third-party vat.
 
+  noPromisePipelining @9 :Bool = false;
+  # If true, the sender promises that it won't make any promise-pipelined calls on the results of
+  # this call. If it breaks this promise, the receiver may throw an arbitrary error from such
+  # calls.
+  #
+  # The receiver may use this as an optimization, by skipping the bookkeeping needed for pipelining
+  # when no pipelined calls are expected. The sender typically sets this to false when the method's
+  # schema does not specify any return capabilities.
+
+  onlyPromisePipeline @10 :Bool = false;
+  # If true, the sender only plans to use this call to make pipelined calls. The receiver need not
+  # send a `Return` message (but is still allowed to do so).
+  #
+  # Since the sender does not know whether a `Return` will be sent, it must release all state
+  # related to the call when it sends `Finish`. However, in the case that the callee does not
+  # recognize this hint and chooses to send a `Return`, then technically the caller is not allowed
+  # to reuse the question ID until it receives said `Return`. This creates a conundrum: How does
+  # the caller decide when it's OK to reuse the ID? To sidestep the problem, the C++ implementation
+  # uses high-numbered IDs (with the high-order bit set) for such calls, and cycles through the
+  # IDs in order. If all 2^31 IDs in this space are used without ever seeing a `Return`, then the
+  # implementation assumes that the other end is in fact honoring the hint, and the ID counter is
+  # allowed to loop around. If a `Return` is ever seen when `onlyPromisePipeline` was set, then
+  # the implementation stops using this hint.
+
   params @4 :Payload;
   # The call parameters.  `params.content` is a struct whose fields correspond to the parameters of
   # the method.
@@ -496,6 +520,13 @@ struct Return {
   # The receiver should act as if the sender had sent a release message with count=1 for each
   # CapDescriptor in the original Call message.
 
+  noFinishNeeded @8 :Bool = false;
+  # If true, the sender does not need the receiver to send a `Finish` message; its answer table
+  # entry has already been cleaned up. This implies that the results do not contain any
+  # capabilities, since the `Finish` message would normally release those capabilities from
+  # promise pipelining responsibility. The caller may still send a `Finish` message if it wants,
+  # which will be silently ignored by the callee.
+
   union {
     results @2 :Payload;
     # The result.
@@ -564,6 +595,20 @@ struct Finish {
   # should always set this true.  This defaults true because if level 0 implementations forget to
   # set it they'll never notice (just silently leak caps), but if level >=1 implementations forget
   # set it false they'll quickly get errors.
+
+  requireEarlyCancellationWorkaround @2 :Bool = true;
+  # If true, if the RPC system receives this Finish message before the original call has even been
+  # delivered, it should defer cancellation util after delivery. In particular, this gives the
+  # destination object a chance to opt out of cancellation, e.g. as controlled by the
+  # `allowCancellation` annotation defined in `c++.capnp`.
+  #
+  # This is a work-around. Versions 1.0 and up of Cap'n Proto always set this to false. However,
+  # older versions of Cap'n Proto unintentionally exhibited this errant behavior by default, and
+  # as a result programs built with older versions could be inadvertently relying on their peers
+  # to implement the behavior. The purpose of this flag is to let newer versions know when the
+  # peer is an older version, so that it can attempt to work around the issue.
+  #
+  # See also comments in handleFinish() in rpc.c++ for more details.
 }
 
 # Level 1 message types ----------------------------------------------
@@ -707,6 +752,10 @@ struct Disembargo {
   # is expected that people sending messages to P will shortly start sending them to R instead and
   # drop P. P is at end-of-life anyway, so it doesn't matter if it ignores chances to further
   # optimize its path.
+  #
+  # Note well: the Tribble 4-way race condition does not require each vat to be *distinct*; as long
+  # as each resolution crosses a network boundary the race can occur -- so this concerns even level
+  # 1 implementations, not just level 3 implementations.
 
   target @0 :MessageTarget;
   # What is to be disembargoed.
