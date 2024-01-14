@@ -170,13 +170,13 @@ impl<'a> FromPointerBuilder<'a> for Builder<'a> {
 }
 
 impl<'a> crate::traits::SetterInput<Owned> for Reader<'a> {
+    #[inline]
     fn set_pointer_builder<'b>(
         mut pointer: PointerBuilder<'b>,
         value: Reader<'a>,
         canonicalize: bool,
     ) -> Result<()> {
-        pointer.set_list(&value.reader, canonicalize)?;
-        Ok(())
+        pointer.set_list(&value.reader, canonicalize)
     }
 }
 

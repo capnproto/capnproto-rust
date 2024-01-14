@@ -257,6 +257,7 @@ impl<'a, T> crate::traits::SetterInput<Owned<T>> for Reader<'a, T>
 where
     T: FromClientHook,
 {
+    #[inline]
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a, T>,

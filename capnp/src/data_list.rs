@@ -186,6 +186,7 @@ impl<'a> Builder<'a> {
 }
 
 impl<'a> crate::traits::SetterInput<Owned> for Reader<'a> {
+    #[inline]
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
         value: Reader<'a>,
