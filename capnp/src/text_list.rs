@@ -22,7 +22,7 @@
 //! List of strings containing UTF-8 encoded text.
 
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
-use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
+use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter, SetterInput};
 use crate::Result;
 
 #[derive(Copy, Clone)]
@@ -128,12 +128,17 @@ impl<'a> Builder<'a> {
         self.len() == 0
     }
 
-    pub fn set(&mut self, index: u32, value: crate::text::Reader) {
+    #[inline]
+    pub fn set(&mut self, index: u32, value: impl SetterInput<crate::text::Owned>) {
         assert!(index < self.len());
-        self.builder
-            .reborrow()
-            .get_pointer_element(index)
-            .set_text(value);
+        SetterInput::set_pointer_builder(
+            self.builder.reborrow().get_pointer_element(index),
+            value,
+            false,
+        )
+        .unwrap()
+        // The text impls of SetterInput never return an error, so
+        // the above unwrap() won't panic.
     }
 
     pub fn into_reader(self) -> Reader<'a> {

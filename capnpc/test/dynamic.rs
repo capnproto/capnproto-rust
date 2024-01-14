@@ -349,13 +349,14 @@ fn test_stringify_enum_list() {
 fn test_stringify_text_list() {
     use capnp::text_list;
     let mut message = message::Builder::new_default();
-    let mut root: text_list::Builder<'_> = message.initn_root(4);
-    root.set(0, "abcd".into());
-    root.set(1, "efgh".into());
-    root.set(2, "ijkl".into());
-    root.set(3, "mnop".into());
+    message.set_root(&["abcd", "efgh", "ijkl", "mnop"]).unwrap();
 
-    let stringified = format!("{:?}", root.into_reader());
+    let stringified = format!(
+        "{:?}",
+        message
+            .get_root_as_reader::<text_list::Reader<'_>>()
+            .unwrap()
+    );
     assert_eq!(stringified, "[\"abcd\", \"efgh\", \"ijkl\", \"mnop\"]");
 }
 

@@ -357,8 +357,8 @@ mod tests {
 
             {
                 let mut text_list = test_complex_list.reborrow().init_text_list(2);
-                text_list.set(0, "garply".into());
-                text_list.set(1, "foo".into());
+                text_list.set(0, "garply");
+                text_list.set(1, "foo");
             }
 
             {
@@ -413,7 +413,7 @@ mod tests {
 
             {
                 let text_list_list = test_complex_list.reborrow().init_text_list_list(1);
-                text_list_list.init(0, 1).set(0, "abc".into());
+                text_list_list.init(0, 1).set(0, "abc");
             }
 
             {
@@ -1217,8 +1217,8 @@ mod tests {
             let mut old_version = message.init_root::<test_old_version::Builder<'_>>();
             old_version.set_old1(123);
             let mut names = old_version.init_old4(2);
-            names.set(0, "alice".into());
-            names.set(1, "bob".into());
+            names.set(0, "alice");
+            names.set(1, "bob");
         }
         {
             let new_version = message
@@ -1341,9 +1341,9 @@ mod tests {
                     .reborrow()
                     .get_any_pointer_field()
                     .initn_as::<::capnp::text_list::Builder<'_>>(3);
-                list.set(0, "foo".into());
-                list.set(1, "bar".into());
-                list.set(2, "baz".into());
+                list.set(0, "foo");
+                list.set(1, "bar");
+                list.set(2, "baz");
             }
             {
                 let mut l = root
