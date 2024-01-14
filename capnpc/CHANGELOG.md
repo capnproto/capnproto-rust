@@ -1,3 +1,7 @@
+## v0.19.0
+- Include new members_by_name field of RawStructSchema.
+- Generalize text, primitive_list, and enum_list setters using impl SetterInput.
+
 ## v0.18.1
 - Fix overly-restrictive lifetimes in setters of certain list fields.
 

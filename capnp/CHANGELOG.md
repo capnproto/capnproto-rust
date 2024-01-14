@@ -1,3 +1,14 @@
+## v0.19.0
+- Use binary search instead of linear scan in DynamicStruct::get_named().
+- Rename SetPointerBuilder to SetterInput.
+- Add Receiver type parameter to SetterInput.
+- Support setting text fields by text::Reader or &str, via the SetterInput tactic.
+  This will break code that uses the into() to convert from str to text::Reader
+  in the arguments of such methods.
+- Also support setting primitive list fields by native Rust slices, and text list
+  fields by slices of AsRef<str>.
+- Update embedded-io dependency to version 0.6.1.
+
 ## v0.18.13
 - Add PartialEq impls for text::Reader <-> String.
 

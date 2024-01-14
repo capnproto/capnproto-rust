@@ -1,3 +1,9 @@
+## v0.19.0
+Follow v0.19.0 release of other capnp crates.
+
+## v0.18.0
+Follow v0.19.0 release of other capnp crates.
+
 ## v0.17.0
 - Rename `WeakCapabilityServerSet` to `CapabilityServerSet` and remove the old implmentation.
 

@@ -1,3 +1,6 @@
+## v0.19.0
+Follow v0.19.0 release of other capnp crates.
+
 ## v0.18.2
 - Fix overflow bug in read_message that could potentially lead to denial of service
   attacks on 32-bit targets.
