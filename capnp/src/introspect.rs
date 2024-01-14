@@ -214,7 +214,7 @@ pub struct RawStructSchema {
     /// Map from discriminant value to field index.
     pub members_by_discriminant: &'static [u16],
 
-    // Sorted array of field names with matching field index.
+    /// Indices of fields, sorted by their respective names.
     pub members_by_name: &'static [u16],
 }
 
