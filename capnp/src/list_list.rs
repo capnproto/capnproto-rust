@@ -23,7 +23,7 @@
 
 use crate::introspect;
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
-use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
+use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter, SetterInput};
 use crate::Result;
 
 #[derive(Clone, Copy)]
@@ -239,16 +239,13 @@ where
         }
     }
 
-    pub fn set<'b>(&mut self, index: u32, value: T::Reader<'a>) -> Result<()>
-    where
-        T::Reader<'a>: crate::traits::IntoInternalListReader<'b>,
-    {
-        use crate::traits::IntoInternalListReader;
+    pub fn set(&mut self, index: u32, value: impl SetterInput<T>) -> Result<()> {
         assert!(index < self.len());
-        self.builder
-            .reborrow()
-            .get_pointer_element(index)
-            .set_list(&value.into_internal_list_reader(), false)
+        SetterInput::set_pointer_builder(
+            self.builder.reborrow().get_pointer_element(index),
+            value,
+            false,
+        )
     }
 }
 

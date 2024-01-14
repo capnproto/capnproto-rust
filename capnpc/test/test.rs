@@ -370,11 +370,8 @@ mod tests {
             {
                 let mut prim_list_list = test_complex_list.reborrow().init_prim_list_list(2);
                 {
-                    let mut prim_list = prim_list_list.reborrow().init(0, 3);
-                    prim_list.set(0, 5);
-                    prim_list.set(1, 6);
-                    prim_list.set(2, 7);
-                    assert_eq!(prim_list.len(), 3);
+                    prim_list_list.set(0, &[5, 6, 7]).unwrap();
+                    assert_eq!(prim_list_list.reborrow().get(0).unwrap().len(), 3);
                 }
                 let mut prim_list = prim_list_list.init(1, 1);
                 prim_list.set(0, -1);
