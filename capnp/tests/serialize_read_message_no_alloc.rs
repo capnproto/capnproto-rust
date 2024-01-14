@@ -26,3 +26,28 @@ pub fn serialize_read_message_no_alloc() {
         assert_eq!("hello world!", s);
     }
 }
+
+#[repr(C, align(8))]
+struct BufferWrapper<const N: usize> {
+    bytes: [u8; N],
+}
+
+impl<const N: usize> AsRef<[u8]> for BufferWrapper<N> {
+    fn as_ref(&self) -> &[u8] {
+        &self.bytes[..]
+    }
+}
+
+#[test]
+pub fn no_alloc_buffer_segments_from_buffer() {
+    let buffer = BufferWrapper {
+        bytes: [
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x42, 0x00,
+            0x00, 0x00, 97, 98, 99, 100, 101, 102, 103, 0, // "abcdefg" with null terminator
+        ],
+    };
+    let segs = serialize::NoAllocBufferSegments::from_buffer(buffer, Default::default()).unwrap();
+    let message = message::Reader::new(segs, Default::default());
+    let t = message.get_root::<capnp::text::Reader>().unwrap();
+    assert_eq!(t, "abcdefg");
+}
