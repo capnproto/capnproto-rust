@@ -31,10 +31,10 @@
 //!
 //! ```ignore
 //! [dependencies]
-//! capnp = "0.18" # Note this is a different library than capnp*c*
+//! capnp = "0.19" # Note this is a different library than capnp*c*
 //!
 //! [build-dependencies]
-//! capnpc = "0.18"
+//! capnpc = "0.19"
 //! ```
 //!
 //! In your build.rs:
