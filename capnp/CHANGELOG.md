@@ -8,6 +8,8 @@
 - Also support setting primitive list fields by native Rust slices, and text list
   fields by slices of AsRef<str>.
 - Update embedded-io dependency to version 0.6.1.
+- Use AsRef<[u8]> instead of Deref<Target=[u8]> in NoAllocBufferSegments.
+- Generalize SingleSegmentAllocator to take any type that implements AsMut<[u8]>.
 
 ## v0.18.13
 - Add PartialEq impls for text::Reader <-> String.
