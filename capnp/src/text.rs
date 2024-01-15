@@ -318,35 +318,16 @@ impl<'a> crate::traits::SetterInput<Owned> for Reader<'a> {
     }
 }
 
-// Text field setters are generated with a signature like
-// ```
-//   set_foo(&mut self, value: impl SetterInput<text::Owned>)
-// ```
-// Combined with the below impls of `SetterInput`, this
-// allows text fields to be conveniently set from values
-// of type `&str`.
-
-impl<'a> crate::traits::SetterInput<Owned> for &'a str {
+// Allow text fields to be set with &str or String or anything
+// else that implements `AsRef<str>`.
+impl<T: AsRef<str>> crate::traits::SetterInput<Owned> for T {
     #[inline]
     fn set_pointer_builder<'b>(
         mut pointer: crate::private::layout::PointerBuilder<'b>,
-        value: &'a str,
+        value: T,
         _canonicalize: bool,
     ) -> Result<()> {
-        pointer.set_text(value.into());
-        Ok(())
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl<'a> crate::traits::SetterInput<Owned> for &'a alloc::string::String {
-    #[inline]
-    fn set_pointer_builder<'b>(
-        mut pointer: crate::private::layout::PointerBuilder<'b>,
-        value: &'a alloc::string::String,
-        _canonicalize: bool,
-    ) -> Result<()> {
-        pointer.set_text(value.as_str().into());
+        pointer.set_text(value.as_ref().into());
         Ok(())
     }
 }

@@ -166,9 +166,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if subscriber.requests_in_flight < 5 {
                             subscriber.requests_in_flight += 1;
                             let mut request = subscriber.client.push_message_request();
-                            request.get().set_message(
-                                &format!("system time is: {:?}", ::std::time::SystemTime::now())[..],
-                            )?;
+                            request.get().set_message(format!(
+                                "system time is: {:?}",
+                                ::std::time::SystemTime::now()
+                            ))?;
                             let subscribers2 = subscribers1.clone();
                             tokio::task::spawn_local(request.send().promise.map(
                                 move |r| match r {
