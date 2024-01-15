@@ -1,3 +1,6 @@
+## v0.19.1
+- Implement SetterInput<text::Owned> for all T : AsRef<str>.
+
 ## v0.19.0
 - Use binary search instead of linear scan in DynamicStruct::get_named().
 - Rename SetPointerBuilder to SetterInput.
