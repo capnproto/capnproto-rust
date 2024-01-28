@@ -261,6 +261,7 @@ dependencies = [
  "capnp",
  "capnp-import",
  "capnp-rpc",
+ "convert_case",
  "proc-macro2",
  "quote",
  "syn",

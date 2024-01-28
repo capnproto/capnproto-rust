@@ -10,3 +10,8 @@ struct TestStruct {
   intlistField @6 :List(Int8);
   structField @7 :TestStruct;
 }
+
+interface TestInterface {
+  setValue @0 (value :UInt64);
+  getValue @1 () -> (value :UInt64);
+}

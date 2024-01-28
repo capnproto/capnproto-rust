@@ -1,11 +1,13 @@
 mod capnp_build;
 mod capnp_let;
+mod capnproto_rpc;
 mod parse;
 mod parse_capnp_build;
 mod parse_capnp_let;
 
 use crate::capnp_build::process_build_pry;
 use crate::capnp_let::process_let_pry;
+use crate::capnproto_rpc::process_capnproto_rpc;
 use crate::parse_capnp_build::CapnpBuild;
 use crate::parse_capnp_let::CapnpLet;
 use proc_macro::TokenStream;
@@ -60,5 +62,12 @@ pub fn capnp_build(input: TokenStream) -> TokenStream {
         ..
     } = syn::parse_macro_input!(input as CapnpBuild);
     let result = process_build_pry(subject, build_pattern);
+    result.into()
+}
+
+#[proc_macro_attribute]
+pub fn capnproto_rpc(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let item = syn::parse_macro_input!(item as syn::ItemImpl);
+    let result = process_capnproto_rpc(attr.into(), item);
     result.into()
 }

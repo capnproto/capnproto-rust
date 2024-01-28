@@ -14,7 +14,7 @@ fn simple_test() {
 #[test]
 fn test_anylist_passthrough() {
     use example_capnp::{date, test_generic};
-    let NUM = 10;
+    const NUM: u32 = 10;
 
     let mut message = message::Builder::new_default();
     {
