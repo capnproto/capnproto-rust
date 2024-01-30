@@ -79,7 +79,8 @@
           };
           build-tests = craneLib.buildPackage {
             inherit cargoArtifacts src;
-            buildInputs = with pkgs; [ openssl pkg-config capnproto ];
+            stdenv = pkgs.llvmPackages_15.stdenv;
+            buildInputs = with pkgs; [ pkg-config capnproto cmake openssl ];
           };
         in
         {
@@ -95,7 +96,8 @@
             inherit cargoArtifacts src;
             cargoClippyExtraArgs = "-- --deny warnings";
 
-            buildInputs = with pkgs; [ openssl pkg-config capnproto ];
+            stdenv = pkgs.llvmPackages_15.stdenv;
+            buildInputs = with pkgs; [ openssl pkg-config capnproto cmake];
           };
 
           # Check formatting
@@ -114,7 +116,7 @@
             partitions = 1;
             partitionType = "count";
 
-            buildInputs = with pkgs; [ openssl pkg-config capnproto ];
+            buildInputs = with pkgs; [ openssl pkg-config capnproto cmake];
           };
         };
 
