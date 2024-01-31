@@ -322,8 +322,8 @@ impl<'a> crate::traits::SetterInput<Owned> for Reader<'a> {
 // else that implements `AsRef<str>`.
 impl<T: AsRef<str>> crate::traits::SetterInput<Owned> for T {
     #[inline]
-    fn set_pointer_builder<'b>(
-        mut pointer: crate::private::layout::PointerBuilder<'b>,
+    fn set_pointer_builder(
+        mut pointer: crate::private::layout::PointerBuilder<'_>,
         value: T,
         _canonicalize: bool,
     ) -> Result<()> {
