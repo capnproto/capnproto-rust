@@ -72,14 +72,16 @@
           craneLib =
             (inputs.crane.mkLib pkgs).overrideToolchain rust-custom-toolchain;
           src = ./.;
+          pname = "capnp-checks";
+          version = "0.1.0";
+          stdenv = pkgs.llvmPackages_15.stdenv;
 
           cargoArtifacts = craneLib.buildDepsOnly {
-            inherit src;
+            inherit src pname version stdenv;
             buildInputs = with pkgs; [ openssl pkg-config ];
           };
           build-tests = craneLib.buildPackage {
-            inherit cargoArtifacts src;
-            stdenv = pkgs.llvmPackages_15.stdenv;
+            inherit cargoArtifacts src pname version stdenv;
             buildInputs = with pkgs; [ pkg-config capnproto cmake openssl ];
           };
         in
@@ -92,27 +94,32 @@
           # Note that this is done as a separate derivation so that
           # we can block the CI if there are issues here, but not
           # prevent downstream consumers from building our crate by itself.
-          my-crate-clippy = craneLib.cargoClippy {
-            inherit cargoArtifacts src;
+          capnp-clippy = craneLib.cargoClippy {
+            inherit cargoArtifacts src stdenv version;
+            pname = "${pname}-clippy";
             cargoClippyExtraArgs = "-- --deny warnings";
 
-            stdenv = pkgs.llvmPackages_15.stdenv;
             buildInputs = with pkgs; [ openssl pkg-config capnproto cmake];
           };
 
           # Check formatting
-          my-crate-fmt = craneLib.cargoFmt { inherit src; };
+          capnp-fmt = craneLib.cargoFmt {
+            inherit src stdenv version;
+            pname = "${pname}-fmt";
+          };
 
           # Audit dependencies
-          my-crate-audit = craneLib.cargoAudit {
-            inherit src;
+          capnp-audit = craneLib.cargoAudit {
+            inherit src stdenv version;
+            pname = "${pname}-audit";
             advisory-db = inputs.advisory-db;
             cargoAuditExtraArgs = "--ignore RUSTSEC-2020-0071";
           };
 
           # Run tests with cargo-nextest
-          my-crate-nextest = craneLib.cargoNextest {
-            inherit cargoArtifacts src;
+          capnp-nextest = craneLib.cargoNextest {
+            inherit cargoArtifacts src stdenv version;
+            pname = "${pname}-nextest";
             partitions = 1;
             partitionType = "count";
 
