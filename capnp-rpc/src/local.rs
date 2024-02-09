@@ -368,15 +368,38 @@ where
         let inner = self.inner.clone();
         Promise::from_future(async move {
             let f = {
+                let this_hook = Self { inner };
+
+                // We need to provide a way to get the corresponding ClientHook of a Server.
+                // Passing the ClientHook inside `Params` would require a lot of changes, breaking compatiblity
+                // with existing code and ruining the developer experience, because `Params` would end up containing more generics.
+                // Instead, I'm passing the `ClientHook` through a global static variable, CURRENT_THIS.
+                // This operation will be called for every method call, so we cannot allocate a `Box<dyn ClientHook>` everytime.
+                // To save us from allocating a `Box` even when we don't access CURRENT_THIS, we set the static variable to a closure
+                // returning `Box<dyn ClientHook>`, making the allocation "lazy".
+                let prev = unsafe {
+                    // This is a gimmick to make Rust happy. We can only set static values on a `static` variable.
+                    // `static_hook` is not actually static, because it's referencing a variable on the stack.
+                    // Before `this_hook` is dropped, we remove `static_hook` from CURRENT_THIS.
+                    let static_hook = &this_hook as *const (dyn ClientHook + 'static);
+                    capnp::private::capability::CURRENT_THIS.replace(Some(&{
+                        move || (&*static_hook as &dyn ClientHook).add_ref()
+                    }
+                        as *const (dyn Fn() -> Box<(dyn ClientHook + 'static)> + 'static)))
+                };
+                let server = &mut *this_hook.inner.borrow_mut();
+
                 // We put this borrow_mut() inside a block to avoid a potential
                 // double borrow during f.await
-                let server = &mut *inner.borrow_mut();
-                server.dispatch_call(
+                let f = server.dispatch_call(
                     interface_id,
                     method_id,
                     ::capnp::capability::Params::new(params),
                     ::capnp::capability::Results::new(results),
-                )
+                );
+
+                capnp::private::capability::CURRENT_THIS.replace(prev);
+                f
             };
             f.await
         })

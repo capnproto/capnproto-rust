@@ -21,7 +21,7 @@
 
 use crate::test_capnp::{
     bootstrap, test_call_order, test_capability_server_set, test_extends, test_handle,
-    test_interface, test_more_stuff, test_pipeline,
+    test_interface, test_more_stuff, test_pipeline, test_recursive_client_factorial,
 };
 
 use capnp::capability::Promise;
@@ -111,6 +111,16 @@ impl bootstrap::Server for Bootstrap {
         results
             .get()
             .set_cap(capnp_rpc::new_client(TestCapabilityServerSet::new()));
+        Promise::ok(())
+    }
+    fn test_recursive_client_factorial(
+        &mut self,
+        _params: bootstrap::TestRecursiveClientFactorialParams,
+        mut results: bootstrap::TestRecursiveClientFactorialResults,
+    ) -> Promise<(), Error> {
+        results.get().set_cap(capnp_rpc::new_client(
+            TestRecursiveClientFactorial::default(),
+        ));
         Promise::ok(())
     }
 }
@@ -652,6 +662,34 @@ impl test_capability_server_set::Server for TestCapabilityServerSet {
                 None => (),
                 Some(_) => results.get().set_is_ours(true),
             }
+            Ok(())
+        })
+    }
+}
+
+#[derive(Default)]
+pub struct TestRecursiveClientFactorial {}
+
+impl test_recursive_client_factorial::Server for TestRecursiveClientFactorial {
+    fn fact(
+        &mut self,
+        params: test_recursive_client_factorial::FactParams,
+        mut results: test_recursive_client_factorial::FactResults,
+    ) -> Promise<(), Error> {
+        // the points is to test `this_client()`
+        let client = self.this_client();
+        Promise::from_future(async move {
+            let n = params.get()?.get_n();
+
+            let res_number = if n <= 1 {
+                n
+            } else {
+                let mut req = client.fact_request();
+                req.get().set_n(n - 1);
+                let res = req.send().promise.await?;
+                n * res.get()?.get_res()
+            };
+            results.get().set_res(res_number);
             Ok(())
         })
     }
