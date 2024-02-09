@@ -35,9 +35,9 @@ namespace {
 TEST(Common, Version) {
 #ifdef VERSION
   auto expectedVersion =
-      kj::str(CAPNP_VERSION_MAJOR, '.', CAPNP_VERSION_MINOR, '.', CAPNP_VERSION_MICRO);
+      kj::str(CAPNP_VERSION_MAJOR, '.', CAPNP_VERSION_MINOR, '.', CAPNP_VERSION_MICRO, "-fs");
   auto devVersion =
-      kj::str(CAPNP_VERSION_MAJOR, '.', CAPNP_VERSION_MINOR, "-dev");
+      kj::str(CAPNP_VERSION_MAJOR, '.', CAPNP_VERSION_MINOR, "-fs");
   kj::StringPtr actualVersion = VERSION;
   KJ_ASSERT(actualVersion == expectedVersion ||
             actualVersion.startsWith(kj::str(expectedVersion, '-')) ||
