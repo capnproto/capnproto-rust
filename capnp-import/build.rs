@@ -12,7 +12,7 @@ use std::{
 use anyhow::bail;
 
 // update this whenever you change the subtree pointer
-const CAPNP_VERSION: &str = "0.11.0";
+const CAPNP_VERSION: &str = "2.0-fs";
 
 enum CapnprotoAcquired {
     Locally(relative_path::RelativePathBuf),
@@ -132,6 +132,12 @@ fn build_with_cmake(out_dir: &PathBuf) -> anyhow::Result<CapnprotoAcquired> {
 
     if which::which("ninja").is_ok() {
         dst.generator("Ninja");
+    }
+
+    // g++ doesn't work, so we try to use clang if available
+    #[cfg(not(target_os = "windows"))]
+    if which::which("clang++").is_ok() {
+        dst.define("CMAKE_CXX_COMPILER", "clang++");
     }
 
     // it would be nice to be able to use mold
