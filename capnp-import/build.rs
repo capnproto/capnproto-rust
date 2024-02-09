@@ -12,7 +12,7 @@ use std::{
 use anyhow::bail;
 
 // update this whenever you change the subtree pointer
-const CAPNP_VERSION: &str = "0.11.0";
+const CAPNP_VERSION: &str = "2.0-fs";
 
 enum CapnprotoAcquired {
     Locally(relative_path::RelativePathBuf),
