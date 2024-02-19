@@ -1,3 +1,6 @@
+## v0.19.2
+- Revert SingleSegmentAllocator generalization because it was unsound.
+
 ## v0.19.1
 - Implement SetterInput<text::Owned> for all T : AsRef<str>.
 
