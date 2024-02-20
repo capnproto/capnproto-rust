@@ -64,11 +64,6 @@ pub mod text;
 pub mod text_list;
 pub mod traits;
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-
 ///
 /// 8 bytes, aligned to an 8-byte boundary.
 ///
@@ -93,7 +88,7 @@ pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8
 impl Word {
     /// Allocates a vec of `length` words, all set to zero.
     #[cfg(feature = "alloc")]
-    pub fn allocate_zeroed_vec(length: usize) -> Vec<Self> {
+    pub fn allocate_zeroed_vec(length: usize) -> alloc::vec::Vec<Self> {
         vec![word(0, 0, 0, 0, 0, 0, 0, 0); length]
     }
 
@@ -175,7 +170,7 @@ pub struct Error {
 
     /// Extra context about error
     #[cfg(feature = "alloc")]
-    pub extra: String,
+    pub extra: alloc::string::String,
 }
 
 /// The general nature of an error. The purpose of this enum is not to describe the error itself,
@@ -411,7 +406,7 @@ impl Error {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn failed(description: String) -> Self {
+    pub fn failed(description: alloc::string::String) -> Self {
         Self {
             extra: description,
             kind: ErrorKind::Failed,
@@ -424,19 +419,19 @@ impl Error {
         #[cfg(feature = "alloc")]
         return Self {
             kind,
-            extra: String::new(),
+            extra: alloc::string::String::new(),
         };
     }
 
     #[cfg(feature = "alloc")]
-    pub fn overloaded(description: String) -> Self {
+    pub fn overloaded(description: alloc::string::String) -> Self {
         Self {
             extra: description,
             kind: ErrorKind::Overloaded,
         }
     }
     #[cfg(feature = "alloc")]
-    pub fn disconnected(description: String) -> Self {
+    pub fn disconnected(description: alloc::string::String) -> Self {
         Self {
             extra: description,
             kind: ErrorKind::Disconnected,
@@ -444,7 +439,7 @@ impl Error {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn unimplemented(description: String) -> Self {
+    pub fn unimplemented(description: alloc::string::String) -> Self {
         Self {
             extra: description,
             kind: ErrorKind::Unimplemented,
@@ -628,7 +623,7 @@ pub enum OutputSegments<'a> {
     SingleSegment([&'a [u8]; 1]),
 
     #[cfg(feature = "alloc")]
-    MultiSegment(Vec<&'a [u8]>),
+    MultiSegment(alloc::vec::Vec<&'a [u8]>),
 }
 
 impl<'a> core::ops::Deref for OutputSegments<'a> {
