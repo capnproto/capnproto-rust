@@ -22,9 +22,6 @@
 //! Untyped pointer that can be cast to any struct, list, or capability type.
 
 #[cfg(feature = "alloc")]
-use alloc::{boxed::Box, vec::Vec};
-
-#[cfg(feature = "alloc")]
 use crate::capability::FromClientHook;
 #[cfg(feature = "alloc")]
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
@@ -83,7 +80,10 @@ impl<'a> Reader<'a> {
     //# Used by RPC system to implement pipelining. Applications
     //# generally shouldn't use this directly.
     #[cfg(feature = "alloc")]
-    pub fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Result<Box<dyn ClientHook>> {
+    pub fn get_pipelined_cap(
+        &self,
+        ops: &[PipelineOp],
+    ) -> Result<alloc::boxed::Box<dyn ClientHook>> {
         let mut pointer = self.reader;
 
         for op in ops {
@@ -172,7 +172,7 @@ impl<'a> Builder<'a> {
 
     // XXX value should be a user client.
     #[cfg(feature = "alloc")]
-    pub fn set_as_capability(&mut self, value: Box<dyn ClientHook>) {
+    pub fn set_as_capability(&mut self, value: alloc::boxed::Box<dyn ClientHook>) {
         self.builder.set_capability(value);
     }
 
@@ -217,18 +217,18 @@ impl<'a> crate::traits::ImbueMut<'a> for Builder<'a> {
 pub struct Pipeline {
     // XXX this should not be public
     #[cfg(feature = "alloc")]
-    pub hook: Box<dyn PipelineHook>,
+    pub hook: alloc::boxed::Box<dyn PipelineHook>,
 
     #[cfg(feature = "alloc")]
-    ops: Vec<PipelineOp>,
+    ops: alloc::vec::Vec<PipelineOp>,
 }
 
 impl Pipeline {
     #[cfg(feature = "alloc")]
-    pub fn new(hook: Box<dyn PipelineHook>) -> Self {
+    pub fn new(hook: alloc::boxed::Box<dyn PipelineHook>) -> Self {
         Self {
             hook,
-            ops: Vec::new(),
+            ops: alloc::vec::Vec::new(),
         }
     }
 
@@ -247,7 +247,7 @@ impl Pipeline {
 
     #[cfg(feature = "alloc")]
     pub fn get_pointer_field(&self, pointer_index: u16) -> Self {
-        let mut new_ops = Vec::with_capacity(self.ops.len() + 1);
+        let mut new_ops = alloc::vec::Vec::with_capacity(self.ops.len() + 1);
         for op in &self.ops {
             new_ops.push(*op)
         }
@@ -264,7 +264,7 @@ impl Pipeline {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn as_cap(&self) -> Box<dyn ClientHook> {
+    pub fn as_cap(&self) -> alloc::boxed::Box<dyn ClientHook> {
         self.hook.get_pipelined_cap(&self.ops)
     }
 }
@@ -304,7 +304,7 @@ fn init_clears_value() {
         assert!(root.is_null());
     }
 
-    let mut output: Vec<u8> = Vec::new();
+    let mut output: alloc::vec::Vec<u8> = alloc::vec::Vec::new();
     crate::serialize::write_message(&mut output, &message).unwrap();
     assert_eq!(output.len(), 40);
     for byte in &output[8..] {

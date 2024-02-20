@@ -28,7 +28,7 @@ fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {
 
     #[cfg(all(feature = "unaligned", feature = "alloc"))]
     {
-        let mut unaligned_data = crate::Vec::with_capacity((words.len() + 1) * 8);
+        let mut unaligned_data = alloc::vec::Vec::with_capacity((words.len() + 1) * 8);
         for offset in 0..8 {
             unaligned_data.clear();
             unaligned_data.resize(offset, 0);
