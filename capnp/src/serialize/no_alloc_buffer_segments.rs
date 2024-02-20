@@ -1,5 +1,3 @@
-use core::convert::TryInto;
-
 use crate::message::ReaderOptions;
 use crate::message::ReaderSegments;
 use crate::private::units::BYTES_PER_WORD;
@@ -353,9 +351,6 @@ mod tests {
     };
     #[cfg(feature = "alloc")]
     use super::{NoAllocBufferSegmentType, NoAllocBufferSegments, NoAllocSliceSegments};
-
-    #[cfg(feature = "alloc")]
-    use alloc::vec::Vec;
 
     #[repr(align(8))]
     struct Aligned([u8; 8]);

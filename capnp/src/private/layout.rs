@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(feature = "alloc")]
-use alloc::{boxed::Box, vec::Vec};
 use core::cell::Cell;
 use core::mem;
 use core::ptr;
@@ -345,8 +343,6 @@ impl WirePointer {
 }
 
 mod wire_helpers {
-    #[cfg(feature = "alloc")]
-    use alloc::boxed::Box;
     use core::{ptr, slice};
 
     use crate::data;

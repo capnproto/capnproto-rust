@@ -64,11 +64,6 @@ pub mod text;
 pub mod text_list;
 pub mod traits;
 
-#[cfg(feature = "alloc")]
-use alloc::string::String;
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-
 ///
 /// 8 bytes, aligned to an 8-byte boundary.
 ///

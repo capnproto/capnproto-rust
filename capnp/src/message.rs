@@ -68,9 +68,6 @@
 //! }
 //!
 //! ```
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-use core::convert::From;
 
 use crate::any_pointer;
 use crate::private::arena::{BuilderArena, BuilderArenaImpl};

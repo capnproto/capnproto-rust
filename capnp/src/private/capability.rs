@@ -20,8 +20,6 @@
 // THE SOFTWARE.
 
 #![cfg(feature = "alloc")]
-use alloc::boxed::Box;
-use alloc::vec::Vec;
 
 use crate::any_pointer;
 use crate::capability::{Params, Promise, RemotePromise, Request, Results};

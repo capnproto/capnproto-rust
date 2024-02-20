@@ -452,8 +452,6 @@ where
 #[cfg(feature = "alloc")]
 #[cfg(test)]
 mod tests {
-    use alloc::vec::Vec;
-
     use crate::io::{Read, Write};
 
     use quickcheck::{quickcheck, TestResult};

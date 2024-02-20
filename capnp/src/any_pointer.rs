@@ -22,9 +22,6 @@
 //! Untyped pointer that can be cast to any struct, list, or capability type.
 
 #[cfg(feature = "alloc")]
-use alloc::{boxed::Box, vec::Vec};
-
-#[cfg(feature = "alloc")]
 use crate::capability::FromClientHook;
 #[cfg(feature = "alloc")]
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};

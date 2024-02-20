@@ -27,12 +27,6 @@ pub(crate) mod no_alloc_buffer_segments;
 pub use no_alloc_buffer_segments::{NoAllocBufferSegments, NoAllocSliceSegments};
 
 use crate::io::{Read, Write};
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-#[cfg(feature = "alloc")]
-use core::convert::TryInto;
-#[cfg(feature = "alloc")]
-use core::ops::Deref;
 
 use crate::message;
 use crate::private::units::BYTES_PER_WORD;
@@ -113,7 +107,7 @@ pub struct BufferSegments<T> {
 }
 
 #[cfg(feature = "alloc")]
-impl<T: Deref<Target = [u8]>> BufferSegments<T> {
+impl<T: core::ops::Deref<Target = [u8]>> BufferSegments<T> {
     /// Reads a serialized message (including a segment table) from a buffer and takes ownership, without copying.
     /// The buffer is allowed to be longer than the message. Provide this to `Reader::new` with options that make
     /// sense for your use case. Very long lived mmaps may need unlimited traversal limit.
@@ -143,7 +137,7 @@ impl<T: Deref<Target = [u8]>> BufferSegments<T> {
 }
 
 #[cfg(feature = "alloc")]
-impl<T: Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
+impl<T: core::ops::Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         if id < self.segment_indices.len() as u32 {
             let (a, b) = self.segment_indices[id as usize];
@@ -686,8 +680,6 @@ where
 #[cfg(feature = "alloc")]
 #[cfg(test)]
 pub mod test {
-    use alloc::vec::Vec;
-
     use crate::io::{Read, Write};
 
     use quickcheck::{quickcheck, TestResult};

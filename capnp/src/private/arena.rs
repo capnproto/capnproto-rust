@@ -18,10 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
 use core::slice;
-use core::u64;
 
 use crate::message;
 use crate::message::Allocator;

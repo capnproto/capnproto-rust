@@ -24,11 +24,9 @@
 //! Roughly corresponds to capability.h in the C++ implementation.
 
 #[cfg(feature = "alloc")]
-use alloc::boxed::Box;
-#[cfg(feature = "alloc")]
 use core::future::Future;
 #[cfg(feature = "alloc")]
-use core::marker::{PhantomData, Unpin};
+use core::marker::PhantomData;
 #[cfg(feature = "rpc_try")]
 use core::ops::Try;
 #[cfg(feature = "alloc")]

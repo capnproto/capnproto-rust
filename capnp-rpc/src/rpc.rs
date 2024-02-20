@@ -38,7 +38,6 @@ use std::collections::binary_heap::BinaryHeap;
 use std::collections::hash_map::HashMap;
 use std::mem;
 use std::rc::{Rc, Weak};
-use std::vec::Vec;
 
 use crate::attach::Attach;
 use crate::local::ResultsDoneHook;
