@@ -21,7 +21,6 @@
 
 #![cfg(feature = "alloc")]
 use alloc::boxed::Box;
-use alloc::vec::Vec;
 
 use crate::any_pointer;
 use crate::capability::{Params, Promise, RemotePromise, Request, Results};
@@ -137,7 +136,7 @@ pub trait PipelineHook {
 
     /// Version of get_pipelined_cap() passing the array by move. May avoid a copy in some cases.
     /// Default implementation just calls the other version.
-    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<dyn ClientHook> {
+    fn get_pipelined_cap_move(&self, ops: alloc::vec::Vec<PipelineOp>) -> Box<dyn ClientHook> {
         self.get_pipelined_cap(&ops)
     }
 }

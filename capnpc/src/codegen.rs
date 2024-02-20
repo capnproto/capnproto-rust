@@ -23,7 +23,6 @@ use std::collections;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use capnp;
 use capnp::schema_capnp;
 use capnp::Error;
 
