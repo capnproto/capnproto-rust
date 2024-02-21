@@ -24,11 +24,9 @@
 //! Roughly corresponds to capability.h in the C++ implementation.
 
 #[cfg(feature = "alloc")]
-use alloc::boxed::Box;
-#[cfg(feature = "alloc")]
 use core::future::Future;
 #[cfg(feature = "alloc")]
-use core::marker::{PhantomData, Unpin};
+use core::marker::PhantomData;
 #[cfg(feature = "rpc_try")]
 use core::ops::Try;
 #[cfg(feature = "alloc")]
@@ -55,7 +53,7 @@ pub struct Promise<T, E> {
 #[cfg(feature = "alloc")]
 enum PromiseInner<T, E> {
     Immediate(Result<T, E>),
-    Deferred(Pin<Box<dyn Future<Output = core::result::Result<T, E>> + 'static>>),
+    Deferred(Pin<alloc::boxed::Box<dyn Future<Output = core::result::Result<T, E>> + 'static>>),
     Empty,
 }
 
@@ -82,7 +80,7 @@ impl<T, E> Promise<T, E> {
         F: Future<Output = core::result::Result<T, E>> + 'static,
     {
         Self {
-            inner: PromiseInner::Deferred(Box::pin(f)),
+            inner: PromiseInner::Deferred(alloc::boxed::Box::pin(f)),
         }
     }
 }
@@ -146,7 +144,7 @@ where
 #[cfg(feature = "alloc")]
 pub struct Response<Results> {
     pub marker: PhantomData<Results>,
-    pub hook: Box<dyn ResponseHook>,
+    pub hook: alloc::boxed::Box<dyn ResponseHook>,
 }
 
 #[cfg(feature = "alloc")]
@@ -154,7 +152,7 @@ impl<Results> Response<Results>
 where
     Results: Pipelined + Owned,
 {
-    pub fn new(hook: Box<dyn ResponseHook>) -> Self {
+    pub fn new(hook: alloc::boxed::Box<dyn ResponseHook>) -> Self {
         Self {
             marker: PhantomData,
             hook,
@@ -169,7 +167,7 @@ where
 #[cfg(feature = "alloc")]
 pub struct Request<Params, Results> {
     pub marker: PhantomData<(Params, Results)>,
-    pub hook: Box<dyn RequestHook>,
+    pub hook: alloc::boxed::Box<dyn RequestHook>,
 }
 
 #[cfg(feature = "alloc")]
@@ -177,7 +175,7 @@ impl<Params, Results> Request<Params, Results>
 where
     Params: Owned,
 {
-    pub fn new(hook: Box<dyn RequestHook>) -> Self {
+    pub fn new(hook: alloc::boxed::Box<dyn RequestHook>) -> Self {
         Self {
             hook,
             marker: PhantomData,
@@ -220,12 +218,12 @@ where
 #[cfg(feature = "alloc")]
 pub struct Params<T> {
     pub marker: PhantomData<T>,
-    pub hook: Box<dyn ParamsHook>,
+    pub hook: alloc::boxed::Box<dyn ParamsHook>,
 }
 
 #[cfg(feature = "alloc")]
 impl<T> Params<T> {
-    pub fn new(hook: Box<dyn ParamsHook>) -> Self {
+    pub fn new(hook: alloc::boxed::Box<dyn ParamsHook>) -> Self {
         Self {
             marker: PhantomData,
             hook,
@@ -243,7 +241,7 @@ impl<T> Params<T> {
 #[cfg(feature = "alloc")]
 pub struct Results<T> {
     pub marker: PhantomData<T>,
-    pub hook: Box<dyn ResultsHook>,
+    pub hook: alloc::boxed::Box<dyn ResultsHook>,
 }
 
 #[cfg(feature = "alloc")]
@@ -251,7 +249,7 @@ impl<T> Results<T>
 where
     T: Owned,
 {
-    pub fn new(hook: Box<dyn ResultsHook>) -> Self {
+    pub fn new(hook: alloc::boxed::Box<dyn ResultsHook>) -> Self {
         Self {
             marker: PhantomData,
             hook,
@@ -275,10 +273,10 @@ pub trait FromTypelessPipeline {
 #[cfg(feature = "alloc")]
 pub trait FromClientHook {
     /// Wraps a client hook to create a new client.
-    fn new(hook: Box<dyn ClientHook>) -> Self;
+    fn new(hook: alloc::boxed::Box<dyn ClientHook>) -> Self;
 
     /// Unwraps client to get the underlying client hook.
-    fn into_client_hook(self) -> Box<dyn ClientHook>;
+    fn into_client_hook(self) -> alloc::boxed::Box<dyn ClientHook>;
 
     /// Gets a reference to the underlying client hook.
     fn as_client_hook(&self) -> &dyn ClientHook;
@@ -297,12 +295,12 @@ pub trait FromClientHook {
 /// An untyped client.
 #[cfg(feature = "alloc")]
 pub struct Client {
-    pub hook: Box<dyn ClientHook>,
+    pub hook: alloc::boxed::Box<dyn ClientHook>,
 }
 
 #[cfg(feature = "alloc")]
 impl Client {
-    pub fn new(hook: Box<dyn ClientHook>) -> Self {
+    pub fn new(hook: alloc::boxed::Box<dyn ClientHook>) -> Self {
         Self { hook }
     }
 

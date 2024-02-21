@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(feature = "alloc")]
-use alloc::{boxed::Box, vec::Vec};
 use core::cell::Cell;
 use core::mem;
 use core::ptr;
@@ -345,8 +343,6 @@ impl WirePointer {
 }
 
 mod wire_helpers {
-    #[cfg(feature = "alloc")]
-    use alloc::boxed::Box;
     use core::{ptr, slice};
 
     use crate::data;
@@ -1973,7 +1969,7 @@ mod wire_helpers {
         _segment_id: u32,
         mut cap_table: CapTableBuilder,
         reff: *mut WirePointer,
-        cap: Box<dyn ClientHook>,
+        cap: alloc::boxed::Box<dyn ClientHook>,
     ) {
         // TODO if ref is not null, zero object.
         unsafe {
@@ -2408,7 +2404,7 @@ mod wire_helpers {
         cap_table: CapTableReader,
         reff: *const WirePointer,
         _nesting_limit: i32,
-    ) -> Result<Box<dyn ClientHook>> {
+    ) -> Result<alloc::boxed::Box<dyn ClientHook>> {
         if (*reff).is_null() {
             Err(Error::from_kind(
                 ErrorKind::MessageContainsNullCapabilityPointer,
@@ -2721,7 +2717,7 @@ fn zero_pointer() -> *const WirePointer {
 static NULL_ARENA: NullArena = NullArena;
 
 #[cfg(feature = "alloc")]
-pub type CapTable = Vec<Option<Box<dyn ClientHook>>>;
+pub type CapTable = alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>>;
 
 #[cfg(not(feature = "alloc"))]
 pub struct CapTable;
@@ -2742,13 +2738,14 @@ impl Default for CapTableReader {
 
 #[cfg(feature = "alloc")]
 impl CapTableReader {
-    pub fn extract_cap(&self, index: usize) -> Option<Box<dyn ClientHook>> {
+    pub fn extract_cap(&self, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
         match *self {
             Self::Plain(hooks) => {
                 if hooks.is_null() {
                     return None;
                 }
-                let hooks: &Vec<Option<Box<dyn ClientHook>>> = unsafe { &*hooks };
+                let hooks: &alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
+                    unsafe { &*hooks };
                 if index >= hooks.len() {
                     None
                 } else {
@@ -2781,13 +2778,14 @@ impl CapTableBuilder {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn extract_cap(&self, index: usize) -> Option<Box<dyn ClientHook>> {
+    pub fn extract_cap(&self, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
         match *self {
             Self::Plain(hooks) => {
                 if hooks.is_null() {
                     return None;
                 }
-                let hooks: &Vec<Option<Box<dyn ClientHook>>> = unsafe { &*hooks };
+                let hooks: &alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
+                    unsafe { &*hooks };
                 if index >= hooks.len() {
                     None
                 } else {
@@ -2798,7 +2796,7 @@ impl CapTableBuilder {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn inject_cap(&mut self, cap: Box<dyn ClientHook>) -> usize {
+    pub fn inject_cap(&mut self, cap: alloc::boxed::Box<dyn ClientHook>) -> usize {
         match *self {
             Self::Plain(hooks) => {
                 if hooks.is_null() {
@@ -2807,7 +2805,8 @@ impl CapTableBuilder {
                             to call imbue_mut() on this message before adding capabilities."
                     );
                 }
-                let hooks: &mut Vec<Option<Box<dyn ClientHook>>> = unsafe { &mut *hooks };
+                let hooks: &mut alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
+                    unsafe { &mut *hooks };
                 hooks.push(Some(cap));
                 hooks.len() - 1
             }
@@ -2824,7 +2823,8 @@ impl CapTableBuilder {
                             to call imbue_mut() on this message before adding capabilities."
                     );
                 }
-                let hooks: &mut Vec<Option<Box<dyn ClientHook>>> = unsafe { &mut *hooks };
+                let hooks: &mut alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
+                    unsafe { &mut *hooks };
                 if index < hooks.len() {
                     hooks[index] = None;
                 }
@@ -3003,7 +3003,7 @@ impl<'a> PointerReader<'a> {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn get_capability(&self) -> Result<Box<dyn ClientHook>> {
+    pub fn get_capability(&self) -> Result<alloc::boxed::Box<dyn ClientHook>> {
         let reff: *const WirePointer = if self.pointer.is_null() {
             zero_pointer()
         } else {
@@ -3187,7 +3187,7 @@ impl<'a> PointerBuilder<'a> {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn get_capability(&self) -> Result<Box<dyn ClientHook>> {
+    pub fn get_capability(&self) -> Result<alloc::boxed::Box<dyn ClientHook>> {
         unsafe {
             wire_helpers::read_capability_pointer(
                 self.arena.as_reader(),
@@ -3298,7 +3298,7 @@ impl<'a> PointerBuilder<'a> {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn set_capability(&mut self, cap: Box<dyn ClientHook>) {
+    pub fn set_capability(&mut self, cap: alloc::boxed::Box<dyn ClientHook>) {
         wire_helpers::set_capability_pointer(
             self.arena,
             self.segment_id,

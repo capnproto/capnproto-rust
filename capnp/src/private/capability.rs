@@ -19,9 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#![cfg(feature = "alloc")]
-use alloc::boxed::Box;
-
 use crate::any_pointer;
 use crate::capability::{Params, Promise, RemotePromise, Request, Results};
 use crate::MessageSize;
@@ -33,18 +30,18 @@ pub trait ResponseHook {
 pub trait RequestHook {
     fn get(&mut self) -> any_pointer::Builder<'_>;
     fn get_brand(&self) -> usize;
-    fn send(self: Box<Self>) -> RemotePromise<any_pointer::Owned>;
+    fn send(self: alloc::boxed::Box<Self>) -> RemotePromise<any_pointer::Owned>;
     fn tail_send(
-        self: Box<Self>,
+        self: alloc::boxed::Box<Self>,
     ) -> Option<(
         u32,
         crate::capability::Promise<(), crate::Error>,
-        Box<dyn PipelineHook>,
+        alloc::boxed::Box<dyn PipelineHook>,
     )>;
 }
 
 pub trait ClientHook {
-    fn add_ref(&self) -> Box<dyn ClientHook>;
+    fn add_ref(&self) -> alloc::boxed::Box<dyn ClientHook>;
     fn new_call(
         &self,
         interface_id: u64,
@@ -56,8 +53,8 @@ pub trait ClientHook {
         &self,
         interface_id: u64,
         method_id: u16,
-        params: Box<dyn ParamsHook>,
-        results: Box<dyn ResultsHook>,
+        params: alloc::boxed::Box<dyn ParamsHook>,
+        results: alloc::boxed::Box<dyn ResultsHook>,
     ) -> crate::capability::Promise<(), crate::Error>;
 
     /// If this capability is associated with an rpc connection, then this method
@@ -71,7 +68,7 @@ pub trait ClientHook {
     /// of the capability.  The caller may permanently replace this client with the resolved one if
     /// desired.  Returns null if the client isn't a promise or hasn't resolved yet -- use
     /// `whenMoreResolved()` to distinguish between them.
-    fn get_resolved(&self) -> Option<Box<dyn ClientHook>>;
+    fn get_resolved(&self) -> Option<alloc::boxed::Box<dyn ClientHook>>;
 
     /// If this client is a settled reference (not a promise), return nullptr.  Otherwise, return a
     /// promise that eventually resolves to a new client that is closer to being the final, settled
@@ -79,13 +76,13 @@ pub trait ClientHook {
     /// should eventually produce a settled client.
     fn when_more_resolved(
         &self,
-    ) -> Option<crate::capability::Promise<Box<dyn ClientHook>, crate::Error>>;
+    ) -> Option<crate::capability::Promise<alloc::boxed::Box<dyn ClientHook>, crate::Error>>;
 
     /// Repeatedly calls whenMoreResolved() until it returns nullptr.
     fn when_resolved(&self) -> Promise<(), crate::Error>;
 }
 
-impl Clone for Box<dyn ClientHook> {
+impl Clone for alloc::boxed::Box<dyn ClientHook> {
     fn clone(&self) -> Self {
         self.add_ref()
     }
@@ -94,13 +91,16 @@ impl Clone for Box<dyn ClientHook> {
 pub trait ResultsHook {
     fn get(&mut self) -> crate::Result<any_pointer::Builder<'_>>;
     fn allow_cancellation(&self);
-    fn tail_call(self: Box<Self>, request: Box<dyn RequestHook>) -> Promise<(), crate::Error>;
+    fn tail_call(
+        self: alloc::boxed::Box<Self>,
+        request: alloc::boxed::Box<dyn RequestHook>,
+    ) -> Promise<(), crate::Error>;
     fn direct_tail_call(
-        self: Box<Self>,
-        request: Box<dyn RequestHook>,
+        self: alloc::boxed::Box<Self>,
+        request: alloc::boxed::Box<dyn RequestHook>,
     ) -> (
         crate::capability::Promise<(), crate::Error>,
-        Box<dyn PipelineHook>,
+        alloc::boxed::Box<dyn PipelineHook>,
     );
 }
 
@@ -131,17 +131,20 @@ pub fn internal_get_untyped_results<T>(typeful: Results<T>) -> Results<any_point
 }
 
 pub trait PipelineHook {
-    fn add_ref(&self) -> Box<dyn PipelineHook>;
-    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<dyn ClientHook>;
+    fn add_ref(&self) -> alloc::boxed::Box<dyn PipelineHook>;
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> alloc::boxed::Box<dyn ClientHook>;
 
     /// Version of get_pipelined_cap() passing the array by move. May avoid a copy in some cases.
     /// Default implementation just calls the other version.
-    fn get_pipelined_cap_move(&self, ops: alloc::vec::Vec<PipelineOp>) -> Box<dyn ClientHook> {
+    fn get_pipelined_cap_move(
+        &self,
+        ops: alloc::vec::Vec<PipelineOp>,
+    ) -> alloc::boxed::Box<dyn ClientHook> {
         self.get_pipelined_cap(&ops)
     }
 }
 
-impl Clone for Box<dyn PipelineHook> {
+impl Clone for alloc::boxed::Box<dyn PipelineHook> {
     fn clone(&self) -> Self {
         self.add_ref()
     }

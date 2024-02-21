@@ -18,8 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
 use core::slice;
 use core::u64;
 
@@ -173,7 +171,7 @@ struct BuilderSegment {
 }
 
 #[cfg(feature = "alloc")]
-type BuilderSegmentArray = Vec<BuilderSegment>;
+type BuilderSegmentArray = alloc::vec::Vec<BuilderSegment>;
 
 #[cfg(not(feature = "alloc"))]
 #[derive(Default)]
@@ -271,7 +269,7 @@ where
         } else {
             #[cfg(feature = "alloc")]
             {
-                let mut v = Vec::with_capacity(reff.segments.len());
+                let mut v = alloc::vec::Vec::with_capacity(reff.segments.len());
                 for seg in &reff.segments {
                     // See safety argument in above branch.
                     let slice = unsafe {

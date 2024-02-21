@@ -27,8 +27,6 @@ pub(crate) mod no_alloc_buffer_segments;
 pub use no_alloc_buffer_segments::{NoAllocBufferSegments, NoAllocSliceSegments};
 
 use crate::io::{Read, Write};
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
 
 use crate::message;
 use crate::private::units::BYTES_PER_WORD;
@@ -105,7 +103,7 @@ pub struct BufferSegments<T> {
     // Each pair represents a segment inside of `buffer`:
     // (starting index (in words), ending index (in words)),
     // where the indices are relative to the end of the segment table.
-    segment_indices: Vec<(usize, usize)>,
+    segment_indices: alloc::vec::Vec<(usize, usize)>,
 }
 
 #[cfg(feature = "alloc")]
@@ -163,9 +161,9 @@ impl<T: core::ops::Deref<Target = [u8]>> message::ReaderSegments for BufferSegme
 pub struct OwnedSegments {
     // Each pair represents a segment inside of `owned_space`.
     // (starting index (in words), ending index (in words))
-    segment_indices: Vec<(usize, usize)>,
+    segment_indices: alloc::vec::Vec<(usize, usize)>,
 
-    owned_space: Vec<crate::Word>,
+    owned_space: alloc::vec::Vec<crate::Word>,
 }
 
 #[cfg(feature = "alloc")]
@@ -202,7 +200,7 @@ impl crate::message::ReaderSegments for OwnedSegments {
 #[cfg(feature = "alloc")]
 /// Helper object for constructing an `OwnedSegments` or a `SliceSegments`.
 pub struct SegmentLengthsBuilder {
-    segment_indices: Vec<(usize, usize)>,
+    segment_indices: alloc::vec::Vec<(usize, usize)>,
     total_words: usize,
 }
 
@@ -213,7 +211,7 @@ impl SegmentLengthsBuilder {
     /// is expected to be called.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            segment_indices: Vec::with_capacity(capacity),
+            segment_indices: alloc::vec::Vec::with_capacity(capacity),
             total_words: 0,
         }
     }
@@ -264,7 +262,7 @@ impl SegmentLengthsBuilder {
 
     /// Returns the vector of segment indices. Each entry is a pair (start_word_index, end_word_index).
     /// This method primarily exists to enable testing.
-    pub fn to_segment_indices(self) -> Vec<(usize, usize)> {
+    pub fn to_segment_indices(self) -> alloc::vec::Vec<(usize, usize)> {
         self.segment_indices
     }
 }
@@ -510,7 +508,7 @@ where
 
 /// Constructs a flat vector containing the entire message, including a segment header.
 #[cfg(feature = "alloc")]
-pub fn write_message_to_words<A>(message: &message::Builder<A>) -> Vec<u8>
+pub fn write_message_to_words<A>(message: &message::Builder<A>) -> alloc::vec::Vec<u8>
 where
     A: message::Allocator,
 {
@@ -520,7 +518,7 @@ where
 /// Like `write_message_to_words()`, but takes a `ReaderSegments`, allowing it to be
 /// used on `message::Reader` objects (via `into_segments()`).
 #[cfg(feature = "alloc")]
-pub fn write_message_segments_to_words<R>(message: &R) -> Vec<u8>
+pub fn write_message_segments_to_words<R>(message: &R) -> alloc::vec::Vec<u8>
 where
     R: message::ReaderSegments,
 {
@@ -528,11 +526,11 @@ where
 }
 
 #[cfg(feature = "alloc")]
-fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<u8> {
+fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> alloc::vec::Vec<u8> {
     let word_count = compute_serialized_size(segments);
     let segment_count = segments.len();
     let table_size = segment_count / 2 + 1;
-    let mut result = Vec::with_capacity(word_count);
+    let mut result = alloc::vec::Vec::with_capacity(word_count);
     result.resize(table_size * BYTES_PER_WORD, 0);
     {
         let mut bytes = &mut result[..];
@@ -682,8 +680,6 @@ where
 #[cfg(feature = "alloc")]
 #[cfg(test)]
 pub mod test {
-    use alloc::vec::Vec;
-
     use crate::io::{Read, Write};
 
     use quickcheck::{quickcheck, TestResult};
@@ -696,14 +692,14 @@ pub mod test {
     use crate::message::ReaderSegments;
 
     /// Writes segments as if they were a Capnproto message.
-    pub fn write_message_segments<W>(write: &mut W, segments: &[Vec<crate::Word>])
+    pub fn write_message_segments<W>(write: &mut W, segments: &[alloc::vec::Vec<crate::Word>])
     where
         W: Write,
     {
         let borrowed_segments: &[&[u8]] = &segments
             .iter()
             .map(|segment| crate::Word::words_to_bytes(&segment[..]))
-            .collect::<Vec<_>>()[..];
+            .collect::<alloc::vec::Vec<_>>()[..];
         write_segment_table(write, borrowed_segments).unwrap();
         write_segments(write, borrowed_segments).unwrap();
     }
@@ -832,7 +828,7 @@ pub mod test {
     #[test]
     fn test_read_segment_table_max_read() {
         // Make sure things still work well when we read less than a word at a time.
-        let mut buf: Vec<u8> = vec![];
+        let mut buf: alloc::vec::Vec<u8> = vec![];
         buf.extend(
             [
                 0, 0, 0, 0, // 1 segments
@@ -981,9 +977,9 @@ pub mod test {
 
     quickcheck! {
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-        fn test_round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
+        fn test_round_trip(segments: alloc::vec::Vec<alloc::vec::Vec<crate::Word>>) -> TestResult {
             if segments.is_empty() { return TestResult::discard(); }
-            let mut buf: Vec<u8> = Vec::new();
+            let mut buf: alloc::vec::Vec<u8> = vec![];
 
             write_message_segments(&mut buf, &segments);
             let message = read_message(&mut &buf[..], message::ReaderOptions::new()).unwrap();
@@ -995,11 +991,11 @@ pub mod test {
         }
 
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-        fn test_round_trip_slice_segments(segments: Vec<Vec<crate::Word>>) -> TestResult {
+        fn test_round_trip_slice_segments(segments: alloc::vec::Vec<alloc::vec::Vec<crate::Word>>) -> TestResult {
             if segments.is_empty() { return TestResult::discard(); }
             let borrowed_segments: &[&[u8]] = &segments.iter()
                 .map(|segment| crate::Word::words_to_bytes(&segment[..]))
-                .collect::<Vec<_>>()[..];
+                .collect::<alloc::vec::Vec<_>>()[..];
             let words = flatten_segments(borrowed_segments);
             let mut word_slice = &words[..];
             let message = read_message_from_flat_slice(&mut word_slice, message::ReaderOptions::new()).unwrap();
@@ -1022,7 +1018,7 @@ pub mod test {
         let borrowed_segments: &[&[u8]] = &segments
             .iter()
             .map(|segment| &segment[..])
-            .collect::<Vec<_>>()[..];
+            .collect::<alloc::vec::Vec<_>>()[..];
 
         let mut bytes = flatten_segments(borrowed_segments);
         let extra_bytes: &[u8] = &[9, 9, 9, 9, 9, 9, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1];
@@ -1054,7 +1050,7 @@ pub mod test {
         let borrowed_segments: &[&[u8]] = &segments
             .iter()
             .map(|segment| &segment[..])
-            .collect::<Vec<_>>()[..];
+            .collect::<alloc::vec::Vec<_>>()[..];
 
         let mut bytes = flatten_segments(borrowed_segments);
         while !bytes.is_empty() {

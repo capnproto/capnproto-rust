@@ -452,8 +452,6 @@ where
 #[cfg(feature = "alloc")]
 #[cfg(test)]
 mod tests {
-    use alloc::vec::Vec;
-
     use crate::io::{Read, Write};
 
     use quickcheck::{quickcheck, TestResult};
@@ -469,14 +467,14 @@ mod tests {
         let input_bytes: &[u8] = &[];
         let mut packed_read = PackedRead { inner: input_bytes };
 
-        let mut output_bytes: Vec<u8> = vec![0; 8];
+        let mut output_bytes: alloc::vec::Vec<u8> = vec![0; 8];
         assert!(packed_read.read_exact(&mut output_bytes[..]).is_err());
     }
 
     pub fn check_unpacks_to(packed: &[u8], unpacked: &[u8]) {
         let mut packed_read = PackedRead { inner: packed };
 
-        let mut bytes: Vec<u8> = vec![0; unpacked.len()];
+        let mut bytes: alloc::vec::Vec<u8> = vec![0; unpacked.len()];
         packed_read.read_exact(&mut bytes[..]).unwrap();
 
         assert!(packed_read.inner.is_empty()); // nothing left to read
@@ -487,7 +485,7 @@ mod tests {
         // --------
         // write
 
-        let mut bytes: Vec<u8> = vec![0; packed.len()];
+        let mut bytes: alloc::vec::Vec<u8> = vec![0; packed.len()];
         {
             let mut packed_write = PackedWrite {
                 inner: &mut bytes[..],
@@ -564,10 +562,10 @@ mod tests {
 
     quickcheck! {
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-        fn test_round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
+        fn test_round_trip(segments: alloc::vec::Vec<alloc::vec::Vec<crate::Word>>) -> TestResult {
             use crate::message::ReaderSegments;
             if segments.is_empty() { return TestResult::discard(); }
-            let mut buf: Vec<u8> = Vec::new();
+            let mut buf: alloc::vec::Vec<u8> = alloc::vec::Vec::new();
 
             write_message_segments(&mut PackedWrite { inner: &mut buf }, &segments);
             let message = read_message(&mut &buf[..], ReaderOptions::new()).unwrap();
@@ -579,11 +577,11 @@ mod tests {
         }
 
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-        fn test_unpack(packed: Vec<u8>) -> TestResult {
+        fn test_unpack(packed: alloc::vec::Vec<u8>) -> TestResult {
             let len = packed.len();
             let mut packed_read = PackedRead { inner: &packed[..] };
 
-            let mut out_buffer: Vec<u8> = vec![0; len * 8];
+            let mut out_buffer: alloc::vec::Vec<u8> = vec![0; len * 8];
 
             let _ = packed_read.read_exact(&mut out_buffer);
             TestResult::from_bool(true)
@@ -595,7 +593,7 @@ mod tests {
         let packed = &[0xff, 1, 2, 3, 4, 5, 6, 7, 8, 37, 1, 2];
         let mut packed_read = PackedRead { inner: &packed[..] };
 
-        let mut bytes: Vec<u8> = vec![0; 200];
+        let mut bytes: alloc::vec::Vec<u8> = vec![0; 200];
         match packed_read.read_exact(&mut bytes[..]) {
             Ok(_) => panic!("should have been an error"),
             Err(e) => {
@@ -612,7 +610,7 @@ mod tests {
         fn helper(packed: &[u8]) {
             let mut packed_read = PackedRead { inner: packed };
 
-            let mut bytes: Vec<u8> = vec![0; 200];
+            let mut bytes: alloc::vec::Vec<u8> = vec![0; 200];
             match packed_read.read_exact(&mut bytes[..]) {
                 Ok(_) => panic!("should have been an error"),
                 Err(e) => {

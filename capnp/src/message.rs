@@ -68,9 +68,6 @@
 //! }
 //!
 //! ```
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-use core::convert::From;
 
 use crate::any_pointer;
 use crate::private::arena::{BuilderArena, BuilderArenaImpl};
@@ -280,7 +277,7 @@ where
     /// of this message. Works by copying the message twice. For a canonicalization
     /// method that only requires one copy, see `message::Builder::set_root_canonical()`.
     #[cfg(feature = "alloc")]
-    pub fn canonicalize(&self) -> Result<Vec<crate::Word>> {
+    pub fn canonicalize(&self) -> Result<alloc::vec::Vec<crate::Word>> {
         let root = self.get_root_internal()?;
         let size = root.target_size()?.word_count + 1;
         let mut message = Builder::new(HeapAllocator::new().first_segment_words(size as u32));

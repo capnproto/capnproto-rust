@@ -1,5 +1,3 @@
-use core::convert::TryInto;
-
 use crate::message::ReaderOptions;
 use crate::message::ReaderSegments;
 use crate::private::units::BYTES_PER_WORD;
@@ -354,9 +352,6 @@ mod tests {
     #[cfg(feature = "alloc")]
     use super::{NoAllocBufferSegmentType, NoAllocBufferSegments, NoAllocSliceSegments};
 
-    #[cfg(feature = "alloc")]
-    use alloc::vec::Vec;
-
     #[repr(align(8))]
     struct Aligned([u8; 8]);
 
@@ -439,7 +434,7 @@ mod tests {
     quickcheck! {
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_single_segment_optimization(
-            segment_0 : Vec<Word>) -> TestResult
+            segment_0 : alloc::vec::Vec<Word>) -> TestResult
         {
             let words = &segment_0[..];
             let bytes = Word::words_to_bytes(words);
@@ -465,10 +460,10 @@ mod tests {
         }
 
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-        fn test_no_alloc_buffer_segments_multiple_segments(segments_vec: Vec<Vec<Word>>) -> TestResult {
+        fn test_no_alloc_buffer_segments_multiple_segments(segments_vec: alloc::vec::Vec<alloc::vec::Vec<Word>>) -> TestResult {
             if segments_vec.is_empty() { return TestResult::discard() };
 
-            let segments: Vec<_> = segments_vec.iter().map(|s|
+            let segments: alloc::vec::Vec<_> = segments_vec.iter().map(|s|
                                                            Word::words_to_bytes(s.as_slice())).collect();
 
             let output_segments = OutputSegments::MultiSegment(segments.clone());
@@ -536,10 +531,10 @@ mod tests {
     #[cfg(feature = "alloc")]
     quickcheck! {
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-        fn test_no_alloc_buffer_segments_message_truncated(segments_vec: Vec<Vec<Word>>) -> TestResult {
+        fn test_no_alloc_buffer_segments_message_truncated(segments_vec: alloc::vec::Vec<alloc::vec::Vec<Word>>) -> TestResult {
             if segments_vec.is_empty() { return TestResult::discard() }
 
-            let segments: Vec<_> = segments_vec.iter()
+            let segments: alloc::vec::Vec<_> = segments_vec.iter()
                 .map(|s| Word::words_to_bytes(s.as_slice())).collect();
 
             let output_segments = OutputSegments::MultiSegment(segments.clone());
@@ -560,10 +555,10 @@ mod tests {
 
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
         fn test_no_alloc_buffer_segments_message_options_limit(
-            segments_vec: Vec<Vec<Word>>) -> TestResult
+            segments_vec: alloc::vec::Vec<alloc::vec::Vec<Word>>) -> TestResult
         {
             let mut word_count = 0;
-            let segments: Vec<_> = segments_vec.iter()
+            let segments: alloc::vec::Vec<_> = segments_vec.iter()
                 .map(|s| {
                     let ws = Word::words_to_bytes(s.as_slice());
                     word_count += s.len();
@@ -593,7 +588,7 @@ mod tests {
         }
 
         #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
-        fn test_no_alloc_buffer_segments_bad_alignment(segment_0: Vec<Word>) -> TestResult {
+        fn test_no_alloc_buffer_segments_bad_alignment(segment_0: alloc::vec::Vec<Word>) -> TestResult {
             if segment_0.is_empty() { return TestResult::discard(); }
             let output_segments = OutputSegments::SingleSegment([Word::words_to_bytes(&segment_0)]);
 

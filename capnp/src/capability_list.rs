@@ -21,7 +21,6 @@
 //! List of capabilities.
 #![cfg(feature = "alloc")]
 
-use alloc::boxed::Box;
 use core::marker::PhantomData;
 
 use crate::capability::FromClientHook;
@@ -182,7 +181,7 @@ where
         }
     }
 
-    pub fn set(&mut self, index: u32, value: Box<dyn ClientHook>) {
+    pub fn set(&mut self, index: u32, value: alloc::boxed::Box<dyn ClientHook>) {
         assert!(index < self.len());
         self.builder
             .reborrow()
