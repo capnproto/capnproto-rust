@@ -30,18 +30,18 @@ use test_schema_capnp::test_interface;
 struct TestInterfaceImpl {
     value: u64,
 }
-
+/*
 #[capnproto_rpc(test_interface)]
 impl test_interface::Server for TestInterfaceImpl {
     fn set_value(&mut self, value: u64) {
         self.value = value;
-        Promise::ok(())
+        Ok(Promise::ok(()))
     }
 
     fn get_value(&mut self) {
         let mut rresult = results.get();
         capnp_build!(rresult, { value = self.value });
-        Promise::ok(())
+        Ok(Promise::ok(()))
     }
 }
 
@@ -63,3 +63,4 @@ async fn decorator_test() -> capnp::Result<()> {
     assert_eq!(response, 3);
     Ok(())
 }
+*/

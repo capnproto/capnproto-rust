@@ -33,15 +33,15 @@ impl calculator::function::Server for PowerFunction {
         &mut self,
         params: calculator::function::CallParams,
         mut results: calculator::function::CallResults,
-    ) -> Promise<(), ::capnp::Error> {
-        let params = pry!(pry!(params.get()).get_params());
+    ) -> Result<Promise<(), capnp::Error>, capnp::Error> {
+        let params = params.get()?.get_params()?;
         if params.len() != 2 {
-            Promise::err(::capnp::Error::failed(
+            Err(::capnp::Error::failed(
                 "Wrong number of parameters".to_string(),
             ))
         } else {
             results.get().set_value(params.get(0).powf(params.get(1)));
-            Promise::ok(())
+            Ok(Promise::ok(()))
         }
     }
 }

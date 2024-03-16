@@ -377,7 +377,7 @@ where
                     ::capnp::capability::Params::new(params),
                     ::capnp::capability::Results::new(results),
                 )
-            };
+            }?;
             f.await
         })
     }

@@ -34,14 +34,14 @@ impl hello_world::Server for HelloWorldImpl {
         &mut self,
         params: hello_world::SayHelloParams,
         mut results: hello_world::SayHelloResults,
-    ) -> Promise<(), ::capnp::Error> {
-        let request = pry!(pry!(params.get()).get_request());
-        let name = pry!(pry!(request.get_name()).to_str());
+    ) -> Result<Promise<(), capnp::Error>, capnp::Error> {
+        let request = params.get()?.get_request()?;
+        let name = request.get_name()?.to_str()?;
         let message = format!("Hello, {name}!");
 
         results.get().init_reply().set_message(message[..].into());
 
-        Promise::ok(())
+        Ok(Promise::ok(()))
     }
 }
 

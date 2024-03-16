@@ -32,12 +32,12 @@ impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
         &mut self,
         params: subscriber::PushMessageParams<::capnp::text::Owned>,
         _results: subscriber::PushMessageResults<::capnp::text::Owned>,
-    ) -> Promise<(), ::capnp::Error> {
+    ) -> Result<Promise<(), capnp::Error>, capnp::Error> {
         println!(
             "message from publisher: {}",
-            pry!(pry!(pry!(params.get()).get_message()).to_str())
+            params.get()?.get_message()?.to_str()?
         );
-        Promise::ok(())
+        Ok(Promise::ok(()))
     }
 }
 
