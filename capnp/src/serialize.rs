@@ -393,13 +393,13 @@ where
     }
     read.read_exact(&mut buffer[start..end])?;
 
-    let info = no_alloc_buffer_segments::ReadSegmentTableResult {
+    let info = no_alloc_buffer_segments::NoAllocSegmentTableInfo {
         segments_count: segment_count,
         segment_table_length_bytes: (num_segment_counts_read + 1) * 4,
         total_segments_length_bytes: total_body_words * 8,
     };
 
-    let segments = NoAllocSliceSegments::from_segment_table(buffer, info);
+    let segments = NoAllocSliceSegments::from_segment_table_info(buffer, info);
     Ok(Some(crate::message::Reader::new(segments, options)))
 }
 

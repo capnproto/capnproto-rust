@@ -7,13 +7,19 @@ use super::SEGMENTS_COUNT_LIMIT;
 
 const U32_LEN_IN_BYTES: usize = core::mem::size_of::<u32>();
 
-pub(crate) struct ReadSegmentTableResult {
+/// Information about a message read from its segment table.
+pub struct NoAllocSegmentTableInfo {
+    /// The number of segments in the message.
     pub segments_count: usize,
+
+    /// The number of bytes in the segment table.
     pub segment_table_length_bytes: usize,
+
+    /// The total number of bytes in all segments of the message.
     pub total_segments_length_bytes: usize,
 }
 
-fn read_segment_table(slice: &[u8], options: ReaderOptions) -> Result<ReadSegmentTableResult> {
+fn read_segment_table(slice: &[u8], options: ReaderOptions) -> Result<NoAllocSegmentTableInfo> {
     let mut remaining = slice;
 
     verify_alignment(remaining.as_ptr())?;
@@ -74,7 +80,7 @@ fn read_segment_table(slice: &[u8], options: ReaderOptions) -> Result<ReadSegmen
         )));
     }
 
-    Ok(ReadSegmentTableResult {
+    Ok(NoAllocSegmentTableInfo {
         segments_count,
         segment_table_length_bytes: expected_data_offset,
         total_segments_length_bytes,
@@ -111,7 +117,11 @@ pub struct NoAllocBufferSegments<T> {
 }
 
 impl<T> NoAllocBufferSegments<T> {
-    pub(crate) fn from_segment_table(buffer: T, info: ReadSegmentTableResult) -> Self {
+    /// Constructs a NoAllocBufferSegments from a buffer and a `NoAllocSegmentTableInfo`.
+    /// This method is used internally by `NoAllocBufferSegments::from_slice()`
+    /// and `NoAllocBufferSegments::from_buffer()`. It has been made public to allow for
+    /// situations where the segment table is read by nonstandard means.
+    pub fn from_segment_table_info(buffer: T, info: NoAllocSegmentTableInfo) -> Self {
         if info.segments_count == 1 {
             Self {
                 buffer,
@@ -144,7 +154,7 @@ impl<'b> NoAllocBufferSegments<&'b [u8]> {
         let message = &slice[..message_length];
         *slice = &slice[message_length..];
 
-        Ok(Self::from_segment_table(message, segment_table_info))
+        Ok(Self::from_segment_table_info(message, segment_table_info))
     }
 }
 
@@ -156,7 +166,7 @@ impl<T: AsRef<[u8]>> NoAllocBufferSegments<T> {
     /// Otherwise, `buffer` must be 8-byte aligned (attempts to read the message will trigger errors).
     pub fn from_buffer(buffer: T, options: ReaderOptions) -> Result<Self> {
         let segment_table_info = read_segment_table(buffer.as_ref(), options)?;
-        Ok(Self::from_segment_table(buffer, segment_table_info))
+        Ok(Self::from_segment_table_info(buffer, segment_table_info))
     }
 }
 
