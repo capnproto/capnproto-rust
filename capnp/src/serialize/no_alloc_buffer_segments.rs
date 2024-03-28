@@ -85,11 +85,10 @@ fn read_segment_table(slice: &[u8], options: ReaderOptions) -> Result<ReadSegmen
 pub type NoAllocSliceSegments<'b> = NoAllocBufferSegments<&'b [u8]>;
 
 enum NoAllocBufferSegmentType {
-    /// The buffer contains a single segment, with bounds given by the two
-    /// `usize` parameters. The first parameter gives the byte offset of the
-    /// start of the segment, and the second parameter gives the byte offset
-    /// of its end.
-    SingleSegment(usize, usize),
+    /// The buffer contains a single segment, with length in bytes given by
+    /// the value of the `usize` parameter. The segment starts at byte index
+    /// 8 of the buffer.
+    SingleSegment(usize),
 
     /// The buffer contains multiple segments. In this case, the segment table
     /// needs to be re-parsed on each call to `get_segment()`.
@@ -114,12 +113,10 @@ pub struct NoAllocBufferSegments<T> {
 impl<T> NoAllocBufferSegments<T> {
     pub(crate) fn from_segment_table(buffer: T, info: ReadSegmentTableResult) -> Self {
         if info.segments_count == 1 {
-            let message_length = info.segment_table_length_bytes + info.total_segments_length_bytes;
             Self {
                 buffer,
                 segment_type: NoAllocBufferSegmentType::SingleSegment(
-                    info.segment_table_length_bytes,
-                    message_length,
+                    info.total_segments_length_bytes,
                 ),
             }
         } else {
@@ -172,9 +169,9 @@ impl<T: AsRef<[u8]>> ReaderSegments for NoAllocBufferSegments<T> {
         let idx: usize = idx.try_into().unwrap();
 
         match self.segment_type {
-            NoAllocBufferSegmentType::SingleSegment(start, end) => {
+            NoAllocBufferSegmentType::SingleSegment(length_bytes) => {
                 if idx == 0 {
-                    Some(&self.buffer.as_ref()[start..end])
+                    Some(&self.buffer.as_ref()[8..8 + length_bytes])
                 } else {
                     None
                 }
