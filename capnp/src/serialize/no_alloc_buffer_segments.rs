@@ -85,7 +85,14 @@ fn read_segment_table(slice: &[u8], options: ReaderOptions) -> Result<ReadSegmen
 pub type NoAllocSliceSegments<'b> = NoAllocBufferSegments<&'b [u8]>;
 
 enum NoAllocBufferSegmentType {
+    /// The buffer contains a single segment, with bounds given by the two
+    /// `usize` parameters. The first parameter gives the byte offset of the
+    /// start of the segment, and the second parameter gives the byte offset
+    /// of its end.
     SingleSegment(usize, usize),
+
+    /// The buffer contains multiple segments. In this case, the segment table
+    /// needs to be re-parsed on each call to `get_segment()`.
     MultipleSegments,
 }
 
