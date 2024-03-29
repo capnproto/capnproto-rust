@@ -1,3 +1,8 @@
+## v0.19.3
+- Rename ReadSegmentTableResult to NoAllocSegmentTableInfo and make it public.
+- Rename NoAllocBufferSegments::from_segment_table() to
+  NoAllocBufferSegments::from_segment_table_info() and make it public.
+
 ## v0.19.2
 - Revert SingleSegmentAllocator generalization because it was unsound.
 
