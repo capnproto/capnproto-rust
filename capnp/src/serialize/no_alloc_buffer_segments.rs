@@ -117,9 +117,9 @@ pub struct NoAllocBufferSegments<T> {
 }
 
 impl<T> NoAllocBufferSegments<T> {
-    /// Constructs a NoAllocBufferSegments from a buffer and a `NoAllocSegmentTableInfo`.
-    /// This method is used internally by `NoAllocBufferSegments::from_slice()`
-    /// and `NoAllocBufferSegments::from_buffer()`. It has been made public to allow for
+    /// Constructs a NoAllocBufferSegments from a buffer and a [`NoAllocSegmentTableInfo`].
+    /// This method is used internally by [`NoAllocBufferSegments::from_slice()`]
+    /// and [`NoAllocBufferSegments::from_buffer()`]. It has been made public to allow for
     /// situations where the segment table is read by nonstandard means.
     pub fn from_segment_table_info(buffer: T, info: NoAllocSegmentTableInfo) -> Self {
         if info.segments_count == 1 {
