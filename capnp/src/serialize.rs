@@ -92,7 +92,7 @@ pub fn read_message_from_flat_slice_no_alloc<'a>(
 }
 
 /// Segments read from a buffer, useful for when you have the message in a buffer and don't want the extra
-/// copy of `read_message`.
+/// copy performed by [`read_message`].
 #[cfg(feature = "alloc")]
 pub struct BufferSegments<T> {
     buffer: T,
