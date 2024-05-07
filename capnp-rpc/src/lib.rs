@@ -165,7 +165,7 @@ pub trait VatNetwork<VatId> {
 /// [level 3](https://capnproto.org/rpc.html#protocol-features) features.
 ///
 /// An `RpcSystem` is a non-`Send`able `Future` and needs to be driven by a task
-/// executor. A common way accomplish that is to pass the `RpcSystem` to 
+/// executor. A common way accomplish that is to pass the `RpcSystem` to
 /// `tokio::task::spawn_local()`.
 #[must_use = "futures do nothing unless polled"]
 pub struct RpcSystem<VatId>
