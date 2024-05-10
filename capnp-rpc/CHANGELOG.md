@@ -1,8 +1,11 @@
+## v0.19.1
+- Fix bug where RpcSystem::get_disconnector() misbehaved if called before bootstrap().
+
 ## v0.19.0
-Follow v0.19.0 release of other capnp crates.
+- Follow v0.19.0 release of other capnp crates.
 
 ## v0.18.0
-Follow v0.19.0 release of other capnp crates.
+- Follow v0.18.0 release of other capnp crates.
 
 ## v0.17.0
 - Rename `WeakCapabilityServerSet` to `CapabilityServerSet` and remove the old implmentation.
