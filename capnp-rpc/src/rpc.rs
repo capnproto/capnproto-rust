@@ -1588,7 +1588,7 @@ impl<VatId> ConnectionState<VatId> {
 }
 
 enum DisconnectorState {
-    Connected,
+    New,
     Disconnecting,
     Disconnected,
 }
@@ -1604,13 +1604,9 @@ where
 
 impl<VatId> Disconnector<VatId> {
     pub fn new(connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>) -> Self {
-        let state = match *(connection_state.borrow()) {
-            Some(_) => DisconnectorState::Connected,
-            None => DisconnectorState::Disconnected,
-        };
         Self {
             connection_state,
-            state,
+            state: DisconnectorState::New,
         }
     }
     fn disconnect(&self) {
@@ -1630,7 +1626,7 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         self.state = match self.state {
-            DisconnectorState::Connected => {
+            DisconnectorState::New => {
                 self.disconnect();
                 DisconnectorState::Disconnecting
             }
@@ -1644,7 +1640,7 @@ where
             DisconnectorState::Disconnected => DisconnectorState::Disconnected,
         };
         match self.state {
-            DisconnectorState::Connected => unreachable!(),
+            DisconnectorState::New => unreachable!(),
             DisconnectorState::Disconnecting => {
                 cx.waker().wake_by_ref();
                 Poll::Pending
