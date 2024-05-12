@@ -22,7 +22,6 @@
 //! List of primitives.
 
 use core::marker;
-use core::ptr::NonNull;
 
 use crate::introspect;
 use crate::private::layout::{
@@ -125,16 +124,13 @@ impl<'a, T: PrimitiveElement> Reader<'a, T> {
                 // This is a List(Void).
                 self.len() as usize
             };
-            Some(unsafe {
-                core::slice::from_raw_parts(
-                    if slice_length == 0 {
-                        NonNull::dangling().as_ptr()
-                    } else {
-                        bytes.as_ptr() as *mut T
-                    },
-                    slice_length,
-                )
-            })
+            if slice_length == 0 {
+                Some(&[])
+            } else {
+                Some(unsafe {
+                    core::slice::from_raw_parts(bytes.as_ptr() as *const T, slice_length)
+                })
+            }
         } else {
             None
         }
@@ -193,16 +189,13 @@ where
                 // This is a List(Void).
                 self.len() as usize
             };
-            Some(unsafe {
-                core::slice::from_raw_parts_mut(
-                    if slice_length == 0 {
-                        NonNull::dangling().as_ptr()
-                    } else {
-                        bytes.as_mut_ptr() as *mut T
-                    },
-                    slice_length,
-                )
-            })
+            if slice_length == 0 {
+                Some(&mut [])
+            } else {
+                Some(unsafe {
+                    core::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut T, slice_length)
+                })
+            }
         } else {
             None
         }
