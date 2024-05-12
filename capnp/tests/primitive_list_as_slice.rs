@@ -36,6 +36,12 @@ pub fn primitive_list_as_slice() {
     }
 
     {
+        let mut u16list = msg.initn_root::<primitive_list::Builder<u16>>(0);
+        assert_eq!(u16list.as_slice().unwrap().len(), 0);
+        assert_eq!(u16list.into_reader().as_slice().unwrap().len(), 0);
+    }
+
+    {
         let mut u16list = msg.initn_root::<primitive_list::Builder<u16>>(4);
         u16list.set(0, 0xab);
         u16list.set(1, 0xcd);
@@ -45,6 +51,90 @@ pub fn primitive_list_as_slice() {
         assert_eq!(
             u16list.into_reader().as_slice().unwrap(),
             &[0xab, 0xcd, 0xde, 0xff]
+        );
+    }
+
+    {
+        let mut u32list = msg.initn_root::<primitive_list::Builder<u32>>(0);
+        assert_eq!(u32list.as_slice().unwrap().len(), 0);
+        assert_eq!(u32list.into_reader().as_slice().unwrap().len(), 0);
+    }
+
+    {
+        let mut u32list = msg.initn_root::<primitive_list::Builder<u32>>(4);
+        u32list.set(0, 0xab);
+        u32list.set(1, 0xcd);
+        u32list.set(2, 0xde);
+        u32list.set(3, 0xff);
+        assert_eq!(u32list.as_slice().unwrap(), &[0xab, 0xcd, 0xde, 0xff]);
+        assert_eq!(
+            u32list.into_reader().as_slice().unwrap(),
+            &[0xab, 0xcd, 0xde, 0xff]
+        );
+    }
+
+    {
+        let mut u64list = msg.initn_root::<primitive_list::Builder<u64>>(0);
+        assert_eq!(u64list.as_slice().unwrap().len(), 0);
+        assert_eq!(u64list.into_reader().as_slice().unwrap().len(), 0);
+    }
+
+    {
+        let mut u64list = msg.initn_root::<primitive_list::Builder<u64>>(4);
+        u64list.set(0, 0xab);
+        u64list.set(1, 0xcd);
+        u64list.set(2, 0xde);
+        u64list.set(3, 0xff);
+        assert_eq!(u64list.as_slice().unwrap(), &[0xab, 0xcd, 0xde, 0xff]);
+        assert_eq!(
+            u64list.into_reader().as_slice().unwrap(),
+            &[0xab, 0xcd, 0xde, 0xff]
+        );
+    }
+
+    {
+        let mut f32list = msg.initn_root::<primitive_list::Builder<f32>>(0);
+        assert_eq!(f32list.as_slice().unwrap().len(), 0);
+        assert_eq!(f32list.into_reader().as_slice().unwrap().len(), 0);
+    }
+
+    {
+        let mut f32list = msg.initn_root::<primitive_list::Builder<f32>>(5);
+        f32list.set(0, 0.3);
+        f32list.set(1, 0.0);
+        f32list.set(2, f32::NEG_INFINITY);
+        f32list.set(3, -0.0);
+        f32list.set(4, f32::MAX);
+        assert_eq!(
+            f32list.as_slice().unwrap(),
+            &[0.3, 0.0, f32::NEG_INFINITY, -0.0, f32::MAX]
+        );
+        assert_eq!(
+            f32list.into_reader().as_slice().unwrap(),
+            &[0.3, 0.0, f32::NEG_INFINITY, -0.0, f32::MAX]
+        );
+    }
+
+    {
+        let mut f64list = msg.initn_root::<primitive_list::Builder<f64>>(0);
+        assert_eq!(f64list.as_slice().unwrap().len(), 0);
+        assert_eq!(f64list.into_reader().as_slice().unwrap().len(), 0);
+    }
+
+    {
+        let mut f64list = msg.initn_root::<primitive_list::Builder<f64>>(5);
+        f64list.set(0, 0.3);
+        f64list.set(1, 0.0);
+        f64list.set(2, f64::NEG_INFINITY);
+        f64list.set(3, -0.0);
+        f64list.set(4, f64::MAX);
+        assert_eq!(
+            f64list.as_slice().unwrap(),
+            &[0.3, 0.0, f64::NEG_INFINITY, -0.0, f64::MAX]
+        );
+        assert_eq!(
+            f64list.into_reader().as_slice().unwrap(),
+            &[0.3, 0.0, f64::NEG_INFINITY, -0.0, f64::MAX]
         );
     }
 
