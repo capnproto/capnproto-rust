@@ -1,4 +1,8 @@
-#![cfg(all(target_endian = "little", feature = "alloc"))]
+#![cfg(all(
+    target_endian = "little",
+    feature = "alloc",
+    not(feature = "unaligned")
+))]
 
 use capnp::{message, primitive_list};
 

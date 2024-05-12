@@ -112,9 +112,14 @@ impl<'a, T: PrimitiveElement> Reader<'a, T> {
         }
     }
 
-    #[cfg(target_endian = "little")]
+    const _CHECK_SLICE: () = check_slice_supported::<T>();
+
     /// Returns something if the slice is as expected in memory.
+    ///
+    /// If the target is not little-endian or the `unaligned` feature is enabled, this function
+    /// will only be available for types that are 1 byte or smaller.
     pub fn as_slice(&self) -> Option<&[T]> {
+        let () = Self::_CHECK_SLICE;
         if self.reader.get_element_size() == T::element_size() {
             let bytes = self.reader.into_raw_bytes();
             let bits_per_element = data_bits_per_element(T::element_size()) as usize;
@@ -133,6 +138,17 @@ impl<'a, T: PrimitiveElement> Reader<'a, T> {
             }
         } else {
             None
+        }
+    }
+}
+
+const fn check_slice_supported<T: PrimitiveElement>() {
+    if core::mem::size_of::<T>() > 1 {
+        if !cfg!(target_endian = "little") {
+            panic!("cannot call as_slice on primitive list of multi-byte elements on non-little endian targets");
+        }
+        if cfg!(feature = "unaligned") {
+            panic!("cannot call as_slice on primitive list of multi-byte elements when unaligned feature is enabled");
         }
     }
 }
@@ -178,8 +194,10 @@ where
         PrimitiveElement::set(&self.builder, index, value);
     }
 
-    #[cfg(target_endian = "little")]
+    const _CHECK_SLICE: () = check_slice_supported::<T>();
+
     pub fn as_slice(&mut self) -> Option<&mut [T]> {
+        let () = Self::_CHECK_SLICE;
         if self.builder.get_element_size() == T::element_size() {
             let bytes = self.builder.as_raw_bytes();
             let bits_per_element = data_bits_per_element(T::element_size()) as usize;
