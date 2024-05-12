@@ -505,7 +505,7 @@ where
             self,
             ReaderOptions {
                 traversal_limit_in_words: None,
-                nesting_limit: i32::max_value(),
+                nesting_limit: i32::MAX,
             },
         )
     }

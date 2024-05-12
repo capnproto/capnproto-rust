@@ -19,7 +19,6 @@
 // THE SOFTWARE.
 
 use core::slice;
-use core::u64;
 
 use crate::message;
 use crate::message::Allocator;

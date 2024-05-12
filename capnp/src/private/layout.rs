@@ -3194,7 +3194,7 @@ impl<'a> PointerBuilder<'a> {
                 self.segment_id,
                 self.cap_table.into_reader(),
                 self.pointer,
-                ::core::i32::MAX,
+                i32::MAX,
             )
         }
     }
