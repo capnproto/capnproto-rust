@@ -31,7 +31,6 @@ use crate::traits::Owned;
 use crate::Result;
 
 #[derive(Copy, Clone)]
-#[repr(C, align(8))]
 pub struct Reader<T> {
     #[doc(hidden)]
     pub phantom: PhantomData<T>,
