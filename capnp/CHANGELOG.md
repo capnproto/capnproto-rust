@@ -1,3 +1,10 @@
+## v0.19.4
+- Fix possible undefined behavior in primitive_list::as_slice() on empty lists.
+- Disable primitive_list::as_slice() when T is larger than one byte and the
+  `unaligned` feature is enabled.
+- Enable primitive_list::as_slice() for big-endian targets when T is at most
+  one byte.
+
 ## v0.19.3
 - Rename ReadSegmentTableResult to NoAllocSegmentTableInfo and make it public.
 - Rename NoAllocBufferSegments::from_segment_table() to
