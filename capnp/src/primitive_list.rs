@@ -114,10 +114,13 @@ impl<'a, T: PrimitiveElement> Reader<'a, T> {
 
     const _CHECK_SLICE: () = check_slice_supported::<T>();
 
-    /// Returns something if the slice is as expected in memory.
+    /// Attempts to return a view of the list as a native Rust slice.
+    /// Returns `None` if the elements of the list are non-contiguous,
+    /// which can happen if the schema has evolved.
     ///
-    /// If the target is not little-endian or the `unaligned` feature is enabled, this function
-    /// will only be available for types that are 1 byte or smaller.
+    /// This method raises a compile-time error if `T` is larger than one
+    /// byte and either the `unaligned` feature is enabled or the target
+    /// is big-endian.
     pub fn as_slice(&self) -> Option<&[T]> {
         let () = Self::_CHECK_SLICE;
         if self.reader.get_element_size() == T::element_size() {
@@ -196,6 +199,13 @@ where
 
     const _CHECK_SLICE: () = check_slice_supported::<T>();
 
+    /// Attempts to return a view of the list as a native Rust slice.
+    /// Returns `None` if the elements of the list are non-contiguous,
+    /// which can happen if the schema has evolved.
+    ///
+    /// This method raises a compile-time error if `T` is larger than one
+    /// byte and either the `unaligned` feature is enabled or the target
+    /// is big-endian.
     pub fn as_slice(&mut self) -> Option<&mut [T]> {
         let () = Self::_CHECK_SLICE;
         if self.builder.get_element_size() == T::element_size() {
