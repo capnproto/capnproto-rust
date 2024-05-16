@@ -391,3 +391,17 @@ fn test_stringify_list_list() {
     let stringified = format!("{:?}", root.into_reader());
     assert_eq!(stringified, "[[1111, 2222, 3333], [123456]]");
 }
+
+#[test]
+fn test_get_named_missing() {
+    let mut builder = message::Builder::new_default();
+    let root: test_all_types::Builder<'_> = builder.init_root();
+    let root: dynamic_value::Builder<'_> = root.into();
+    let mut root: dynamic_struct::Builder<'_> = root.downcast();
+    test_util::dynamic_init_test_message(root.reborrow());
+    let root = root.into_reader();
+    // try a bunch of fields that don't exist
+    assert!(root.get_named("AAAAAAA").is_err());
+    assert!(root.get_named("abcdef").is_err());
+    assert!(root.get_named("zzzzzzz").is_err());
+}
