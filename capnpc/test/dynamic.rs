@@ -402,6 +402,9 @@ fn test_get_named_missing() {
     let root = root.into_reader();
     // try a bunch of fields that don't exist
     assert!(root.get_named("AAAAAAA").is_err());
+    assert!(root.has_named("AAAAAAA").is_err());
     assert!(root.get_named("abcdef").is_err());
+    assert!(root.has_named("abcdef").is_err());
     assert!(root.get_named("zzzzzzz").is_err());
+    assert!(root.has_named("zzzzzzz").is_err());
 }
