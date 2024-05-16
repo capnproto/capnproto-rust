@@ -1,3 +1,7 @@
+## v0.19.5
+- Fix bug in dynamic reflection where `get_named()` and `has_named()` could
+  panic on a field that is not present in the schema.
+
 ## v0.19.4
 - Fix possible undefined behavior in primitive_list::as_slice() on empty lists.
 - Disable primitive_list::as_slice() when T is larger than one byte and the
