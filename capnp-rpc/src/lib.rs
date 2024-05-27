@@ -81,7 +81,7 @@ pub mod rpc_capnp;
 /// [rpc-twoparty.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/rpc-twoparty.capnp).
 pub mod rpc_twoparty_capnp;
 
-/// Like `try!()`, but for functions that return a `Promise<T, E>` rather than a `Result<T, E>`.
+/// Like [`try!()`], but for functions that return a [`Promise<T, E>`] rather than a [`Result<T, E>`].
 ///
 /// Unwraps a `Result<T, E>`. In the case of an error `Err(e)`, immediately returns from the
 /// enclosing function with `Promise::err(e)`.
@@ -110,8 +110,15 @@ pub mod twoparty;
 
 use capnp::message;
 
+/// A message to be sent by a [`VatNetwork`].
 pub trait OutgoingMessage {
+    /// Gets the message body, which the caller may fill in any way it wants.
+    ///
+    /// The standard RPC implementation initializes it as a Message as defined
+    /// in `schema/rpc.capnp`.
     fn get_body(&mut self) -> ::capnp::Result<::capnp::any_pointer::Builder>;
+
+    /// Same as `get_body()`, but returns the corresponding reader type.
     fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader>;
 
     /// Sends the message. Returns a promise for the message that resolves once the send has completed.
@@ -123,44 +130,73 @@ pub trait OutgoingMessage {
         Rc<message::Builder<message::HeapAllocator>>,
     );
 
+    /// Takes the inner message out of `self`.
     fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator>;
 }
 
+/// A message received from a [`VatNetwork`].
 pub trait IncomingMessage {
+    /// Gets the message body, to be interpreted by the caller.
+    ///
+    /// The standard RPC implementation interprets it as a Message as defined
+    /// in `schema/rpc.capnp`.
     fn get_body(&self) -> ::capnp::Result<::capnp::any_pointer::Reader>;
 }
 
+/// A two-way RPC connection.
+///
+/// A connection can be created by [`VatNetwork::connect()`].
 pub trait Connection<VatId> {
+    /// Returns the connected vat's authenticated VatId.  It is the VatNetwork's
+    /// responsibility to authenticate this, so that the caller can be assured
+    /// that they are really talking to the identified vat and not an imposter.
     fn get_peer_vat_id(&self) -> VatId;
+
+    /// Allocates a new message to be sent on this connection.
+    ///
+    /// If `first_segment_word_size` is non-zero, it should be treated as a
+    /// hint suggesting how large to make the first segment.  This is entirely
+    /// a hint and the connection may adjust it up or down.  If it is zero,
+    /// the connection should choose the size itself.
     fn new_outgoing_message(&mut self, first_segment_word_size: u32) -> Box<dyn OutgoingMessage>;
 
     /// Waits for a message to be received and returns it.  If the read stream cleanly terminates,
     /// returns None. If any other problem occurs, returns an Error.
     fn receive_incoming_message(&mut self) -> Promise<Option<Box<dyn IncomingMessage>>, Error>;
 
-    // Waits until all outgoing messages have been sent, then shuts down the outgoing stream. The
-    // returned promise resolves after shutdown is complete.
+    /// Waits until all outgoing messages have been sent, then shuts down the outgoing stream. The
+    /// returned promise resolves after shutdown is complete.
     fn shutdown(&mut self, result: ::capnp::Result<()>) -> Promise<(), Error>;
 }
 
+/// Network facility between vats, it determines how to form connections between
+/// vats.
+///
+/// ## Vat
+///
+/// Cap'n Proto RPC operates between vats, where a "vat" is some sort of host of
+/// objects.  Typically one Cap'n Proto process (in the Unix sense) is one vat.
 pub trait VatNetwork<VatId> {
-    /// Returns None if `hostId` refers to the local vat.
+    /// Connects to `host_id`.
+    ///
+    /// Returns None if `host_id` refers to the local vat.
     fn connect(&mut self, host_id: VatId) -> Option<Box<dyn Connection<VatId>>>;
 
     /// Waits for the next incoming connection and return it.
     fn accept(&mut self) -> Promise<Box<dyn Connection<VatId>>, ::capnp::Error>;
 
+    /// A promise that cannot be resolved until the shutdown.
     fn drive_until_shutdown(&mut self) -> Promise<(), Error>;
 }
 
 /// A portal to objects available on the network.
 ///
-/// The RPC implemententation sits on top of an implementation of `VatNetwork`, which
+/// The RPC implementation sits on top of an implementation of [`VatNetwork`], which
 /// determines how to form connections between vats. The RPC implementation determines
 /// how to use such connections to manage object references and make method calls.
 ///
 /// At the moment, this is all rather more general than it needs to be, because the only
-/// implementation of `VatNetwork` is `twoparty::VatNetwork`. However, eventually we
+/// implementation of `VatNetwork` is [`twoparty::VatNetwork`]. However, eventually we
 /// will need to have more sophisticated `VatNetwork` implementations, in order to support
 /// [level 3](https://capnproto.org/rpc.html#protocol-features) features.
 ///
@@ -228,7 +264,8 @@ impl<VatId> RpcSystem<VatId> {
         result
     }
 
-    /// Connects to the given vat and returns its bootstrap interface.
+    /// Connects to the given vat and returns its bootstrap interface, returns
+    /// a client that can be used to invoke the bootstrap interface.
     pub fn bootstrap<T>(&mut self, vat_id: VatId) -> T
     where
         T: ::capnp::capability::FromClientHook,

@@ -114,6 +114,8 @@ where
     }
 }
 
+/// For a specific kind of task, `TaskReaper` defines the procedure that should
+/// be invoked when it succeeds or fails.
 pub trait TaskReaper<E>
 where
     E: 'static,

@@ -19,7 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! An implementation of `VatNetwork` for the common case of a client-server connection.
+//! An implementation of [`VatNetwork`](crate::VatNetwork) for the common case
+//! of a client-server connection.
 
 use capnp::capability::Promise;
 use capnp::message::ReaderOptions;
@@ -205,6 +206,7 @@ where
     side: crate::rpc_twoparty_capnp::Side,
 }
 
+/// A two-party vat `VatNetwork` implementation.
 impl<T> VatNetwork<T>
 where
     T: AsyncRead + Unpin,
