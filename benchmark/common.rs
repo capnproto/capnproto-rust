@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::i32;
-
 #[derive(Clone, Copy)]
 pub struct FastRand {
     x: u32,
@@ -67,7 +65,6 @@ impl FastRand {
 
     #[inline]
     pub fn next_double(&mut self, range: f64) -> f64 {
-        use std::u32;
         self.next_u32() as f64 * range / (u32::MAX as f64)
     }
 }
