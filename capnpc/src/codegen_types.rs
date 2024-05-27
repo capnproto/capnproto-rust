@@ -346,8 +346,6 @@ impl<'a> RustTypeInfo for type_::Reader<'a> {
     }
 }
 
-///
-///
 pub fn do_branding(
     ctx: &GeneratorContext,
     node_id: u64,
