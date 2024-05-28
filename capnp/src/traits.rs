@@ -169,7 +169,7 @@ impl<U, T: IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
 
 impl<U, T: IndexMove<u32, U>> ::core::iter::ExactSizeIterator for ListIter<T, U> {
     fn len(&self) -> usize {
-        self.size as usize
+        self.size as usize - self.index as usize
     }
 }
 
@@ -234,7 +234,7 @@ impl<U, T: IndexMove<u16, U>> ::core::iter::Iterator for ShortListIter<T, U> {
 
 impl<U, T: IndexMove<u16, U>> ::core::iter::ExactSizeIterator for ShortListIter<T, U> {
     fn len(&self) -> usize {
-        self.size as usize
+        self.size as usize - self.index as usize
     }
 }
 
