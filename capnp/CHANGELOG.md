@@ -1,3 +1,7 @@
+## v0.19.6
+- Fix ExactSizeIterator implementations so that they return the number of
+  remaining elements instead of the total length of the underlying list.
+
 ## v0.19.5
 - Fix bug in dynamic reflection where `get_named()` and `has_named()` could
   panic on a field that is not present in the schema.
