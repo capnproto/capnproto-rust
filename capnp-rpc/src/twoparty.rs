@@ -152,8 +152,7 @@ where
         first_segment_word_size: u32,
     ) -> Box<dyn crate::OutgoingMessage> {
         let message = ::capnp::message::Builder::new(
-            ::capnp::message::HeapAllocator::new()
-                .first_segment_words(first_segment_word_size as u32),
+            ::capnp::message::HeapAllocator::new().first_segment_words(first_segment_word_size),
         );
         Box::new(OutgoingMessage {
             message,
