@@ -215,7 +215,8 @@ where
     T: AsyncRead + Unpin,
 {
     /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
-    /// `output_stream`.
+    /// `output_stream`. (Typically, performance is best if these streams are buffered, possibly via
+    /// `futures::io::BufReader` and `futures::io::BufWriter`.)
     ///
     /// `side` indicates whether this is the client or the server side of the connection. This has no
     /// effect on the data sent over the connection; it merely exists so that `RpcNetwork::bootstrap` knows
