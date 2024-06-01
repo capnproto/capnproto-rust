@@ -46,8 +46,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let (reader, writer) =
                 tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
             let rpc_network = Box::new(twoparty::VatNetwork::new(
-                reader,
-                writer,
+                futures::io::BufReader::new(reader),
+                futures::io::BufWriter::new(writer),
                 rpc_twoparty_capnp::Side::Client,
                 Default::default(),
             ));

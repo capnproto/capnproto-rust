@@ -67,8 +67,8 @@ async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     let (reader, writer) = tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
 
     let network = Box::new(twoparty::VatNetwork::new(
-        reader,
-        writer,
+        futures::io::BufReader::new(reader),
+        futures::io::BufWriter::new(writer),
         rpc_twoparty_capnp::Side::Client,
         Default::default(),
     ));
