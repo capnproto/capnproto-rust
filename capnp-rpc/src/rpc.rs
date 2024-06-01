@@ -209,7 +209,7 @@ impl<VatId> Drop for QuestionRef<VatId> {
         match &mut questions.slots[self.id as usize] {
             Some(q) => {
                 if let Ok(ref mut c) = *self.connection_state.connection.borrow_mut() {
-                    let mut message = c.new_outgoing_message(100); // XXX size hint
+                    let mut message = c.new_outgoing_message(5);
                     {
                         let root: message::Builder = message.get_body().unwrap().init_as();
                         let mut builder = root.init_finish();
@@ -629,7 +629,7 @@ impl<VatId> ConnectionState<VatId> {
         }
         match *state.connection.borrow_mut() {
             Ok(ref mut c) => {
-                let mut message = c.new_outgoing_message(100); // TODO estimate size
+                let mut message = c.new_outgoing_message(5);
                 {
                     let mut builder = message
                         .get_body()
@@ -739,7 +739,7 @@ impl<VatId> ConnectionState<VatId> {
             return Ok(());
         }
 
-        let mut response = connection_state.new_outgoing_message(50)?; // XXX size hint
+        let mut response = connection_state.new_outgoing_message(10)?;
 
         let result_exports = {
             let mut ret = response
@@ -1761,7 +1761,7 @@ where
         _size_hint: Option<::capnp::MessageSize>,
         target: Client<VatId>,
     ) -> ::capnp::Result<Self> {
-        let message = connection_state.new_outgoing_message(100)?;
+        let message = connection_state.new_outgoing_message(1024)?;
         Ok(Self {
             connection_state,
             target,
@@ -2392,7 +2392,7 @@ impl ResultsDone {
                                 if let Ok(connection) =
                                     connection_state.connection.borrow_mut().as_mut()
                                 {
-                                    let mut message = connection.new_outgoing_message(50); // XXX size hint
+                                    let mut message = connection.new_outgoing_message(10);
                                     {
                                         let root: message::Builder =
                                             message.get_body()?.get_as()?;
@@ -2627,7 +2627,7 @@ impl<VatId> Drop for ImportClient<VatId> {
         // Send a message releasing our remote references.
         let mut tmp = connection_state.connection.borrow_mut();
         if let (true, Ok(c)) = (self.remote_ref_count > 0, tmp.as_mut()) {
-            let mut message = c.new_outgoing_message(50); // XXX size hint
+            let mut message = c.new_outgoing_message(10);
             {
                 let root: message::Builder = message.get_body().unwrap().init_as();
                 let mut release = root.init_release();

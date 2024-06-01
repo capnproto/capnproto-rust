@@ -149,10 +149,14 @@ where
 
     fn new_outgoing_message(
         &mut self,
-        _first_segment_word_size: u32,
+        first_segment_word_size: u32,
     ) -> Box<dyn crate::OutgoingMessage> {
+        let message = ::capnp::message::Builder::new(
+            ::capnp::message::HeapAllocator::new()
+                .first_segment_words(first_segment_word_size as u32),
+        );
         Box::new(OutgoingMessage {
-            message: ::capnp::message::Builder::new_default(),
+            message,
             sender: self.inner.borrow().sender.clone(),
         })
     }
