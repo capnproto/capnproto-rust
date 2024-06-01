@@ -1,3 +1,6 @@
+## v0.19.2
+- Use size hint in new_outgoing_message(). Should improve performance somewhat.
+
 ## v0.19.1
 - Fix bug where RpcSystem::get_disconnector() misbehaved if called before bootstrap().
 
