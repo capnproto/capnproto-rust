@@ -388,7 +388,7 @@ pub enum ErrorKind {
     UnalignedSegment,
 
     /// Unexpected far pointer
-    UnexepectedFarPointer,
+    UnexpectedFarPointer,
 
     /// Unknown pointer type.
     UnknownPointerType,
@@ -586,7 +586,7 @@ impl core::fmt::Display for ErrorKind {
             Self::TriedToReadFromNullArena => write!(fmt, "Tried to read from null arena"),
             Self::TypeMismatch => write!(fmt, "type mismatch"),
             Self::UnalignedSegment => write!(fmt, "Detected unaligned segment. You must either ensure all of your segments are 8-byte aligned, or you must enable the \"unaligned\" feature in the capnp crate"),
-            Self::UnexepectedFarPointer => write!(fmt, "Unexpected far pointer"),
+            Self::UnexpectedFarPointer => write!(fmt, "Unexpected far pointer"),
             Self::UnknownPointerType => write!(fmt, "Unknown pointer type."),
         }
     }

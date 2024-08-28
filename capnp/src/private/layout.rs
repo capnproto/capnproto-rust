@@ -3028,7 +3028,7 @@ impl<'a> PointerReader<'a> {
                 unsafe { wire_helpers::follow_fars(self.arena, self.pointer, self.segment_id)? };
 
             match unsafe { (*reff).kind() } {
-                WirePointerKind::Far => Err(Error::from_kind(ErrorKind::UnexepectedFarPointer)),
+                WirePointerKind::Far => Err(Error::from_kind(ErrorKind::UnexpectedFarPointer)),
                 WirePointerKind::Struct => Ok(PointerType::Struct),
                 WirePointerKind::List => Ok(PointerType::List),
                 WirePointerKind::Other => {
