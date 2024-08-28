@@ -189,7 +189,7 @@ pub enum ErrorKind {
     /// may simply exacerbate the problem.
     Overloaded,
 
-    /// The call required communication over a connection that has been lost. The callee will need
+    /// The call required communication over a connection that has been lost. The caller will need
     /// to re-establish connections and try again.
     Disconnected,
 
