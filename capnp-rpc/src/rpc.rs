@@ -1550,7 +1550,7 @@ impl<VatId> ConnectionState<VatId> {
                     Ok(Some(exp.client_hook.add_ref()))
                 } else {
                     Ok(Some(broken::new_cap(Error::failed(
-                        "invalid 'receivedHosted' export ID".to_string(),
+                        "invalid 'receiverHosted' export ID".to_string(),
                     ))))
                 }
             }
