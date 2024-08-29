@@ -2410,23 +2410,19 @@ impl ResultsDone {
                             (false, Ok(())) => {
                                 let exports = {
                                     let root: message::Builder = message.get_body()?.get_as()?;
-                                    match root.which()? {
-                                        message::Return(ret) => match ret?.which()? {
-                                            crate::rpc_capnp::return_::Results(Ok(payload)) => {
-                                                ConnectionState::write_descriptors(
-                                                    &connection_state,
-                                                    &cap_table,
-                                                    payload,
-                                                )
-                                            }
-                                            _ => {
-                                                unreachable!()
-                                            }
-                                        },
-                                        _ => {
-                                            unreachable!()
-                                        }
-                                    }
+                                    let message::Return(ret) = root.which()? else {
+                                        unreachable!()
+                                    };
+                                    let crate::rpc_capnp::return_::Results(Ok(payload)) =
+                                        ret?.which()?
+                                    else {
+                                        unreachable!()
+                                    };
+                                    ConnectionState::write_descriptors(
+                                        &connection_state,
+                                        &cap_table,
+                                        payload,
+                                    )
                                 };
 
                                 let (_promise, m) = message.send();
