@@ -2470,21 +2470,15 @@ impl ResultsDoneHook for ResultsDone {
         match *self.inner {
             ResultsDoneVariant::Rpc(ref message, ref cap_table) => {
                 let root: message::Reader = message.get_root_as_reader()?;
-                match root.which()? {
-                    message::Return(ret) => match ret?.which()? {
-                        crate::rpc_capnp::return_::Results(payload) => {
-                            let mut content = payload?.get_content();
-                            content.imbue(cap_table);
-                            Ok(content)
-                        }
-                        _ => {
-                            unreachable!()
-                        }
-                    },
-                    _ => {
-                        unreachable!()
-                    }
-                }
+                let message::Return(ret) = root.which()? else {
+                    unreachable!();
+                };
+                let crate::rpc_capnp::return_::Results(payload) = ret?.which()? else {
+                    unreachable!();
+                };
+                let mut content = payload?.get_content();
+                content.imbue(cap_table);
+                Ok(content)
             }
             ResultsDoneVariant::LocallyRedirected(ref message, ref cap_table) => {
                 let mut result: any_pointer::Reader = message.get_root_as_reader()?;
