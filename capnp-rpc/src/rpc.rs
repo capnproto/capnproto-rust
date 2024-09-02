@@ -1488,9 +1488,14 @@ impl<VatId> ConnectionState<VatId> {
                     let client: Box<Client<VatId>> = Box::new(import_client.into());
                     let client: Box<dyn ClientHook> = client;
 
-                    // XXX do I need something like this?
-                    // Make sure the import is not destroyed while this promise exists.
-                    //                            let promise = promise.attach(client.add_ref());
+                    // Here the C++ implementation does something like:
+                    // ```
+                    //   // Make sure the import is not destroyed while this promise exists.
+                    //   let promise = promise.attach(client.add_ref());
+                    // ```
+                    // However, as far as I can tell that is unnecessary, because the
+                    // PromiseClient holds `client` until it resolves, after which point
+                    // there is no reason to keep the import alive.
 
                     let client = PromiseClient::new(&connection_state, client, Some(import_id));
 
