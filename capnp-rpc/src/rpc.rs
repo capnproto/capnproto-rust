@@ -35,7 +35,7 @@ use futures::{future, Future, FutureExt, TryFutureExt};
 use std::cell::{Cell, RefCell};
 use std::cmp::Reverse;
 use std::collections::binary_heap::BinaryHeap;
-use std::collections::hash_map::HashMap;
+use std::collections::hash_map::{self, HashMap};
 use std::mem;
 use std::rc::{Rc, Weak};
 
@@ -1467,13 +1467,13 @@ impl<VatId> ConnectionState<VatId> {
 
         let import_client = {
             match state.imports.borrow_mut().slots.entry(import_id) {
-                std::collections::hash_map::Entry::Occupied(occ) => occ
+                hash_map::Entry::Occupied(occ) => occ
                     .get()
                     .import_client
                     .0
                     .upgrade()
                     .expect("dangling ref to import client?"),
-                std::collections::hash_map::Entry::Vacant(v) => {
+                hash_map::Entry::Vacant(v) => {
                     let import_client = ImportClient::new(&connection_state, import_id);
                     v.insert(Import::new(&import_client));
                     import_client
@@ -2602,20 +2602,12 @@ impl<VatId> Drop for ImportClient<VatId> {
             .is_some());
 
         // Remove self from the import table, if the table is still pointing at us.
-        let mut remove = false;
-        if let Some(import) = connection_state.imports.borrow().slots.get(&self.import_id) {
-            let (_, ptr) = import.import_client;
+        let mut tmp = connection_state.imports.borrow_mut();
+        if let hash_map::Entry::Occupied(import) = tmp.slots.entry(self.import_id) {
+            let (_, ptr) = import.get().import_client;
             if ptr == ((&*self) as *const _ as usize) {
-                remove = true;
+                import.remove();
             }
-        }
-
-        if remove {
-            connection_state
-                .imports
-                .borrow_mut()
-                .slots
-                .remove(&self.import_id);
         }
 
         // Send a message releasing our remote references.
