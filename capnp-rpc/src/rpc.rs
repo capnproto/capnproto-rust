@@ -302,8 +302,10 @@ pub struct Import<VatId>
 where
     VatId: 'static,
 {
-    // The usize is the numeric value of a raw pointer to the ImportClient.
-    import_client: (Weak<RefCell<ImportClient<VatId>>>, usize),
+    import_client: Weak<RefCell<ImportClient<VatId>>>,
+
+    // Raw pointer to import_client, for checking in the Drop implementation.
+    import_client_ptr: *const ImportClient<VatId>,
 
     // Either a copy of importClient, or, in the case of promises, the wrapping PromiseClient.
     // Becomes null when it is discarded *or* when the import is destroyed (e.g. the promise is
@@ -317,10 +319,8 @@ where
 impl<VatId> Import<VatId> {
     fn new(import_client: &Rc<RefCell<ImportClient<VatId>>>) -> Self {
         Self {
-            import_client: (
-                Rc::downgrade(import_client),
-                &*import_client.borrow() as *const _ as _,
-            ),
+            import_client: Rc::downgrade(import_client),
+            import_client_ptr: &*import_client.borrow() as *const _,
             app_client: None,
             promise_client_to_resolve: None,
         }
@@ -1470,7 +1470,6 @@ impl<VatId> ConnectionState<VatId> {
                 hash_map::Entry::Occupied(occ) => occ
                     .get()
                     .import_client
-                    .0
                     .upgrade()
                     .expect("dangling ref to import client?"),
                 hash_map::Entry::Vacant(v) => {
@@ -2604,8 +2603,7 @@ impl<VatId> Drop for ImportClient<VatId> {
         // Remove self from the import table, if the table is still pointing at us.
         let mut tmp = connection_state.imports.borrow_mut();
         if let hash_map::Entry::Occupied(import) = tmp.slots.entry(self.import_id) {
-            let (_, ptr) = import.get().import_client;
-            if ptr == ((&*self) as *const _ as usize) {
+            if import.get().import_client_ptr == ((&*self) as *const _) {
                 import.remove();
             }
         }
