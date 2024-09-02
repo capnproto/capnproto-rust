@@ -206,36 +206,32 @@ impl<VatId> QuestionRef<VatId> {
 impl<VatId> Drop for QuestionRef<VatId> {
     fn drop(&mut self) {
         let mut questions = self.connection_state.questions.borrow_mut();
-        match &mut questions.slots[self.id as usize] {
-            Some(q) => {
-                if let Ok(ref mut c) = *self.connection_state.connection.borrow_mut() {
-                    let mut message = c.new_outgoing_message(5);
-                    {
-                        let root: message::Builder = message.get_body().unwrap().init_as();
-                        let mut builder = root.init_finish();
-                        builder.set_question_id(self.id);
+        let Some(q) = &mut questions.slots[self.id as usize] else {
+            unreachable!()
+        };
+        if let Ok(ref mut c) = *self.connection_state.connection.borrow_mut() {
+            let mut message = c.new_outgoing_message(5);
+            {
+                let root: message::Builder = message.get_body().unwrap().init_as();
+                let mut builder = root.init_finish();
+                builder.set_question_id(self.id);
 
-                        // If we're still awaiting a return, then this request is being
-                        // canceled, and we're going to ignore any capabilities in the return
-                        // message, so set releaseResultCaps true. If we already received the
-                        // return, then we've already built local proxies for the caps and will
-                        // send Release messages when those are destroyed.
-                        builder.set_release_result_caps(q.is_awaiting_return);
-                    }
-                    let _ = message.send();
-                }
+                // If we're still awaiting a return, then this request is being
+                // canceled, and we're going to ignore any capabilities in the return
+                // message, so set releaseResultCaps true. If we already received the
+                // return, then we've already built local proxies for the caps and will
+                // send Release messages when those are destroyed.
+                builder.set_release_result_caps(q.is_awaiting_return);
+            }
+            let _ = message.send();
+        }
 
-                if q.is_awaiting_return {
-                    // Still waiting for return, so just remove the QuestionRef pointer from the table.
-                    q.self_ref = None;
-                } else {
-                    // Call has already returned, so we can now remove it from the table.
-                    questions.erase(self.id)
-                }
-            }
-            None => {
-                unreachable!()
-            }
+        if q.is_awaiting_return {
+            // Still waiting for return, so just remove the QuestionRef pointer from the table.
+            q.self_ref = None;
+        } else {
+            // Call has already returned, so we can now remove it from the table.
+            questions.erase(self.id)
         }
     }
 }
@@ -554,27 +550,25 @@ impl<VatId> ConnectionState<VatId> {
 
         let connection = mem::replace(&mut *self.connection.borrow_mut(), Err(error.clone()));
 
-        match connection {
-            Ok(mut c) => {
-                let promise = c.shutdown(Err(error)).then(|r| match r {
-                    Ok(()) => Promise::ok(()),
-                    Err(e) => {
-                        if e.kind != ::capnp::ErrorKind::Disconnected {
-                            // Don't report disconnects as an error.
-                            Promise::err(e)
-                        } else {
-                            Promise::ok(())
-                        }
-                    }
-                });
-                match self.disconnect_fulfiller.borrow_mut().take() {
-                    None => unreachable!(),
-                    Some(fulfiller) => {
-                        let _ = fulfiller.send(Promise::from_future(promise.attach(c)));
-                    }
+        let Ok(mut c) = connection else {
+            unreachable!()
+        };
+        let promise = c.shutdown(Err(error)).then(|r| match r {
+            Ok(()) => Promise::ok(()),
+            Err(e) => {
+                if e.kind != ::capnp::ErrorKind::Disconnected {
+                    // Don't report disconnects as an error.
+                    Promise::err(e)
+                } else {
+                    Promise::ok(())
                 }
             }
-            Err(_) => unreachable!(),
+        });
+        match self.disconnect_fulfiller.borrow_mut().take() {
+            None => unreachable!(),
+            Some(fulfiller) => {
+                let _ = fulfiller.send(Promise::from_future(promise.attach(c)));
+            }
         }
     }
 
@@ -1398,14 +1392,10 @@ impl<VatId> ConnectionState<VatId> {
             if contains_key {
                 // We've already seen and exported this capability before.  Just up the refcount.
                 let export_id = state.exports_by_cap.borrow()[&ptr];
-                match state.exports.borrow_mut().find(export_id) {
-                    None => unreachable!(),
-                    Some(exp) => {
-                        descriptor.set_sender_hosted(export_id);
-                        exp.refcount += 1;
-                        Ok(Some(export_id))
-                    }
-                }
+                descriptor.set_sender_hosted(export_id);
+                // Should never fail because exports_by_cap should match exports.
+                state.exports.borrow_mut().find(export_id).unwrap().refcount += 1;
+                Ok(Some(export_id))
             } else {
                 // This is the first time we've seen this capability.
 
