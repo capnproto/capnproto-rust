@@ -304,9 +304,6 @@ where
 {
     import_client: Weak<RefCell<ImportClient<VatId>>>,
 
-    // Raw pointer to import_client, for checking in the Drop implementation.
-    import_client_ptr: *const ImportClient<VatId>,
-
     // Either a copy of importClient, or, in the case of promises, the wrapping PromiseClient.
     // Becomes null when it is discarded *or* when the import is destroyed (e.g. the promise is
     // resolved and the import is no longer needed).
@@ -320,7 +317,6 @@ impl<VatId> Import<VatId> {
     fn new(import_client: &Rc<RefCell<ImportClient<VatId>>>) -> Self {
         Self {
             import_client: Rc::downgrade(import_client),
-            import_client_ptr: &*import_client.borrow() as *const _,
             app_client: None,
             promise_client_to_resolve: None,
         }
@@ -2600,13 +2596,15 @@ impl<VatId> Drop for ImportClient<VatId> {
             .remove(&((self) as *const _ as usize))
             .is_some());
 
-        // Remove self from the import table, if the table is still pointing at us.
-        let mut tmp = connection_state.imports.borrow_mut();
-        if let hash_map::Entry::Occupied(import) = tmp.slots.entry(self.import_id) {
-            if import.get().import_client_ptr == ((&*self) as *const _) {
-                import.remove();
-            }
-        }
+        // Remove the corresponding entry of the imports table.
+        // Note: the C++ implementation checks here pointer equality between self and
+        // the entry in the imports table, but as far as I can tell the check should
+        // always pass because of how we construct ImportClient in import().
+        connection_state
+            .imports
+            .borrow_mut()
+            .slots
+            .remove(&self.import_id);
 
         // Send a message releasing our remote references.
         let mut tmp = connection_state.connection.borrow_mut();
