@@ -1481,35 +1481,31 @@ impl<VatId> ConnectionState<VatId> {
 
         if is_promise {
             // We need to construct a PromiseClient around this import, if we haven't already.
-            match state.imports.borrow_mut().slots.get_mut(&import_id) {
-                Some(import) => {
-                    match &import.app_client {
-                        Some(c) => {
-                            // Use the existing one.
-                            Box::new(c.upgrade().expect("dangling client ref?"))
-                        }
-                        None => {
-                            // Create a promise for this import's resolution.
-
-                            let client: Box<Client<VatId>> = Box::new(import_client.into());
-                            let client: Box<dyn ClientHook> = client;
-
-                            // XXX do I need something like this?
-                            // Make sure the import is not destroyed while this promise exists.
-                            //                            let promise = promise.attach(client.add_ref());
-
-                            let client =
-                                PromiseClient::new(&connection_state, client, Some(import_id));
-
-                            import.promise_client_to_resolve = Some(Rc::downgrade(&client));
-                            let client: Box<Client<VatId>> = Box::new(client.into());
-                            import.app_client = Some(client.downgrade());
-                            client
-                        }
-                    }
+            let mut tmp = state.imports.borrow_mut();
+            let Some(import) = tmp.slots.get_mut(&import_id) else {
+                unreachable!()
+            };
+            match &import.app_client {
+                Some(c) => {
+                    // Use the existing one.
+                    Box::new(c.upgrade().expect("dangling client ref?"))
                 }
                 None => {
-                    unreachable!()
+                    // Create a promise for this import's resolution.
+
+                    let client: Box<Client<VatId>> = Box::new(import_client.into());
+                    let client: Box<dyn ClientHook> = client;
+
+                    // XXX do I need something like this?
+                    // Make sure the import is not destroyed while this promise exists.
+                    //                            let promise = promise.attach(client.add_ref());
+
+                    let client = PromiseClient::new(&connection_state, client, Some(import_id));
+
+                    import.promise_client_to_resolve = Some(Rc::downgrade(&client));
+                    let client: Box<Client<VatId>> = Box::new(client.into());
+                    import.app_client = Some(client.downgrade());
+                    client
                 }
             }
         } else {
