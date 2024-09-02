@@ -1144,21 +1144,16 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn answer_has_sent_return(&self, id: AnswerId, result_exports: Vec<ExportId>) {
-        let mut erase = false;
         let answers_slots = &mut self.answers.borrow_mut().slots;
-        if let Some(a) = answers_slots.get_mut(&id) {
-            a.return_has_been_sent = true;
-            if a.received_finish.get() {
-                erase = true;
-            } else {
-                a.result_exports = result_exports;
-            }
-        } else {
+        let hash_map::Entry::Occupied(mut entry) = answers_slots.entry(id) else {
             unreachable!()
-        }
-
-        if erase {
-            answers_slots.remove(&id);
+        };
+        let a = entry.get_mut();
+        a.return_has_been_sent = true;
+        if a.received_finish.get() {
+            entry.remove();
+        } else {
+            a.result_exports = result_exports;
         }
     }
 
