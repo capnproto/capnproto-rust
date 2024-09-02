@@ -415,6 +415,7 @@ where
     answers: RefCell<ImportTable<Answer<VatId>>>,
     imports: RefCell<ImportTable<Import<VatId>>>,
 
+    /// Exports keyed by ClientHook::get_ptr().
     exports_by_cap: RefCell<HashMap<usize, ExportId>>,
 
     embargoes: RefCell<ExportTable<Embargo>>,
