@@ -1331,7 +1331,7 @@ impl<VatId> ConnectionState<VatId> {
                     }
 
                     // OK, we have to send a `Resolve` message.
-                    let mut message = connection_state.new_outgoing_message(100)?; // XXX size hint?
+                    let mut message = connection_state.new_outgoing_message(15)?;
                     {
                         let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
@@ -1347,7 +1347,7 @@ impl<VatId> ConnectionState<VatId> {
                 }
                 Err(e) => {
                     // send error resolution
-                    let mut message = connection_state.new_outgoing_message(100)?; // XXX size hint?
+                    let mut message = connection_state.new_outgoing_message(15)?;
                     {
                         let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
