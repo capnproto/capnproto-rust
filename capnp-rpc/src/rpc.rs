@@ -2117,17 +2117,13 @@ impl Params {
 impl ParamsHook for Params {
     fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
         let root: message::Reader = self.request.get_body()?.get_as()?;
-        match root.which()? {
-            message::Call(call) => {
-                use ::capnp::traits::Imbue;
-                let mut content = call?.get_params()?.get_content();
-                content.imbue(&self.cap_table);
-                Ok(content)
-            }
-            _ => {
-                unreachable!()
-            }
-        }
+        let message::Call(call) = root.which()? else {
+            unreachable!()
+        };
+        use ::capnp::traits::Imbue;
+        let mut content = call?.get_params()?.get_content();
+        content.imbue(&self.cap_table);
+        Ok(content)
     }
 }
 
