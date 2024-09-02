@@ -1479,12 +1479,13 @@ impl<VatId> ConnectionState<VatId> {
         // We just received a copy of this import ID, so the remote refcount has gone up.
         import_client.borrow_mut().add_remote_ref();
 
+        let mut tmp = state.imports.borrow_mut();
+        let Some(import) = tmp.slots.get_mut(&import_id) else {
+            unreachable!()
+        };
+
         if is_promise {
             // We need to construct a PromiseClient around this import, if we haven't already.
-            let mut tmp = state.imports.borrow_mut();
-            let Some(import) = tmp.slots.get_mut(&import_id) else {
-                unreachable!()
-            };
             match &import.app_client {
                 Some(c) => {
                     // Use the existing one.
@@ -1510,15 +1511,7 @@ impl<VatId> ConnectionState<VatId> {
             }
         } else {
             let client: Box<Client<VatId>> = Box::new(import_client.into());
-            match state.imports.borrow_mut().slots.get_mut(&import_id) {
-                Some(v) => {
-                    v.app_client = Some(client.downgrade());
-                }
-                None => {
-                    unreachable!()
-                }
-            };
-
+            import.app_client = Some(client.downgrade());
             client
         }
     }
