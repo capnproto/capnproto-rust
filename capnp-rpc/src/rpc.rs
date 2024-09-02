@@ -771,15 +771,15 @@ impl<VatId> ConnectionState<VatId> {
         let mut exports_to_release = Vec::new();
         let answer_id = finish.get_question_id();
 
-        let mut erase = false;
         let answers_slots = &mut connection_state.answers.borrow_mut().slots;
-        match answers_slots.get_mut(&answer_id) {
-            None => {
+        match answers_slots.entry(answer_id) {
+            hash_map::Entry::Vacant(_) => {
                 return Err(Error::failed(format!(
                     "Invalid question ID {answer_id} in Finish message."
                 )));
             }
-            Some(answer) => {
+            hash_map::Entry::Occupied(mut entry) => {
+                let answer = entry.get_mut();
                 answer.received_finish.set(true);
 
                 if finish.get_release_result_caps() {
@@ -791,13 +791,9 @@ impl<VatId> ConnectionState<VatId> {
                 answer.call_completion_promise.take();
 
                 if answer.return_has_been_sent {
-                    erase = true;
+                    entry.remove();
                 }
             }
-        }
-
-        if erase {
-            answers_slots.remove(&answer_id);
         }
 
         connection_state.release_exports(&exports_to_release)?;
