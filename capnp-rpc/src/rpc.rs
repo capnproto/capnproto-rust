@@ -240,10 +240,6 @@ struct Answer<VatId>
 where
     VatId: 'static,
 {
-    // True from the point when the Call message is received to the point when both the `Finish`
-    // message has been received and the `Return` has been sent.
-    active: bool,
-
     return_has_been_sent: bool,
 
     // Send pipelined calls here.  Becomes null as soon as a `Finish` is received.
@@ -264,7 +260,6 @@ where
 impl<VatId> Answer<VatId> {
     fn new() -> Self {
         Self {
-            active: false,
             return_has_been_sent: false,
             pipeline: None,
             redirected_results: None,
@@ -756,17 +751,17 @@ impl<VatId> ConnectionState<VatId> {
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
-        let answer = slots.entry(answer_id).or_insert_with(Answer::new);
-        if answer.active {
+        let hash_map::Entry::Vacant(slot) = slots.entry(answer_id) else {
             connection_state.release_exports(&result_exports)?;
             return Err(Error::failed("questionId is already in use".to_string()));
-        }
-        answer.active = true;
+        };
+        let mut answer = Answer::new();
         answer.return_has_been_sent = true;
         answer.result_exports = result_exports;
         answer.pipeline = Some(Box::new(SingleCapPipeline::new(
             connection_state.bootstrap_cap.clone(),
         )));
+        slot.insert(answer);
 
         let _ = response.send();
         Ok(())
@@ -785,11 +780,6 @@ impl<VatId> ConnectionState<VatId> {
                 )));
             }
             Some(answer) => {
-                if !answer.active {
-                    return Err(Error::failed(format!(
-                        "'Finish' for invalid question ID {answer_id}."
-                    )));
-                }
                 answer.received_finish.set(true);
 
                 if finish.get_release_result_caps() {
@@ -964,11 +954,10 @@ impl<VatId> ConnectionState<VatId> {
 
                 {
                     let slots = &mut connection_state.answers.borrow_mut().slots;
-                    let answer = slots.entry(question_id).or_insert(answer);
-                    if answer.active {
+                    let hash_map::Entry::Vacant(slot) = slots.entry(question_id) else {
                         return Err(Error::failed("questionId is already in use".to_string()));
-                    }
-                    answer.active = true;
+                    };
+                    slot.insert(answer);
                 }
 
                 let call_promise =
@@ -1537,11 +1526,9 @@ impl<VatId> ConnectionState<VatId> {
                 let promised_answer = receiver_answer?;
                 let question_id = promised_answer.get_question_id();
                 if let Some(answer) = state.answers.borrow().slots.get(&question_id) {
-                    if answer.active {
-                        if let Some(ref pipeline) = answer.pipeline {
-                            let ops = to_pipeline_ops(promised_answer.get_transform()?)?;
-                            return Ok(Some(pipeline.get_pipelined_cap(&ops)));
-                        }
+                    if let Some(ref pipeline) = answer.pipeline {
+                        let ops = to_pipeline_ops(promised_answer.get_transform()?)?;
+                        return Ok(Some(pipeline.get_pipelined_cap(&ops)));
                     }
                 }
                 Ok(Some(broken::new_cap(Error::failed(
