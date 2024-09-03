@@ -2756,16 +2756,12 @@ impl<VatId> Drop for PromiseClient<VatId> {
             // object may actually outlive the import.
             let slots = &mut self.connection_state.imports.borrow_mut().slots;
             if let Some(import) = slots.get_mut(&id) {
-                let mut drop_it = false;
                 if let Some(c) = &import.app_client {
                     if let Some(cs) = c.upgrade() {
                         if cs.get_ptr() == self_ptr {
-                            drop_it = true;
+                            import.app_client = None;
                         }
                     }
-                }
-                if drop_it {
-                    import.app_client = None;
                 }
             }
         }
