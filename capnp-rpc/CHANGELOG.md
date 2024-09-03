@@ -1,3 +1,6 @@
+## v0.19.4
+- Use the `noFinishNeeded` field to elide Finish messages when possible.
+
 ## v0.19.3
 - Remove some unneeded fields in Answer and Import.
 - Use `let else` to improve readability.
