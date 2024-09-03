@@ -2214,36 +2214,29 @@ impl<VatId> Drop for Results<VatId> {
 impl<VatId> ResultsHook for Results<VatId> {
     fn get(&mut self) -> ::capnp::Result<any_pointer::Builder> {
         use ::capnp::traits::ImbueMut;
-        if let Some(ref mut inner) = self.inner {
-            inner.ensure_initialized();
-            match inner.variant {
-                None => unreachable!(),
-                Some(ResultsVariant::Rpc(ref mut message, ref mut cap_table)) => {
-                    let root: message::Builder = message.get_body()?.get_as()?;
-                    match root.which()? {
-                        message::Return(ret) => match ret?.which()? {
-                            return_::Results(payload) => {
-                                let mut content = payload?.get_content();
-                                content.imbue_mut(cap_table);
-                                Ok(content)
-                            }
-                            _ => {
-                                unreachable!()
-                            }
-                        },
-                        _ => {
-                            unreachable!()
-                        }
-                    }
-                }
-                Some(ResultsVariant::LocallyRedirected(ref mut message, ref mut cap_table)) => {
-                    let mut result: any_pointer::Builder = message.get_root()?;
-                    result.imbue_mut(cap_table);
-                    Ok(result)
-                }
+        let Some(ref mut inner) = self.inner else {
+            unreachable!();
+        };
+        inner.ensure_initialized();
+        match inner.variant {
+            None => unreachable!(),
+            Some(ResultsVariant::Rpc(ref mut message, ref mut cap_table)) => {
+                let root: message::Builder = message.get_body()?.get_as()?;
+                let message::Return(ret) = root.which()? else {
+                    unreachable!();
+                };
+                let return_::Results(payload) = ret?.which()? else {
+                    unreachable!()
+                };
+                let mut content = payload?.get_content();
+                content.imbue_mut(cap_table);
+                Ok(content)
             }
-        } else {
-            unreachable!()
+            Some(ResultsVariant::LocallyRedirected(ref mut message, ref mut cap_table)) => {
+                let mut result: any_pointer::Builder = message.get_root()?;
+                result.imbue_mut(cap_table);
+                Ok(result)
+            }
         }
     }
 
