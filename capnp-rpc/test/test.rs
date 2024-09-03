@@ -384,7 +384,7 @@ fn pipelining_return_null() {
         let cap = request.send().pipeline.get_cap();
         match cap.foo_request().send().promise.await {
             Err(ref e) => {
-                if e.extra.contains("Message contains null capability pointer") {
+                if e.extra.contains("Pipeline call on a request that returned no capabilities") {
                     Ok(())
                 } else {
                     Err(Error::failed(format!(
