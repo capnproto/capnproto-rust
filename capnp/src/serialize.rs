@@ -1012,7 +1012,7 @@ pub mod test {
 
     #[test]
     fn read_message_from_flat_slice_with_remainder() {
-        let segments = vec![
+        let segments = [
             vec![123, 0, 0, 0, 0, 0, 0, 0],
             vec![4, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0],
         ];
@@ -1044,7 +1044,7 @@ pub mod test {
 
     #[test]
     fn read_message_from_flat_slice_too_short() {
-        let segments = vec![
+        let segments = [
             vec![1, 0, 0, 0, 0, 0, 0, 0],
             vec![2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0],
         ];
