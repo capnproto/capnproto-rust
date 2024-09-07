@@ -24,7 +24,7 @@ use crate::test_capnp::{
     test_interface, test_more_stuff, test_pipeline,
 };
 
-use capnp::capability::Promise;
+use capnp::capability::{FromClientHook, Promise};
 use capnp::Error;
 use capnp_rpc::pry;
 
@@ -261,13 +261,10 @@ impl test_pipeline::Server for TestPipeline {
 
             results.get().set_s("bar");
 
-            // TODO implement better casting
             results
                 .get()
                 .init_out_box()
-                .set_cap(test_interface::Client {
-                    client: capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).client,
-                });
+                .set_cap(capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).cast_to());
             Ok(())
         }))
     }
