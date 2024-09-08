@@ -295,12 +295,12 @@ impl ClientHook for Client {
                 Promise::from_future(async move {
                     match futures::future::select(p1, promise).await {
                         futures::future::Either::Left((Ok(()), promise)) => promise.await,
-                        futures::future::Either::Left((Err(e), _)) => return Err(e),
+                        futures::future::Either::Left((Err(e), _)) => Err(e),
                         futures::future::Either::Right((r, _)) => {
                             // Don't bother waiting for `promise_to_drive` to resolve.
                             // If we're here because set_pipeline() was called, then
                             // `promise_to_drive` might in fact never resolve.
-                            return r;
+                            r
                         }
                     }
                 })
