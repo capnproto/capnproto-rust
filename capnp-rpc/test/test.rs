@@ -281,6 +281,19 @@ where
     join_handle.join().unwrap();
 }
 
+/// Like rpc_top_level(), but sets up the bootstrap::Client as a local capability,
+/// i.e. not on the other side of an RPC connection.
+fn local_top_level<F, G>(main: F)
+where
+    F: FnOnce(futures::executor::LocalSpawner, test_capnp::bootstrap::Client) -> G,
+    G: Future<Output = Result<(), Error>> + 'static,
+{
+    let mut pool = futures::executor::LocalPool::new();
+    let spawner = pool.spawner();
+    let client: test_capnp::bootstrap::Client = capnp_rpc::new_client(impls::Bootstrap);
+    pool.run_until(main(spawner, client)).unwrap();
+}
+
 #[test]
 fn do_nothing() {
     rpc_top_level(|_spawner, _client| async { Ok(()) });
@@ -375,6 +388,59 @@ fn basic_pipelining() {
 }
 
 #[test]
+fn basic_pipelining_local() {
+    // Like the basic_pipelining test, but no RPC connection -- everything is local.
+    local_top_level(|_spawner, client| async move {
+        let response = client.test_pipeline_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+
+        let mut request = client.get_cap_request();
+
+        request.get().set_n(234);
+        let server = impls::TestInterface::new();
+        let chained_call_count = server.get_call_count();
+        request.get().set_in_cap(capnp_rpc::new_client(server));
+
+        let promise = request.send();
+
+        // This is just here to check that code generation for pipelines
+        // inside of groups works correctly.
+        let _ = promise.pipeline.get_out_box().get_foo().get_cap_in_group();
+
+        let mut pipeline_request = promise.pipeline.get_out_box().get_cap().foo_request();
+        pipeline_request.get().set_i(321);
+        let pipeline_promise = pipeline_request.send();
+
+        let pipeline_request2 = {
+            let extends_client = crate::test_capnp::test_extends::Client {
+                client: promise.pipeline.get_out_box().get_cap().client,
+            };
+            extends_client.grault_request()
+        };
+        let pipeline_promise2 = pipeline_request2.send();
+
+        drop(promise); // Just to be annoying, drop the original promise.
+
+        if chained_call_count.get() != 0 {
+            return Err(Error::failed(
+                "expected chained_call_count to equal 0".to_string(),
+            ));
+        }
+
+        let response = pipeline_promise.promise.await?;
+
+        if response.get()?.get_x()? != "bar" {
+            return Err(Error::failed("expected x to equal 'bar'".to_string()));
+        }
+
+        let response2 = pipeline_promise2.promise.await?;
+        crate::test_util::CheckTestMessage::check_test_message(response2.get()?);
+        assert_eq!(chained_call_count.get(), 1);
+        Ok::<(), capnp::Error>(())
+    });
+}
+
+#[test]
 fn pipelining_return_null() {
     rpc_top_level(|_spawner, client| async move {
         let response = client.test_pipeline_request().send().promise.await?;
@@ -410,6 +476,91 @@ fn null_capability() {
     // Would it be worthwhile to try to match the C++ behavior here? We would need something
     // like the BrokenCapFactory singleton.
     assert!(root.get_interface_field().is_err());
+}
+
+#[test]
+fn set_pipeline() {
+    use std::cell::Cell;
+    use std::rc::Rc;
+    rpc_top_level(|mut spawner, client| async move {
+        let response = client.test_pipeline_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+        let capnp::capability::RemotePromise { promise, pipeline } =
+            client.get_cap_pipeline_only_request().send();
+        let promise_completed = Rc::new(Cell::new(false));
+        let promise_completed2 = promise_completed.clone();
+        spawn(
+            &mut spawner,
+            promise.map(move |_| {
+                promise_completed2.set(true);
+                Ok(())
+            }),
+        );
+
+        let mut pipeline_request = pipeline.get_out_box().get_cap().foo_request();
+        pipeline_request.get().set_i(321);
+        let pipeline_promise = pipeline_request.send().promise;
+
+        let pipeline_request2 = pipeline
+            .get_out_box()
+            .get_cap()
+            .cast_to::<test_capnp::test_extends::Client>()
+            .grault_request();
+        let pipeline_promise2 = pipeline_request2.send().promise;
+
+        let response = pipeline_promise.await?;
+        assert_eq!(response.get()?.get_x()?, "bar");
+
+        let response2 = pipeline_promise2.await?;
+        crate::test_util::CheckTestMessage::check_test_message(response2.get()?);
+
+        // The original promise never completed.
+        assert!(!promise_completed.get());
+        Ok(())
+    });
+}
+
+#[test]
+fn set_pipeline_local() {
+    // like set_pipeline(), but with everything in the local vat.
+    use std::cell::Cell;
+    use std::rc::Rc;
+    local_top_level(|mut spawner, client| async move {
+        let response = client.test_pipeline_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+        let capnp::capability::RemotePromise { promise, pipeline } =
+            client.get_cap_pipeline_only_request().send();
+        let promise_completed = Rc::new(Cell::new(false));
+        let promise_completed2 = promise_completed.clone();
+        spawn(
+            &mut spawner,
+            promise.map(move |_| {
+                promise_completed2.set(true);
+                Ok(())
+            }),
+        );
+
+        let mut pipeline_request = pipeline.get_out_box().get_cap().foo_request();
+        pipeline_request.get().set_i(321);
+        let pipeline_promise = pipeline_request.send().promise;
+
+        let pipeline_request2 = pipeline
+            .get_out_box()
+            .get_cap()
+            .cast_to::<test_capnp::test_extends::Client>()
+            .grault_request();
+        let pipeline_promise2 = pipeline_request2.send().promise;
+
+        let response = pipeline_promise.await?;
+        assert_eq!(response.get()?.get_x()?, "bar");
+
+        let response2 = pipeline_promise2.await?;
+        crate::test_util::CheckTestMessage::check_test_message(response2.get()?);
+
+        // The original promise never completed.
+        assert!(!promise_completed.get());
+        Ok(())
+    });
 }
 
 #[test]

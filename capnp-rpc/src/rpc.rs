@@ -938,12 +938,15 @@ impl<VatId> ConnectionState<VatId> {
 
                 let (results_inner_fulfiller, results_inner_promise) = oneshot::channel();
                 let results_inner_promise = results_inner_promise.map_err(crate::canceled_to_error);
+
+                let (pipeline_sender, mut pipeline) = queued::Pipeline::new();
                 let results = Results::new(
                     &connection_state,
                     question_id,
                     redirect_results,
                     results_inner_fulfiller,
                     answer.received_finish.clone(),
+                    Some(pipeline_sender.weak_clone()),
                 );
 
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
@@ -965,7 +968,6 @@ impl<VatId> ConnectionState<VatId> {
 
                 let call_promise =
                     capability.call(interface_id, method_id, Box::new(params), Box::new(results));
-                let (pipeline_sender, mut pipeline) = queued::Pipeline::new();
 
                 let promise = call_promise
                     .then(move |call_result| {
@@ -2141,6 +2143,7 @@ where
     redirect_results: bool,
     answer_id: AnswerId,
     finish_received: Rc<Cell<bool>>,
+    pipeline_sender: Option<queued::PipelineInnerSender>,
 }
 
 impl<VatId> ResultsInner<VatId>
@@ -2195,6 +2198,7 @@ where
         redirect_results: bool,
         fulfiller: oneshot::Sender<ResultsInner<VatId>>,
         finish_received: Rc<Cell<bool>>,
+        pipeline_sender: Option<queued::PipelineInnerSender>,
     ) -> Self {
         Self {
             inner: Some(ResultsInner {
@@ -2203,6 +2207,7 @@ where
                 redirect_results,
                 answer_id,
                 finish_received,
+                pipeline_sender,
             }),
             results_done_fulfiller: Some(fulfiller),
         }
@@ -2248,6 +2253,30 @@ impl<VatId> ResultsHook for Results<VatId> {
                 Ok(result)
             }
         }
+    }
+
+    fn set_pipeline(&mut self) -> ::capnp::Result<()> {
+        use ::capnp::traits::ImbueMut;
+        let root = self.get()?;
+        let size = root.target_size()?;
+        let mut message2 = capnp::message::Builder::new(
+            capnp::message::HeapAllocator::new().first_segment_words(size.word_count as u32 + 1),
+        );
+        let mut root2: capnp::any_pointer::Builder = message2.init_root();
+        let mut cap_table2 = vec![];
+        root2.imbue_mut(&mut cap_table2);
+        root2.set_as(root.into_reader())?;
+        let hook =
+            Box::new(local::ResultsDone::new(message2, cap_table2)) as Box<dyn ResultsDoneHook>;
+        let Some(ref mut inner) = self.inner else {
+            unreachable!();
+        };
+        inner
+            .pipeline_sender
+            .take()
+            .unwrap()
+            .complete(Box::new(local::Pipeline::new(hook)));
+        Ok(())
     }
 
     fn tail_call(self: Box<Self>, _request: Box<dyn RequestHook>) -> Promise<(), Error> {

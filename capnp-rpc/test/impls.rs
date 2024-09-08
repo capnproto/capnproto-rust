@@ -276,6 +276,19 @@ impl test_pipeline::Server for TestPipeline {
     ) -> Promise<(), Error> {
         Promise::ok(())
     }
+
+    fn get_cap_pipeline_only(
+        &mut self,
+        _params: test_pipeline::GetCapPipelineOnlyParams,
+        mut results: test_pipeline::GetCapPipelineOnlyResults,
+    ) -> Promise<(), Error> {
+        results
+            .get()
+            .init_out_box()
+            .set_cap(capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).cast_to());
+        pry!(results.set_pipeline());
+        Promise::from_future(::futures::future::pending())
+    }
 }
 
 #[derive(Default)]
