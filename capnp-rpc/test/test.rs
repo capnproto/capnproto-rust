@@ -478,6 +478,33 @@ fn null_capability() {
     assert!(root.get_interface_field().is_err());
 }
 
+struct WaitNTicks {
+    remaining: u32,
+}
+
+impl WaitNTicks {
+    fn new(n: u32) -> Self {
+        Self { remaining: n }
+    }
+}
+
+impl Future for WaitNTicks {
+    type Output = ();
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        if self.remaining > 0 {
+            self.remaining -= 1;
+            cx.waker().wake_by_ref(); // Wake up the task again
+            std::task::Poll::Pending
+        } else {
+            std::task::Poll::Ready(())
+        }
+    }
+}
+
 #[test]
 fn set_pipeline() {
     use std::cell::Cell;
@@ -513,6 +540,9 @@ fn set_pipeline() {
 
         let response2 = pipeline_promise2.await?;
         crate::test_util::CheckTestMessage::check_test_message(response2.get()?);
+
+        // Give the original promise an opportunity to complete.
+        WaitNTicks::new(5).await;
 
         // The original promise never completed.
         assert!(!promise_completed.get());
@@ -556,6 +586,9 @@ fn set_pipeline_local() {
 
         let response2 = pipeline_promise2.await?;
         crate::test_util::CheckTestMessage::check_test_message(response2.get()?);
+
+        // Give the original promise an opportunity to complete.
+        WaitNTicks::new(5).await;
 
         // The original promise never completed.
         assert!(!promise_completed.get());
