@@ -126,6 +126,14 @@ impl ResultsHook for Results {
         }
     }
 
+    fn set_pipeline(&mut self, pipeline: Box<dyn PipelineHook>) {
+        todo!()
+    }
+
+    fn on_tail_call(&mut self) -> Promise<any_pointer::Pipeline, crate::Error> {
+        todo!()
+    }
+
     fn tail_call(self: Box<Self>, _request: Box<dyn RequestHook>) -> Promise<(), Error> {
         unimplemented!()
     }
