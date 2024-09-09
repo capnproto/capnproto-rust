@@ -102,7 +102,7 @@ mod tests {
         let messages_read = Rc::new(Cell::new(0u32));
         let messages_read1 = messages_read.clone();
 
-        let done_reading = read_stream.for_each(|m| match m {
+        let done_reading = read_stream.for_each(move |m| match m {
             Err(e) => panic!("read error: {:?}", e),
             Ok(msg) => {
                 let address_book = msg.get_root::<address_book::Reader>().unwrap();
@@ -112,14 +112,24 @@ mod tests {
             }
         });
 
-        let io = futures::future::join(done_reading, write_queue.map(|_| ()));
+        let io = futures::future::join(done_reading, write_queue);
 
         let mut m = capnp::message::Builder::new_default();
         populate_address_book(m.init_root());
 
-        spawner.spawn_local(sender.send(m).map(|_| ())).unwrap();
+        assert_eq!(sender.len(), 0);
+        let send_future = sender.send(m);
+        assert_eq!(sender.len(), 1);
+        spawner
+            .spawn_local(io.map(|r| assert!(r.1.is_ok())))
+            .unwrap();
+        pool.run_until(send_future).unwrap();
+        assert_eq!(sender.len(), 0);
         drop(sender);
-        pool.run_until(io);
+
+        // Make sure everything gets a chance to run until completion.
+        pool.run();
+
         assert_eq!(messages_read1.get(), 1);
     }
 

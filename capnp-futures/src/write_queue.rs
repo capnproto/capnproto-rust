@@ -102,6 +102,8 @@ where
     /// Enqueues a message to be written. The returned future resolves once the write
     /// has completed. Dropping the returned future does *not* cancel the write.
     pub fn send(&mut self, message: M) -> impl Future<Output = Result<M, Error>> + Unpin {
+        self.in_flight
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let (complete, oneshot) = oneshot::channel();
 
         let _ = self.sender.unbounded_send(Item::Message(message, complete));
