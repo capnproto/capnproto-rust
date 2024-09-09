@@ -1,3 +1,6 @@
+## v0.19.5
+- Add support for `Request::set_pipeline()`.
+
 ## v0.19.4
 - Use the `noFinishNeeded` field to elide Finish messages when possible.
 
