@@ -1,3 +1,6 @@
+## v0.19.7
+- Add `Results::set_pipeline()` and `ResultsHook::set_pipeline()`.
+
 ## v0.19.6
 - Fix ExactSizeIterator implementations so that they return the number of
   remaining elements instead of the total length of the underlying list.
