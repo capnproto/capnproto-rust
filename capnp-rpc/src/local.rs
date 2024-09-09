@@ -85,14 +85,19 @@ struct Results {
     message: Option<message::Builder<message::HeapAllocator>>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
     results_done_fulfiller: Option<oneshot::Sender<Box<dyn ResultsDoneHook>>>,
+    pipeline_sender: Option<crate::queued::PipelineInnerSender>,
 }
 
 impl Results {
-    fn new(fulfiller: oneshot::Sender<Box<dyn ResultsDoneHook>>) -> Self {
+    fn new(
+        fulfiller: oneshot::Sender<Box<dyn ResultsDoneHook>>,
+        pipeline_sender: crate::queued::PipelineInnerSender,
+    ) -> Self {
         Self {
             message: Some(::capnp::message::Builder::new_default()),
             cap_table: Vec::new(),
             results_done_fulfiller: Some(fulfiller),
+            pipeline_sender: Some(pipeline_sender),
         }
     }
 }
@@ -126,6 +131,25 @@ impl ResultsHook for Results {
         }
     }
 
+    fn set_pipeline(&mut self) -> capnp::Result<()> {
+        use ::capnp::traits::ImbueMut;
+        let root = self.get()?;
+        let size = root.target_size()?;
+        let mut message2 = capnp::message::Builder::new(
+            capnp::message::HeapAllocator::new().first_segment_words(size.word_count as u32 + 1),
+        );
+        let mut root2: capnp::any_pointer::Builder = message2.init_root();
+        let mut cap_table2 = vec![];
+        root2.imbue_mut(&mut cap_table2);
+        root2.set_as(root.into_reader())?;
+        let hook = Box::new(ResultsDone::new(message2, cap_table2)) as Box<dyn ResultsDoneHook>;
+        let Some(sender) = self.pipeline_sender.take() else {
+            return Err(Error::failed("set_pipeline() called twice".into()));
+        };
+        sender.complete(Box::new(Pipeline::new(hook)));
+        Ok(())
+    }
+
     fn tail_call(self: Box<Self>, _request: Box<dyn RequestHook>) -> Promise<(), Error> {
         unimplemented!()
     }
@@ -147,12 +171,12 @@ struct ResultsDoneInner {
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
 }
 
-struct ResultsDone {
+pub(crate) struct ResultsDone {
     inner: Rc<ResultsDoneInner>,
 }
 
 impl ResultsDone {
-    fn new(
+    pub(crate) fn new(
         message: message::Builder<message::HeapAllocator>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
     ) -> Self {
@@ -181,6 +205,8 @@ pub struct Request {
     interface_id: u64,
     method_id: u16,
     client: Box<dyn ClientHook>,
+    pipeline: crate::queued::Pipeline,
+    pipeline_sender: crate::queued::PipelineInnerSender,
 }
 
 impl Request {
@@ -190,12 +216,15 @@ impl Request {
         _size_hint: Option<::capnp::MessageSize>,
         client: Box<dyn ClientHook>,
     ) -> Self {
+        let (pipeline_sender, pipeline) = crate::queued::Pipeline::new();
         Self {
             message: message::Builder::new_default(),
             cap_table: Vec::new(),
             interface_id,
             method_id,
             client,
+            pipeline,
+            pipeline_sender,
         }
     }
 }
@@ -217,16 +246,16 @@ impl RequestHook for Request {
             interface_id,
             method_id,
             client,
+            mut pipeline,
+            pipeline_sender,
         } = tmp;
         let params = Params::new(message, cap_table);
 
         let (results_done_fulfiller, results_done_promise) =
             oneshot::channel::<Box<dyn ResultsDoneHook>>();
         let results_done_promise = results_done_promise.map_err(crate::canceled_to_error);
-        let results = Results::new(results_done_fulfiller);
+        let results = Results::new(results_done_fulfiller, pipeline_sender.weak_clone());
         let promise = client.call(interface_id, method_id, Box::new(params), Box::new(results));
-
-        let (pipeline_sender, mut pipeline) = crate::queued::Pipeline::new();
 
         let p = futures::future::try_join(promise, results_done_promise).and_then(
             move |((), results_done_hook)| {

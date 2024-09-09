@@ -235,6 +235,9 @@ fn disconnector_disconnects_2() {
     });
 }
 
+/// Sets up a test_capnp::bootstrap capability on the remote side of a
+/// two-party RPC connection and provides a local reference to it, along
+/// with a handle that supports spawning of tasks.
 fn rpc_top_level<F, G>(main: F)
 where
     F: FnOnce(futures::executor::LocalSpawner, test_capnp::bootstrap::Client) -> G,
@@ -281,6 +284,30 @@ where
     join_handle.join().unwrap();
 }
 
+/// Like rpc_top_level(), but sets up the bootstrap::Client as a local capability,
+/// i.e. not on the other side of an RPC connection.
+fn local_top_level<F, G>(main: F)
+where
+    F: FnOnce(futures::executor::LocalSpawner, test_capnp::bootstrap::Client) -> G,
+    G: Future<Output = Result<(), Error>> + 'static,
+{
+    let mut pool = futures::executor::LocalPool::new();
+    let spawner = pool.spawner();
+    let client: test_capnp::bootstrap::Client = capnp_rpc::new_client(impls::Bootstrap);
+    pool.run_until(main(spawner, client)).unwrap();
+}
+
+/// Runs both rpc_top_level() and local_top_level() on the function `main`.
+fn rpc_and_local_top_level<F, G>(main: F)
+where
+    F: FnOnce(futures::executor::LocalSpawner, test_capnp::bootstrap::Client) -> G,
+    F: Send + 'static + Clone,
+    G: Future<Output = Result<(), Error>> + 'static,
+{
+    rpc_top_level(main.clone());
+    local_top_level(main);
+}
+
 #[test]
 fn do_nothing() {
     rpc_top_level(|_spawner, _client| async { Ok(()) });
@@ -325,7 +352,7 @@ fn basic_rpc_calls() {
 
 #[test]
 fn basic_pipelining() {
-    rpc_top_level(|_spawner, client| async move {
+    rpc_and_local_top_level(|_spawner, client| async move {
         let response = client.test_pipeline_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -410,6 +437,78 @@ fn null_capability() {
     // Would it be worthwhile to try to match the C++ behavior here? We would need something
     // like the BrokenCapFactory singleton.
     assert!(root.get_interface_field().is_err());
+}
+
+struct WaitNTicks {
+    remaining: u32,
+}
+
+impl WaitNTicks {
+    fn new(n: u32) -> Self {
+        Self { remaining: n }
+    }
+}
+
+impl Future for WaitNTicks {
+    type Output = ();
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        if self.remaining > 0 {
+            self.remaining -= 1;
+            cx.waker().wake_by_ref(); // Wake up the task again
+            std::task::Poll::Pending
+        } else {
+            std::task::Poll::Ready(())
+        }
+    }
+}
+
+#[test]
+fn set_pipeline() {
+    use std::cell::Cell;
+    use std::rc::Rc;
+    rpc_and_local_top_level(|mut spawner, client| async move {
+        let response = client.test_pipeline_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+        let capnp::capability::RemotePromise { promise, pipeline } =
+            client.get_cap_pipeline_only_request().send();
+        let promise_completed = Rc::new(Cell::new(false));
+        let promise_completed2 = promise_completed.clone();
+        spawn(
+            &mut spawner,
+            promise.map(move |_| {
+                promise_completed2.set(true);
+                Ok(())
+            }),
+        );
+
+        let mut pipeline_request = pipeline.get_out_box().get_cap().foo_request();
+        pipeline_request.get().set_i(321);
+        let pipeline_promise = pipeline_request.send().promise;
+
+        let pipeline_request2 = pipeline
+            .get_out_box()
+            .get_cap()
+            .cast_to::<test_capnp::test_extends::Client>()
+            .grault_request();
+        let pipeline_promise2 = pipeline_request2.send().promise;
+
+        let response = pipeline_promise.await?;
+        assert_eq!(response.get()?.get_x()?, "bar");
+
+        let response2 = pipeline_promise2.await?;
+        crate::test_util::CheckTestMessage::check_test_message(response2.get()?);
+
+        // Give the original promise an opportunity to complete.
+        WaitNTicks::new(5).await;
+
+        // The original promise never completed.
+        assert!(!promise_completed.get());
+        Ok(())
+    });
 }
 
 #[test]

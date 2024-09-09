@@ -100,6 +100,9 @@ interface TestPipeline {
   getNullCap @1 () -> (cap :TestInterface);
   testPointers @2 (cap :TestInterface, obj :AnyPointer, list :List(TestInterface)) -> ();
 
+  getCapPipelineOnly @3 () -> (outBox :Box);
+  # Never returns, but uses setPipeline() to make the pipeline work.
+
   struct Box {
     cap @0 :TestInterface;
 

@@ -44,7 +44,11 @@ pub struct PipelineInner {
 
 impl PipelineInner {
     fn resolve(this: &Rc<RefCell<Self>>, result: Result<Box<dyn PipelineHook>, Error>) {
-        assert!(this.borrow().redirect.is_none());
+        if this.borrow().redirect.is_some() {
+            // Already resolved, probably by set_pipeline().
+            return;
+        }
+
         let pipeline = match result {
             Ok(pipeline_hook) => pipeline_hook,
             Err(e) => Box::new(broken::Pipeline::new(e)),
@@ -66,18 +70,30 @@ impl PipelineInner {
 
 pub struct PipelineInnerSender {
     inner: Option<Weak<RefCell<PipelineInner>>>,
+    resolve_on_drop: bool,
+}
+
+impl PipelineInnerSender {
+    pub(crate) fn weak_clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            resolve_on_drop: false,
+        }
+    }
 }
 
 impl Drop for PipelineInnerSender {
     fn drop(&mut self) {
-        if let Some(weak_queued) = self.inner.take() {
-            if let Some(pipeline_inner) = weak_queued.upgrade() {
-                PipelineInner::resolve(
-                    &pipeline_inner,
-                    Ok(Box::new(crate::broken::Pipeline::new(Error::failed(
-                        "PipelineInnerSender was canceled".into(),
-                    )))),
-                );
+        if self.resolve_on_drop {
+            if let Some(weak_queued) = self.inner.take() {
+                if let Some(pipeline_inner) = weak_queued.upgrade() {
+                    PipelineInner::resolve(
+                        &pipeline_inner,
+                        Ok(Box::new(crate::broken::Pipeline::new(Error::failed(
+                            "PipelineInnerSender was canceled".into(),
+                        )))),
+                    );
+                }
             }
         }
     }
@@ -108,6 +124,7 @@ impl Pipeline {
         (
             PipelineInnerSender {
                 inner: Some(Rc::downgrade(&inner)),
+                resolve_on_drop: true,
             },
             Self { inner },
         )
@@ -271,9 +288,22 @@ impl ClientHook for Client {
             .attach(inner_clone)
             .and_then(|x| x);
 
+        // We need to drive `promise_to_drive` until we have a result.
         match self.inner.borrow().promise_to_drive {
             Some(ref p) => {
-                Promise::from_future(futures::future::try_join(p.clone(), promise).map_ok(|v| v.1))
+                let p1 = p.clone();
+                Promise::from_future(async move {
+                    match futures::future::select(p1, promise).await {
+                        futures::future::Either::Left((Ok(()), promise)) => promise.await,
+                        futures::future::Either::Left((Err(e), _)) => Err(e),
+                        futures::future::Either::Right((r, _)) => {
+                            // Don't bother waiting for `promise_to_drive` to resolve.
+                            // If we're here because set_pipeline() was called, then
+                            // `promise_to_drive` might in fact never resolve.
+                            r
+                        }
+                    }
+                })
             }
             None => Promise::from_future(promise),
         }

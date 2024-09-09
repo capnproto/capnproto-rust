@@ -263,6 +263,13 @@ where
     pub fn set(&mut self, other: T::Reader<'_>) -> crate::Result<()> {
         self.hook.get().unwrap().set_as(other)
     }
+
+    /// Call this method to signal that all of the capabilities have been filled in for this
+    /// `Results` and that pipelined calls should be allowed to start using those capabilities.
+    /// (Usually pipelined calls are enqueued until the initial call completes.)
+    pub fn set_pipeline(&mut self) -> crate::Result<()> {
+        self.hook.set_pipeline()
+    }
 }
 
 pub trait FromTypelessPipeline {
