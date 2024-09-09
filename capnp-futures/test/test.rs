@@ -84,7 +84,7 @@ mod tests {
     }
 
     #[test]
-    fn write_stream_and_read_queue() {
+    fn write_queue_and_read_stream() {
         use capnp;
         use capnp_futures;
         use futures::future::FutureExt;

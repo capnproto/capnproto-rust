@@ -54,7 +54,11 @@ where
     }
 }
 
-/// Creates a new write queue that wraps the given `AsyncWrite`.
+/// Creates a new write queue that wraps the given `AsyncWrite`. Returns
+/// `(sender, task)`, where `sender` can be used to push writes onto the queue,
+/// and `task` is a future that performs the work of the writes. The queue
+/// will run as long as `task` is polled, until either `sender.terminate()`
+/// is called or `sender` and all of its clones are dropped.
 pub fn write_queue<W, M>(mut writer: W) -> (Sender<M>, impl Future<Output = Result<(), Error>>)
 where
     W: AsyncWrite + Unpin,
@@ -96,7 +100,7 @@ where
     M: AsOutputSegments,
 {
     /// Enqueues a message to be written. The returned future resolves once the write
-    /// has completed.
+    /// has completed. Dropping the returned future does *not* cancel the write.
     pub fn send(&mut self, message: M) -> impl Future<Output = Result<M, Error>> + Unpin {
         let (complete, oneshot) = oneshot::channel();
 
