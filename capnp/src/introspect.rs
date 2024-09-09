@@ -256,7 +256,8 @@ impl core::fmt::Debug for RawBrandedStructSchema {
 
 /// Type information that gets included in the generated code for every
 /// user-defined Cap'n Proto enum.
-/// To use one of this, you will usually want to convert it to a `schema::EnumSchema`,
+///
+/// To use one of these, you will usually want to convert it to a `schema::EnumSchema`,
 /// which can be done via `into()`.
 #[derive(Clone, Copy)]
 pub struct RawEnumSchema {

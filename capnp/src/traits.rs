@@ -98,6 +98,7 @@ pub trait SetterInput<Receiver: ?Sized> {
 }
 
 /// A trait for types that can be "imbued" with capabilities.
+///
 /// A newly-read message from the network might contain capability pointers
 /// but until the message has been imbued with the actual capabilities,
 /// those pointers will not be usable.

@@ -255,6 +255,7 @@ where
 }
 
 /// Like read_message(), but does not allocate.
+///
 /// Stores the message in `buffer`. Returns a `BufferNotLargeEnough`
 /// error if the buffer is not large enough.
 /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.
@@ -272,6 +273,7 @@ where
 }
 
 /// Like try_read_message(), but does not allocate.
+///
 /// Stores the message in `buffer`. Returns a `BufferNotLargeEnough`
 /// error if the buffer is not large enough.
 /// ALIGNMENT: If the "unaligned" feature is enabled, then there are no alignment requirements on `buffer`.

@@ -360,6 +360,7 @@ where
 }
 
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
+///
 /// Users of capnproto-rust who wish to provide memory in non-standard ways should
 /// implement this trait. Objects implementing this trait are intended to be wrapped
 /// by `capnp::private::BuilderArena`, which handles calling the methods at the appropriate
