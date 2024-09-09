@@ -19,7 +19,7 @@ Follow v0.19.0 release of other capnp crates.
 - Follow v0.16.0 release of other capnp crates.
 
 ## v0.15.1
-- Fill in unimiplemented len() method of write_queue::Sender.
+- Fill in unimplemented len() method of write_queue::Sender.
 - Add is_empty() method to write_queue::Sender.
 - Apply a bunch of formatting and style fixes that should have no observable effects.
 
