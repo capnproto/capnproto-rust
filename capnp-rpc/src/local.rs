@@ -143,10 +143,10 @@ impl ResultsHook for Results {
         root2.imbue_mut(&mut cap_table2);
         root2.set_as(root.into_reader())?;
         let hook = Box::new(ResultsDone::new(message2, cap_table2)) as Box<dyn ResultsDoneHook>;
-        self.pipeline_sender
-            .take()
-            .unwrap()
-            .complete(Box::new(Pipeline::new(hook)));
+        let Some(sender) = self.pipeline_sender.take() else {
+            return Err(Error::failed("set_pipeline() called twice".into()));
+        };
+        sender.complete(Box::new(Pipeline::new(hook)));
         Ok(())
     }
 

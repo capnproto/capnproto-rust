@@ -2271,11 +2271,10 @@ impl<VatId> ResultsHook for Results<VatId> {
         let Some(ref mut inner) = self.inner else {
             unreachable!();
         };
-        inner
-            .pipeline_sender
-            .take()
-            .unwrap()
-            .complete(Box::new(local::Pipeline::new(hook)));
+        let Some(sender) = inner.pipeline_sender.take() else {
+            return Err(Error::failed("set_pipeline() called twice".into()));
+        };
+        sender.complete(Box::new(local::Pipeline::new(hook)));
         Ok(())
     }
 
