@@ -210,10 +210,11 @@ where
     }
 }
 
-/// Asynchronously reads a packed message from `read`. Returns `None` if `read`
-/// has zero bytes left (i.e. is at end-of-file). To read a stream
-/// containing an unknown number of messages, you could call this function
-/// repeatedly until it returns `None`.
+/// Asynchronously reads a packed message from `read`.
+///
+/// Returns `None` if `read` has zero bytes left (i.e. is at end-of-file).
+/// To read a stream containing an unknown number of messages, you could call
+/// this function repeatedly until it returns `None`.
 pub async fn try_read_message<R>(
     read: R,
     options: message::ReaderOptions,

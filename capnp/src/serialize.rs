@@ -20,8 +20,9 @@
 // THE SOFTWARE.
 
 //! Reading and writing of messages using the
-//! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream),
-//! where each message is preceded by a segment table indicating the size of its segments.
+//! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream).
+//!
+//! Each message is preceded by a segment table indicating the size of its segments.
 
 pub(crate) mod no_alloc_buffer_segments;
 pub use no_alloc_buffer_segments::{

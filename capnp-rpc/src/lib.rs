@@ -356,6 +356,8 @@ where
     )))
 }
 
+/// Collection of unwrappable capabilities.
+///
 /// Allows a server to recognize its own capabilities when passed back to it, and obtain the
 /// underlying Server objects associated with them. Holds only weak references to Server objects
 /// allowing Server objects to be dropped when dropped by the remote client. Call the `gc` method

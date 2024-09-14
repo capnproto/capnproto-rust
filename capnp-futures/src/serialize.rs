@@ -20,6 +20,8 @@
 
 //! Asynchronous reading and writing of messages using the
 //! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream).
+//!
+//! Each message is preceded by a segment table indicating the size of its segments.
 
 use capnp::serialize::{OwnedSegments, SegmentLengthsBuilder};
 use capnp::{message, Error, OutputSegments, Result};
@@ -40,10 +42,11 @@ where
     }
 }
 
-/// Asynchronously reads a message from `reader`. Returns `None` if `reader`
-/// has zero bytes left (i.e. is at end-of-file). To read a stream
-/// containing an unknown number of messages, you could call this function
-/// repeatedly until it returns `None`.
+/// Asynchronously reads a message from `reader`.
+///
+/// Returns `None` if `reader` has zero bytes left (i.e. is at end-of-file).
+/// To read a stream containing an unknown number of messages, you could call
+/// this function repeatedly until it returns `None`.
 pub async fn try_read_message<R>(
     mut reader: R,
     options: message::ReaderOptions,
