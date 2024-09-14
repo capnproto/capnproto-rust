@@ -335,11 +335,11 @@ impl CompilerCommand {
         }
 
         for import_path in &self.import_paths {
-            command.arg(&format!("--import-path={}", import_path.display()));
+            command.arg(format!("--import-path={}", import_path.display()));
         }
 
         for src_prefix in &self.src_prefixes {
-            command.arg(&format!("--src-prefix={}", src_prefix.display()));
+            command.arg(format!("--src-prefix={}", src_prefix.display()));
         }
 
         for file in &self.files {

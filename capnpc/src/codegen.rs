@@ -129,7 +129,7 @@ impl CodeGenerationCommand {
             }
 
             let root_name = path_to_stem_string(&filepath)?.replace('-', "_");
-            filepath.set_file_name(&format!("{root_name}_capnp.rs"));
+            filepath.set_file_name(format!("{root_name}_capnp.rs"));
 
             let lines =
                 Branch(vec![
