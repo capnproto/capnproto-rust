@@ -392,7 +392,7 @@ where
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
         //
-        // TODO: actually use some kind of queue here to guarantee that call order in maintained.
+        // TODO: actually use some kind of queue here to guarantee that call order is maintained.
         // This currently relies on the task scheduler being first-in-first-out.
         let inner = self.inner.clone();
         Promise::from_future(async move {
