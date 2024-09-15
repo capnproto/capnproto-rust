@@ -133,6 +133,13 @@ interface TestTailCaller {
   foo @0 (i :Int32, callee :TestTailCallee) -> TestTailCallee.TailResult;
 }
 
+interface TestStreaming {
+  doStreamI @0 (i :UInt32, throwError :Bool) -> stream;
+  doStreamJ @1 (j :UInt32, throwError :Bool) -> stream;
+  finishStream @2 () -> (totalI :UInt32, totalJ :UInt32);
+  # Test streaming. finishStream() returns the totals of the values streamed to the other calls.
+}
+
 interface TestHandle {}
 
 interface TestMoreStuff extends(TestCallOrder) {
@@ -178,6 +185,8 @@ interface TestMoreStuff extends(TestCallOrder) {
 
   callEachCapability @13 (caps :List(TestInterface)) -> ();
   # Calls TestInterface::foo(123, true) on each cap.
+
+  getTestStreaming @14 () -> (cap :TestStreaming);
 }
 
 interface TestCapabilityServerSet {

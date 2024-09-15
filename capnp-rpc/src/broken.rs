@@ -81,6 +81,9 @@ impl RequestHook for Request {
             pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
         }
     }
+    fn send_streaming(self: Box<Self>) -> Promise<(), Error> {
+        Promise::err(self.error)
+    }
     fn tail_send(self: Box<Self>) -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)> {
         None
     }

@@ -520,6 +520,9 @@ const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
 const PARENT_MODULE_ANNOTATION_ID: u64 = 0xabee386cd1450364;
 const OPTION_ANNOTATION_ID: u64 = 0xabfef22c4ee1964e;
 
+// StreamResult type ID, as defined in stream.capnp.
+const STREAM_RESULT_ID: u64 = 0x995f9a3377c0b16e;
+
 fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp::Result<&str> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
         let name = t?.to_str()?;
@@ -2551,32 +2554,6 @@ fn generate_node(
                     &param_scopes.join("::"),
                 )?;
 
-                let result_id = method.get_result_struct_type();
-                let result_node = &ctx.node_map[&result_id];
-                let (result_scopes, results_ty_params) = if result_node.get_scope_id() == 0 {
-                    let mut names = names.clone();
-                    let local_name = module_name(&format!("{name}Results"));
-                    nested_output.push(generate_node(ctx, result_id, &local_name)?);
-                    names.push(local_name);
-                    (names, params.params.clone())
-                } else {
-                    (
-                        ctx.scope_map[&result_node.get_id()].clone(),
-                        get_ty_params_of_brand(ctx, method.get_result_brand()?)?,
-                    )
-                };
-                let result_type = do_branding(
-                    ctx,
-                    result_id,
-                    method.get_result_brand()?,
-                    Leaf::Owned,
-                    &result_scopes.join("::"),
-                )?;
-
-                dispatch_arms.push(
-                    Line(fmt!(ctx,
-                        "{ordinal} => server.{}({capnp}::private::capability::internal_get_typed_params(params), {capnp}::private::capability::internal_get_typed_results(results)),",
-                        module_name(name))));
                 mod_interior.push(Line(fmt!(
                     ctx,
                     "pub type {}Params<{}> = {capnp}::capability::Params<{}>;",
@@ -2584,34 +2561,88 @@ fn generate_node(
                     params_ty_params,
                     param_type
                 )));
-                mod_interior.push(Line(fmt!(
-                    ctx,
-                    "pub type {}Results<{}> = {capnp}::capability::Results<{}>;",
-                    capitalize_first_letter(name),
-                    results_ty_params,
-                    result_type
-                )));
-                server_interior.push(
-                    Line(fmt!(ctx,
-                        "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> {capnp}::capability::Promise<(), {capnp}::Error> {{ {capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }}",
-                        module_name(name),
-                        capitalize_first_letter(name), params_ty_params,
-                        capitalize_first_letter(name), results_ty_params,
-                        node_name, module_name(name)
+
+                let result_id = method.get_result_struct_type();
+                if result_id != STREAM_RESULT_ID {
+                    dispatch_arms.push(
+                        Line(fmt!(ctx,
+                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new(server.{}({capnp}::private::capability::internal_get_typed_params(params), {capnp}::private::capability::internal_get_typed_results(results)), false),",
+                                  module_name(name))));
+
+                    let result_node = &ctx.node_map[&result_id];
+                    let (result_scopes, results_ty_params) = if result_node.get_scope_id() == 0 {
+                        let mut names = names.clone();
+                        let local_name = module_name(&format!("{name}Results"));
+                        nested_output.push(generate_node(ctx, result_id, &local_name)?);
+                        names.push(local_name);
+                        (names, params.params.clone())
+                    } else {
+                        (
+                            ctx.scope_map[&result_node.get_id()].clone(),
+                            get_ty_params_of_brand(ctx, method.get_result_brand()?)?,
+                        )
+                    };
+                    let result_type = do_branding(
+                        ctx,
+                        result_id,
+                        method.get_result_brand()?,
+                        Leaf::Owned,
+                        &result_scopes.join("::"),
+                    )?;
+                    mod_interior.push(Line(fmt!(
+                        ctx,
+                        "pub type {}Results<{}> = {capnp}::capability::Results<{}>;",
+                        capitalize_first_letter(name),
+                        results_ty_params,
+                        result_type
+                    )));
+                    server_interior.push(
+                        Line(fmt!(ctx,
+                                  "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> {capnp}::capability::Promise<(), {capnp}::Error> {{ {capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }}",
+                                  module_name(name),
+                                  capitalize_first_letter(name), params_ty_params,
+                                  capitalize_first_letter(name), results_ty_params,
+                                  node_name, module_name(name)
+                        )));
+
+                    client_impl_interior.push(Line(fmt!(
+                        ctx,
+                        "pub fn {}_request(&self) -> {capnp}::capability::Request<{},{}> {{",
+                        camel_to_snake_case(name),
+                        param_type,
+                        result_type
                     )));
 
-                client_impl_interior.push(Line(fmt!(
-                    ctx,
-                    "pub fn {}_request(&self) -> {capnp}::capability::Request<{},{}> {{",
-                    camel_to_snake_case(name),
-                    param_type,
-                    result_type
-                )));
+                    client_impl_interior.push(indent(Line(format!(
+                        "self.client.new_call(_private::TYPE_ID, {ordinal}, ::core::option::Option::None)"
+                    ))));
+                    client_impl_interior.push(line("}"));
+                } else {
+                    // It's a streaming method.
+                    dispatch_arms.push(
+                        Line(fmt!(ctx,
+                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new(server.{}({capnp}::private::capability::internal_get_typed_params(params)), true),",
+                                  module_name(name))));
 
-                client_impl_interior.push(indent(Line(format!(
-                    "self.client.new_call(_private::TYPE_ID, {ordinal}, ::core::option::Option::None)"
-                ))));
-                client_impl_interior.push(line("}"));
+                    server_interior.push(
+                        Line(fmt!(ctx,
+                                  "fn {}(&mut self, _: {}Params<{}>) -> {capnp}::capability::Promise<(), {capnp}::Error> {{ {capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }}",
+                                  module_name(name),
+                                  capitalize_first_letter(name), params_ty_params,
+                                  node_name, module_name(name)
+                        )));
+                    client_impl_interior.push(Line(fmt!(
+                        ctx,
+                        "pub fn {}_request(&self) -> {capnp}::capability::StreamingRequest<{}> {{",
+                        camel_to_snake_case(name),
+                        param_type
+                    )));
+                    client_impl_interior.push(indent(Line(format!(
+                        "self.client.new_streaming_call(_private::TYPE_ID, {ordinal}, ::core::option::Option::None)"
+                    ))));
+
+                    client_impl_interior.push(line("}"));
+                }
 
                 method.get_annotations()?;
             }
@@ -2835,11 +2866,11 @@ fn generate_node(
                     } else {
                         Line(fmt!(ctx,"impl <_T: Server> {capnp}::capability::Server for ServerDispatch<_T> {{"))
                     }),
-                    indent(Line(fmt!(ctx,"fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::Promise<(), {capnp}::Error> {{"))),
+                    indent(Line(fmt!(ctx,"fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::DispatchCallResult {{"))),
                     indent(indent(line("match interface_id {"))),
                     indent(indent(indent(line("_private::TYPE_ID => Self::dispatch_call_internal(&mut self.server, method_id, params, results),")))),
                     indent(indent(indent(base_dispatch_arms))),
-                    indent(indent(indent(Line(fmt!(ctx,"_ => {{ {capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"Method not implemented.\".to_string())) }}"))))),
+                    indent(indent(indent(Line(fmt!(ctx,"_ => {{ {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"Method not implemented.\".to_string())), false) }}"))))),
                     indent(indent(line("}"))),
                     indent(line("}")),
                     line("}")]));
@@ -2851,10 +2882,10 @@ fn generate_node(
                     } else {
                         line("impl <_T :Server> ServerDispatch<_T> {")
                     }),
-                    indent(Line(fmt!(ctx,"pub fn dispatch_call_internal(server: &mut _T, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::Promise<(), {capnp}::Error> {{"))),
+                    indent(Line(fmt!(ctx,"pub fn dispatch_call_internal(server: &mut _T, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::DispatchCallResult {{"))),
                     indent(indent(line("match method_id {"))),
                     indent(indent(indent(dispatch_arms))),
-                    indent(indent(indent(Line(fmt!(ctx,"_ => {{ ::capnp::capability::Promise::err({capnp}::Error::unimplemented(\"Method not implemented.\".to_string())) }}"))))),
+                    indent(indent(indent(Line(fmt!(ctx,"_ => {{ {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"Method not implemented.\".to_string())), false) }}"))))),
                     indent(indent(line("}"))),
                     indent(line("}")),
                     line("}")]));

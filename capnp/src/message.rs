@@ -294,6 +294,10 @@ where
     pub fn into_typed<T: Owned>(self) -> TypedReader<S, T> {
         TypedReader::new(self)
     }
+
+    pub fn size_in_words(&self) -> usize {
+        self.arena.size_in_words()
+    }
 }
 
 /// A message reader whose value is known to be of type `T`.
@@ -519,6 +523,10 @@ where
     /// segments.
     pub fn into_allocator(self) -> A {
         self.arena.into_allocator()
+    }
+
+    pub fn size_in_words(&self) -> usize {
+        self.arena.size_in_words()
     }
 }
 

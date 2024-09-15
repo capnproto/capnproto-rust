@@ -214,6 +214,27 @@ where
     }
 }
 
+/// A method call that has not been sent yet.
+#[cfg(feature = "alloc")]
+pub struct StreamingRequest<Params> {
+    pub marker: PhantomData<Params>,
+    pub hook: alloc::boxed::Box<dyn RequestHook>,
+}
+
+#[cfg(feature = "alloc")]
+impl<Params> StreamingRequest<Params>
+where
+    Params: Owned,
+{
+    pub fn get(&mut self) -> Params::Builder<'_> {
+        self.hook.get().get_as().unwrap()
+    }
+
+    pub fn send(self) -> Promise<(), Error> {
+        self.hook.send_streaming()
+    }
+}
+
 /// The values of the parameters passed to a method call, as seen by the server.
 #[cfg(feature = "alloc")]
 pub struct Params<T> {
@@ -324,6 +345,19 @@ impl Client {
         }
     }
 
+    pub fn new_streaming_call<Params>(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        size_hint: Option<MessageSize>,
+    ) -> StreamingRequest<Params> {
+        let typeless = self.hook.new_call(interface_id, method_id, size_hint);
+        StreamingRequest {
+            hook: typeless.hook,
+            marker: PhantomData,
+        }
+    }
+
     /// If the capability is actually only a promise, the returned promise resolves once the
     /// capability itself has resolved to its final destination (or propagates the exception if
     /// the capability promise is rejected).  This is mainly useful for error-checking in the case
@@ -331,6 +365,28 @@ impl Client {
     /// the capability does not resolve, the call results will propagate the error.
     pub fn when_resolved(&self) -> Promise<(), Error> {
         self.hook.when_resolved()
+    }
+}
+
+/// The return value of Server::dispatch_call().
+#[cfg(feature = "alloc")]
+pub struct DispatchCallResult {
+    /// Promise for completion of the call.
+    pub promise: Promise<(), Error>,
+
+    /// If true, this method was declared as `-> stream;`. If this call throws
+    /// an exception, then all future calls on the capability with throw the
+    /// same exception.
+    pub is_streaming: bool,
+}
+
+#[cfg(feature = "alloc")]
+impl DispatchCallResult {
+    pub fn new(promise: Promise<(), Error>, is_streaming: bool) -> Self {
+        Self {
+            promise,
+            is_streaming,
+        }
     }
 }
 
@@ -343,7 +399,7 @@ pub trait Server {
         method_id: u16,
         params: Params<any_pointer::Owned>,
         results: Results<any_pointer::Owned>,
-    ) -> Promise<(), Error>;
+    ) -> DispatchCallResult;
 }
 
 /// Trait to track the relationship between generated Server traits and Client structs.

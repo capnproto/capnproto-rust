@@ -1797,6 +1797,71 @@ where
 
         (question_ref, promise2)
     }
+
+    fn send_streaming_internal(
+        connection_state: &Rc<ConnectionState<VatId>>,
+        mut message: Box<dyn crate::OutgoingMessage>,
+        cap_table: &[Option<Box<dyn ClientHook>>],
+        flow: Rc<RefCell<Option<Box<dyn crate::FlowController>>>>,
+    ) -> Promise<(), Error> {
+        // Build the cap table.
+        let exports = ConnectionState::write_descriptors(
+            connection_state,
+            cap_table,
+            get_call(&mut message).unwrap().get_params().unwrap(),
+        );
+
+        // Init the question table.  Do this after writing descriptors to avoid interference.
+        let mut question = Question::<VatId>::new();
+        question.is_awaiting_return = true;
+        question.param_exports = exports;
+        question.is_tail_call = false;
+
+        let question_id = connection_state.questions.borrow_mut().push(question);
+        {
+            let mut call_builder: call::Builder = get_call(&mut message).unwrap();
+            call_builder.reborrow().set_question_id(question_id);
+        }
+
+        // Make the result promise.
+        let (fulfiller, promise) = oneshot::channel::<Promise<Response<VatId>, Error>>();
+        let promise = promise.map_err(crate::canceled_to_error).and_then(|x| x);
+        let question_ref = Rc::new(RefCell::new(QuestionRef::new(
+            connection_state.clone(),
+            question_id,
+            fulfiller,
+        )));
+
+        match connection_state.questions.borrow_mut().slots[question_id as usize] {
+            Some(ref mut q) => {
+                q.self_ref = Some(Rc::downgrade(&question_ref));
+            }
+            None => unreachable!(),
+        }
+        let promise = promise.attach(question_ref.clone());
+
+        let mut flow = flow.borrow_mut();
+        if flow.is_none() {
+            match connection_state.connection.borrow_mut().as_mut() {
+                Err(_) => return Promise::err(Error::failed("no connection".into())),
+                Ok(connection) => {
+                    let (s, p) = connection.new_stream();
+                    connection_state.add_task(p);
+                    *flow = Some(s);
+                }
+            };
+        }
+        let Some(ref mut flow) = *flow else {
+            unreachable!()
+        };
+        flow.send(
+            message,
+            Promise::from_future(async move {
+                let _ = promise.await?;
+                Ok(())
+            }),
+        )
+    }
 }
 
 impl<VatId> RequestHook for Request<VatId> {
@@ -1871,6 +1936,46 @@ impl<VatId> RequestHook for Request<VatId> {
             promise: app_promise,
             pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
         }
+    }
+    fn send_streaming(self: Box<Self>) -> Promise<(), Error> {
+        let tmp = *self;
+        let Self {
+            connection_state,
+            target,
+            mut message,
+            cap_table,
+        } = tmp;
+        let write_target_result = {
+            let call_builder: call::Builder = get_call(&mut message).unwrap();
+            target.write_target(call_builder.get_target().unwrap())
+        };
+        if let Some(redirect) = write_target_result {
+            // Whoops, this capability has been redirected while we were building the request!
+            // We'll have to make a new request and do a copy.  Ick.
+            let mut call_builder: call::Builder = get_call(&mut message).unwrap();
+            let mut replacement = redirect.new_call(
+                call_builder.reborrow().get_interface_id(),
+                call_builder.reborrow().get_method_id(),
+                None,
+            );
+
+            replacement
+                .set(
+                    call_builder
+                        .get_params()
+                        .unwrap()
+                        .get_content()
+                        .into_reader(),
+                )
+                .unwrap();
+            return replacement.hook.send_streaming();
+        }
+        Self::send_streaming_internal(
+            &connection_state,
+            message,
+            &cap_table,
+            target.flow_controller,
+        )
     }
     fn tail_send(self: Box<Self>) -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)> {
         let tmp = *self;
@@ -2520,6 +2625,7 @@ where
 {
     connection_state: Rc<ConnectionState<VatId>>,
     variant: ClientVariant<VatId>,
+    flow_controller: Rc<RefCell<Option<Box<dyn crate::FlowController>>>>,
 }
 
 enum WeakClientVariant<VatId>
@@ -2538,6 +2644,7 @@ where
 {
     connection_state: Weak<ConnectionState<VatId>>,
     variant: WeakClientVariant<VatId>,
+    flow_controller: Weak<RefCell<Option<Box<dyn crate::FlowController>>>>,
 }
 
 impl<VatId> WeakClient<VatId>
@@ -2552,9 +2659,11 @@ where
             WeakClientVariant::__NoIntercept(()) => ClientVariant::__NoIntercept(()),
         };
         let connection_state = self.connection_state.upgrade()?;
+        let flow_controller = self.flow_controller.upgrade()?;
         Some(Client {
             connection_state,
             variant,
+            flow_controller,
         })
     }
 }
@@ -2825,6 +2934,7 @@ impl<VatId> Client<VatId> {
         let client = Self {
             connection_state: connection_state.clone(),
             variant,
+            flow_controller: Rc::new(RefCell::new(None)),
         };
         let weak = client.downgrade();
 
@@ -2853,6 +2963,7 @@ impl<VatId> Client<VatId> {
         WeakClient {
             connection_state: Rc::downgrade(&self.connection_state),
             variant,
+            flow_controller: Rc::downgrade(&self.flow_controller),
         }
     }
 
@@ -2960,6 +3071,7 @@ impl<VatId> Clone for Client<VatId> {
         Self {
             connection_state: self.connection_state.clone(),
             variant,
+            flow_controller: self.flow_controller.clone(),
         }
     }
 }

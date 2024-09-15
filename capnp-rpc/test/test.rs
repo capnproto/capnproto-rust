@@ -1162,3 +1162,71 @@ fn capability_server_set_rpc() {
         Ok(())
     })
 }
+
+#[test]
+fn basic_streaming() {
+    rpc_and_local_top_level(|_spawner, client| async move {
+        let response = client.test_more_stuff_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+        let response = client.get_test_streaming_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+
+        const EACH: u32 = 10;
+        const ITERS: u32 = 100;
+        for _ in 0..ITERS {
+            let mut request = client.do_stream_i_request();
+            request.get().set_i(EACH);
+            request.send().await?;
+        }
+
+        let r = client.finish_stream_request().send().promise.await?;
+        let results = r.get()?;
+        assert_eq!(results.get_total_i(), ITERS * EACH);
+        Ok(())
+    });
+}
+
+#[test]
+fn basic_streaming_on_pipeline() {
+    rpc_and_local_top_level(|_spawner, client| async move {
+        let response = client.test_more_stuff_request().send().pipeline;
+        let client = response.get_cap();
+        let response = client.get_test_streaming_request().send().pipeline;
+        let client = response.get_cap();
+
+        const EACH: u32 = 3;
+        const ITERS: u32 = 1000;
+        for _ in 0..ITERS {
+            let mut request = client.do_stream_i_request();
+            request.get().set_i(EACH);
+            request.send().await?;
+        }
+
+        let r = client.finish_stream_request().send().promise.await?;
+        let results = r.get()?;
+        assert_eq!(results.get_total_i(), ITERS * EACH);
+        Ok(())
+    });
+}
+
+#[test]
+fn stream_error_gets_reported() {
+    rpc_and_local_top_level(|_spawner, client| async move {
+        let response = client.test_more_stuff_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+        let response = client.get_test_streaming_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+
+        let mut request = client.do_stream_i_request();
+        request.get().set_throw_error(true);
+
+        let _ = request.send().await;
+
+        let r = client.finish_stream_request().send().promise.await;
+        let Err(e) = r else {
+            panic!("expected error");
+        };
+        assert!(e.to_string().contains("throw requested"));
+        Ok(())
+    });
+}

@@ -24,6 +24,7 @@ members = [
     "capnp-rpc/examples/hello-world",
     "capnp-rpc/examples/calculator",
     "capnp-rpc/examples/pubsub",
+    "capnp-rpc/examples/streaming",
     "capnp-rpc/test",
     "example/addressbook",
     "example/addressbook_send",
