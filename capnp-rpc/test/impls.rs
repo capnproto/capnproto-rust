@@ -21,7 +21,7 @@
 
 use crate::test_capnp::{
     bootstrap, test_call_order, test_capability_server_set, test_extends, test_handle,
-    test_interface, test_more_stuff, test_pipeline,
+    test_interface, test_more_stuff, test_pipeline, test_streaming,
 };
 
 use capnp::capability::{FromClientHook, Promise};
@@ -541,6 +541,17 @@ impl test_more_stuff::Server for TestMoreStuff {
 
         Promise::from_future(::futures::future::try_join_all(results).map_ok(|_| ()))
     }
+
+    fn get_test_streaming(
+        &mut self,
+        _params: test_more_stuff::GetTestStreamingParams,
+        mut results: test_more_stuff::GetTestStreamingResults,
+    ) -> Promise<(), Error> {
+        results
+            .get()
+            .set_cap(capnp_rpc::new_client(TestStreamingImpl::new()));
+        Promise::ok(())
+    }
 }
 
 struct Handle {
@@ -608,6 +619,47 @@ impl test_interface::Server for TestCapDestructor {
         _results: test_interface::BazResults,
     ) -> Promise<(), Error> {
         Promise::err(Error::unimplemented("bar is not implemented".to_string()))
+    }
+}
+
+#[derive(Default)]
+pub struct TestStreamingImpl {
+    i_sum: u32,
+    j_sum: u32,
+}
+
+impl TestStreamingImpl {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl test_streaming::Server for TestStreamingImpl {
+    fn do_stream_i(&mut self, params: test_streaming::DoStreamIParams) -> Promise<(), Error> {
+        let params = pry!(params.get());
+        if params.get_throw_error() {
+            return Promise::err(Error::failed("throw requested".to_string()));
+        }
+        self.i_sum += params.get_i();
+        Promise::ok(())
+    }
+    fn do_stream_j(&mut self, params: test_streaming::DoStreamJParams) -> Promise<(), Error> {
+        let params = pry!(params.get());
+        if params.get_throw_error() {
+            return Promise::err(Error::failed("throw requested".to_string()));
+        }
+        self.j_sum += params.get_j();
+        Promise::ok(())
+    }
+    fn finish_stream(
+        &mut self,
+        _params: test_streaming::FinishStreamParams,
+        mut results: test_streaming::FinishStreamResults,
+    ) -> Promise<(), Error> {
+        let mut results = results.get();
+        results.set_total_i(self.i_sum);
+        results.set_total_j(self.j_sum);
+        Promise::ok(())
     }
 }
 

@@ -203,6 +203,10 @@ where
         result
     }
 
+    fn send_streaming(self: Box<Self>) -> Promise<(), capnp::Error> {
+        todo!()
+    }
+
     fn tail_send(
         self: Box<Self>,
     ) -> Option<(

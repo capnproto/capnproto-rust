@@ -80,6 +80,10 @@ impl crate::OutgoingMessage for OutgoingMessage {
     fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator> {
         self.message
     }
+
+    fn size_in_words(&self) -> usize {
+        self.message.size_in_words()
+    }
 }
 
 struct ConnectionInner<T>
@@ -91,6 +95,7 @@ where
     side: crate::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
+    window_size_in_bytes: usize,
 }
 
 struct Connection<T>
@@ -134,6 +139,7 @@ where
                 side,
                 receive_options,
                 on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
+                window_size_in_bytes: crate::flow_control::DEFAULT_WINDOW_SIZE,
             })),
         }
     }
@@ -187,6 +193,13 @@ where
                 //   unreachable!(),
             }
         }
+    }
+
+    fn new_stream(&mut self) -> (Box<dyn crate::FlowController>, Promise<(), capnp::Error>) {
+        let (fc, f) = crate::flow_control::FixedWindowFlowController::new(
+            self.inner.borrow().window_size_in_bytes,
+        );
+        (Box::new(fc), f)
     }
 
     fn shutdown(&mut self, result: ::capnp::Result<()>) -> Promise<(), ::capnp::Error> {
@@ -260,6 +273,14 @@ where
             weak_connection_inner: weak_inner,
             execution_driver,
             side,
+        }
+    }
+
+    /// Set the number of bytes in the flow control window for each stream created
+    /// on this connection.
+    pub fn set_window_size(&mut self, window_size: usize) {
+        if let Some(ref mut conn) = self.connection {
+            conn.inner.borrow_mut().window_size_in_bytes = window_size;
         }
     }
 }

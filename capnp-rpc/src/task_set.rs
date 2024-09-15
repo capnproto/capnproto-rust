@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::channel::mpsc;
+use futures::channel::{mpsc, oneshot};
 use futures::stream::FuturesUnordered;
 use futures::{Future, FutureExt, Stream};
 use std::pin::Pin;
@@ -30,6 +30,7 @@ use std::rc::Rc;
 enum EnqueuedTask<E> {
     Task(Pin<Box<dyn Future<Output = Result<(), E>>>>),
     Terminate(Result<(), E>),
+    OnEmpty(oneshot::Sender<()>),
 }
 
 enum TaskInProgress<E> {
@@ -62,6 +63,7 @@ impl<E> Future for TaskInProgress<E> {
 pub struct TaskSet<E> {
     enqueued: Option<mpsc::UnboundedReceiver<EnqueuedTask<E>>>,
     in_progress: FuturesUnordered<TaskInProgress<E>>,
+    on_empty_fulfillers: Vec<oneshot::Sender<()>>,
     reaper: Rc<RefCell<Box<dyn TaskReaper<E>>>>,
 }
 
@@ -79,6 +81,7 @@ where
         let set = Self {
             enqueued: Some(receiver),
             in_progress: FuturesUnordered::new(),
+            on_empty_fulfillers: vec![],
             reaper: Rc::new(RefCell::new(reaper)),
         };
 
@@ -90,6 +93,15 @@ where
         let handle = TaskSetHandle { sender };
 
         (handle, set)
+    }
+
+    fn update_on_empty_fulfillers(&mut self) {
+        // There is always the one pending() future that we added in `new()`.
+        if self.in_progress.len() <= 1 {
+            for f in std::mem::take(&mut self.on_empty_fulfillers) {
+                let _ = f.send(());
+            }
+        }
     }
 }
 
@@ -111,6 +123,14 @@ where
 
     pub fn terminate(&mut self, result: Result<(), E>) {
         let _ = self.sender.unbounded_send(EnqueuedTask::Terminate(result));
+    }
+
+    /// Returns a future that finishes at the next time when the task set
+    /// is empty. If the task set is termined, the oneshot will be canceled.
+    pub fn on_empty(&mut self) -> oneshot::Receiver<()> {
+        let (s, r) = oneshot::channel();
+        let _ = self.sender.unbounded_send(EnqueuedTask::OnEmpty(s));
+        r
     }
 }
 
@@ -136,7 +156,7 @@ where
             enqueued: Some(ref mut enqueued),
             ref mut in_progress,
             ref reaper,
-            ..
+            ref mut on_empty_fulfillers,
         } = self.as_mut().get_mut()
         {
             loop {
@@ -161,6 +181,9 @@ where
                             }
                         }))));
                     }
+                    Poll::Ready(Some(EnqueuedTask::OnEmpty(f))) => {
+                        on_empty_fulfillers.push(f);
+                    }
                 }
             }
         }
@@ -173,9 +196,15 @@ where
                 Poll::Pending => return Poll::Pending,
                 Poll::Ready(v) => match v {
                     None => return Poll::Ready(Ok(())),
-                    Some(TaskDone::Continue) => (),
-                    Some(TaskDone::Terminate(Ok(()))) => return Poll::Ready(Ok(())),
-                    Some(TaskDone::Terminate(Err(e))) => return Poll::Ready(Err(e)),
+                    Some(TaskDone::Continue) => self.update_on_empty_fulfillers(),
+                    Some(TaskDone::Terminate(Ok(()))) => {
+                        self.on_empty_fulfillers.clear();
+                        return Poll::Ready(Ok(()));
+                    }
+                    Some(TaskDone::Terminate(Err(e))) => {
+                        self.on_empty_fulfillers.clear();
+                        return Poll::Ready(Err(e));
+                    }
                 },
             }
         }

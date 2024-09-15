@@ -33,6 +33,7 @@ pub trait RequestHook {
     fn get(&mut self) -> any_pointer::Builder<'_>;
     fn get_brand(&self) -> usize;
     fn send(self: alloc::boxed::Box<Self>) -> RemotePromise<any_pointer::Owned>;
+    fn send_streaming(self: alloc::boxed::Box<Self>) -> Promise<(), crate::Error>;
     fn tail_send(
         self: alloc::boxed::Box<Self>,
     ) -> Option<(

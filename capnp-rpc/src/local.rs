@@ -279,6 +279,13 @@ impl RequestHook for Request {
             pipeline,
         }
     }
+    fn send_streaming(self: Box<Self>) -> Promise<(), Error> {
+        // No special handling for streaming in this case. Calls are delivered one at a time.
+        Promise::from_future(async {
+            let _ = self.send().promise.await?;
+            Ok(())
+        })
+    }
     fn tail_send(self: Box<Self>) -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)> {
         unimplemented!()
     }
@@ -332,6 +339,10 @@ where
     S: capability::Server,
 {
     inner: Rc<RefCell<S>>,
+
+    /// If a streaming call on this capability has returned an error,
+    /// this contains a copy of that error.
+    broken_error: Rc<RefCell<Option<Error>>>,
 }
 
 impl<S> Client<S>
@@ -341,11 +352,15 @@ where
     pub fn new(server: S) -> Self {
         Self {
             inner: Rc::new(RefCell::new(server)),
+            broken_error: Rc::new(RefCell::new(None)),
         }
     }
 
     pub fn from_rc(inner: Rc<RefCell<S>>) -> Self {
-        Self { inner }
+        Self {
+            inner,
+            broken_error: Rc::new(RefCell::new(None)),
+        }
     }
 }
 
@@ -356,6 +371,7 @@ where
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
+            broken_error: self.broken_error.clone(),
         }
     }
 }
@@ -388,6 +404,12 @@ where
         params: Box<dyn ParamsHook>,
         results: Box<dyn ResultsHook>,
     ) -> Promise<(), Error> {
+        let streaming_error = self.broken_error.clone();
+        if let Some(e) = &*streaming_error.borrow() {
+            // Previous streaming call threw, so everything fails from now on.
+            return Promise::err(e.clone());
+        }
+
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
@@ -407,7 +429,11 @@ where
                     ::capnp::capability::Results::new(results),
                 )
             };
-            f.await
+            let result = f.promise.await;
+            if let (true, Err(e)) = (f.is_streaming, &result) {
+                *streaming_error.borrow_mut() = Some(e.clone());
+            }
+            result
         })
     }
 

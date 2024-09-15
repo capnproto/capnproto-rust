@@ -99,6 +99,7 @@ macro_rules! pry {
 
 mod attach;
 mod broken;
+mod flow_control;
 mod local;
 mod queued;
 mod reconnect;
@@ -132,6 +133,12 @@ pub trait OutgoingMessage {
 
     /// Takes the inner message out of `self`.
     fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator>;
+
+    /// Gets the total size of the message, for flow control purposes. Although the caller
+    /// could also call get_body().target_size(0, doing that would walk th emessage tree,
+    /// whereas typical implementations can compute the size more cheaply by summing
+    /// segment sizes.
+    fn size_in_words(&self) -> usize;
 }
 
 /// A message received from a [`VatNetwork`].
@@ -164,9 +171,30 @@ pub trait Connection<VatId> {
     /// returns None. If any other problem occurs, returns an Error.
     fn receive_incoming_message(&mut self) -> Promise<Option<Box<dyn IncomingMessage>>, Error>;
 
+    /// Constructs a flow controller for a new stream on this connection.
+    ///
+    /// Returns (fc, p), where fc is the new flow controller and p is a promise
+    /// that must be polled in order to drive the flow controller.
+    fn new_stream(&mut self) -> (Box<dyn FlowController>, Promise<(), Error>) {
+        let (fc, f) = crate::flow_control::FixedWindowFlowController::new(
+            crate::flow_control::DEFAULT_WINDOW_SIZE,
+        );
+        (Box::new(fc), f)
+    }
+
     /// Waits until all outgoing messages have been sent, then shuts down the outgoing stream. The
     /// returned promise resolves after shutdown is complete.
     fn shutdown(&mut self, result: ::capnp::Result<()>) -> Promise<(), Error>;
+}
+
+/// Tracks a particular RPC stream in order to implement a flow control algorithm.
+pub trait FlowController {
+    fn send(
+        &mut self,
+        message: Box<dyn OutgoingMessage>,
+        ack: Promise<(), Error>,
+    ) -> Promise<(), Error>;
+    fn wait_all_acked(&mut self) -> Promise<(), Error>;
 }
 
 /// Network facility between vats, it determines how to form connections between
