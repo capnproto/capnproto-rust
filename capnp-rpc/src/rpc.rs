@@ -1825,55 +1825,51 @@ impl<VatId> RequestHook for Request<VatId> {
             let call_builder: call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
         };
-        match write_target_result {
-            Some(redirect) => {
-                // Whoops, this capability has been redirected while we were building the request!
-                // We'll have to make a new request and do a copy.  Ick.
-                let mut call_builder: call::Builder = get_call(&mut message).unwrap();
-                let mut replacement = redirect.new_call(
-                    call_builder.reborrow().get_interface_id(),
-                    call_builder.reborrow().get_method_id(),
-                    None,
-                );
+        if let Some(redirect) = write_target_result {
+            // Whoops, this capability has been redirected while we were building the request!
+            // We'll have to make a new request and do a copy.  Ick.
+            let mut call_builder: call::Builder = get_call(&mut message).unwrap();
+            let mut replacement = redirect.new_call(
+                call_builder.reborrow().get_interface_id(),
+                call_builder.reborrow().get_method_id(),
+                None,
+            );
 
-                replacement
-                    .set(
-                        call_builder
-                            .get_params()
-                            .unwrap()
-                            .get_content()
-                            .into_reader(),
-                    )
-                    .unwrap();
-                replacement.send()
-            }
-            None => {
-                let (question_ref, promise) =
-                    Self::send_internal(&connection_state, message, &cap_table, false);
-                let forked_promise1 = promise.shared();
-                let forked_promise2 = forked_promise1.clone();
+            replacement
+                .set(
+                    call_builder
+                        .get_params()
+                        .unwrap()
+                        .get_content()
+                        .into_reader(),
+                )
+                .unwrap();
+            return replacement.send();
+        }
+        let (question_ref, promise) =
+            Self::send_internal(&connection_state, message, &cap_table, false);
+        let forked_promise1 = promise.shared();
+        let forked_promise2 = forked_promise1.clone();
 
-                // The pipeline must get notified of resolution before the app does to maintain ordering.
-                let pipeline = Pipeline::new(
-                    &connection_state,
-                    question_ref,
-                    Some(Promise::from_future(forked_promise1)),
-                );
+        // The pipeline must get notified of resolution before the app does to maintain ordering.
+        let pipeline = Pipeline::new(
+            &connection_state,
+            question_ref,
+            Some(Promise::from_future(forked_promise1)),
+        );
 
-                let resolved = pipeline.when_resolved();
+        let resolved = pipeline.when_resolved();
 
-                let forked_promise2 = resolved.map(|_| Ok(())).and_then(|()| forked_promise2);
+        let forked_promise2 = resolved.map(|_| Ok(())).and_then(|()| forked_promise2);
 
-                let app_promise = Promise::from_future(
-                    forked_promise2
-                        .map_ok(|response| ::capnp::capability::Response::new(Box::new(response))),
-                );
+        let app_promise = Promise::from_future(
+            forked_promise2
+                .map_ok(|response| ::capnp::capability::Response::new(Box::new(response))),
+        );
 
-                ::capnp::capability::RemotePromise {
-                    promise: app_promise,
-                    pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
-                }
-            }
+        ::capnp::capability::RemotePromise {
+            promise: app_promise,
+            pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
         }
     }
     fn tail_send(self: Box<Self>) -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)> {
