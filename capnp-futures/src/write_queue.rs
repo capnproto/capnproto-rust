@@ -30,7 +30,7 @@ enum Item<M>
 where
     M: AsOutputSegments,
 {
-    Message(M, oneshot::Sender<M>),
+    Message(M, oneshot::Sender<()>),
     Done(Result<(), Error>, oneshot::Sender<()>),
 }
 /// A handle that allows messages to be sent to a write queue.
@@ -65,7 +65,7 @@ where
     W: AsyncWrite + Unpin,
     M: AsOutputSegments,
 {
-    let (tx, mut rx) = futures::channel::mpsc::unbounded();
+    let (tx, mut rx) = futures::channel::mpsc::unbounded::<Item<M>>();
 
     let in_flight = std::sync::Arc::new(std::sync::atomic::AtomicI32::new(0));
 
@@ -78,11 +78,11 @@ where
         while let Some(item) = rx.next().await {
             match item {
                 Item::Message(m, returner) => {
-                    let result = crate::serialize::write_message(&mut writer, &m).await;
+                    let result = crate::serialize::write_message(&mut writer, m).await;
                     in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
                     result?;
                     writer.flush().await?;
-                    let _ = returner.send(m);
+                    let _ = returner.send(());
                 }
                 Item::Done(r, finisher) => {
                     let _ = finisher.send(());
@@ -102,7 +102,7 @@ where
 {
     /// Enqueues a message to be written. The returned future resolves once the write
     /// has completed. Dropping the returned future does *not* cancel the write.
-    pub fn send(&mut self, message: M) -> impl Future<Output = Result<M, Error>> + Unpin {
+    pub fn send(&mut self, message: M) -> impl Future<Output = Result<(), Error>> + Unpin {
         self.in_flight
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let (complete, oneshot) = oneshot::channel();

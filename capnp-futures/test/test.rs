@@ -98,6 +98,7 @@ mod tests {
 
         let (writer, reader) = async_byte_channel::channel();
         let (mut sender, write_queue) = capnp_futures::write_queue(writer);
+
         let read_stream = capnp_futures::ReadStream::new(reader, Default::default());
         let messages_read = Rc::new(Cell::new(0u32));
         let messages_read1 = messages_read.clone();

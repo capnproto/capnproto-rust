@@ -65,7 +65,7 @@ impl crate::OutgoingMessage for OutgoingMessage {
     fn send(
         self: Box<Self>,
     ) -> (
-        Promise<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>, ::capnp::Error>,
+        Promise<(), ::capnp::Error>,
         Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     ) {
         let tmp = *self;

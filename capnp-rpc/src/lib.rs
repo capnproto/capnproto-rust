@@ -122,12 +122,12 @@ pub trait OutgoingMessage {
     /// Same as `get_body()`, but returns the corresponding reader type.
     fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader>;
 
-    /// Sends the message. Returns a promise for the message that resolves once the send has completed.
+    /// Sends the message. Returns a promise that resolves once the send has completed.
     /// Dropping the returned promise does *not* cancel the send.
     fn send(
         self: Box<Self>,
     ) -> (
-        Promise<Rc<message::Builder<message::HeapAllocator>>, Error>,
+        Promise<(), Error>,
         Rc<message::Builder<message::HeapAllocator>>,
     );
 
