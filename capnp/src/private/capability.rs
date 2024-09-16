@@ -93,10 +93,7 @@ impl Clone for alloc::boxed::Box<dyn ClientHook> {
 pub trait ResultsHook {
     fn get(&mut self) -> crate::Result<any_pointer::Builder<'_>>;
 
-    // TODO(version bump): remove this default impl.
-    fn set_pipeline(&mut self) -> crate::Result<()> {
-        unimplemented!()
-    }
+    fn set_pipeline(&mut self) -> crate::Result<()>;
 
     fn allow_cancellation(&self);
     fn tail_call(
