@@ -247,6 +247,11 @@ where
     inner: BuilderArenaImplInner<A>,
 }
 
+// BuilderArenaImpl has no interior mutability. Adding these impls
+// allows message::Builder<A> to be Send and/or Sync when appropriate.
+unsafe impl<A> Send for BuilderArenaImpl<A> where A: Send + Allocator {}
+unsafe impl<A> Sync for BuilderArenaImpl<A> where A: Sync + Allocator {}
+
 impl<A> BuilderArenaImpl<A>
 where
     A: Allocator,

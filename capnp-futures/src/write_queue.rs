@@ -30,7 +30,7 @@ enum Item<M>
 where
     M: AsOutputSegments,
 {
-    Message(M, oneshot::Sender<()>),
+    Message(M, oneshot::Sender<M>),
     Done(Result<(), Error>, oneshot::Sender<()>),
 }
 /// A handle that allows messages to be sent to a write queue.
@@ -78,11 +78,11 @@ where
         while let Some(item) = rx.next().await {
             match item {
                 Item::Message(m, returner) => {
-                    let result = crate::serialize::write_message(&mut writer, m).await;
+                    let result = crate::serialize::write_message(&mut writer, &m).await;
                     in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
                     result?;
                     writer.flush().await?;
-                    let _ = returner.send(());
+                    let _ = returner.send(m);
                 }
                 Item::Done(r, finisher) => {
                     let _ = finisher.send(());
@@ -96,13 +96,30 @@ where
     (sender, queue)
 }
 
+fn _assert_kinds() {
+    fn _assert_send<T: Send>(_x: T) {}
+    fn _assert_sync<T: Sync>() {}
+    fn _assert_write_queue_send<W: AsyncWrite + Unpin + Send, M: AsOutputSegments + Sync + Send>(
+        w: W,
+    ) {
+        let (s, f) = write_queue::<W, M>(w);
+        _assert_send(s);
+        _assert_send(f);
+    }
+    fn _assert_write_queue_send_2<W: AsyncWrite + Unpin + Send>(w: W) {
+        let (s, f) = write_queue::<W, capnp::message::Builder<capnp::message::HeapAllocator>>(w);
+        _assert_send(s);
+        _assert_send(f);
+    }
+}
+
 impl<M> Sender<M>
 where
     M: AsOutputSegments,
 {
-    /// Enqueues a message to be written. The returned future resolves once the write
+    /// Enqueues a message to be written. Returns the message once the write
     /// has completed. Dropping the returned future does *not* cancel the write.
-    pub fn send(&mut self, message: M) -> impl Future<Output = Result<(), Error>> + Unpin {
+    pub fn send(&mut self, message: M) -> impl Future<Output = Result<M, Error>> + Unpin {
         self.in_flight
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let (complete, oneshot) = oneshot::channel();

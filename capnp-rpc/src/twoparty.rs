@@ -74,7 +74,10 @@ impl crate::OutgoingMessage for OutgoingMessage {
             mut sender,
         } = tmp;
         let m = Rc::new(message);
-        (Promise::from_future(sender.send(m.clone())), m)
+        (
+            Promise::from_future(sender.send(m.clone()).map_ok(|_| ())),
+            m,
+        )
     }
 
     fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator> {

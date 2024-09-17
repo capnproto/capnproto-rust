@@ -408,15 +408,17 @@ where
     arena: BuilderArenaImpl<A>,
 }
 
-unsafe impl<A> Send for Builder<A> where A: Send + Allocator {}
-
 fn _assert_kinds() {
     fn _assert_send<T: Send>() {}
+    fn _assert_sync<T: Sync>() {}
     fn _assert_reader<S: ReaderSegments + Send>() {
         _assert_send::<Reader<S>>();
     }
-    fn _assert_builder<A: Allocator + Send>() {
+    fn _assert_builder_send<A: Allocator + Send>() {
         _assert_send::<Builder<A>>();
+    }
+    fn _assert_builder_sync<A: Allocator + Sync>() {
+        _assert_sync::<Builder<A>>();
     }
 }
 
