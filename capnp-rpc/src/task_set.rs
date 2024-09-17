@@ -126,7 +126,7 @@ where
     }
 
     /// Returns a future that finishes at the next time when the task set
-    /// is empty. If the task set is termined, the oneshot will be canceled.
+    /// is empty. If the task set is terminated, the oneshot will be canceled.
     pub fn on_empty(&mut self) -> oneshot::Receiver<()> {
         let (s, r) = oneshot::channel();
         let _ = self.sender.unbounded_send(EnqueuedTask::OnEmpty(s));
