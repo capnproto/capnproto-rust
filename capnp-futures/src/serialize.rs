@@ -179,13 +179,16 @@ where
     }
 }
 
-/*impl <'a, A> AsOutputSegments for &'a message::Builder<A> where A: message::Allocator {
-    fn as_output_segments<'b>(&'b self) -> OutputSegments<'b> {
+impl<A> AsOutputSegments for ::std::rc::Rc<message::Builder<A>>
+where
+    A: message::Allocator,
+{
+    fn as_output_segments(&self) -> OutputSegments {
         self.get_segments_for_output()
     }
-}*/
+}
 
-impl<A> AsOutputSegments for ::std::rc::Rc<message::Builder<A>>
+impl<A> AsOutputSegments for ::std::sync::Arc<message::Builder<A>>
 where
     A: message::Allocator,
 {
