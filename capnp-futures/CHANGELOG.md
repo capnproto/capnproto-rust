@@ -1,3 +1,7 @@
+## v0.20.0
+- write_queue objects should be Send now, when appropriate.
+- Follow v0.20.0 release of other capnp crates.
+
 ## v0.19.1
 - Fix bug in `write_queue::len()`.
 

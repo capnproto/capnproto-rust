@@ -1,3 +1,6 @@
+## v0.20.0
+- Add support for `stream` keyword.
+
 ## v0.19.0
 - Include new members_by_name field of RawStructSchema.
 - Generalize text, primitive_list, and enum_list setters using impl SetterInput.

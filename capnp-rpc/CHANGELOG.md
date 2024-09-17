@@ -1,3 +1,6 @@
+## v0.20.0
+- Add support for streaming RPC methods.
+
 ## v0.19.5
 - Add support for `Request::set_pipeline()`.
 

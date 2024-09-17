@@ -1,3 +1,9 @@
+## v0.20.0
+- Add trait hook support for streaming RPC methods.
+- Add `unsafe impl Sync` to BuilderArenaImpl.
+- Move `unsafe impl Send` from message::Builder to BuilderArenaImpl.
+- Fix misspelled error variant: UnexepectedFarPointer -> UnexpectedFarPointer.
+
 ## v0.19.7
 - Add `Results::set_pipeline()` and `ResultsHook::set_pipeline()`.
 
