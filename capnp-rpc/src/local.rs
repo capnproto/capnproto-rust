@@ -280,7 +280,8 @@ impl RequestHook for Request {
         }
     }
     fn send_streaming(self: Box<Self>) -> Promise<(), Error> {
-        // No special handling for streaming in this case. Calls are delivered one at a time.
+        // Local client gets no special handling for streaming, because there is no
+        // network latency to compensate for.
         Promise::from_future(async {
             let _ = self.send().promise.await?;
             Ok(())
