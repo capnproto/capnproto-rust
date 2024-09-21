@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 
 struct ByteStreamImpl {
     hasher: Sha256,
+    bytes_received: u32,
     hash_sender: Option<oneshot::Sender<Vec<u8>>>,
 }
 
@@ -19,6 +20,7 @@ impl ByteStreamImpl {
     fn new(hash_sender: oneshot::Sender<Vec<u8>>) -> Self {
         Self {
             hasher: Sha256::new(),
+            bytes_received: 0,
             hash_sender: Some(hash_sender),
         }
     }
@@ -28,6 +30,7 @@ impl byte_stream::Server for ByteStreamImpl {
     fn write(&mut self, params: byte_stream::WriteParams) -> Promise<(), Error> {
         let bytes = pry!(pry!(params.get()).get_bytes());
         self.hasher.update(bytes);
+        self.bytes_received += bytes.len() as u32;
         Promise::ok(())
     }
 
@@ -37,8 +40,14 @@ impl byte_stream::Server for ByteStreamImpl {
         _results: byte_stream::EndResults,
     ) -> Promise<(), Error> {
         let hasher = std::mem::take(&mut self.hasher);
+        let hash = hasher.finalize()[..].to_vec();
+        println!(
+            "received {} bytes with hash {}",
+            self.bytes_received,
+            base16::encode_lower(&hash[..])
+        );
         if let Some(sender) = self.hash_sender.take() {
-            let _ = sender.send(hasher.finalize()[..].to_vec());
+            let _ = sender.send(hash);
         }
         Promise::ok(())
     }
