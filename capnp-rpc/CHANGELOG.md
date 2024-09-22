@@ -1,3 +1,6 @@
+## v0.20.2
+- Add `new_future_client()` and deprecate `new_promise_client()`.
+
 ## v0.20.1
 - Fill in `unimplemented!()` block to handle case when an export promise resolves to another
   promise.
