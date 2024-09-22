@@ -462,7 +462,7 @@ where
 
 /// Converts a promise for a client into a client that queues up any calls that arrive
 /// before the promise resolves.
-#[deprecated(since = "0.20.2", note = "use `new_deferred_client()` instead")]
+#[deprecated(since = "0.20.2", note = "use `new_future_client()` instead")]
 pub fn new_promise_client<T, F>(client_promise: F) -> T
 where
     T: ::capnp::capability::FromClientHook,
@@ -485,7 +485,7 @@ where
 /// Creates a `Client` from a future that resolves to a `Client`.
 ///
 /// Any calls that arrive before the resolution are accumulated in a queue.
-pub fn new_deferred_client<T>(
+pub fn new_future_client<T>(
     client_future: impl ::futures::Future<Output = Result<T, Error>> + 'static,
 ) -> T
 where

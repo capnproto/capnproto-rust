@@ -5,7 +5,7 @@ use std::rc::Rc;
 use capnp::capability::{Promise, Response};
 use capnp::Error;
 use capnp_rpc::{
-    auto_reconnect, lazy_auto_reconnect, new_client, new_deferred_client, pry, rpc_twoparty_capnp,
+    auto_reconnect, lazy_auto_reconnect, new_client, new_future_client, pry, rpc_twoparty_capnp,
     twoparty, RpcSystem,
 };
 use futures::channel::oneshot;
@@ -314,7 +314,7 @@ fn auto_reconnect_rpc_call() {
     do_autoconnect_test(&mut pool, |c| {
         b.set_interface(c);
         let req = client.test_interface_request();
-        new_deferred_client(req.send().promise.map(|resp| match resp {
+        new_future_client(req.send().promise.map(|resp| match resp {
             Ok(resp) => Ok(resp.get()?.get_cap()?),
             Err(err) => Err(err),
         }))
