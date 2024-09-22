@@ -1170,30 +1170,21 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn release_export(&self, id: ExportId, refcount: u32) -> ::capnp::Result<()> {
-        let mut erase_export = false;
-        let mut client_ptr = 0;
-        match self.exports.borrow_mut().find(id) {
-            Some(e) => {
-                if refcount > e.refcount {
-                    return Err(Error::failed(
-                        "Tried to drop export's refcount below zero.".to_string(),
-                    ));
-                } else {
-                    e.refcount -= refcount;
-                    if e.refcount == 0 {
-                        erase_export = true;
-                        client_ptr = e.client_hook.get_ptr();
-                    }
-                }
-            }
-            None => {
-                return Err(Error::failed(
-                    "Tried to release invalid export ID.".to_string(),
-                ));
-            }
+        let mut exports = self.exports.borrow_mut();
+        let Some(e) = exports.find(id) else {
+            return Err(Error::failed(
+                "Tried to release invalid export ID.".to_string(),
+            ));
+        };
+        if refcount > e.refcount {
+            return Err(Error::failed(
+                "Tried to drop export's refcount below zero.".to_string(),
+            ));
         }
-        if erase_export {
-            self.exports.borrow_mut().erase(id);
+        e.refcount -= refcount;
+        if e.refcount == 0 {
+            let client_ptr = e.client_hook.get_ptr();
+            exports.erase(id);
             self.exports_by_cap.borrow_mut().remove(&client_ptr);
         }
         Ok(())
