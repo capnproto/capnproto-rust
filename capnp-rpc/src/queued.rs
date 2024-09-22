@@ -241,7 +241,7 @@ impl Client {
 
     pub fn drive<F>(&mut self, promise: F)
     where
-        F: Future<Output = Result<(), Error>> + 'static + Unpin,
+        F: Future<Output = Result<(), Error>> + 'static,
     {
         assert!(self.inner.borrow().promise_to_drive.is_none());
         self.inner.borrow_mut().promise_to_drive = Some(Promise::from_future(promise).shared());

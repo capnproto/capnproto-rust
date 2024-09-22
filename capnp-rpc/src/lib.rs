@@ -462,7 +462,7 @@ where
 
 /// Converts a promise for a client into a client that queues up any calls that arrive
 /// before the promise resolves.
-// TODO: figure out a better way to allow construction of promise clients.
+#[deprecated(since = "0.20.2", note = "use `new_deferred_client()` instead")]
 pub fn new_promise_client<T, F>(client_promise: F) -> T
 where
     T: ::capnp::capability::FromClientHook,
@@ -475,6 +475,28 @@ where
     queued_client.drive(client_promise.then(move |r| {
         if let Some(queued_inner) = weak_client.upgrade() {
             crate::queued::ClientInner::resolve(&queued_inner, r.map(|c| c.hook));
+        }
+        Promise::ok(())
+    }));
+
+    T::new(Box::new(queued_client))
+}
+
+/// Creates a `Client` from a future that resolves to a `Client`.
+///
+/// Any calls that arrive before the resolution are accumulated in a queue.
+pub fn new_deferred_client<T>(
+    client_future: impl ::futures::Future<Output = Result<T, Error>> + 'static,
+) -> T
+where
+    T: ::capnp::capability::FromClientHook,
+{
+    let mut queued_client = crate::queued::Client::new(None);
+    let weak_client = Rc::downgrade(&queued_client.inner);
+
+    queued_client.drive(client_future.then(move |r| {
+        if let Some(queued_inner) = weak_client.upgrade() {
+            crate::queued::ClientInner::resolve(&queued_inner, r.map(|c| c.into_client_hook()));
         }
         Promise::ok(())
     }));

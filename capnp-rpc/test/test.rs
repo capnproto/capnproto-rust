@@ -605,7 +605,7 @@ fn promise_resolve() {
 
         let (paf_fulfiller, paf_promise) = oneshot::channel();
         let cap: crate::test_capnp::test_interface::Client =
-            ::capnp_rpc::new_promise_client(paf_promise.map_err(canceled_to_error));
+            ::capnp_rpc::new_deferred_client(paf_promise.map_err(canceled_to_error));
         request.get().set_cap(cap.clone());
         request2.get().set_cap(cap);
 
@@ -620,9 +620,7 @@ fn promise_resolve() {
         let _response = client2.get_call_sequence_request().send().promise.await?;
 
         let server = impls::TestInterface::new();
-        let _ = paf_fulfiller.send(
-            capnp_rpc::new_client::<crate::test_capnp::test_interface::Client, _>(server).client,
-        );
+        let _ = paf_fulfiller.send(capnp_rpc::new_client(server));
 
         let response = promise.await?;
         if response.get()?.get_s()? != "bar" {
@@ -815,7 +813,7 @@ fn dont_hold() {
 
         let (fulfiller, promise) = oneshot::channel();
         let cap: crate::test_capnp::test_interface::Client =
-            ::capnp_rpc::new_promise_client(promise.map_err(canceled_to_error));
+            ::capnp_rpc::new_deferred_client(promise.map_err(canceled_to_error));
 
         let mut request = client.dont_hold_request();
         request.get().set_cap(cap.clone());
@@ -913,7 +911,7 @@ fn embargo_error() {
 
         let (fulfiller, promise) = oneshot::channel();
         let cap: crate::test_capnp::test_call_order::Client =
-            ::capnp_rpc::new_promise_client(promise.map_err(canceled_to_error));
+            ::capnp_rpc::new_deferred_client(promise.map_err(canceled_to_error));
 
         let client2: crate::test_capnp::test_call_order::Client = client.clone().cast_to();
         let early_call = client2.get_call_sequence_request().send();
@@ -958,7 +956,7 @@ fn echo_destruction() {
 
         let (fulfiller, promise) = oneshot::channel();
         let cap: crate::test_capnp::test_call_order::Client =
-            ::capnp_rpc::new_promise_client(promise.map_err(canceled_to_error));
+            ::capnp_rpc::new_deferred_client(promise.map_err(canceled_to_error));
 
         let client2: crate::test_capnp::test_call_order::Client = client.clone().cast_to();
         let early_call = client2.get_call_sequence_request().send();
@@ -1104,15 +1102,15 @@ fn capability_server_set() {
     // Also works if the client is a promise.
     let (fulfiller, promise) = oneshot::channel();
     let client_promise: test_interface::Client =
-        ::capnp_rpc::new_promise_client(promise.map_err(canceled_to_error));
+        ::capnp_rpc::new_deferred_client(promise.map_err(canceled_to_error));
 
     let client_promise2: test_interface::Client = client_promise.clone();
 
     let (error_fulfiller, error_promise) = oneshot::channel();
     let error_promise: test_interface::Client =
-        ::capnp_rpc::new_promise_client(error_promise.map_err(canceled_to_error));
+        ::capnp_rpc::new_deferred_client(error_promise.map_err(canceled_to_error));
 
-    assert!(fulfiller.send(client1.client).is_ok());
+    assert!(fulfiller.send(client1).is_ok());
     let own_server1_again2 =
         futures::executor::block_on(set1.get_local_server(&client_promise)).unwrap();
     assert_eq!(

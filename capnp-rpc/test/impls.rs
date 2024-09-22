@@ -745,9 +745,8 @@ impl test_promise_resolve::resolver::Server for ResolverImpl {
             return Promise::err(Error::failed("no sender".into()));
         };
         let (snd, rcv) = oneshot::channel();
-        let _ = sender.send(capnp_rpc::new_promise_client(
-            rcv.map_err(|_| Error::failed("oneshot was canceled".to_string()))
-                .map_ok(|x: test_interface::Client| x.client),
+        let _ = sender.send(capnp_rpc::new_deferred_client(
+            rcv.map_err(|_| Error::failed("oneshot was canceled".to_string())),
         ));
         self.sender = Some(snd);
         Promise::ok(())
@@ -777,9 +776,8 @@ impl test_promise_resolve::Server for TestPromiseResolveImpl {
         let (snd, rcv) = oneshot::channel();
         let resolver = ResolverImpl { sender: Some(snd) };
         let mut results_root = results.get();
-        results_root.set_cap(capnp_rpc::new_promise_client(
-            rcv.map_err(|_| Error::failed("oneshot was canceled".to_string()))
-                .map_ok(|x| x.client),
+        results_root.set_cap(capnp_rpc::new_deferred_client(
+            rcv.map_err(|_| Error::failed("oneshot was canceled".to_string())),
         ));
         results_root.set_resolver(capnp_rpc::new_client(resolver));
         Promise::ok(())
