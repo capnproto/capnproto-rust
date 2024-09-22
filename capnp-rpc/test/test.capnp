@@ -79,6 +79,7 @@ interface Bootstrap {
   testCallOrder @4 () -> (cap: TestCallOrder);
   testMoreStuff @5 () -> (cap: TestMoreStuff);
   testCapabilityServerSet @6 () -> (cap: TestCapabilityServerSet);
+  testPromiseResolve @7 () -> (cap: TestPromiseResolve);
 }
 
 interface TestInterface {
@@ -194,4 +195,15 @@ interface TestCapabilityServerSet {
 
   createHandle @0 () -> (handle :Handle);
   checkHandle @1 (handle: Handle) -> (isOurs :Bool);
+}
+
+interface TestPromiseResolve {
+  interface Resolver {
+    resolveToAnotherPromise @0 ();
+    resolveToCap @1 ();
+  }
+
+  foo @0 () -> (cap: TestInterface, resolver: Resolver);
+  # Teturns a promise capability whose resolution can
+  # be triggered by a `resolver` capability.
 }
