@@ -1,3 +1,7 @@
+## v0.20.1
+- Fill in `unimplemented!()` block to handle case when an export promise resolves to another
+  promise.
+
 ## v0.20.0
 - Add support for streaming RPC methods.
 
