@@ -278,6 +278,11 @@ impl<VatId> Answer<VatId> {
 
 pub struct Export {
     refcount: u32,
+
+    /// If true, this is the canonical export entry for this clientHook, that is,
+    /// `exports_by_cap[clientHook]` points to this entry.
+    canonical: bool,
+
     client_hook: Box<dyn ClientHook>,
 
     // If this export is a promise (not a settled capability), the `resolve_op` represents the
@@ -289,6 +294,7 @@ impl Export {
     fn new(client_hook: Box<dyn ClientHook>) -> Self {
         Self {
             refcount: 1,
+            canonical: false,
             client_hook,
             resolve_op: Promise::err(Error::failed("no resolve op".to_string())),
         }
@@ -1184,8 +1190,10 @@ impl<VatId> ConnectionState<VatId> {
         e.refcount -= refcount;
         if e.refcount == 0 {
             let client_ptr = e.client_hook.get_ptr();
+            if e.canonical {
+                self.exports_by_cap.borrow_mut().remove(&client_ptr);
+            }
             exports.erase(id);
-            self.exports_by_cap.borrow_mut().remove(&client_ptr);
         }
         Ok(())
     }
@@ -1286,7 +1294,8 @@ impl<VatId> ConnectionState<VatId> {
         promise: Promise<Box<dyn ClientHook>, Error>,
     ) -> Promise<(), Error> {
         let weak_connection_state = Rc::downgrade(state);
-        state.eagerly_evaluate(promise.map(move |resolution_result| {
+        state.eagerly_evaluate(Promise::from_future(async move {
+            let resolution_result = promise.await;
             let connection_state = weak_connection_state
                 .upgrade()
                 .expect("dangling connection state?");
@@ -1300,29 +1309,68 @@ impl<VatId> ConnectionState<VatId> {
                     // Update the export table to point at this object instead. We know that our
                     // entry in the export table is still live because when it is destroyed the
                     // asynchronous resolution task (i.e. this code) is canceled.
-                    if let Some(exp) = connection_state.exports.borrow_mut().find(export_id) {
+                    let mut exports = connection_state.exports.borrow_mut();
+                    let Some(exp) = exports.find(export_id) else {
+                        return Err(Error::failed("export table entry not found".to_string()));
+                    };
+
+                    if exp.canonical {
                         connection_state
                             .exports_by_cap
                             .borrow_mut()
                             .remove(&exp.client_hook.get_ptr());
-                        exp.client_hook = resolution.clone();
-                    } else {
-                        return Err(Error::failed("export table entry not found".to_string()));
                     }
+                    exp.client_hook = resolution.clone();
+
+                    // The export now points to `resolution`, but it is not necessarily the
+                    // canonical export for `resolution`. The export itself still represents
+                    // the promise that ended up resolving to `resolution`, but `resolution`
+                    // itself also needs to be exported under a separate export ID to
+                    // distinguish from the promise. (Unless it's also a promise, see the next
+                    // bit...)
+                    exp.canonical = false;
 
                     if brand != connection_state.get_brand() {
                         // We're resolving to a local capability. If we're resolving to a promise,
                         // we might be able to reuse our export table entry and avoid sending a
                         // message.
-                        if let Some(_promise) = resolution.when_more_resolved() {
+                        if let Some(promise) = resolution.when_more_resolved() {
                             // We're replacing a promise with another local promise. In this case,
                             // we might actually be able to just reuse the existing export table
                             // entry to represent the new promise -- unless it already has an entry.
                             // Let's check.
 
-                            unimplemented!()
+                            let mut exports_by_cap = connection_state.exports_by_cap.borrow_mut();
+
+                            let replacement_export_id =
+                                match exports_by_cap.entry(exp.client_hook.get_ptr()) {
+                                    hash_map::Entry::Occupied(occ) => *occ.get(),
+                                    hash_map::Entry::Vacant(vac) => {
+                                        // The replacement capability isn't previously exported,
+                                        // so assign it to the existing table entry.
+                                        vac.insert(export_id);
+                                        export_id
+                                    }
+                                };
+                            if replacement_export_id == export_id {
+                                // The new promise was not already in the table, therefore the existing
+                                // export table entry has now been repurposed to represent it. There is
+                                // no need to send a resolve message at all. We do, however, have to
+                                // start resolving the next promise.
+                                exp.canonical = true;
+                                drop(exports);
+                                drop(exports_by_cap);
+                                return Self::resolve_exported_promise(
+                                    &connection_state,
+                                    export_id,
+                                    promise,
+                                )
+                                .await;
+                            }
                         }
                     }
+                    // Prevent a double borrow in write_descriptor() below.
+                    drop(exports);
 
                     // OK, we have to send a `Resolve` message.
                     let mut message = connection_state.new_outgoing_message(15)?;
@@ -1383,7 +1431,8 @@ impl<VatId> ConnectionState<VatId> {
             } else {
                 // This is the first time we've seen this capability.
 
-                let exp = Export::new(inner.clone());
+                let mut exp = Export::new(inner.clone());
+                exp.canonical = true;
                 let export_id = state.exports.borrow_mut().push(exp);
                 state.exports_by_cap.borrow_mut().insert(ptr, export_id);
                 match inner.when_more_resolved() {

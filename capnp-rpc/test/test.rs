@@ -1230,3 +1230,31 @@ fn stream_error_gets_reported() {
         Ok(())
     });
 }
+
+#[test]
+fn promise_resolve_twice() {
+    rpc_top_level(|_spawner, client| async move {
+        let response1 = client.test_promise_resolve_request().send().promise.await?;
+        let client1 = response1.get()?.get_cap()?;
+
+        let response = client1.foo_request().send().promise.await?;
+        let resolver = response.get()?.get_resolver()?;
+
+        resolver
+            .resolve_to_another_promise_request()
+            .send()
+            .promise
+            .await?;
+
+        resolver.resolve_to_cap_request().send().promise.await?;
+
+        let cap = response.get()?.get_cap()?;
+        let mut request = cap.foo_request();
+        request.get().set_i(123);
+        request.get().set_j(true);
+        let response2 = request.send().promise.await?;
+        let x = response2.get()?.get_x()?.to_str()?;
+        assert_eq!(x, "foo");
+        Ok(())
+    });
+}
