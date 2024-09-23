@@ -1288,6 +1288,7 @@ impl<VatId> ConnectionState<VatId> {
     /// Implements exporting of a promise.  The promise has been exported under the given ID, and is
     /// to eventually resolve to the ClientHook produced by `promise`.  This method waits for that
     /// resolve to happen and then sends the appropriate `Resolve` message to the peer.
+    #[allow(clippy::await_holding_refcell_ref)] // https://github.com/rust-lang/rust-clippy/issues/6353
     fn resolve_exported_promise(
         state: &Rc<Self>,
         export_id: ExportId,
