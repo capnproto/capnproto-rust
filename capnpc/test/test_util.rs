@@ -87,35 +87,20 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
             .set_u_int16_list(&[1234, 5678, 0, 0xffff])
             .unwrap();
 
-        {
-            let mut uint32_list = sub_builder.reborrow().init_u_int32_list(4);
-            uint32_list.set(0, 12345678);
-            uint32_list.set(1, 90123456);
-            uint32_list.set(2, 0);
-            uint32_list.set(3, 0xffffffff);
-        }
-
-        {
-            let mut uint64_list = sub_builder.reborrow().init_u_int64_list(4);
-            uint64_list.set(0, 123456789012345);
-            uint64_list.set(1, 678901234567890);
-            uint64_list.set(2, 0);
-            uint64_list.set(3, 0xffffffffffffffff);
-        }
+        sub_builder
+            .set_u_int32_list(&[12345678, 90123456, 0, 0xffffffff])
+            .unwrap();
+        sub_builder
+            .set_u_int64_list(&[123456789012345, 678901234567890, 0, 0xffffffffffffffff])
+            .unwrap();
 
         sub_builder
             .set_float32_list(&[0f32, 1234567f32, 1e37, -1e37, 1e-37, -1e-37])
             .unwrap();
 
-        {
-            let mut float64_list = sub_builder.reborrow().init_float64_list(6);
-            float64_list.set(0, 0f64);
-            float64_list.set(1, 123456789012345f64);
-            float64_list.set(2, 1e306);
-            float64_list.set(3, -1e306);
-            float64_list.set(4, 1e-306);
-            float64_list.set(5, -1e-306);
-        }
+        sub_builder
+            .set_float64_list(&[0f64, 123456789012345f64, 1e306, -1e306, 1e-306, -1e-306])
+            .unwrap();
 
         // ...
         {
@@ -142,13 +127,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
 
     builder.reborrow().init_void_list(6);
 
-    {
-        let mut bool_list = builder.reborrow().init_bool_list(4);
-        bool_list.set(0, true);
-        bool_list.set(1, false);
-        bool_list.set(2, false);
-        bool_list.set(3, true);
-    }
+    builder.set_bool_list(&[true, false, false, true]).unwrap();
 
     // ...
 
