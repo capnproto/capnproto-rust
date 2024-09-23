@@ -210,7 +210,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    /// Downcasts the `Reader` into a more specific type. Panics if the
+    /// Downcasts the `Builder` into a more specific type. Panics if the
     /// expected type does not match the value.
     pub fn downcast<T: DowncastBuilder<'a>>(self) -> T {
         T::downcast_builder(self)
