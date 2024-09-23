@@ -104,6 +104,42 @@ impl Type {
             )
         }
     }
+
+    /// Returns true is a dynamic value of type `self` is
+    /// allowed to be downcast to type `other`.
+    pub(crate) fn may_downcast_to(&self, other: Self) -> bool {
+        match (self.which(), other.which()) {
+            (TypeVariant::Void, TypeVariant::Void) => true,
+            (TypeVariant::UInt8, TypeVariant::UInt8) => true,
+            (TypeVariant::UInt16, TypeVariant::UInt16) => true,
+            (TypeVariant::UInt32, TypeVariant::UInt32) => true,
+            (TypeVariant::UInt64, TypeVariant::UInt64) => true,
+            (TypeVariant::Int8, TypeVariant::Int8) => true,
+            (TypeVariant::Int16, TypeVariant::Int16) => true,
+            (TypeVariant::Int32, TypeVariant::Int32) => true,
+            (TypeVariant::Int64, TypeVariant::Int64) => true,
+            (TypeVariant::Float32, TypeVariant::Float32) => true,
+            (TypeVariant::Float64, TypeVariant::Float64) => true,
+            (TypeVariant::Text, TypeVariant::Text) => true,
+            (TypeVariant::Data, TypeVariant::Data) => true,
+            (TypeVariant::Enum(es1), TypeVariant::Enum(es2)) => es1 == es2,
+            (TypeVariant::Struct(rbs1), TypeVariant::Struct(rbs2)) => {
+                // Ignore any type parameters. The original intent was that
+                // we would additionally check that the `field_types` fields
+                // were equal function pointers here. However, according to
+                // Miri's behavior at least, that check returns `false`
+                // more than we would like it to. So we settle for being
+                // a bit more accepting.
+                core::ptr::eq(rbs1.generic, rbs2.generic)
+            }
+            (TypeVariant::List(element1), TypeVariant::List(element2)) => {
+                element1.may_downcast_to(element2)
+            }
+            (TypeVariant::AnyPointer, TypeVariant::AnyPointer) => true,
+            (TypeVariant::Capability, TypeVariant::Capability) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

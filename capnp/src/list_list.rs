@@ -287,7 +287,7 @@ impl<'a, T: crate::traits::Owned> From<Reader<'a, T>> for crate::dynamic_value::
 impl<'a, T: crate::traits::Owned> crate::dynamic_value::DowncastReader<'a> for Reader<'a, T> {
     fn downcast_reader(v: crate::dynamic_value::Reader<'a>) -> Self {
         let dl: crate::dynamic_list::Reader = v.downcast();
-        assert_eq!(dl.element_type(), T::introspect());
+        assert!(dl.element_type().may_downcast_to(T::introspect()));
         Reader {
             reader: dl.reader,
             marker: core::marker::PhantomData,
@@ -307,7 +307,7 @@ impl<'a, T: crate::traits::Owned> From<Builder<'a, T>> for crate::dynamic_value:
 impl<'a, T: crate::traits::Owned> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a, T> {
     fn downcast_builder(v: crate::dynamic_value::Builder<'a>) -> Self {
         let dl: crate::dynamic_list::Builder = v.downcast();
-        assert_eq!(dl.element_type(), T::introspect());
+        assert!(dl.element_type().may_downcast_to(T::introspect()));
         Builder {
             builder: dl.builder,
             marker: core::marker::PhantomData,
