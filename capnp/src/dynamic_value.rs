@@ -77,14 +77,8 @@ impl<'a> Reader<'a> {
     /// the current way the `Introspect` and `OwnedStruct` traits are set up does not
     /// seem to allow this.
     pub fn downcast_struct<T: crate::traits::OwnedStruct>(self) -> T::Reader<'a> {
-        let sb: dynamic_struct::Reader = self.downcast();
-        assert!(
-            Into::<crate::introspect::Type>::into(crate::introspect::TypeVariant::Struct(
-                sb.schema.raw
-            ))
-            .may_downcast_to(T::introspect())
-        );
-        sb.reader.into()
+        let sr: dynamic_struct::Reader = self.downcast();
+        sr.downcast::<T>()
     }
 }
 
@@ -243,13 +237,7 @@ impl<'a> Builder<'a> {
     /// seem to allow this.
     pub fn downcast_struct<T: crate::traits::OwnedStruct>(self) -> T::Builder<'a> {
         let sb: dynamic_struct::Builder = self.downcast();
-        assert!(
-            Into::<crate::introspect::Type>::into(crate::introspect::TypeVariant::Struct(
-                sb.schema.raw
-            ))
-            .may_downcast_to(T::introspect())
-        );
-        sb.builder.into()
+        sb.downcast::<T>()
     }
 }
 

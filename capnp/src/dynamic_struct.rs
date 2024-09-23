@@ -232,6 +232,18 @@ impl<'a> Reader<'a> {
         let field = self.schema.get_field_by_name(field_name)?;
         self.has(field)
     }
+
+    /// Downcasts the `Reader` into a specific struct type. Panics if the
+    /// expected type does not match the value.
+    pub fn downcast<T: crate::traits::OwnedStruct>(self) -> T::Reader<'a> {
+        assert!(
+            Into::<crate::introspect::Type>::into(crate::introspect::TypeVariant::Struct(
+                self.schema.raw
+            ))
+            .may_downcast_to(T::introspect())
+        );
+        self.reader.into()
+    }
 }
 
 /// A mutable dynamically-typed struct.
@@ -772,6 +784,18 @@ impl<'a> Builder<'a> {
             );
         }
         Ok(())
+    }
+
+    /// Downcasts the `Builder` into a specific struct type. Panics if the
+    /// expected type does not match the value.
+    pub fn downcast<T: crate::traits::OwnedStruct>(self) -> T::Builder<'a> {
+        assert!(
+            Into::<crate::introspect::Type>::into(crate::introspect::TypeVariant::Struct(
+                self.schema.raw
+            ))
+            .may_downcast_to(T::introspect())
+        );
+        self.builder.into()
     }
 }
 
