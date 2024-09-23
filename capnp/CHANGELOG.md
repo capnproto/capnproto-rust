@@ -1,3 +1,7 @@
+## v0.20.1
+- Add support for downcasting dynamic values to fully concrete list and
+  struct types.
+
 ## v0.20.0
 - Add trait hook support for streaming RPC methods.
 - Add `unsafe impl Sync` to BuilderArenaImpl.

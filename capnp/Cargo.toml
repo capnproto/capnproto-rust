@@ -1,7 +1,7 @@
 [package]
 
 name = "capnp"
-version = "0.20.0"
+version = "0.20.1"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 license = "MIT"
 description = "runtime library for Cap'n Proto data encoding"
