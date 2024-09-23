@@ -390,6 +390,10 @@ impl Annotation {
     pub fn get_type(&self) -> introspect::Type {
         self.ty
     }
+
+    pub fn get_proto(self) -> annotation::Reader<'static> {
+        self.proto
+    }
 }
 
 /// A list of annotations.
