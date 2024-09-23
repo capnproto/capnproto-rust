@@ -26,7 +26,7 @@ pub(crate) fn struct_size_from_schema(schema: StructSchema) -> Result<layout::St
 #[derive(Clone, Copy)]
 pub struct Reader<'a> {
     pub(crate) reader: layout::StructReader<'a>,
-    schema: StructSchema,
+    pub(crate) schema: StructSchema,
 }
 
 impl<'a> From<Reader<'a>> for dynamic_value::Reader<'a> {
@@ -236,8 +236,8 @@ impl<'a> Reader<'a> {
 
 /// A mutable dynamically-typed struct.
 pub struct Builder<'a> {
-    builder: layout::StructBuilder<'a>,
-    schema: StructSchema,
+    pub(crate) builder: layout::StructBuilder<'a>,
+    pub(crate) schema: StructSchema,
 }
 
 impl<'a> From<Builder<'a>> for dynamic_value::Builder<'a> {

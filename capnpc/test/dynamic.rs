@@ -408,3 +408,101 @@ fn test_get_named_missing() {
     assert!(root.get_named("zzzzzzz").is_err());
     assert!(root.has_named("zzzzzzz").is_err());
 }
+
+#[test]
+fn test_downcasts() {
+    let mut builder = message::Builder::new_default();
+    let root: test_all_types::Builder<'_> = builder.init_root();
+    let mut root: dynamic_value::Builder<'_> = root.into();
+
+    test_util::dynamic_init_test_message(root.reborrow().downcast());
+
+    {
+        let root_typed = root.reborrow().downcast_struct::<test_all_types::Owned>();
+        assert_eq!(root_typed.get_int16_field(), -12345);
+
+        let root_typed_reader = root
+            .reborrow()
+            .into_reader()
+            .downcast_struct::<test_all_types::Owned>();
+        assert_eq!(root_typed_reader.get_int16_field(), -12345);
+    }
+    let mut root_struct: dynamic_struct::Builder<'_> = root.reborrow().downcast();
+    {
+        let int8_list: capnp::primitive_list::Builder<'_, i8> = root_struct
+            .reborrow()
+            .get_named("int8List")
+            .unwrap()
+            .downcast();
+        assert_eq!(int8_list.len(), 2);
+    }
+
+    {
+        let struct_list: capnp::struct_list::Builder<'_, test_all_types::Owned> = root_struct
+            .reborrow()
+            .get_named("structList")
+            .unwrap()
+            .downcast();
+        assert_eq!(struct_list.len(), 3);
+    }
+
+    {
+        let enum_list: capnp::enum_list::Builder<'_, crate::test_capnp::TestEnum> = root_struct
+            .reborrow()
+            .get_named("enumList")
+            .unwrap()
+            .downcast();
+        assert_eq!(enum_list.len(), 2);
+    }
+
+    {
+        let text_list: capnp::text_list::Builder<'_> = root_struct
+            .reborrow()
+            .get_named("textList")
+            .unwrap()
+            .downcast();
+        assert_eq!(text_list.len(), 3);
+        assert_eq!(text_list.get(1).unwrap().to_str().unwrap(), "xyzzy");
+    }
+
+    {
+        let data_list: capnp::data_list::Builder<'_> = root_struct
+            .reborrow()
+            .get_named("dataList")
+            .unwrap()
+            .downcast();
+        assert_eq!(data_list.len(), 3);
+    }
+
+    let root_struct: dynamic_struct::Reader<'_> = root_struct.into_reader();
+    {
+        let int8_list: capnp::primitive_list::Reader<'_, i8> =
+            root_struct.get_named("int8List").unwrap().downcast();
+        assert_eq!(int8_list.len(), 2);
+    }
+
+    {
+        let struct_list: capnp::struct_list::Reader<'_, test_all_types::Owned> =
+            root_struct.get_named("structList").unwrap().downcast();
+        assert_eq!(struct_list.len(), 3);
+    }
+
+    {
+        let enum_list: capnp::enum_list::Reader<'_, crate::test_capnp::TestEnum> =
+            root_struct.get_named("enumList").unwrap().downcast();
+        assert_eq!(enum_list.len(), 2);
+    }
+
+    {
+        let text_list: capnp::text_list::Reader<'_> =
+            root_struct.get_named("textList").unwrap().downcast();
+        assert_eq!(text_list.len(), 3);
+        assert_eq!(text_list.get(1).unwrap().to_str().unwrap(), "xyzzy");
+    }
+
+    {
+        let data_list: capnp::data_list::Reader<'_> =
+            root_struct.get_named("dataList").unwrap().downcast();
+        assert_eq!(data_list.len(), 3);
+    }
+}

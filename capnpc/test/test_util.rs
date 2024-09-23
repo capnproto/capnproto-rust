@@ -430,6 +430,76 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
         substruct.set_named("boolField", true.into()).unwrap();
         substruct.set_named("int8Field", (-12i8).into()).unwrap();
         substruct.set_named("int16Field", (3456i16).into()).unwrap();
+        substruct
+            .set_named("int32Field", (-78901234i32).into())
+            .unwrap();
+        substruct
+            .set_named("int64Field", (56789012345678i64).into())
+            .unwrap();
+        substruct.set_named("uInt8Field", (90u8).into()).unwrap();
+        substruct
+            .set_named("uInt16Field", (1234u16).into())
+            .unwrap();
+        substruct
+            .set_named("uInt32Field", (56789012u32).into())
+            .unwrap();
+        substruct
+            .set_named("uInt64Field", (345678901234567890u64).into())
+            .unwrap();
+        substruct
+            .set_named("float32Field", (-1.25e-10f32).into())
+            .unwrap();
+        substruct
+            .set_named("float64Field", (345f64).into())
+            .unwrap();
+        substruct.set_named("textField", "baz".into()).unwrap();
+        substruct.set_named("dataField", b"qux"[..].into()).unwrap();
+        {
+            let mut subsubstruct = substruct
+                .reborrow()
+                .init_named("structField")
+                .unwrap()
+                .downcast::<::capnp::dynamic_struct::Builder<'_>>();
+            subsubstruct
+                .set_named("textField", "nested".into())
+                .unwrap();
+            subsubstruct
+                .init_named("structField")
+                .unwrap()
+                .downcast::<::capnp::dynamic_struct::Builder<'_>>()
+                .set_named("textField", "really nested".into())
+                .unwrap();
+        }
+        substruct
+            .set_named("enumField", TestEnum::Baz.into())
+            .unwrap();
+
+        substruct.reborrow().initn_named("voidList", 3).unwrap();
+
+        {
+            let mut bool_list = substruct
+                .reborrow()
+                .initn_named("boolList", 5)
+                .unwrap()
+                .downcast::<::capnp::dynamic_list::Builder<'_>>();
+            bool_list.set(0, false.into()).unwrap();
+            bool_list.set(1, true.into()).unwrap();
+            bool_list.set(2, false.into()).unwrap();
+            bool_list.set(3, true.into()).unwrap();
+            bool_list.set(4, true.into()).unwrap();
+        }
+
+        {
+            let mut int8_list = substruct
+                .reborrow()
+                .initn_named("int8List", 4)
+                .unwrap()
+                .downcast::<::capnp::dynamic_list::Builder<'_>>();
+            int8_list.set(0, 12i8.into()).unwrap();
+            int8_list.set(1, (-34i8).into()).unwrap();
+            int8_list.set(2, (-0x80i8).into()).unwrap();
+            int8_list.set(3, (0x7fi8).into()).unwrap();
+        }
     }
     builder
         .set_named("enumField", TestEnum::Corge.into())
