@@ -260,7 +260,7 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect>
 {
     fn downcast_reader(v: crate::dynamic_value::Reader<'a>) -> Self {
         let dl: crate::dynamic_list::Reader = v.downcast();
-        assert_eq!(dl.element_type(), T::introspect());
+        assert!(dl.element_type().may_downcast_to(T::introspect()));
         Reader {
             reader: dl.reader,
             marker: PhantomData,
@@ -284,7 +284,7 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect>
 {
     fn downcast_builder(v: crate::dynamic_value::Builder<'a>) -> Self {
         let dl: crate::dynamic_list::Builder = v.downcast();
-        assert_eq!(dl.element_type(), T::introspect());
+        assert!(dl.element_type().may_downcast_to(T::introspect()));
         Builder {
             builder: dl.builder,
             marker: PhantomData,
