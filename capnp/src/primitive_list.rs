@@ -344,6 +344,19 @@ impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Reader<'a, T>
     }
 }
 
+impl<'a, T: PrimitiveElement + crate::introspect::Introspect>
+    crate::dynamic_value::DowncastReader<'a> for Reader<'a, T>
+{
+    fn downcast_reader(v: crate::dynamic_value::Reader<'a>) -> Self {
+        let dl: crate::dynamic_list::Reader = v.downcast();
+        assert_eq!(dl.element_type(), T::introspect());
+        Reader {
+            reader: dl.reader,
+            marker: marker::PhantomData,
+        }
+    }
+}
+
 impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Builder<'a, T>>
     for crate::dynamic_value::Builder<'a>
 {
@@ -352,6 +365,19 @@ impl<'a, T: PrimitiveElement + crate::introspect::Introspect> From<Builder<'a, T
             t.builder,
             T::introspect(),
         ))
+    }
+}
+
+impl<'a, T: PrimitiveElement + crate::introspect::Introspect>
+    crate::dynamic_value::DowncastBuilder<'a> for Builder<'a, T>
+{
+    fn downcast_builder(v: crate::dynamic_value::Builder<'a>) -> Self {
+        let dl: crate::dynamic_list::Builder = v.downcast();
+        assert_eq!(dl.element_type(), T::introspect());
+        Builder {
+            builder: dl.builder,
+            marker: marker::PhantomData,
+        }
     }
 }
 

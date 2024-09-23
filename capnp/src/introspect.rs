@@ -13,7 +13,7 @@ pub trait Introspect {
 /// optimized to avoid heap allocation.
 ///
 /// To examine a `Type`, you should call the `which()` method.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Type {
     /// The type, minus any outer `List( )`.
     base: BaseType,
