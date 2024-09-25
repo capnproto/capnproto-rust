@@ -813,6 +813,44 @@ impl<VatId> ConnectionState<VatId> {
         Ok(())
     }
 
+    fn handle_resolve(connection_state: &Rc<Self>, resolve: resolve::Reader) -> capnp::Result<()> {
+        let replacement_or_error = match resolve.which()? {
+            resolve::Cap(c) => match Self::receive_cap(&connection_state, c?)? {
+                Some(cap) => Ok(cap),
+                None => {
+                    return Err(Error::failed(
+                        "'Resolve' contained 'CapDescriptor.none'.".to_string(),
+                    ));
+                }
+            },
+            resolve::Exception(e) => {
+                // We can't set `replacement` to a new broken cap here because this will
+                // confuse PromiseClient::Resolve() into thinking that the remote
+                // promise resolved to a local capability and therefore a Disembargo is
+                // needed. We must actually reject the promise.
+                Err(remote_exception_to_error(e?))
+            }
+        };
+
+        // If the import is in the table, fulfill it.
+        let slots = &mut connection_state.imports.borrow_mut().slots;
+        if let Some(import) = slots.get_mut(&resolve.get_promise_id()) {
+            match import.promise_client_to_resolve.take() {
+                Some(weak_promise_client) => {
+                    if let Some(promise_client) = weak_promise_client.upgrade() {
+                        promise_client.borrow_mut().resolve(replacement_or_error);
+                    }
+                }
+                None => {
+                    return Err(Error::failed(
+                        "Got 'Resolve' for a non-promise import.".to_string(),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn handle_disembargo(
         connection_state: &Rc<Self>,
         disembargo: disembargo::Reader,
@@ -1103,43 +1141,7 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
             Ok(message::Finish(finish)) => Self::handle_finish(&connection_state, finish?)?,
-            Ok(message::Resolve(resolve)) => {
-                let resolve = resolve?;
-                let replacement_or_error = match resolve.which()? {
-                    resolve::Cap(c) => match Self::receive_cap(&connection_state, c?)? {
-                        Some(cap) => Ok(cap),
-                        None => {
-                            return Err(Error::failed(
-                                "'Resolve' contained 'CapDescriptor.none'.".to_string(),
-                            ));
-                        }
-                    },
-                    resolve::Exception(e) => {
-                        // We can't set `replacement` to a new broken cap here because this will
-                        // confuse PromiseClient::Resolve() into thinking that the remote
-                        // promise resolved to a local capability and therefore a Disembargo is
-                        // needed. We must actually reject the promise.
-                        Err(remote_exception_to_error(e?))
-                    }
-                };
-
-                // If the import is in the table, fulfill it.
-                let slots = &mut connection_state.imports.borrow_mut().slots;
-                if let Some(import) = slots.get_mut(&resolve.get_promise_id()) {
-                    match import.promise_client_to_resolve.take() {
-                        Some(weak_promise_client) => {
-                            if let Some(promise_client) = weak_promise_client.upgrade() {
-                                promise_client.borrow_mut().resolve(replacement_or_error);
-                            }
-                        }
-                        None => {
-                            return Err(Error::failed(
-                                "Got 'Resolve' for a non-promise import.".to_string(),
-                            ));
-                        }
-                    }
-                }
-            }
+            Ok(message::Resolve(resolve)) => Self::handle_resolve(&connection_state, resolve?)?,
             Ok(message::Release(release)) => {
                 let release = release?;
                 connection_state.release_export(release.get_id(), release.get_reference_count())?;
