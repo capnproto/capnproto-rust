@@ -2657,7 +2657,6 @@ where
     Import(Rc<RefCell<ImportClient<VatId>>>),
     Pipeline(Rc<RefCell<PipelineClient<VatId>>>),
     Promise(Rc<RefCell<PromiseClient<VatId>>>),
-    __NoIntercept(()),
 }
 
 struct Client<VatId>
@@ -2676,7 +2675,6 @@ where
     Import(Weak<RefCell<ImportClient<VatId>>>),
     Pipeline(Weak<RefCell<PipelineClient<VatId>>>),
     Promise(Weak<RefCell<PromiseClient<VatId>>>),
-    __NoIntercept(()),
 }
 
 struct WeakClient<VatId>
@@ -2697,7 +2695,6 @@ where
             WeakClientVariant::Import(ic) => ClientVariant::Import(ic.upgrade()?),
             WeakClientVariant::Pipeline(pc) => ClientVariant::Pipeline(pc.upgrade()?),
             WeakClientVariant::Promise(pc) => ClientVariant::Promise(pc.upgrade()?),
-            WeakClientVariant::__NoIntercept(()) => ClientVariant::__NoIntercept(()),
         };
         let connection_state = self.connection_state.upgrade()?;
         let flow_controller = self.flow_controller.upgrade()?;
@@ -2997,9 +2994,6 @@ impl<VatId> Client<VatId> {
             ClientVariant::Promise(promise_client) => {
                 WeakClientVariant::Promise(Rc::downgrade(promise_client))
             }
-            _ => {
-                unimplemented!()
-            }
         };
         WeakClient {
             connection_state: Rc::downgrade(&self.connection_state),
@@ -3047,9 +3041,6 @@ impl<VatId> Client<VatId> {
                 self.connection_state
                     .write_target(&*promise_client.borrow().cap, target)
             }
-            _ => {
-                unimplemented!()
-            }
         }
     }
 
@@ -3088,9 +3079,6 @@ impl<VatId> Client<VatId> {
                 )
                 .unwrap()
             }
-            _ => {
-                unimplemented!()
-            }
         }
     }
 }
@@ -3104,9 +3092,6 @@ impl<VatId> Clone for Client<VatId> {
             }
             ClientVariant::Promise(promise_client) => {
                 ClientVariant::Promise(promise_client.clone())
-            }
-            _ => {
-                unimplemented!()
             }
         };
         Self {
@@ -3190,9 +3175,6 @@ impl<VatId> ClientHook for Client<VatId> {
             ClientVariant::Promise(promise_client) => {
                 (&*promise_client.borrow()) as *const _ as usize
             }
-            _ => {
-                unimplemented!()
-            }
         }
     }
 
@@ -3211,9 +3193,6 @@ impl<VatId> ClientHook for Client<VatId> {
                     None
                 }
             }
-            _ => {
-                unimplemented!()
-            }
         }
     }
 
@@ -3223,9 +3202,6 @@ impl<VatId> ClientHook for Client<VatId> {
             ClientVariant::Pipeline(_pipeline_client) => None,
             ClientVariant::Promise(promise_client) => {
                 Some(promise_client.borrow_mut().resolution_waiters.push(()))
-            }
-            _ => {
-                unimplemented!()
             }
         }
     }
