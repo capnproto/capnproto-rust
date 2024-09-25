@@ -815,7 +815,7 @@ impl<VatId> ConnectionState<VatId> {
 
     fn handle_resolve(connection_state: &Rc<Self>, resolve: resolve::Reader) -> capnp::Result<()> {
         let replacement_or_error = match resolve.which()? {
-            resolve::Cap(c) => match Self::receive_cap(&connection_state, c?)? {
+            resolve::Cap(c) => match Self::receive_cap(connection_state, c?)? {
                 Some(cap) => Ok(cap),
                 None => {
                     return Err(Error::failed(
@@ -1250,14 +1250,14 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     /// If calls to the given capability should pass over this connection, fill in `target`
-    /// appropriately for such a call and return nullptr.  Otherwise, return a `ClientHook` to which
+    /// appropriately for such a call and return None. Otherwise, return a `ClientHook` to which
     /// the call should be forwarded; the caller should then delegate the call to that `ClientHook`.
     ///
-    /// The main case where this ends up returning non-null is if `cap` is a promise that has
-    /// recently resolved.  The application might have started building a request before the promise
+    /// The main case where this ends up returning Some(_) is if `cap` is a promise that has
+    /// recently resolved. The application might have started building a request before the promise
     /// resolved, and so the request may have been built on the assumption that it would be sent over
     /// this network connection, but then the promise resolved to point somewhere else before the
-    /// request was sent.  Now the request has to be redirected to the new target instead.
+    /// request was sent. Now the request has to be redirected to the new target instead.
     fn write_target(
         &self,
         cap: &dyn ClientHook,
@@ -1273,6 +1273,9 @@ impl<VatId> ConnectionState<VatId> {
         }
     }
 
+    /// If the given client just wraps some other client -- even if it is only *temporarily*
+    /// wrapping that other client -- returns a reference to the other client, transitively.
+    /// Otherwise, returns a new reference to *this.
     fn get_innermost_client(&self, mut client: Box<dyn ClientHook>) -> Box<dyn ClientHook> {
         while let Some(inner) = client.get_resolved() {
             client = inner;
