@@ -1488,8 +1488,6 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn import(state: &Rc<Self>, import_id: ImportId, is_promise: bool) -> Box<dyn ClientHook> {
-        let connection_state = state.clone();
-
         let import_client = {
             match state.imports.borrow_mut().slots.entry(import_id) {
                 hash_map::Entry::Occupied(occ) => occ
@@ -1498,7 +1496,7 @@ impl<VatId> ConnectionState<VatId> {
                     .upgrade()
                     .expect("dangling ref to import client?"),
                 hash_map::Entry::Vacant(v) => {
-                    let import_client = ImportClient::new(&connection_state, import_id);
+                    let import_client = ImportClient::new(state, import_id);
                     v.insert(Import::new(&import_client));
                     import_client
                 }
@@ -1535,7 +1533,7 @@ impl<VatId> ConnectionState<VatId> {
                     // PromiseClient holds `client` until it resolves, after which point
                     // there is no reason to keep the import alive.
 
-                    let client = PromiseClient::new(&connection_state, client, Some(import_id));
+                    let client = PromiseClient::new(state, client, Some(import_id));
 
                     import.promise_client_to_resolve = Some(Rc::downgrade(&client));
                     let client: Box<Client<VatId>> = Box::new(client.into());
