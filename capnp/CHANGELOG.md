@@ -1,3 +1,7 @@
+## v0.20.2
+- Fix bug where `ptr::copy_nonoverlapping()` was potentially being called
+  on invalid pointers (with length = 0).
+
 ## v0.20.1
 - Add support for downcasting dynamic values to fully concrete list and
   struct types.
