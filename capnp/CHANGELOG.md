@@ -1,3 +1,6 @@
+## v0.19.8
+- Backport copy_nonoverlapping() bugfix from capnp-v0.20.2.
+
 ## v0.19.7
 - Add `Results::set_pipeline()` and `ResultsHook::set_pipeline()`.
 
