@@ -2032,7 +2032,10 @@ mod wire_helpers {
                 // in the canonicalize=true case.
                 let whole_byte_size =
                     u64::from(value.element_count) * u64::from(value.step) / BITS_PER_BYTE as u64;
-                ptr::copy_nonoverlapping(value.ptr, ptr, whole_byte_size as usize);
+                if whole_byte_size > 0 {
+                    ptr::copy_nonoverlapping(value.ptr, ptr, whole_byte_size as usize);
+                }
+
                 let leftover_bits =
                     u64::from(value.element_count) * u64::from(value.step) % BITS_PER_BYTE as u64;
                 if leftover_bits > 0 {
