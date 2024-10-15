@@ -1525,6 +1525,21 @@ mod tests {
         }
     }
 
+    /// https://github.com/capnproto/capnproto-rust/issues/525
+    #[test]
+    fn set_data_list_null() {
+        use crate::test_capnp::test_all_types;
+
+        let mut message = message::Builder::new_default();
+        let root: test_all_types::Builder<'_> = message.init_root();
+
+        let mut message2 = message::Builder::new_default();
+        let mut root2: test_all_types::Builder<'_> = message2.init_root();
+        root2
+            .set_data_list(root.into_reader().get_data_list().unwrap())
+            .unwrap();
+    }
+
     #[test]
     fn double_far_pointer() {
         let segment0: &[capnp::Word] = &[
