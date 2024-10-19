@@ -82,6 +82,10 @@ where
     pub fn into_segments(self) -> S {
         self.segments
     }
+
+    pub(crate) fn get_segments(&self) -> &S {
+        &self.segments
+    }
 }
 
 impl<S> ReaderArena for ReaderArenaImpl<S>
