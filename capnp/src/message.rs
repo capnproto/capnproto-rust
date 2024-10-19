@@ -298,6 +298,11 @@ where
     pub fn size_in_words(&self) -> usize {
         self.arena.size_in_words()
     }
+
+    /// Retrieves the underlying [`ReaderSegments`] object.
+    pub fn get_segments(&self) -> &S {
+        self.arena.get_segments()
+    }
 }
 
 /// A message reader whose value is known to be of type `T`.
@@ -329,6 +334,11 @@ where
 
     pub fn into_inner(self) -> Reader<S> {
         self.message
+    }
+
+    /// Retrieves the underlying [`ReaderSegments`] object.
+    pub fn get_segments(&self) -> &S {
+        self.message.get_segments()
     }
 }
 
