@@ -1,3 +1,6 @@
+## v0.20.3
+- Add `message::Reader::get_segments()` method.
+
 ## v0.20.2
 - Fix bug where `ptr::copy_nonoverlapping()` was potentially being called
   on invalid pointers (with length = 0).
