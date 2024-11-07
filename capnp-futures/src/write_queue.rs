@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::channel::oneshot;
-use futures::future::Future;
-use futures::{AsyncWrite, AsyncWriteExt, StreamExt, TryFutureExt};
+use std::future::Future;
+
+use futures_channel::oneshot;
+use futures_util::{AsyncWrite, AsyncWriteExt, StreamExt, TryFutureExt};
 
 use capnp::Error;
 
@@ -33,12 +34,13 @@ where
     Message(M, oneshot::Sender<M>),
     Done(Result<(), Error>, oneshot::Sender<()>),
 }
+
 /// A handle that allows messages to be sent to a write queue.
 pub struct Sender<M>
 where
     M: AsOutputSegments,
 {
-    sender: futures::channel::mpsc::UnboundedSender<Item<M>>,
+    sender: futures_channel::mpsc::UnboundedSender<Item<M>>,
     in_flight: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
 
@@ -65,7 +67,7 @@ where
     W: AsyncWrite + Unpin,
     M: AsOutputSegments,
 {
-    let (tx, mut rx) = futures::channel::mpsc::unbounded::<Item<M>>();
+    let (tx, mut rx) = futures_channel::mpsc::unbounded::<Item<M>>();
 
     let in_flight = std::sync::Arc::new(std::sync::atomic::AtomicI32::new(0));
 

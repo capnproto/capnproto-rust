@@ -27,7 +27,7 @@ use std::task::{Context, Poll};
 
 use capnp::serialize::OwnedSegments;
 use capnp::{message, Result};
-use futures::{AsyncRead, AsyncWrite};
+use futures_util::{AsyncRead, AsyncWrite};
 
 use crate::serialize::AsOutputSegments;
 

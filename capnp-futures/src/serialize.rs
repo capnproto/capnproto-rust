@@ -25,8 +25,7 @@
 
 use capnp::serialize::{OwnedSegments, SegmentLengthsBuilder};
 use capnp::{message, Error, OutputSegments, Result};
-
-use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use futures_util::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 /// Asynchronously reads a message from `reader`.
 pub async fn read_message<R>(
