@@ -1,3 +1,7 @@
+## v0.20.1
+- Remove dependency on futures crate in favor of lighter-weight dependencies
+  on futures-channel and futures-util.
+
 ## v0.20.0
 - write_queue objects should be Send now, when appropriate.
 - Follow v0.20.0 release of other capnp crates.
