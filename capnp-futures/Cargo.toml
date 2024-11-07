@@ -14,10 +14,15 @@ keywords = ["async"]
 [dependencies]
 capnp = { version = "0.20.0", path = "../capnp" }
 
-[dependencies.futures]
+[dependencies.futures-channel]
 version = "0.3.0"
 default-features = false
 features = ["std"]
+
+[dependencies.futures-util]
+version = "0.3.0"
+default-features = false
+features = ["io", "std"]
 
 [dev-dependencies.futures]
 version = "0.3.0"

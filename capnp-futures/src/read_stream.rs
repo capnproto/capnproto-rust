@@ -18,13 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::future::Future;
-use futures::stream::Stream;
-use futures::AsyncRead;
+use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use capnp::{message, Error};
+use futures_util::stream::Stream;
+use futures_util::AsyncRead;
 
 async fn read_next_message<R>(
     mut reader: R,
