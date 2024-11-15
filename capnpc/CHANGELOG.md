@@ -1,3 +1,6 @@
+## v0.20.1
+- Elide more lifetimes in generated code to make Clippy happy.
+
 ## v0.20.0
 - Add support for `stream` keyword.
 
