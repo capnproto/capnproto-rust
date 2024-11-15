@@ -103,7 +103,7 @@ pub trait RustTypeInfo {
     fn type_string(&self, ctx: &GeneratorContext, module: Leaf) -> Result<String, Error>;
 }
 
-impl<'a> RustNodeInfo for node::Reader<'a> {
+impl RustNodeInfo for node::Reader<'_> {
     fn parameters_texts(&self, ctx: &GeneratorContext) -> TypeParameterTexts {
         if self.get_is_generic() {
             let params = get_type_parameters(ctx, self.get_id());
@@ -160,7 +160,7 @@ impl<'a> RustNodeInfo for node::Reader<'a> {
     }
 }
 
-impl<'a> RustTypeInfo for type_::Reader<'a> {
+impl RustTypeInfo for type_::Reader<'_> {
     fn type_string(&self, ctx: &GeneratorContext, module: Leaf) -> Result<String, Error> {
         let local_lifetime = match module {
             Leaf::Reader(lt) => lt,

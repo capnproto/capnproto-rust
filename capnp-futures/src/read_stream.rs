@@ -50,7 +50,7 @@ where
     read: Pin<Box<dyn Future<Output = ReadStreamResult<R>> + 'a>>,
 }
 
-impl<'a, R> Unpin for ReadStream<'a, R> where R: AsyncRead + Unpin {}
+impl<R> Unpin for ReadStream<'_, R> where R: AsyncRead + Unpin {}
 
 impl<'a, R> ReadStream<'a, R>
 where
