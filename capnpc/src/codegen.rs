@@ -2139,7 +2139,7 @@ fn generate_node(
 
             let builder_struct_size =
                 Branch(vec![
-                    Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::HasStructSize for Builder<'a,{0}> {1} {{",
+                    Line(fmt!(ctx,"impl <{0}> {capnp}::traits::HasStructSize for Builder<'_,{0}> {1} {{",
                                  params.params, params.where_clause)),
                                  indent(Line(
                         fmt!(ctx,"const STRUCT_SIZE: {capnp}::private::layout::StructSize = {capnp}::private::layout::StructSize {{ data: {}, pointers: {} }};", data_size as usize, pointer_size as usize))),
@@ -2207,15 +2207,15 @@ fn generate_node(
                 // Manually implement Copy/Clone because `derive` only kicks in if all of
                 // the parameters are known to implement Copy/Clone.
                 Branch(vec![
-                    Line(format!("impl <'a,{0}> ::core::marker::Copy for Reader<'a,{0}> {1} {{}}",
+                    Line(format!("impl <{0}> ::core::marker::Copy for Reader<'_,{0}> {1} {{}}",
                                  params.params, params.where_clause)),
-                    Line(format!("impl <'a,{0}> ::core::clone::Clone for Reader<'a,{0}> {1} {{",
+                    Line(format!("impl <{0}> ::core::clone::Clone for Reader<'_,{0}> {1} {{",
                                  params.params, params.where_clause)),
                     indent(Line("fn clone(&self) -> Self { *self }".into())),
                     Line("}".into())]),
                 BlankLine,
                 Branch(vec![
-                        Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::HasTypeId for Reader<'a,{0}> {1} {{",
+                        Line(fmt!(ctx,"impl <{0}> {capnp}::traits::HasTypeId for Reader<'_,{0}> {1} {{",
                             params.params, params.where_clause)),
                         indent(vec![line("const TYPE_ID: u64 = _private::TYPE_ID;")]),
                     line("}")]),
@@ -2237,7 +2237,7 @@ fn generate_node(
                 ]),
                 line("}"),
                 BlankLine,
-                Line(format!("impl <'a,{0}> ::core::fmt::Debug for Reader<'a,{0}> {1} {{",
+                Line(format!("impl <{0}> ::core::fmt::Debug for Reader<'_,{0}> {1} {{",
                             params.params, params.where_clause)),
                 indent(vec![
                     Line("fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::result::Result<(), ::core::fmt::Error> {".into()),
@@ -2302,7 +2302,7 @@ fn generate_node(
                 }),
                 builder_struct_size,
                 Branch(vec![
-                    Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::HasTypeId for Builder<'a,{0}> {1} {{",
+                    Line(fmt!(ctx,"impl <{0}> {capnp}::traits::HasTypeId for Builder<'_,{0}> {1} {{",
                                  params.params, params.where_clause)),
                     indent(vec![
                         line("const TYPE_ID: u64 = _private::TYPE_ID;")]),
@@ -2339,7 +2339,7 @@ fn generate_node(
 
                 from_pointer_builder_impl,
                 Line(fmt!(ctx,
-                    "impl <'a,{0}> {capnp}::traits::SetterInput<Owned<{0}>> for Reader<'a,{0}> {1} {{",
+                    "impl <{0}> {capnp}::traits::SetterInput<Owned<{0}>> for Reader<'_,{0}> {1} {{",
                     params.params, params.where_clause)),
                 indent(Line(fmt!(ctx,"fn set_pointer_builder(mut pointer: {capnp}::private::layout::PointerBuilder<'_>, value: Self, canonicalize: bool) -> {capnp}::Result<()> {{ pointer.set_struct(&value.reader, canonicalize) }}"))),
                 line("}"),
@@ -2442,7 +2442,7 @@ fn generate_node(
             ]));
 
             output.push(Branch(vec![
-                Line(fmt!(ctx,"impl <'a> ::core::convert::From<{last_name}> for {capnp}::dynamic_value::Reader<'a> {{")),
+                Line(fmt!(ctx,"impl ::core::convert::From<{last_name}> for {capnp}::dynamic_value::Reader<'_> {{")),
                 indent(Line(fmt!(ctx,
                     "fn from(e: {last_name}) -> Self {{ {capnp}::dynamic_value::Enum::new(e.into(), {capnp}::introspect::RawEnumSchema {{ encoded_node: &{0}::ENCODED_NODE, annotation_types: {0}::get_annotation_types }}.into()).into() }}", name_as_mod ))),
                 Line("}".into())
