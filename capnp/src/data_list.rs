@@ -248,7 +248,7 @@ impl<'a> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a> {
     }
 }
 
-impl<'a> core::fmt::Debug for Reader<'a> {
+impl core::fmt::Debug for Reader<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Debug::fmt(
             &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(*self),

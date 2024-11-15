@@ -85,7 +85,7 @@ where
     }
 }
 
-impl<'a, T> Copy for Reader<'a, T> where T: crate::traits::Owned {}
+impl<T> Copy for Reader<'_, T> where T: crate::traits::Owned {}
 
 impl<'a, T> IndexMove<u32, Result<T::Reader<'a>>> for Reader<'a, T>
 where
@@ -182,7 +182,7 @@ where
     }
 }
 
-impl<'a, T> Builder<'a, T>
+impl<T> Builder<'_, T>
 where
     T: crate::traits::Owned,
 {
@@ -315,7 +315,7 @@ impl<'a, T: crate::traits::Owned> crate::dynamic_value::DowncastBuilder<'a> for 
     }
 }
 
-impl<'a, T: crate::traits::Owned> core::fmt::Debug for Reader<'a, T> {
+impl<T: crate::traits::Owned> core::fmt::Debug for Reader<'_, T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Debug::fmt(
             &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(*self),

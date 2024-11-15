@@ -189,7 +189,7 @@ impl<'a> SegmentArray<'a> {
     }
 }
 
-impl<'b> ReaderSegments for SegmentArray<'b> {
+impl ReaderSegments for SegmentArray<'_> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         self.segments.get(id as usize).copied()
     }
@@ -199,7 +199,7 @@ impl<'b> ReaderSegments for SegmentArray<'b> {
     }
 }
 
-impl<'b> ReaderSegments for [&'b [u8]] {
+impl ReaderSegments for [&[u8]] {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         self.get(id as usize).copied()
     }
@@ -871,7 +871,7 @@ impl<'a> ScratchSpaceHeapAllocator<'a> {
 }
 
 #[cfg(feature = "alloc")]
-unsafe impl<'a> Allocator for ScratchSpaceHeapAllocator<'a> {
+unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         if (minimum_size as usize) < (self.scratch_space.len() / BYTES_PER_WORD)
             && !self.scratch_space_allocated
@@ -953,7 +953,7 @@ impl<'a> SingleSegmentAllocator<'a> {
     }
 }
 
-unsafe impl<'a> Allocator for SingleSegmentAllocator<'a> {
+unsafe impl Allocator for SingleSegmentAllocator<'_> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         let available_word_count = self.segment.len() / BYTES_PER_WORD;
         if (minimum_size as usize) > available_word_count {
@@ -989,7 +989,7 @@ unsafe impl<'a> Allocator for SingleSegmentAllocator<'a> {
     }
 }
 
-unsafe impl<'a, A> Allocator for &'a mut A
+unsafe impl<A> Allocator for &'_ mut A
 where
     A: Allocator,
 {

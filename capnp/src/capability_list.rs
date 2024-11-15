@@ -70,7 +70,7 @@ where
         *self
     }
 }
-impl<'a, T> Copy for Reader<'a, T> where T: FromClientHook {}
+impl<T> Copy for Reader<'_, T> where T: FromClientHook {}
 
 impl<'a, T> Reader<'a, T>
 where
@@ -89,7 +89,7 @@ where
     }
 }
 
-impl<'a, T> Reader<'a, T>
+impl<T> Reader<'_, T>
 where
     T: FromClientHook,
 {
@@ -116,7 +116,7 @@ where
     }
 }
 
-impl<'a, T> Reader<'a, T>
+impl<T> Reader<'_, T>
 where
     T: FromClientHook,
 {
@@ -145,7 +145,7 @@ where
     }
 }
 
-impl<'a, T> IndexMove<u32, Result<T>> for Reader<'a, T>
+impl<T> IndexMove<u32, Result<T>> for Reader<'_, T>
 where
     T: FromClientHook,
 {
@@ -190,7 +190,7 @@ where
     }
 }
 
-impl<'a, T> Builder<'a, T>
+impl<T> Builder<'_, T>
 where
     T: FromClientHook,
 {
@@ -223,7 +223,7 @@ where
     }
 }
 
-impl<'a, T> Builder<'a, T>
+impl<T> Builder<'_, T>
 where
     T: FromClientHook,
 {
@@ -296,7 +296,7 @@ impl<'a, T: FromClientHook> From<Builder<'a, T>> for crate::dynamic_value::Build
     }
 }
 
-impl<'a, T: FromClientHook> core::fmt::Debug for Reader<'a, T> {
+impl<T: FromClientHook> core::fmt::Debug for Reader<'_, T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Debug::fmt(
             &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(self.reborrow()),
