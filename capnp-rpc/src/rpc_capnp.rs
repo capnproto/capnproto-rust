@@ -3060,7 +3060,7 @@ pub mod finish {
         }
     }
 
-    impl<'a> Reader<'a> {
+    impl Reader<'_> {
         pub fn reborrow(&self) -> Reader<'_> {
             Self { ..*self }
         }
@@ -3815,7 +3815,7 @@ pub mod release {
         }
     }
 
-    impl<'a> Reader<'a> {
+    impl Reader<'_> {
         pub fn reborrow(&self) -> Reader<'_> {
             Self { ..*self }
         }
@@ -4450,7 +4450,7 @@ pub mod disembargo {
             }
         }
 
-        impl<'a> Reader<'a> {
+        impl Reader<'_> {
             pub fn reborrow(&self) -> Reader<'_> {
                 Self { ..*self }
             }
@@ -7511,7 +7511,7 @@ pub mod promised_answer {
             }
         }
 
-        impl<'a> Reader<'a> {
+        impl Reader<'_> {
             pub fn reborrow(&self) -> Reader<'_> {
                 Self { ..*self }
             }

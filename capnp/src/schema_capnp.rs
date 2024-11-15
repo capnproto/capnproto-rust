@@ -5393,7 +5393,7 @@ pub mod field {
             }
         }
 
-        impl<'a> Reader<'a> {
+        impl Reader<'_> {
             pub fn reborrow(&self) -> Reader<'_> {
                 Self { ..*self }
             }
@@ -5668,7 +5668,7 @@ pub mod field {
             }
         }
 
-        impl<'a> Reader<'a> {
+        impl Reader<'_> {
             pub fn reborrow(&self) -> Reader<'_> {
                 Self { ..*self }
             }
@@ -9679,7 +9679,7 @@ pub mod type_ {
                 }
             }
 
-            impl<'a> Reader<'a> {
+            impl Reader<'_> {
                 pub fn reborrow(&self) -> Reader<'_> {
                     Self { ..*self }
                 }
@@ -10044,7 +10044,7 @@ pub mod type_ {
                 }
             }
 
-            impl<'a> Reader<'a> {
+            impl Reader<'_> {
                 pub fn reborrow(&self) -> Reader<'_> {
                     Self { ..*self }
                 }
@@ -10356,7 +10356,7 @@ pub mod type_ {
                 }
             }
 
-            impl<'a> Reader<'a> {
+            impl Reader<'_> {
                 pub fn reborrow(&self) -> Reader<'_> {
                     Self { ..*self }
                 }
@@ -13069,7 +13069,7 @@ pub mod capnp_version {
         }
     }
 
-    impl<'a> Reader<'a> {
+    impl Reader<'_> {
         pub fn reborrow(&self) -> Reader<'_> {
             Self { ..*self }
         }

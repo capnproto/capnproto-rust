@@ -2052,6 +2052,7 @@ fn generate_node(
             private_mod_interior.push(generate_members_by_discriminant(*node_reader)?);
             private_mod_interior.push(generate_members_by_name(*node_reader)?);
 
+            let mut has_pointer_field = false;
             let fields = struct_reader.get_fields()?;
             for field in fields {
                 let name = get_field_name(field)?;
@@ -2059,6 +2060,19 @@ fn generate_node(
 
                 let discriminant_value = field.get_discriminant_value();
                 let is_union_field = discriminant_value != field::NO_DISCRIMINANT;
+
+                match field.which()? {
+                    field::Slot(s) => match s.get_type()?.which()? {
+                        type_::Text(())
+                        | type_::Data(())
+                        | type_::List(_)
+                        | type_::Struct(_)
+                        | type_::Interface(_)
+                        | type_::AnyPointer(_) => has_pointer_field = true,
+                        _ => (),
+                    },
+                    field::Group(_) => has_pointer_field = true,
+                }
 
                 if !is_union_field {
                     pipeline_impl_interior.push(generate_pipeline_getter(ctx, field)?);
@@ -2275,7 +2289,11 @@ fn generate_node(
                 ]),
                 line("}"),
                 BlankLine,
-                Line(format!("impl <'a,{0}> Reader<'a,{0}> {1} {{", params.params, params.where_clause)),
+                if has_pointer_field { // we do this to keep clippy happy
+                    Line(format!("impl <'a,{0}> Reader<'a,{0}> {1} {{", params.params, params.where_clause))
+                } else {
+                    Line(format!("impl <{0}> Reader<'_,{0}> {1} {{", params.params, params.where_clause))
+                },
                 indent(vec![
                         Line(format!("pub fn reborrow(&self) -> Reader<'_,{}> {{",params.params)),
                         indent(line("Self { .. *self }")),

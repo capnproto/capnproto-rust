@@ -176,7 +176,7 @@ pub mod vat_id {
         }
     }
 
-    impl<'a> Reader<'a> {
+    impl Reader<'_> {
         pub fn reborrow(&self) -> Reader<'_> {
             Self { ..*self }
         }
@@ -457,7 +457,7 @@ pub mod provision_id {
         }
     }
 
-    impl<'a> Reader<'a> {
+    impl Reader<'_> {
         pub fn reborrow(&self) -> Reader<'_> {
             Self { ..*self }
         }
@@ -731,7 +731,7 @@ pub mod recipient_id {
         }
     }
 
-    impl<'a> Reader<'a> {
+    impl Reader<'_> {
         pub fn reborrow(&self) -> Reader<'_> {
             Self { ..*self }
         }
@@ -974,7 +974,7 @@ pub mod third_party_cap_id {
         }
     }
 
-    impl<'a> Reader<'a> {
+    impl Reader<'_> {
         pub fn reborrow(&self) -> Reader<'_> {
             Self { ..*self }
         }
@@ -1218,7 +1218,7 @@ pub mod join_key_part {
         }
     }
 
-    impl<'a> Reader<'a> {
+    impl Reader<'_> {
         pub fn reborrow(&self) -> Reader<'_> {
             Self { ..*self }
         }
