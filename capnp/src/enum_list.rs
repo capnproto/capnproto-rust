@@ -84,15 +84,15 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema>> FromPointerReader<'a> for Reader<
     }
 }
 
-impl<'a, T: TryFrom<u16, Error = NotInSchema>>
-    IndexMove<u32, ::core::result::Result<T, NotInSchema>> for Reader<'a, T>
+impl<T: TryFrom<u16, Error = NotInSchema>> IndexMove<u32, ::core::result::Result<T, NotInSchema>>
+    for Reader<'_, T>
 {
     fn index_move(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
         self.get(index)
     }
 }
 
-impl<'a, T: TryFrom<u16, Error = NotInSchema>> Reader<'a, T> {
+impl<T: TryFrom<u16, Error = NotInSchema>> Reader<'_, T> {
     /// Gets the `T` at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
@@ -167,7 +167,7 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema>> FromPointerBuilder<'a> for Builde
     }
 }
 
-impl<'a, T: Into<u16> + TryFrom<u16, Error = NotInSchema>> Builder<'a, T> {
+impl<T: Into<u16> + TryFrom<u16, Error = NotInSchema>> Builder<'_, T> {
     /// Gets the `T` at position `index`. Panics if `index` is greater than or
     /// equal to `len()`.
     pub fn get(&self, index: u32) -> ::core::result::Result<T, NotInSchema> {
@@ -292,8 +292,8 @@ impl<'a, T: TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect>
     }
 }
 
-impl<'a, T: Copy + TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect>
-    core::fmt::Debug for Reader<'a, T>
+impl<T: Copy + TryFrom<u16, Error = NotInSchema> + crate::introspect::Introspect> core::fmt::Debug
+    for Reader<'_, T>
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Debug::fmt(

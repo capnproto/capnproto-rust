@@ -638,7 +638,7 @@ impl<'a> core::ops::Deref for OutputSegments<'a> {
     }
 }
 
-impl<'s> message::ReaderSegments for OutputSegments<'s> {
+impl message::ReaderSegments for OutputSegments<'_> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
         match self {
             OutputSegments::SingleSegment(s) => s.get(id as usize).copied(),

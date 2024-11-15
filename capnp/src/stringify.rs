@@ -169,7 +169,7 @@ pub(crate) fn print(
     }
 }
 
-impl<'a> fmt::Debug for dynamic_value::Reader<'a> {
+impl fmt::Debug for dynamic_value::Reader<'_> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let indent = if f.alternate() {
             Indent::enabled()
