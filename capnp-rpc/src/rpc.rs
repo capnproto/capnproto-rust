@@ -976,7 +976,7 @@ impl<VatId> ConnectionState<VatId> {
                     )));
                 }
 
-                let params = Params::new(message, cap_table_array);
+                let params = Params::new(message, cap_table_array, capability.add_ref());
 
                 let answer = Answer::new();
 
@@ -2244,14 +2244,20 @@ impl<VatId> PipelineHook for Pipeline<VatId> {
 pub struct Params {
     request: Box<dyn crate::IncomingMessage>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
+    this_cap: Box<dyn ClientHook>,
 }
 
 impl Params {
     fn new(
         request: Box<dyn crate::IncomingMessage>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
+        this_cap: Box<dyn ClientHook>,
     ) -> Self {
-        Self { request, cap_table }
+        Self {
+            request,
+            cap_table,
+            this_cap,
+        }
     }
 }
 
@@ -2265,6 +2271,10 @@ impl ParamsHook for Params {
         let mut content = call?.get_params()?.get_content();
         content.imbue(&self.cap_table);
         Ok(content)
+    }
+
+    fn this_cap(&self) -> Box<dyn ClientHook> {
+        self.this_cap.add_ref()
     }
 }
 
