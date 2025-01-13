@@ -356,7 +356,7 @@ fn to_pipeline_ops(
 }
 
 fn from_error(error: &Error, mut builder: exception::Builder) {
-    builder.set_reason(error.to_string());
+    builder.set_reason(&error.extra);
     let typ = match error.kind {
         ::capnp::ErrorKind::Failed => exception::Type::Failed,
         ::capnp::ErrorKind::Overloaded => exception::Type::Overloaded,

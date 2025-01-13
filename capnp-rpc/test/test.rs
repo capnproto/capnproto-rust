@@ -412,7 +412,7 @@ fn pipelining_return_null() {
         match cap.foo_request().send().promise.await {
             Err(ref e) => {
                 if e.extra
-                    .contains("Pipeline call on a request that returned no capabilities")
+                     == "remote exception: Pipeline call on a request that returned no capabilities or was already closed."
                 {
                     Ok(())
                 } else {
