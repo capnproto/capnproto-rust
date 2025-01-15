@@ -375,6 +375,9 @@ fn from_error(error: &Error, mut builder: exception::Builder) {
             builder.set_reason(&error.extra);
         }
         _ => {
+            // There is extra information in `error.kind` that is not
+            // captured by `typ`. We call `error.to_string()` to allow that
+            // information to be recorded in the `reason` field.
             builder.set_reason(error.to_string());
         }
     }
