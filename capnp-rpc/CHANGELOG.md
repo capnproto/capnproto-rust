@@ -1,3 +1,6 @@
+## v0.20.3
+- Remove redundant information in the `reason` field of some RPC errors.
+
 ## v0.20.2
 - Add `new_future_client()` and deprecate `new_promise_client()`.
 
