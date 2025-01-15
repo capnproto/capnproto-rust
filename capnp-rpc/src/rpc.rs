@@ -356,7 +356,6 @@ fn to_pipeline_ops(
 }
 
 fn from_error(error: &Error, mut builder: exception::Builder) {
-    builder.set_reason(error.to_string());
     let typ = match error.kind {
         ::capnp::ErrorKind::Failed => exception::Type::Failed,
         ::capnp::ErrorKind::Overloaded => exception::Type::Overloaded,
@@ -368,6 +367,17 @@ fn from_error(error: &Error, mut builder: exception::Builder) {
         _ => exception::Type::Failed,
     };
     builder.set_type(typ);
+    match error.kind {
+        ::capnp::ErrorKind::Failed
+        | ::capnp::ErrorKind::Overloaded
+        | ::capnp::ErrorKind::Disconnected
+        | ::capnp::ErrorKind::Unimplemented => {
+            builder.set_reason(&error.extra);
+        }
+        _ => {
+            builder.set_reason(error.to_string());
+        }
+    }
 }
 
 fn remote_exception_to_error(exception: exception::Reader) -> Error {
