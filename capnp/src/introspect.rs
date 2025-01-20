@@ -13,7 +13,7 @@ pub trait Introspect {
 /// optimized to avoid heap allocation.
 ///
 /// To examine a `Type`, you should call the `which()` method.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug)]
 pub struct Type {
     /// The type, minus any outer `List( )`.
     base: BaseType,
@@ -142,7 +142,7 @@ impl Type {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone)]
 /// A `Type` unfolded one level. Suitable for pattern matching. Can be trivially
 /// converted to `Type` via the `From`/`Into` traits.
 pub enum TypeVariant {
@@ -194,7 +194,7 @@ impl From<TypeVariant> for Type {
 }
 
 /// A Cap'n Proto type, excluding `List`.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, Debug)]
 enum BaseType {
     Void,
     Bool,
@@ -270,15 +270,16 @@ pub struct RawBrandedStructSchema {
     pub annotation_types: fn(Option<u16>, u32) -> Type,
 }
 
+/*
 impl core::cmp::PartialEq for RawBrandedStructSchema {
     fn eq(&self, other: &Self) -> bool {
         core::ptr::eq(self.generic, other.generic) && self.field_types == other.field_types
         // don't need to compare annotation_types.
         // that field is equal iff field_types is.
     }
-}
+}*/
 
-impl core::cmp::Eq for RawBrandedStructSchema {}
+//impl core::cmp::Eq for RawBrandedStructSchema {}
 
 impl core::fmt::Debug for RawBrandedStructSchema {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
