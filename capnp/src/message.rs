@@ -167,7 +167,7 @@ pub trait ReaderSegments {
 
 impl<S> ReaderSegments for &S
 where
-    S: ReaderSegments,
+    S: ReaderSegments + ?Sized,
 {
     fn get_segment(&self, idx: u32) -> Option<&[u8]> {
         (**self).get_segment(idx)
