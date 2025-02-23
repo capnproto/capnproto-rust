@@ -112,8 +112,15 @@ pub struct ReaderOptions {
     pub nesting_limit: i32,
 }
 
+#[cfg(not(target_pointer_width = "16"))]
 pub const DEFAULT_READER_OPTIONS: ReaderOptions = ReaderOptions {
     traversal_limit_in_words: Some(8 * 1024 * 1024),
+    nesting_limit: 64,
+};
+
+#[cfg(target_pointer_width = "16")]
+pub const DEFAULT_READER_OPTIONS: ReaderOptions = ReaderOptions {
+    traversal_limit_in_words: Some(1024),
     nesting_limit: 64,
 };
 
