@@ -1,3 +1,7 @@
+## v0.20.4
+- Fix compilation on 16-bit architectures by setting smaller traveral limit.
+- Add a `?Sized` bound to a ReaderSegments blanket impl.
+
 ## v0.20.3
 - Add `message::Reader::get_segments()` method.
 
