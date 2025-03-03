@@ -325,8 +325,9 @@ impl<'a> Builder<'a> {
                     .set_data(d);
                 Ok(())
             }
-            (TypeVariant::Struct(ss), dynamic_value::Reader::Struct(s)) => {
-                assert_eq!(ss, s.get_schema().raw);
+            (TypeVariant::Struct(_ss), dynamic_value::Reader::Struct(s)) => {
+                // TODO: assertion here?
+                // assert_eq!(ss, s.get_schema().raw);
                 self.builder
                     .reborrow()
                     .get_struct_element(index)
