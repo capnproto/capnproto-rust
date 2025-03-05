@@ -1,3 +1,9 @@
+## v0.20.5
+- Avoid function pointer comparison in `impl PartialEq for RawBrandedStructSchema`,
+  as advised by a rustc warning. The new implementation is more expensive.
+- Weaken some assertions in `DynamicStruct` and `DynamicList` accessors, to avoid
+  the now-more-expensive equality method.
+
 ## v0.20.4
 - Fix compilation on 16-bit architectures by setting smaller traveral limit.
 - Add a `?Sized` bound to a ReaderSegments blanket impl.
