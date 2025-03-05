@@ -272,9 +272,28 @@ pub struct RawBrandedStructSchema {
 
 impl core::cmp::PartialEq for RawBrandedStructSchema {
     fn eq(&self, other: &Self) -> bool {
-        core::ptr::eq(self.generic, other.generic) && self.field_types == other.field_types
-        // don't need to compare annotation_types.
-        // that field is equal iff field_types is.
+        // In capnproto-c++, this method is implemented as a single pointer
+        // comparison. That's possible because C++ guarantees unique addresses
+        // for static template instantiations. A rough equivalent in Rust would be
+        // to compare the function pointers `self.field_types` and
+        // `other.field_types`, but doing so triggers a warning:
+        // > function pointer comparisons do not produce meaningful results
+        // > since their addresses are not guaranteed to be unique
+
+        if core::ptr::eq(self.generic, other.generic) {
+            return false;
+        }
+
+        // Check that all member field types match. This makes sure that
+        // type parameters have been instantiated the same.
+        for idx in self.generic.members_by_name {
+            if (self.field_types)(*idx) != (other.field_types)(*idx) {
+                return false;
+            }
+        }
+        // To be extra strict, we would need to compare the annotations too.
+        // Does anyone want that?
+        true
     }
 }
 
