@@ -84,7 +84,6 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 - Sandstorm's [raw API example app](https://github.com/dwrensha/sandstorm-rawapi-example-rust) and
   [collections app](https://github.com/sandstorm-io/collections-app)
 - [juice](https://github.com/spearow/juice)
-- [fractalide](https://github.com/fractalide/fractalide)
 - [combustion-engine](https://github.com/combustion-engine/combustion/tree/master/combustion_protocols)
 
 ## Unimplemented / Future Work
