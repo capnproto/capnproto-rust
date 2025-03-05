@@ -326,7 +326,7 @@ impl<'a> Builder<'a> {
                 Ok(())
             }
             (TypeVariant::Struct(ss), dynamic_value::Reader::Struct(s)) => {
-                assert_eq!(ss, s.get_schema().raw);
+                assert!(core::ptr::eq(ss.generic, s.get_schema().raw.generic));
                 self.builder
                     .reborrow()
                     .get_struct_element(index)
