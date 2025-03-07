@@ -1,3 +1,9 @@
+## v0.20.6
+- Restore the "unpredictable function pointer comparison" in
+  `impl PartialEq for RawBrandedStructSchema` and suppress the rustc warning.
+  Downstream users are advised to avoid using depending on type equality.
+  A future capnp release may remove this impl.
+
 ## v0.20.5
 - Avoid function pointer comparison in `impl PartialEq for RawBrandedStructSchema`,
   as advised by a rustc warning. The new implementation is more expensive.
