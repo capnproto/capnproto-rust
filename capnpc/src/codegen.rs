@@ -99,7 +99,7 @@ impl CodeGenerationCommand {
     /// # Arguments
     ///
     /// - `map` - A map from capnp file id to the crate name that provides the
-    ///     corresponding generated code.
+    ///   corresponding generated code.
     ///
     /// See [`crate::CompilerCommand::crate_provides`] for more details.
     pub fn crates_provide_map(&mut self, map: HashMap<u64, String>) -> &mut Self {
