@@ -1,4 +1,4 @@
-use crate::test_capnp::test_all_types;
+use crate::test_capnp::{test_all_types, test_defaults};
 use crate::test_util::{self};
 use capnp::message::{self};
 use capnp::{dynamic_list, dynamic_struct, dynamic_value};
@@ -505,4 +505,19 @@ fn test_downcasts() {
             root_struct.get_named("dataList").unwrap().downcast();
         assert_eq!(data_list.len(), 3);
     }
+}
+
+#[test]
+fn introspect_equality() {
+    use capnp::introspect::Introspect;
+
+    assert_eq!(
+        test_all_types::Owned::introspect(),
+        test_all_types::Owned::introspect()
+    );
+
+    assert_ne!(
+        test_all_types::Owned::introspect(),
+        test_defaults::Owned::introspect()
+    )
 }

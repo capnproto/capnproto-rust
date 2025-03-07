@@ -270,30 +270,29 @@ pub struct RawBrandedStructSchema {
     pub annotation_types: fn(Option<u16>, u32) -> Type,
 }
 
+/// WARNING!
+///
+/// In capnproto-c++, this method is implemented as a single pointer
+/// comparison. That works because C++ guarantees unique addresses
+/// for static template instantiations. In contrast, the below Rust
+/// implementation uses function pointer comparison, which might
+/// give unexpected results (particularly in the presence of type
+/// parameter instantiation).
+///
+/// For this reason, usage of equality on types in capnproto-rust
+/// is discouraged.
+///
+/// You might think that we could still implement the method
+/// in a slower way by recursively comparing types of fields.
+/// However, that (or at least the naive version of it) can hit
+/// infinite loops because e.g. a struct Foo might have a field of
+/// type Foo.
+///
+/// TODO(api_bump): remove this `impl PartialEq`.
 impl core::cmp::PartialEq for RawBrandedStructSchema {
+    #[allow(unpredictable_function_pointer_comparisons)]
     fn eq(&self, other: &Self) -> bool {
-        // In capnproto-c++, this method is implemented as a single pointer
-        // comparison. That's possible because C++ guarantees unique addresses
-        // for static template instantiations. A rough equivalent in Rust would be
-        // to compare the function pointers `self.field_types` and
-        // `other.field_types`, but doing so triggers a warning:
-        // > function pointer comparisons do not produce meaningful results
-        // > since their addresses are not guaranteed to be unique
-
-        if core::ptr::eq(self.generic, other.generic) {
-            return false;
-        }
-
-        // Check that all member field types match. This makes sure that
-        // type parameters have been instantiated the same.
-        for idx in self.generic.members_by_name {
-            if (self.field_types)(*idx) != (other.field_types)(*idx) {
-                return false;
-            }
-        }
-        // To be extra strict, we would need to compare the annotations too.
-        // Does anyone want that?
-        true
+        core::ptr::eq(self.generic, other.generic) && self.field_types == other.field_types
     }
 }
 
