@@ -138,10 +138,7 @@ impl core::ops::AddAssign for MessageSize {
 pub struct NotInSchema(pub u16);
 
 impl ::core::fmt::Display for NotInSchema {
-    fn fmt(
-        &self,
-        fmt: &mut ::core::fmt::Formatter,
-    ) -> ::core::result::Result<(), ::core::fmt::Error> {
+    fn fmt(&self, fmt: &mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error> {
         write!(
             fmt,
             "Enum value or union discriminant {} was not present in the schema.",
@@ -150,8 +147,7 @@ impl ::core::fmt::Display for NotInSchema {
     }
 }
 
-#[cfg(feature = "std")]
-impl ::std::error::Error for NotInSchema {
+impl ::core::error::Error for NotInSchema {
     fn description(&self) -> &str {
         "Enum value or union discriminant was not present in schema."
     }
@@ -606,13 +602,12 @@ impl core::fmt::Display for Error {
     }
 }
 
-#[cfg(feature = "std")]
-impl ::std::error::Error for Error {
+impl core::error::Error for Error {
     #[cfg(feature = "alloc")]
     fn description(&self) -> &str {
         &self.extra
     }
-    fn cause(&self) -> Option<&dyn (::std::error::Error)> {
+    fn cause(&self) -> Option<&dyn (::core::error::Error)> {
         None
     }
 }
