@@ -172,6 +172,16 @@ pub trait ReaderSegments {
     }
 }
 
+/// Allows stacking of references to a `ReaderSegments`.
+///
+/// This is especially useful with the implementation for slices, as it allows treating
+/// `&[&[u8]]` as `ReaderSegments`, e.g., to construct a `Reader`:
+/// ```
+/// # use capnp::message::ReaderSegments;
+/// use capnp::message::Reader;
+/// let slice_of_slices: &[&[u8]] = &[&*b"some data", &*b"more data"];
+/// let _ = Reader::new(slice_of_slices, Default::default());
+/// ```
 impl<S> ReaderSegments for &S
 where
     S: ReaderSegments + ?Sized,
@@ -182,6 +192,10 @@ where
 
     fn len(&self) -> usize {
         (**self).len()
+    }
+
+    fn is_empty(&self) -> bool {
+        (**self).is_empty()
     }
 }
 
@@ -206,13 +220,37 @@ impl ReaderSegments for SegmentArray<'_> {
     }
 }
 
-impl ReaderSegments for [&[u8]] {
+impl<I> ReaderSegments for [I]
+where
+    I: AsRef<[u8]>,
+{
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
-        self.get(id as usize).copied()
+        self.get(id as usize).map(|i| i.as_ref())
     }
 
     fn len(&self) -> usize {
         self.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+}
+
+impl<I> ReaderSegments for Vec<I>
+where
+    I: AsRef<[u8]>,
+{
+    fn get_segment(&self, id: u32) -> Option<&[u8]> {
+        self.get(id as usize).map(|i| i.as_ref())
+    }
+
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.is_empty()
     }
 }
 
