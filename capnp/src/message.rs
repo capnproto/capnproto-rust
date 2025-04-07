@@ -237,7 +237,8 @@ where
     }
 }
 
-impl<I> ReaderSegments for Vec<I>
+#[cfg(feature = "alloc")]
+impl<I> ReaderSegments for alloc::vec::Vec<I>
 where
     I: AsRef<[u8]>,
 {
