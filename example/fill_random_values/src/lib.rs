@@ -1,4 +1,4 @@
-use rand::distributions::uniform::SampleUniform;
+use rand::distr::uniform::SampleUniform;
 use rand::Rng;
 
 use capnp::introspect::TypeVariant;
@@ -34,7 +34,7 @@ where
         + for<'a> Into<::capnp::dynamic_value::Reader<'a>>,
     R: Rng,
 {
-    let x: T = rng.gen_range(get_range::<T>(a.get_value()?.downcast())?);
+    let x: T = rng.random_range(get_range::<T>(a.get_value()?.downcast())?);
     builder.set(field, x.into())
 }
 
@@ -48,7 +48,7 @@ impl<R: Rng> Filler<R> {
 
     fn random_enum_value(&mut self, e: schema::EnumSchema) -> ::capnp::Result<dynamic_value::Enum> {
         let enumerants = e.get_enumerants()?;
-        let idx = self.rng.gen_range(0..enumerants.len());
+        let idx = self.rng.random_range(0..enumerants.len());
         let value = enumerants.get(idx).get_ordinal();
         Ok(::capnp::dynamic_value::Enum::new(value, e))
     }
@@ -56,13 +56,13 @@ impl<R: Rng> Filler<R> {
     fn fill_text(&mut self, mut builder: ::capnp::text::Builder) {
         builder.clear();
         for _ in 0..builder.len() {
-            builder.push_ascii(self.rng.gen_range(b'a'..=b'z'));
+            builder.push_ascii(self.rng.random_range(b'a'..=b'z'));
         }
     }
 
     fn fill_data(&mut self, builder: ::capnp::data::Builder) {
         for b in builder {
-            *b = self.rng.gen();
+            *b = self.rng.random();
         }
     }
 
@@ -87,7 +87,7 @@ impl<R: Rng> Filler<R> {
                     ));
                 }
                 let choices: capnp::dynamic_list::Reader<'_> = annotation.get_value()?.downcast();
-                let idx = self.rng.gen_range(0..choices.len());
+                let idx = self.rng.random_range(0..choices.len());
                 return builder.set(field, choices.get(idx).unwrap());
             } else if annotation.get_id() == fill_capnp::int8_range::ID {
                 return set_from_range::<i8, R>(&mut self.rng, annotation, builder, field);
@@ -114,36 +114,36 @@ impl<R: Rng> Filler<R> {
 
         match field.get_type().which() {
             TypeVariant::Void => Ok(()),
-            TypeVariant::Bool => builder.set(field, self.rng.gen::<bool>().into()),
-            TypeVariant::Int8 => builder.set(field, self.rng.gen::<i8>().into()),
-            TypeVariant::Int16 => builder.set(field, self.rng.gen::<i16>().into()),
-            TypeVariant::Int32 => builder.set(field, self.rng.gen::<i32>().into()),
-            TypeVariant::Int64 => builder.set(field, self.rng.gen::<i64>().into()),
-            TypeVariant::UInt8 => builder.set(field, self.rng.gen::<u8>().into()),
-            TypeVariant::UInt16 => builder.set(field, self.rng.gen::<u16>().into()),
-            TypeVariant::UInt32 => builder.set(field, self.rng.gen::<u32>().into()),
-            TypeVariant::UInt64 => builder.set(field, self.rng.gen::<u64>().into()),
-            TypeVariant::Float32 => builder.set(field, self.rng.gen::<f32>().into()),
-            TypeVariant::Float64 => builder.set(field, self.rng.gen::<f64>().into()),
+            TypeVariant::Bool => builder.set(field, self.rng.random::<bool>().into()),
+            TypeVariant::Int8 => builder.set(field, self.rng.random::<i8>().into()),
+            TypeVariant::Int16 => builder.set(field, self.rng.random::<i16>().into()),
+            TypeVariant::Int32 => builder.set(field, self.rng.random::<i32>().into()),
+            TypeVariant::Int64 => builder.set(field, self.rng.random::<i64>().into()),
+            TypeVariant::UInt8 => builder.set(field, self.rng.random::<u8>().into()),
+            TypeVariant::UInt16 => builder.set(field, self.rng.random::<u16>().into()),
+            TypeVariant::UInt32 => builder.set(field, self.rng.random::<u32>().into()),
+            TypeVariant::UInt64 => builder.set(field, self.rng.random::<u64>().into()),
+            TypeVariant::Float32 => builder.set(field, self.rng.random::<f32>().into()),
+            TypeVariant::Float64 => builder.set(field, self.rng.random::<f64>().into()),
             TypeVariant::Text => {
                 if annotations.find(fill_capnp::phone_number::ID).is_some() {
                     builder.set(
                         field,
                         format!(
                             "{:03}-555-1{:03}",
-                            self.rng.gen_range(0..1000),
-                            self.rng.gen_range(0..1000)
+                            self.rng.random_range(0..1000),
+                            self.rng.random_range(0..1000)
                         )[..]
                             .into(),
                     )
                 } else {
-                    let len = self.rng.gen_range(0..20);
+                    let len = self.rng.random_range(0..20);
                     self.fill_text(builder.initn(field, len)?.downcast());
                     Ok(())
                 }
             }
             TypeVariant::Data => {
-                let len = self.rng.gen_range(0..20);
+                let len = self.rng.random_range(0..20);
                 self.fill_data(builder.initn(field, len)?.downcast());
                 Ok(())
             }
@@ -162,9 +162,9 @@ impl<R: Rng> Filler<R> {
                     let len_range: dynamic_struct::Reader<'_> = len_range.get_value()?.downcast();
                     let min: u32 = len_range.get_named("min")?.downcast();
                     let max: u32 = len_range.get_named("max")?.downcast();
-                    len = self.rng.gen_range(min..=max);
+                    len = self.rng.random_range(min..=max);
                 } else {
-                    len = self.rng.gen_range(0..10);
+                    len = self.rng.random_range(0..10);
                 }
                 if recursion_depth < self.recursion_limit {
                     self.fill_list(recursion_depth + 1, builder.initn(field, len)?.downcast())
@@ -186,25 +186,25 @@ impl<R: Rng> Filler<R> {
     ) -> ::capnp::Result<()> {
         match builder.element_type().which() {
             TypeVariant::Void => Ok(()),
-            TypeVariant::Bool => builder.set(index, self.rng.gen::<bool>().into()),
-            TypeVariant::Int8 => builder.set(index, self.rng.gen::<i8>().into()),
-            TypeVariant::Int16 => builder.set(index, self.rng.gen::<i16>().into()),
-            TypeVariant::Int32 => builder.set(index, self.rng.gen::<i32>().into()),
-            TypeVariant::Int64 => builder.set(index, self.rng.gen::<i64>().into()),
-            TypeVariant::UInt8 => builder.set(index, self.rng.gen::<u8>().into()),
-            TypeVariant::UInt16 => builder.set(index, self.rng.gen::<u16>().into()),
-            TypeVariant::UInt32 => builder.set(index, self.rng.gen::<u32>().into()),
-            TypeVariant::UInt64 => builder.set(index, self.rng.gen::<u64>().into()),
-            TypeVariant::Float32 => builder.set(index, self.rng.gen::<f32>().into()),
-            TypeVariant::Float64 => builder.set(index, self.rng.gen::<f64>().into()),
+            TypeVariant::Bool => builder.set(index, self.rng.random::<bool>().into()),
+            TypeVariant::Int8 => builder.set(index, self.rng.random::<i8>().into()),
+            TypeVariant::Int16 => builder.set(index, self.rng.random::<i16>().into()),
+            TypeVariant::Int32 => builder.set(index, self.rng.random::<i32>().into()),
+            TypeVariant::Int64 => builder.set(index, self.rng.random::<i64>().into()),
+            TypeVariant::UInt8 => builder.set(index, self.rng.random::<u8>().into()),
+            TypeVariant::UInt16 => builder.set(index, self.rng.random::<u16>().into()),
+            TypeVariant::UInt32 => builder.set(index, self.rng.random::<u32>().into()),
+            TypeVariant::UInt64 => builder.set(index, self.rng.random::<u64>().into()),
+            TypeVariant::Float32 => builder.set(index, self.rng.random::<f32>().into()),
+            TypeVariant::Float64 => builder.set(index, self.rng.random::<f64>().into()),
             TypeVariant::Enum(e) => builder.set(index, self.random_enum_value(e.into())?.into()),
             TypeVariant::Text => {
-                let len = self.rng.gen_range(0..20);
+                let len = self.rng.random_range(0..20);
                 self.fill_text(builder.init(index, len)?.downcast());
                 Ok(())
             }
             TypeVariant::Data => {
-                let len = self.rng.gen_range(0..20);
+                let len = self.rng.random_range(0..20);
                 self.fill_data(builder.init(index, len)?.downcast());
                 Ok(())
             }
@@ -246,7 +246,7 @@ impl<R: Rng> Filler<R> {
 
         let union_fields = schema.get_union_fields()?;
         if !union_fields.is_empty() {
-            let disc = self.rng.gen_range(0..union_fields.len());
+            let disc = self.rng.random_range(0..union_fields.len());
             self.fill_field(recursion_depth, builder, union_fields.get(disc))?;
         }
         Ok(())

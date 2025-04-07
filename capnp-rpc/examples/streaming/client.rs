@@ -44,7 +44,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let capnp::capability::RemotePromise { promise, pipeline } =
                 receiver.write_stream_request().send();
 
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let mut hasher = Sha256::new();
             let bytestream = pipeline.get_stream();
             let mut bytes_written: u64 = 0;
