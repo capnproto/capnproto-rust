@@ -253,10 +253,9 @@ impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
 impl<'a> crate::dynamic_value::DowncastReader<'a> for Reader<'a> {
     fn downcast_reader(v: crate::dynamic_value::Reader<'a>) -> Self {
         let dl: crate::dynamic_list::Reader = v.downcast();
-        assert_eq!(
-            dl.element_type(),
-            crate::introspect::TypeVariant::Text.into()
-        );
+        assert!(dl
+            .element_type()
+            .loose_equals(crate::introspect::TypeVariant::Text.into()));
         Reader { reader: dl.reader }
     }
 }
@@ -273,10 +272,9 @@ impl<'a> From<Builder<'a>> for crate::dynamic_value::Builder<'a> {
 impl<'a> crate::dynamic_value::DowncastBuilder<'a> for Builder<'a> {
     fn downcast_builder(v: crate::dynamic_value::Builder<'a>) -> Self {
         let dl: crate::dynamic_list::Builder = v.downcast();
-        assert_eq!(
-            dl.element_type(),
-            crate::introspect::TypeVariant::Text.into()
-        );
+        assert!(dl
+            .element_type()
+            .loose_equals(crate::introspect::TypeVariant::Text.into()));
         Builder {
             builder: dl.builder,
         }
