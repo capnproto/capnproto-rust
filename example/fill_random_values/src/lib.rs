@@ -76,7 +76,7 @@ impl<R: Rng> Filler<R> {
         for annotation in annotations {
             if annotation.get_id() == fill_capnp::select_from::choices::ID {
                 if let TypeVariant::List(element_type) = annotation.get_type().which() {
-                    if element_type != field.get_type() {
+                    if !element_type.loose_equals(field.get_type()) {
                         return Err(::capnp::Error::failed(
                             "choices annotation element type mismatch".into(),
                         ));

@@ -246,7 +246,7 @@ impl<'a> Reader<'a> {
             Into::<crate::introspect::Type>::into(crate::introspect::TypeVariant::Struct(
                 self.schema.raw
             ))
-            .may_downcast_to(T::introspect())
+            .loose_equals(T::introspect())
         );
         self.reader.into()
     }
@@ -814,7 +814,7 @@ impl<'a> Builder<'a> {
             Into::<crate::introspect::Type>::into(crate::introspect::TypeVariant::Struct(
                 self.schema.raw
             ))
-            .may_downcast_to(T::introspect())
+            .loose_equals(T::introspect())
         );
         self.builder.into()
     }

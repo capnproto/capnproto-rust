@@ -507,24 +507,11 @@ fn test_downcasts() {
     }
 }
 
-// Function pointer equality is used in
-// `impl PartialEq for RawBrandedStructSchema`. On MIRI that implies
-// that all struct types are inequal.
-//
-// The plan is to remove that impl in the future, to avoid
-// unpleasant surprises.
-#[cfg_attr(miri, ignore)]
 #[test]
-fn introspect_equality() {
+fn introspect_loose_equals() {
     use capnp::introspect::Introspect;
 
-    assert_eq!(
-        test_all_types::Owned::introspect(),
-        test_all_types::Owned::introspect()
-    );
+    assert!(test_all_types::Owned::introspect().loose_equals(test_all_types::Owned::introspect()));
 
-    assert_ne!(
-        test_all_types::Owned::introspect(),
-        test_defaults::Owned::introspect()
-    )
+    assert!(!test_all_types::Owned::introspect().loose_equals(test_defaults::Owned::introspect()))
 }

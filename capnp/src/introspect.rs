@@ -13,7 +13,7 @@ pub trait Introspect {
 /// optimized to avoid heap allocation.
 ///
 /// To examine a `Type`, you should call the `which()` method.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug)]
 pub struct Type {
     /// The type, minus any outer `List( )`.
     base: BaseType,
@@ -105,9 +105,9 @@ impl Type {
         }
     }
 
-    /// Returns true is a dynamic value of type `self` is
-    /// allowed to be downcast to type `other`.
-    pub(crate) fn may_downcast_to(&self, other: Self) -> bool {
+    /// Returns true if `self` is equal to `other` modulo
+    /// type parameters and interface types.
+    pub fn loose_equals(&self, other: Self) -> bool {
         match (self.which(), other.which()) {
             (TypeVariant::Void, TypeVariant::Void) => true,
             (TypeVariant::UInt8, TypeVariant::UInt8) => true,
@@ -133,7 +133,7 @@ impl Type {
                 core::ptr::eq(rbs1.generic, rbs2.generic)
             }
             (TypeVariant::List(element1), TypeVariant::List(element2)) => {
-                element1.may_downcast_to(element2)
+                element1.loose_equals(element2)
             }
             (TypeVariant::AnyPointer, TypeVariant::AnyPointer) => true,
             (TypeVariant::Capability, TypeVariant::Capability) => true,
@@ -142,7 +142,7 @@ impl Type {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone)]
 /// A `Type` unfolded one level. Suitable for pattern matching. Can be trivially
 /// converted to `Type` via the `From`/`Into` traits.
 pub enum TypeVariant {
@@ -194,7 +194,7 @@ impl From<TypeVariant> for Type {
 }
 
 /// A Cap'n Proto type, excluding `List`.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, Debug)]
 enum BaseType {
     Void,
     Bool,
@@ -269,34 +269,6 @@ pub struct RawBrandedStructSchema {
     /// of the value held by that annotation.
     pub annotation_types: fn(Option<u16>, u32) -> Type,
 }
-
-/// WARNING!
-///
-/// In capnproto-c++, this method is implemented as a single pointer
-/// comparison. That works because C++ guarantees unique addresses
-/// for static template instantiations. In contrast, the below Rust
-/// implementation uses function pointer comparison, which might
-/// give unexpected results (particularly in the presence of type
-/// parameter instantiation).
-///
-/// For this reason, usage of equality on types in capnproto-rust
-/// is discouraged.
-///
-/// You might think that we could still implement the method
-/// in a slower way by recursively comparing types of fields.
-/// However, that (or at least the naive version of it) can hit
-/// infinite loops because e.g. a struct Foo might have a field of
-/// type Foo.
-///
-/// TODO(api_bump): remove this `impl PartialEq`.
-impl core::cmp::PartialEq for RawBrandedStructSchema {
-    #[allow(unpredictable_function_pointer_comparisons)]
-    fn eq(&self, other: &Self) -> bool {
-        core::ptr::eq(self.generic, other.generic) && self.field_types == other.field_types
-    }
-}
-
-impl core::cmp::Eq for RawBrandedStructSchema {}
 
 impl core::fmt::Debug for RawBrandedStructSchema {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
