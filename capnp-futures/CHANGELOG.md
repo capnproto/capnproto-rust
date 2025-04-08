@@ -1,3 +1,6 @@
+## v0.21.0
+- Follow v0.21.0 release of other capnp crates.
+
 ## v0.20.1
 - Remove dependency on futures crate in favor of lighter-weight dependencies
   on futures-channel and futures-util.

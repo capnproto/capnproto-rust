@@ -1,3 +1,6 @@
+## v0.21.0
+- Follow v0.21.0 release of other capnp crates.
+
 ## v0.20.3
 - Remove redundant information in the `reason` field of some RPC errors.
 

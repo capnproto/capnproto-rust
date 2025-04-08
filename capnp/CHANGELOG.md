@@ -1,3 +1,9 @@
+## v0.21.0
+- Bump minimum required rustc version to 1.81.0.
+- Use `core::Error` trait, allowing no_std mode to include `Error` impls.
+- Generalize `ReaderSegments` implementations.
+- Remove equality impls for `introspect::Type` in favor of new `loose_equals()` method.
+
 ## v0.20.6
 - Restore the "unpredictable function pointer comparison" in
   `impl PartialEq for RawBrandedStructSchema` and suppress the rustc warning.
