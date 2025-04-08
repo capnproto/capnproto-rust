@@ -460,28 +460,6 @@ where
     }
 }
 
-/// Converts a promise for a client into a client that queues up any calls that arrive
-/// before the promise resolves.
-#[deprecated(since = "0.20.2", note = "use `new_future_client()` instead")]
-pub fn new_promise_client<T, F>(client_promise: F) -> T
-where
-    T: ::capnp::capability::FromClientHook,
-    F: ::futures::Future<Output = Result<capnp::capability::Client, Error>>,
-    F: 'static + Unpin,
-{
-    let mut queued_client = crate::queued::Client::new(None);
-    let weak_client = Rc::downgrade(&queued_client.inner);
-
-    queued_client.drive(client_promise.then(move |r| {
-        if let Some(queued_inner) = weak_client.upgrade() {
-            crate::queued::ClientInner::resolve(&queued_inner, r.map(|c| c.hook));
-        }
-        Promise::ok(())
-    }));
-
-    T::new(Box::new(queued_client))
-}
-
 /// Creates a `Client` from a future that resolves to a `Client`.
 ///
 /// Any calls that arrive before the resolution are accumulated in a queue.
