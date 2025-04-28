@@ -29,48 +29,42 @@ pub mod addressbook {
 
     pub fn write_address_book() -> ::capnp::Result<()> {
         let mut message = ::capnp::message::Builder::new_default();
-        {
-            let address_book = message.init_root::<address_book::Builder>();
 
-            let mut people = address_book.init_people(2);
+        let address_book = message.init_root::<address_book::Builder>();
+        let mut people = address_book.init_people(2);
 
-            {
-                let mut alice = people.reborrow().get(0);
-                alice.set_id(123);
-                alice.set_name("Alice");
-                alice.set_email("alice@example.com");
-                {
-                    let mut alice_phones = alice.reborrow().init_phones(1);
-                    alice_phones.reborrow().get(0).set_number("555-1212");
-                    alice_phones
-                        .reborrow()
-                        .get(0)
-                        .set_type(person::phone_number::Type::Mobile);
-                }
-                alice.get_employment().set_school("MIT");
-            }
+        let mut alice = people.reborrow().get(0);
+        alice.set_id(123);
+        alice.set_name("Alice");
+        alice.set_email("alice@example.com");
 
-            {
-                let mut bob = people.get(1);
-                bob.set_id(456);
-                bob.set_name("Bob");
-                bob.set_email("bob@example.com");
-                {
-                    let mut bob_phones = bob.reborrow().init_phones(2);
-                    bob_phones.reborrow().get(0).set_number("555-4567");
-                    bob_phones
-                        .reborrow()
-                        .get(0)
-                        .set_type(person::phone_number::Type::Home);
-                    bob_phones.reborrow().get(1).set_number("555-7654");
-                    bob_phones
-                        .reborrow()
-                        .get(1)
-                        .set_type(person::phone_number::Type::Work);
-                }
-                bob.get_employment().set_unemployed(());
-            }
-        }
+        let mut alice_phones = alice.reborrow().init_phones(1);
+        alice_phones.reborrow().get(0).set_number("555-1212");
+        alice_phones
+            .reborrow()
+            .get(0)
+            .set_type(person::phone_number::Type::Mobile);
+
+        alice.get_employment().set_school("MIT");
+
+        let mut bob = people.get(1);
+        bob.set_id(456);
+        bob.set_name("Bob");
+        bob.set_email("bob@example.com");
+
+        let mut bob_phones = bob.reborrow().init_phones(2);
+        bob_phones.reborrow().get(0).set_number("555-4567");
+        bob_phones
+            .reborrow()
+            .get(0)
+            .set_type(person::phone_number::Type::Home);
+        bob_phones.reborrow().get(1).set_number("555-7654");
+        bob_phones
+            .reborrow()
+            .get(1)
+            .set_type(person::phone_number::Type::Work);
+
+        bob.get_employment().set_unemployed(());
 
         serialize_packed::write_message(&mut ::std::io::stdout(), &message)
     }
