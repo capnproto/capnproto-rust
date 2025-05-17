@@ -1,6 +1,7 @@
 //! Traits and types to support run-time type introspection, i.e. reflection.
 
 use crate::private::layout::ElementSize;
+use crate::schema::{EnumSchema, StructSchema};
 
 /// A type that supports reflection. All types that can appear in a Cap'n Proto message
 /// implement this trait.
@@ -280,6 +281,12 @@ impl core::fmt::Debug for RawBrandedStructSchema {
     }
 }
 
+impl From<StructSchema> for RawBrandedStructSchema {
+    fn from(value: StructSchema) -> Self {
+        value.raw
+    }
+}
+
 /// Type information that gets included in the generated code for every
 /// user-defined Cap'n Proto enum.
 ///
@@ -306,5 +313,11 @@ impl core::cmp::Eq for RawEnumSchema {}
 impl core::fmt::Debug for RawEnumSchema {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
         write!(f, "RawEnumSchema({:?})", self.encoded_node as *const _)
+    }
+}
+
+impl From<EnumSchema> for RawEnumSchema {
+    fn from(value: EnumSchema) -> Self {
+        value.raw
     }
 }
