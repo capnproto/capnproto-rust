@@ -83,7 +83,7 @@ impl StructSchema {
             Ok(field)
         } else {
             let mut error = crate::Error::from_kind(crate::ErrorKind::FieldNotFound);
-            write!(error, "{}", name);
+            write!(error, "{name}");
             Err(error)
         }
     }

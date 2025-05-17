@@ -95,7 +95,7 @@ impl<'a> core::cmp::PartialOrd<Reader<'a>> for &'a str {
 impl core::fmt::Debug for Reader<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self.to_str() {
-            Ok(s) => write!(f, "{:?}", s),
+            Ok(s) => write!(f, "{s:?}"),
             Err(_) => write!(f, "<invalid utf-8: {:?}>", self.as_bytes()),
         }
     }
@@ -288,7 +288,7 @@ impl<'a> Builder<'a> {
 impl core::fmt::Debug for Builder<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self.reborrow_as_reader().to_str() {
-            Ok(s) => write!(f, "{:?}", s),
+            Ok(s) => write!(f, "{s:?}"),
             Err(_) => write!(f, "<invalid utf-8>"),
         }
     }
