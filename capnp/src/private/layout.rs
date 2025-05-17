@@ -3888,7 +3888,7 @@ impl<'a> ListReader<'a> {
         match self.element_size {
             ElementSize::InlineComposite => {
                 read_head.set(unsafe { read_head.get().add(BYTES_PER_WORD) }); // tag word
-                if !std::ptr::eq(self.ptr, read_head.get()) {
+                if !core::ptr::eq(self.ptr, read_head.get()) {
                     return Ok(false);
                 }
                 if self.struct_data_size % BITS_PER_WORD as u32 != 0 {
@@ -3930,7 +3930,7 @@ impl<'a> ListReader<'a> {
                 Ok(list_data_trunc && list_ptr_trunc)
             }
             ElementSize::Pointer => {
-                if !std::ptr::eq(self.ptr, read_head.get()) {
+                if !core::ptr::eq(self.ptr, read_head.get()) {
                     return Ok(false);
                 }
                 read_head.set(unsafe {
@@ -3946,7 +3946,7 @@ impl<'a> ListReader<'a> {
                 Ok(true)
             }
             element_size => {
-                if !std::ptr::eq(self.ptr, read_head.get()) {
+                if !core::ptr::eq(self.ptr, read_head.get()) {
                     return Ok(false);
                 }
                 let bit_size =
