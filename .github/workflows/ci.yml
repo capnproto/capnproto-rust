@@ -68,6 +68,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
         with:
+          # pinned until a fix for https://github.com/rust-lang/miri/issues/4323 is released
+          toolchain: nightly-2025-05-16
           components: miri
 
       - name: Setup miri
