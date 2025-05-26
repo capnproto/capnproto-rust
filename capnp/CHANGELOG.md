@@ -1,3 +1,9 @@
+## v0.21.1
+- Mark `wire_pointers::set_capability_pointer()` and `PointerBuilder::get_root()` as `unsafe`.
+  These functions live under the `private` module, so no downstreams users should be directly
+  using them.
+- Add `Into` impls for converting `EnumSchema` and `StructSchema` into their raw counterparts.
+
 ## v0.21.0
 - Bump minimum required rustc version to 1.81.0.
 - Use `core::Error` trait, allowing no_std mode to include `Error` impls.
