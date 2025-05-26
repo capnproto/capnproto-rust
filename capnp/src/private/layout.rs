@@ -1971,7 +1971,7 @@ mod wire_helpers {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn set_capability_pointer(
+    pub unsafe fn set_capability_pointer(
         _arena: &mut dyn BuilderArena,
         _segment_id: u32,
         mut cap_table: CapTableBuilder,
@@ -1979,9 +1979,7 @@ mod wire_helpers {
         cap: alloc::boxed::Box<dyn ClientHook>,
     ) {
         // TODO if ref is not null, zero object.
-        unsafe {
-            (*reff).set_cap(cap_table.inject_cap(cap) as u32);
-        }
+        (*reff).set_cap(cap_table.inject_cap(cap) as u32);
     }
 
     pub unsafe fn set_list_pointer(
@@ -2861,7 +2859,7 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_root(
+    pub unsafe fn get_root(
         arena: &'a dyn ReaderArena,
         segment_id: u32,
         location: *const u8,
@@ -3307,13 +3305,15 @@ impl<'a> PointerBuilder<'a> {
 
     #[cfg(feature = "alloc")]
     pub fn set_capability(&mut self, cap: alloc::boxed::Box<dyn ClientHook>) {
-        wire_helpers::set_capability_pointer(
-            self.arena,
-            self.segment_id,
-            self.cap_table,
-            self.pointer,
-            cap,
-        );
+        unsafe {
+            wire_helpers::set_capability_pointer(
+                self.arena,
+                self.segment_id,
+                self.cap_table,
+                self.pointer,
+                cap,
+            );
+        }
     }
 
     pub fn copy_from(&mut self, other: PointerReader, canonicalize: bool) -> Result<()> {

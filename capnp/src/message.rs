@@ -275,12 +275,14 @@ where
 
     fn get_root_internal(&self) -> Result<any_pointer::Reader<'_>> {
         let (segment_start, _seg_len) = self.arena.get_segment(0)?;
-        let pointer_reader = layout::PointerReader::get_root(
-            &self.arena,
-            0,
-            segment_start,
-            self.arena.nesting_limit(),
-        )?;
+        let pointer_reader = unsafe {
+            layout::PointerReader::get_root(
+                &self.arena,
+                0,
+                segment_start,
+                self.arena.nesting_limit(),
+            )
+        }?;
         Ok(any_pointer::Reader::new(pointer_reader))
     }
 
@@ -305,12 +307,14 @@ where
             return Ok(false);
         }
 
-        let pointer_reader = layout::PointerReader::get_root(
-            &self.arena,
-            0,
-            segment_start,
-            self.arena.nesting_limit(),
-        )?;
+        let pointer_reader = unsafe {
+            layout::PointerReader::get_root(
+                &self.arena,
+                0,
+                segment_start,
+                self.arena.nesting_limit(),
+            )
+        }?;
         let read_head = ::core::cell::Cell::new(unsafe { segment_start.add(BYTES_PER_WORD) });
         let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
         let all_words_consumed = (read_head.get() as usize - segment_start as usize)
@@ -525,12 +529,14 @@ where
             any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {
             let (segment_start, _segment_len) = self.arena.get_segment(0)?;
-            let pointer_reader = layout::PointerReader::get_root(
-                self.arena.as_reader(),
-                0,
-                segment_start,
-                0x7fffffff,
-            )?;
+            let pointer_reader = unsafe {
+                layout::PointerReader::get_root(
+                    self.arena.as_reader(),
+                    0,
+                    segment_start,
+                    0x7fffffff,
+                )
+            }?;
             let root = any_pointer::Reader::new(pointer_reader);
             root.get_as()
         }
