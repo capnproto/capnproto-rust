@@ -103,6 +103,14 @@ impl<T, E> Future for Promise<T, E> {
     }
 }
 
+impl<T, E> From<Result<T, E>> for Promise<T, E> {
+    fn from(value: Result<T, E>) -> Self {
+        Self {
+            inner: PromiseInner::Immediate(value),
+        }
+    }
+}
+
 #[cfg(feature = "alloc")]
 #[cfg(feature = "rpc_try")]
 impl<T> core::ops::Try for Promise<T, crate::Error> {
