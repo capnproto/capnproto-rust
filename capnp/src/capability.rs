@@ -103,6 +103,7 @@ impl<T, E> Future for Promise<T, E> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T, E> From<Result<T, E>> for Promise<T, E> {
     fn from(value: Result<T, E>) -> Self {
         Self {
