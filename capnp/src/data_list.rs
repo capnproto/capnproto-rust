@@ -62,7 +62,7 @@ impl<'a> Reader<'a> {
         ListIter::new(self, l)
     }
 
-    pub fn reborrow(&self) -> Reader {
+    pub fn reborrow(&self) -> Reader<'_> {
         Reader {
             reader: self.reader,
         }

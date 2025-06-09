@@ -565,7 +565,7 @@ where
         Ok(())
     }
 
-    pub fn get_segments_for_output(&self) -> OutputSegments {
+    pub fn get_segments_for_output(&self) -> OutputSegments<'_> {
         self.arena.get_segments_for_output()
     }
 
