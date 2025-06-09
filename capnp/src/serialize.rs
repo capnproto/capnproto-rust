@@ -251,7 +251,7 @@ impl SegmentLengthsBuilder {
         self,
         slice: &[u8],
         segment_table_bytes_len: usize,
-    ) -> SliceSegments {
+    ) -> SliceSegments<'_> {
         assert!(self.total_words * BYTES_PER_WORD <= slice.len());
         BufferSegments {
             buffer: slice,

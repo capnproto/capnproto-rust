@@ -274,7 +274,7 @@ where
         self.inner.allocate_segment(minimum_size)
     }
 
-    pub fn get_segments_for_output(&self) -> OutputSegments {
+    pub fn get_segments_for_output(&self) -> OutputSegments<'_> {
         let reff = &self.inner;
         if reff.segments.len() == 1 {
             let seg = &reff.segments[0];
