@@ -43,7 +43,7 @@ impl IncomingMessage {
 }
 
 impl crate::IncomingMessage for IncomingMessage {
-    fn get_body(&self) -> ::capnp::Result<::capnp::any_pointer::Reader> {
+    fn get_body(&self) -> ::capnp::Result<::capnp::any_pointer::Reader<'_>> {
         self.message.get_root()
     }
 }
@@ -54,11 +54,11 @@ struct OutgoingMessage {
 }
 
 impl crate::OutgoingMessage for OutgoingMessage {
-    fn get_body(&mut self) -> ::capnp::Result<::capnp::any_pointer::Builder> {
+    fn get_body(&mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'_>> {
         self.message.get_root()
     }
 
-    fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader> {
+    fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader<'_>> {
         self.message.get_root_as_reader()
     }
 

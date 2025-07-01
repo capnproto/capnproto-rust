@@ -523,7 +523,7 @@ const OPTION_ANNOTATION_ID: u64 = 0xabfef22c4ee1964e;
 // StreamResult type ID, as defined in stream.capnp.
 const STREAM_RESULT_ID: u64 = 0x995f9a3377c0b16e;
 
-fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp::Result<&str> {
+fn name_annotation_value(annotation: schema_capnp::annotation::Reader<'_>) -> capnp::Result<&str> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
         let name = t?.to_str()?;
         for c in name.chars() {
@@ -542,7 +542,7 @@ fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp:
     }
 }
 
-fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
+fn get_field_name(field: schema_capnp::field::Reader<'_>) -> capnp::Result<&str> {
     for annotation in field.get_annotations()? {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             return name_annotation_value(annotation);
@@ -551,7 +551,7 @@ fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
     Ok(field.get_name()?.to_str()?)
 }
 
-fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Result<&str> {
+fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader<'_>) -> capnp::Result<&str> {
     for annotation in enumerant.get_annotations()? {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             return name_annotation_value(annotation);

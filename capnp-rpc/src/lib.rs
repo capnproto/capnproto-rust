@@ -117,10 +117,10 @@ pub trait OutgoingMessage {
     ///
     /// The standard RPC implementation initializes it as a Message as defined
     /// in `schema/rpc.capnp`.
-    fn get_body(&mut self) -> ::capnp::Result<::capnp::any_pointer::Builder>;
+    fn get_body(&mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'_>>;
 
     /// Same as `get_body()`, but returns the corresponding reader type.
-    fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader>;
+    fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader<'_>>;
 
     /// Sends the message. Returns a promise that resolves once the send has completed.
     /// Dropping the returned promise does *not* cancel the send.
@@ -147,7 +147,7 @@ pub trait IncomingMessage {
     ///
     /// The standard RPC implementation interprets it as a Message as defined
     /// in `schema/rpc.capnp`.
-    fn get_body(&self) -> ::capnp::Result<::capnp::any_pointer::Reader>;
+    fn get_body(&self) -> ::capnp::Result<::capnp::any_pointer::Reader<'_>>;
 }
 
 /// A two-way RPC connection.

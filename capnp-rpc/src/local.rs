@@ -34,7 +34,7 @@ use std::rc::Rc;
 
 pub trait ResultsDoneHook {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook>;
-    fn get(&self) -> ::capnp::Result<any_pointer::Reader>;
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader<'_>>;
 }
 
 impl Clone for Box<dyn ResultsDoneHook> {
@@ -54,7 +54,7 @@ impl Response {
 }
 
 impl ResponseHook for Response {
-    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader<'_>> {
         self.results.get()
     }
 }
@@ -74,7 +74,7 @@ impl Params {
 }
 
 impl ParamsHook for Params {
-    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader<'_>> {
         let mut result: any_pointer::Reader = self.request.get_root_as_reader()?;
         result.imbue(&self.cap_table);
         Ok(result)
@@ -116,7 +116,7 @@ impl Drop for Results {
 }
 
 impl ResultsHook for Results {
-    fn get(&mut self) -> ::capnp::Result<any_pointer::Builder> {
+    fn get(&mut self) -> ::capnp::Result<any_pointer::Builder<'_>> {
         match *self {
             Self {
                 message: Some(ref mut message),
@@ -192,7 +192,7 @@ impl ResultsDoneHook for ResultsDone {
             inner: self.inner.clone(),
         })
     }
-    fn get(&self) -> ::capnp::Result<any_pointer::Reader> {
+    fn get(&self) -> ::capnp::Result<any_pointer::Reader<'_>> {
         let mut result: any_pointer::Reader = self.inner.message.get_root_as_reader()?;
         result.imbue(&self.inner.cap_table);
         Ok(result)
@@ -230,7 +230,7 @@ impl Request {
 }
 
 impl RequestHook for Request {
-    fn get(&mut self) -> any_pointer::Builder {
+    fn get(&mut self) -> any_pointer::Builder<'_> {
         let mut result: any_pointer::Builder = self.message.get_root().unwrap();
         result.imbue_mut(&mut self.cap_table);
         result
