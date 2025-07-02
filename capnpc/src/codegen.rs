@@ -433,7 +433,7 @@ fn format_u64(value: u64) -> String {
     let mut later_loop = false;
 
     for ch in hex[2..].chars() {
-        if later_loop && place % 4 == 0 {
+        if later_loop && place.is_multiple_of(4) {
             separated.push('_');
         }
 
@@ -743,7 +743,7 @@ pub fn getter_text(
             let should_get_option = is_option_field(*field)?;
 
             let typ = if should_get_option {
-                format!("Option<{}>", inner_type)
+                format!("Option<{inner_type}>")
             } else {
                 inner_type
             };
@@ -1723,7 +1723,7 @@ fn annotation_branch(
         let brand = annotation.get_brand()?;
         let the_mod = ctx.get_qualified_module(id);
         let func = do_branding(ctx, id, brand, Leaf::GetType, &the_mod)?;
-        Ok(Line(format!("({child_index:?}, {index}) => {}(),", func)))
+        Ok(Line(format!("({child_index:?}, {index}) => {func}(),")))
     } else {
         // Avoid referring to the annotation in the generated code, so that users can import
         // annotation schemas like `c++.capnp` or `rust.capnp` without needing to generate code
@@ -2514,7 +2514,7 @@ fn generate_node(
             ]));
 
             output.push(Branch(vec![
-                Line(format!("mod {} {{", name_as_mod)),
+                Line(format!("mod {name_as_mod} {{")),
                 Branch(vec![
                     crate::pointer_constants::node_word_array_declaration(
                         ctx,
@@ -3051,7 +3051,7 @@ fn generate_node(
             let params = node_reader.parameters_texts(ctx);
             let last_name = ctx.get_last_name(node_id)?;
             let mut interior = vec![];
-            interior.push(Line(format!("pub const ID: u64 = 0x{:x};", node_id)));
+            interior.push(Line(format!("pub const ID: u64 = 0x{node_id:x};")));
 
             let ty = annotation_reader.get_type()?;
             if !is_generic {
@@ -3061,7 +3061,7 @@ fn generate_node(
                 interior.push(Line(fmt!(ctx,"pub fn get_type<{0}>() -> {capnp}::introspect::Type {1} {{ <{2} as {capnp}::introspect::Introspect>::introspect() }}", params.params, params.where_clause, ty.type_string(ctx, Leaf::Owned)?)));
             }
             output.push(Branch(vec![
-                Line(format!("pub mod {} {{", last_name)),
+                Line(format!("pub mod {last_name} {{")),
                 indent(interior),
                 Line("}".into()),
             ]));
