@@ -1,3 +1,8 @@
+## v0.21.1
+- Use new  `introspect::panic_invalid_field_index()` and
+  `introspect::panic_invalid_annotation_indices()` functions so that
+  generated code can pass Clippy while still working on Rust 2015.
+
 ## v0.21.0
 - Follow v0.21.0 release of other capnp crates.
 
