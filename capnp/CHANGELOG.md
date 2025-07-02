@@ -1,3 +1,8 @@
+## v0.21.2
+- Add `introspect::panic_invalid_field_index()` and `introspect::panic_invalid_annotation_indices()`
+  so that generated code can pass Clippy while still working on Rust 2015.
+- Add `impl<T, E> From<Result<T, E>> for Promise<T, E>`.
+
 ## v0.21.1
 - Mark `wire_pointers::set_capability_pointer()` and `PointerBuilder::get_root()` as `unsafe`.
   These functions live under the `private` module, so no downstreams users should be directly
