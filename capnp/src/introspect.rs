@@ -321,3 +321,23 @@ impl From<EnumSchema> for RawEnumSchema {
         value.raw
     }
 }
+
+/**
+Function intended to be called by generated `get_field_types()` methods.
+Defined here so that we can use inline format args syntax, which did
+not exist before Rust edition 2021. Not intended to be called directly by
+end users.
+ */
+pub fn panic_invalid_field_index(index: u16) -> ! {
+    panic!("invalid field index {index}")
+}
+
+/**
+Function intended to be called by generated `get_annotation_types()` methods.
+Defined here so that we can use inline format args syntax, which did
+not exist before Rust edition 2021. Not intended to be called directly by
+end users.
+ */
+pub fn panic_invalid_annotation_indices(child_index: Option<u16>, index: u32) -> ! {
+    panic!("invalid annotation indices ({child_index:?}, {index}) ")
+}

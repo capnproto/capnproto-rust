@@ -1668,11 +1668,15 @@ fn generate_get_field_types(
         }
     }
     let body = if branches.is_empty() {
-        Line("panic!(\"invalid field index {}\", index)".into())
+        Line(fmt!(
+            ctx,
+            "{capnp}::introspect::panic_invalid_field_index(index)"
+        ))
     } else {
-        branches.push(Line(
-            "_ => panic!(\"invalid field index {}\", index),".into(),
-        ));
+        branches.push(Line(fmt!(
+            ctx,
+            "_ => {capnp}::introspect::panic_invalid_field_index(index),"
+        )));
         Branch(vec![
             Line("match index {".into()),
             indent(branches),
@@ -1774,11 +1778,15 @@ fn generate_get_annotation_types(
     }
 
     let body = if branches.is_empty() {
-        Line("panic!(\"invalid annotation indices ({:?}, {}) \", child_index, index)".into())
+        Line(fmt!(
+            ctx,
+            "{capnp}::introspect::panic_invalid_annotation_indices(child_index, index)"
+        ))
     } else {
-        branches.push(Line(
-            "_ => panic!(\"invalid annotation indices ({:?}, {}) \", child_index, index),".into(),
-        ));
+        branches.push(Line(fmt!(
+            ctx,
+            "_ => {capnp}::introspect::panic_invalid_annotation_indices(child_index, index),"
+        )));
         indent(vec![
             Line("match (child_index, index) {".into()),
             indent(branches),
