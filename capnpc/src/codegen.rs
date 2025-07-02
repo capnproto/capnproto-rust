@@ -433,7 +433,7 @@ fn format_u64(value: u64) -> String {
     let mut later_loop = false;
 
     for ch in hex[2..].chars() {
-        if later_loop && place.is_multiple_of(4) {
+        if later_loop && place % 4 == 0 {
             separated.push('_');
         }
 
