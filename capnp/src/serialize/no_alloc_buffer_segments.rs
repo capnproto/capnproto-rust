@@ -280,7 +280,7 @@ fn u32_to_segments_count(val: u32) -> Result<usize> {
 
 /// Converts 32 bit value which represents encoded segment length to usize segment length in bytes
 fn u32_to_segment_length_bytes(val: u32) -> Result<usize> {
-    // This convertion can fail on 8 or 16 bit machines.
+    // This conversion can fail on 8 or 16 bit machines.
     let length_in_words: Option<usize> = val.try_into().ok();
 
     let length_in_bytes = length_in_words.and_then(|l| l.checked_mul(BYTES_PER_WORD));
@@ -292,7 +292,7 @@ fn u32_to_segment_length_bytes(val: u32) -> Result<usize> {
 /// in the capnp message.
 /// Message data comes right after message header and potential padding
 ///
-/// Returns None if it's impossible to calculate offset without arithmentic overflow of usize or
+/// Returns None if it's impossible to calculate offset without arithmetic overflow of usize or
 /// if segments count is invalid
 fn calculate_data_offset(segments_count: usize) -> Option<usize> {
     // Message data goes right after message header.

@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 /// At one point the standard library had `::std::num::Zero`. It was never stabilized
-/// it eventually got deleted. So we define our own version here.
+/// and eventually got deleted. So we define our own version here.
 pub trait Zero {
     fn zero() -> Self;
 }

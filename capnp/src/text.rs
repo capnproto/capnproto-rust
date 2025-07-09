@@ -156,7 +156,7 @@ impl<'a> Reader<'a> {
         d
     }
 
-    /// Converts to a `str`, returning a error if the data contains invalid utf-8.
+    /// Converts to a `str`, returning an error if the data contains invalid utf-8.
     #[inline]
     pub fn to_str(self) -> core::result::Result<&'a str, core::str::Utf8Error> {
         let Self(s) = self;
@@ -164,7 +164,7 @@ impl<'a> Reader<'a> {
     }
 
     #[cfg(feature = "alloc")]
-    /// Converts to a `String`, returning a error if the data contains invalid utf-8.
+    /// Converts to a `String`, returning an error if the data contains invalid utf-8.
     #[inline]
     pub fn to_string(self) -> core::result::Result<alloc::string::String, core::str::Utf8Error> {
         Ok(self.to_str()?.into())

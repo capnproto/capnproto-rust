@@ -106,7 +106,7 @@ pub struct ReaderOptions {
     ///
     /// Like the traversal limit, this limit exists for security reasons. Since it is common to use
     /// recursive code to traverse recursive data structures, an attacker could easily cause a stack
-    /// overflow by sending a very-depply-nested (or even cyclic) message, without the message even
+    /// overflow by sending a very-deeply-nested (or even cyclic) message, without the message even
     /// being very large. The default limit of 64 is probably low enough to prevent any chance of
     /// stack overflow, yet high enough that it is never a problem in practice.
     pub nesting_limit: i32,
@@ -607,7 +607,7 @@ where
     }
 }
 
-/// Stongly typed variant of the [Builder]
+/// Strongly typed variant of the [Builder]
 ///
 /// Generic type parameters:
 /// - `T` - type of the capnp message which this builder is specialized on. Please see

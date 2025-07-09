@@ -114,7 +114,7 @@ pub(crate) fn print(
             let mut union_field = match cvt(st.which())? {
                 None => None,
                 Some(field) => {
-                    // If it's not the default descriminant, then we always need to print it.
+                    // If it's not the default discriminant, then we always need to print it.
                     if field.get_proto().get_discriminant_value() != 0 || cvt(st.has(field))? {
                         Some(field)
                     } else {

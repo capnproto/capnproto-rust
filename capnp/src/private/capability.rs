@@ -64,7 +64,7 @@ pub trait ClientHook {
     /// returns an identifier for that connection.
     fn get_brand(&self) -> usize;
 
-    /// Returns a (locally) unique identifier for this capabilitiy.
+    /// Returns a (locally) unique identifier for this capability.
     fn get_ptr(&self) -> usize;
 
     /// If this ClientHook is a promise that has already resolved, returns the inner, resolved version

@@ -384,7 +384,7 @@ pub struct DispatchCallResult {
     pub promise: Promise<(), Error>,
 
     /// If true, this method was declared as `-> stream;`. If this call throws
-    /// an exception, then all future calls on the capability with throw the
+    /// an exception, then all future calls on the capability will throw the
     /// same exception.
     pub is_streaming: bool,
 }
