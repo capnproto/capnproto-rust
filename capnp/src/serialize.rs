@@ -211,7 +211,7 @@ pub struct SegmentLengthsBuilder {
 
 #[cfg(feature = "alloc")]
 impl SegmentLengthsBuilder {
-    /// Creates a new `SegmentsLengthsBuilder`, initializing the segment_indices vector with
+    /// Creates a new `SegmentLengthsBuilder`, initializing the segment_indices vector with
     /// `Vec::with_capacitiy(capacity)`. `capacity` should equal the number of times that `push_segment()`
     /// is expected to be called.
     pub fn with_capacity(capacity: usize) -> Self {
