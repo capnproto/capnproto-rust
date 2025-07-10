@@ -976,7 +976,7 @@ fn zero_fields_of_group(
             Ok(Branch(result))
         }
         _ => Err(Error::failed(
-            "zero_fields_of_groupd() expected a struct".to_string(),
+            "zero_fields_of_group() expected a struct".to_string(),
         )),
     }
 }

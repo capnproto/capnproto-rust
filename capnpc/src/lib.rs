@@ -230,7 +230,7 @@ impl CompilerCommand {
     }
 
     /// Adds the --no-standard-import flag, indicating that the default import paths of
-    /// /usr/include and /usr/local/include should not bet included.
+    /// /usr/include and /usr/local/include should not be included.
     pub fn no_standard_import(&mut self) -> &mut Self {
         self.no_standard_import = true;
         self
@@ -368,7 +368,7 @@ impl CompilerCommand {
             PathBuf::from(::std::env::var("OUT_DIR").map_err(|error| {
                 ::capnp::Error::failed(format!(
                     "Could not access `OUT_DIR` environment variable: {error}. \
-                     You might need to set it up or instead create you own output \
+                     You might need to set it up or instead create your own output \
                      structure using `CompilerCommand::output_path`"
                 ))
             })?)
