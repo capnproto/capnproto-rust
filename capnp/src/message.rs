@@ -64,7 +64,7 @@
 //!
 //!     let reader_root = typed_reader.get().unwrap();
 //!     assert_eq!(reader_root.get_x(), 10);
-//!     assert_eq!(reader_root.get_x(), 20);
+//!     assert_eq!(reader_root.get_y(), 20);
 //! }
 //!
 //! ```
@@ -431,7 +431,7 @@ where
 /// times, including calling `deallocate_segment()` on drop.
 ///
 /// # Safety
-/// Implementions must ensure all of the following:
+/// Implementations must ensure all of the following:
 ///   1. The memory returned by `allocate_segment` is initialized to all zeroes.
 ///   2. The memory returned by `allocate_segment` is valid until `deallocate_segment()`
 ///      is called on it.

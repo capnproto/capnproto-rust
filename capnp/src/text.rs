@@ -224,14 +224,14 @@ impl<'a> Builder<'a> {
         self.bytes
     }
 
-    /// Converts to a `str`, returning a error if the data contains invalid utf-8.
+    /// Converts to a `str`, returning an error if the data contains invalid utf-8.
     #[inline]
     pub fn to_str(self) -> core::result::Result<&'a str, core::str::Utf8Error> {
         str::from_utf8(self.bytes)
     }
 
     #[cfg(feature = "alloc")]
-    /// Converts to a `String`, returning a error if the data contains invalid utf-8.
+    /// Converts to a `String`, returning an error if the data contains invalid utf-8.
     #[inline]
     pub fn to_string(self) -> core::result::Result<alloc::string::String, core::str::Utf8Error> {
         Ok(self.to_str()?.into())

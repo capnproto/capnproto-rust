@@ -339,5 +339,5 @@ not exist before Rust edition 2021. Not intended to be called directly by
 end users.
  */
 pub fn panic_invalid_annotation_indices(child_index: Option<u16>, index: u32) -> ! {
-    panic!("invalid annotation indices ({child_index:?}, {index}) ")
+    panic!("invalid annotation indices ({child_index:?}, {index})")
 }
