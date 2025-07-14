@@ -25,6 +25,7 @@ members = [
     "capnp-rpc/examples/calculator",
     "capnp-rpc/examples/pubsub",
     "capnp-rpc/examples/streaming",
+    "capnp-rpc/examples/reconnect",
     "capnp-rpc/test",
     "example/addressbook",
     "example/addressbook_send",
