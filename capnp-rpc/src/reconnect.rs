@@ -6,8 +6,46 @@ use capnp::capability::{FromClientHook, Promise};
 use capnp::private::capability::{ClientHook, RequestHook};
 use futures::TryFutureExt;
 
+/// Trait implemented by the reconnecting client to set new connection out-of-band.
+///
+/// When using [`auto_reconnect`] or [`lazy_auto_reconnect`] it is not always optimal
+/// to wait for a call to fail with [`Disconnected`](capnp::ErrorKind::Disconnected)
+/// before replacing the client that is wrapped with a new fresh one.
+///
+/// Sometimes we know by other means that a client has gone away. It could be that we
+/// have clients that automatically sends us a new capability when it reconnects to us.
+///
+/// For these situations you can use the implementation of this trait that you get from
+/// [`auto_reconnect`] or [`lazy_auto_reconnect`] to manually set the target of the
+/// wrapped client.
+///
+/// # Example
+///
+/// ```ignore
+/// // The reconnecting client that automatically calls connect
+/// let (foo_client, set_target) = auto_reconnect(|| {
+///     Ok(new_future_client(connect()))
+/// })?;
+///
+/// // do work with foo_client
+/// ...
+///
+/// // We become aware that the client has gone so reconnect manually
+/// set_target.set_target(new_future_client(connect()));
+///
+/// // do more work with foo_client
+/// ...
+/// ```
 pub trait SetTarget<C> {
+    /// Adds a new reference to this implementation of SetTarget.
+    ///
+    /// This is mostly to get around that `Clone` requires `Sized` and so you need this
+    /// trick to get a copy of the `Box<dyn SetTarget<C>>` you got from making the
+    /// reconneting client.
     fn add_ref(&self) -> Box<dyn SetTarget<C>>;
+
+    /// Sets the target client of the reconecting client that this trait implementation is
+    /// for.
     fn set_target(&self, target: C);
 }
 
@@ -218,6 +256,65 @@ where
     }
 }
 
+/// Creates a new client that reconnects when getting [`ErrorKind::Disconnected`](capnp::ErrorKind::Disconnected) errors.
+///
+/// Usually when you get a [`Disconnected`](capnp::ErrorKind::Disconnected) error respoonse from calling a method on a capability
+/// it means the end of that capability for good. And so you can't call methods on that
+/// capability any more.
+///
+/// When you have a way of getting the capability back: Be it from a bootstrap or because
+/// the capability is persistent this method can help you wrap that reconnnection logic into a client
+/// that automatically runs the logic whenever a method call returns [`Disconnected`](capnp::ErrorKind::Disconnected).
+///
+/// The way it works is that you provide a closure that returns a fresh client or a permanent error and
+/// you get a new conected client and a [`SetTarget`] interface that you can optionally use to prematurely
+/// replace the client.
+///
+/// There is one caveat though: The original request that got a [`Disconnected`](capnp::ErrorKind::Disconnected)
+/// will still get that response. It is up to the caller to retry the call if relevant. `auto_reconnect`` only
+/// deals with the calls that come after.
+///
+/// # Example
+///
+/// ```capnp
+/// # Cap'n Proto schema
+/// interface Foo {
+///     identity @0 (x: UInt32) -> (y: UInt32);
+/// }
+/// ```
+///
+/// ```ignore
+/// // A simple bootstrapped tcp connection to remote.example.com
+/// async fn connect() -> capnp::Result<foo_client::Client> {
+///     let stream = tokio::net::TcpStream::connect(&"remote.example.com:3001").await?;
+///     stream.set_nodelay(true)?;
+///     let (reader, writer) = tokio_util::compat::TokioAsyncReadCompatExt::compat(stream).split();
+///
+///     let network = Box::new(twoparty::VatNetwork::new(
+///         futures::io::BufReader::new(reader),
+///         futures::io::BufWriter::new(writer),
+///         rpc_twoparty_capnp::Side::Client,
+///         Default::default(),
+///     ));
+///
+///     let mut rpc_system = RpcSystem::new(network, None);
+///     let foo_client: foo_client::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+///     tokio::task::spawn_local(rpc_system);
+///     Ok(foo_client)
+/// }
+/// // The reconnecting client that automatically calls connect
+/// let (foo_client, _) = auto_reconnect(|| {
+///     // By using new_future_client we delay any calls until we have a new connection.
+///     Ok(new_future_client(connect()))
+/// })?;
+/// // Calling Foo like normally.
+/// let mut request = foo_client.identity_request();
+/// request.get().set_x(123);
+/// let promise = request.send().promise.and_then(|response| {
+///     println!("results = {}", response.get()?.get_y());
+///     Ok(())
+/// });
+/// ```
 pub fn auto_reconnect<F, C>(mut connect: F) -> capnp::Result<(C, Box<dyn SetTarget<C>>)>
 where
     F: FnMut() -> capnp::Result<C>,
@@ -232,6 +329,13 @@ where
     Ok((FromClientHook::new(hook), Box::new(c)))
 }
 
+/// Creates a new client that lazily connect and also reconnects when getting [`ErrorKind::Disconnected`](capnp::ErrorKind::Disconnected) errors.
+///
+/// For explanation of how this functions see: [`auto_reconnect`]
+///
+/// The main difference between [`auto_reconnect`] and this function is that while [`auto_reconnect`] will call
+/// the closure immediatly to get an inner client to wrap, this function starts out disconnected and only calls
+/// the closure to get the actual client when the capability is first used.
 pub fn lazy_auto_reconnect<F, C>(connect: F) -> (C, Box<dyn SetTarget<C>>)
 where
     F: FnMut() -> capnp::Result<C>,
