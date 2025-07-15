@@ -44,7 +44,7 @@ pub trait SetTarget<C> {
     /// reconneting client.
     fn add_ref(&self) -> Box<dyn SetTarget<C>>;
 
-    /// Sets the target client of the reconecting client that this trait implementation is
+    /// Sets the target client of the reconnecting client that this trait implementation is
     /// for.
     fn set_target(&self, target: C);
 }
