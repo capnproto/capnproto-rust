@@ -2730,13 +2730,13 @@ fn generate_node(
             mod_interior.push(
                 Branch(vec![
                     Line(fmt!(ctx,"impl {bracketed_params} {capnp}::capability::FromClientHook for Client{bracketed_params} {{")),
-                    indent(Line(fmt!(ctx,"fn new(hook: Box<dyn ({capnp}::private::capability::ClientHook)>) -> Self {{"))),
+                    indent(Line(fmt!(ctx,"fn new(hook: Box<{capnp}::capability::DynClientHook>) -> Self {{"))),
                     indent(indent(Line(fmt!(ctx,"Self {{ client: {capnp}::capability::Client::new(hook), {} }}", params.phantom_data_value)))),
                     indent(line("}")),
-                    indent(Line(fmt!(ctx,"fn into_client_hook(self) -> Box<dyn ({capnp}::private::capability::ClientHook)> {{"))),
+                    indent(Line(fmt!(ctx,"fn into_client_hook(self) -> Box<{capnp}::capability::DynClientHook> {{"))),
                     indent(indent(line("self.client.hook"))),
                     indent(line("}")),
-                    indent(Line(fmt!(ctx,"fn as_client_hook(&self) -> &dyn ({capnp}::private::capability::ClientHook) {{"))),
+                    indent(Line(fmt!(ctx,"fn as_client_hook(&self) -> &{capnp}::capability::DynClientHook {{"))),
                     indent(indent(line("&*self.client.hook"))),
                     indent(line("}")),
                     line("}")]));
