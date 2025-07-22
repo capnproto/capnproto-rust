@@ -42,6 +42,12 @@ use crate::traits::{Owned, Pipelined};
 #[cfg(feature = "alloc")]
 use crate::{Error, MessageSize};
 
+/// Type alias for `dyn ClientHook`. We define this here because so that generated code
+/// can avoid needing to refer to `dyn` types directly; in Rust 2015 the syntax for
+/// `dyn` types requires extra parentheses that trigger warnings in newer editions.
+#[cfg(feature = "alloc")]
+pub type DynClientHook = dyn ClientHook;
+
 /// A computation that might eventually resolve to a value of type `T` or to an error
 ///  of type `E`. Dropping the promise cancels the computation.
 #[cfg(feature = "alloc")]
