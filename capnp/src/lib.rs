@@ -610,7 +610,7 @@ impl core::error::Error for Error {
     fn description(&self) -> &str {
         &self.extra
     }
-    fn cause(&self) -> Option<&dyn (::core::error::Error)> {
+    fn cause(&self) -> Option<&dyn ::core::error::Error> {
         None
     }
 }
