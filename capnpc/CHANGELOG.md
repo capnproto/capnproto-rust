@@ -1,3 +1,6 @@
+## v0.21.2
+- Use new `capability::DynClientHook` alias to avoid warnings in generated code.
+
 ## v0.21.1
 - Use new  `introspect::panic_invalid_field_index()` and
   `introspect::panic_invalid_annotation_indices()` functions so that
