@@ -1,3 +1,6 @@
+## v0.21.3
+- Add `capability::DynClientHook` to avoid warnings in generated code.
+
 ## v0.21.2
 - Add `introspect::panic_invalid_field_index()` and `introspect::panic_invalid_annotation_indices()`
   so that generated code can pass Clippy while still working on Rust 2015.
