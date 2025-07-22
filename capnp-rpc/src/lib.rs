@@ -494,7 +494,7 @@ where
     A: ::capnp::message::Allocator,
 {
     builder: ::capnp::message::Builder<A>,
-    cap_table: Vec<Option<Box<dyn (::capnp::private::capability::ClientHook)>>>,
+    cap_table: Vec<Option<Box<dyn ::capnp::private::capability::ClientHook>>>,
 }
 
 impl<A> ImbuedMessageBuilder<A>
