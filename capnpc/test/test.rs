@@ -1181,7 +1181,12 @@ mod tests {
         assert_eq!(text_list.get(1).unwrap(), "xyzzy");
         assert_eq!(text_list.get(2).unwrap(), "thud");
 
-        // TODO: DATA_LIST_CONST
+        let data_list_const = test_constants::DATA_LIST_CONST;
+        let data_list = data_list_const.get().unwrap();
+        assert_eq!(data_list.len(), 3);
+        assert_eq!(data_list.get(0).unwrap(), b"oops");
+        assert_eq!(data_list.get(1).unwrap(), b"exhausted");
+        assert_eq!(data_list.get(2).unwrap(), b"rfc3092");
 
         let struct_list_const = test_constants::STRUCT_LIST_CONST;
         let struct_list = struct_list_const.get().unwrap();
