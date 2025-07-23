@@ -1172,6 +1172,36 @@ mod tests {
         assert_eq!(int8_list.get(0), 111);
         assert_eq!(int8_list.get(1), -111);
 
+        let int16_list_const = test_constants::INT16_LIST_CONST;
+        let int16_list = int16_list_const.get().unwrap();
+        assert_eq!(int16_list.len(), 2);
+        assert_eq!(int16_list.get(0), 11111);
+        assert_eq!(int16_list.get(1), -11111);
+
+        let int32_list_const = test_constants::INT32_LIST_CONST;
+        let int32_list = int32_list_const.get().unwrap();
+        assert_eq!(int32_list.len(), 2);
+        assert_eq!(int32_list.get(0), 111111111);
+        assert_eq!(int32_list.get(1), -111111111);
+
+        let int64_list_const = test_constants::INT64_LIST_CONST;
+        let int64_list = int64_list_const.get().unwrap();
+        assert_eq!(int64_list.len(), 2);
+        assert_eq!(int64_list.get(0), 1111111111111111111);
+        assert_eq!(int64_list.get(1), -1111111111111111111);
+
+        let uint8_list_const = test_constants::UINT8_LIST_CONST;
+        let uint8_list = uint8_list_const.get().unwrap();
+        assert_eq!(uint8_list.len(), 2);
+        assert_eq!(uint8_list.get(0), 111);
+        assert_eq!(uint8_list.get(1), 222);
+
+        let uint16_list_const = test_constants::UINT16_LIST_CONST;
+        let uint16_list = uint16_list_const.get().unwrap();
+        assert_eq!(uint16_list.len(), 2);
+        assert_eq!(uint16_list.get(0), 33333);
+        assert_eq!(uint16_list.get(1), 44444);
+
         // ...
 
         let text_list_const = test_constants::TEXT_LIST_CONST;
