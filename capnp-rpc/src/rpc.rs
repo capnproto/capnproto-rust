@@ -585,12 +585,10 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
         });
-        match self.disconnect_fulfiller.borrow_mut().take() {
-            None => unreachable!(),
-            Some(fulfiller) => {
-                let _ = fulfiller.send(Promise::from_future(promise.attach(c)));
-            }
-        }
+        let Some(fulfiller) = self.disconnect_fulfiller.borrow_mut().take() else {
+            unreachable!()
+        };
+        let _ = fulfiller.send(Promise::from_future(promise.attach(c)));
     }
 
     // Transform a future into a promise that gets executed even if it is never polled.
@@ -1051,18 +1049,16 @@ impl<VatId> ConnectionState<VatId> {
 
                 {
                     let slots = &mut connection_state.answers.borrow_mut().slots;
-                    match slots.get_mut(&question_id) {
-                        Some(answer) => {
-                            answer.pipeline = Some(Box::new(pipeline));
-                            if redirect_results {
-                                answer.redirected_results = redirected_results_done_promise;
-                                // More to do here?
-                            } else {
-                                answer.call_completion_promise =
-                                    Some(connection_state.eagerly_evaluate(fork));
-                            }
-                        }
-                        None => unreachable!(),
+                    let Some(answer) = slots.get_mut(&question_id) else {
+                        unreachable!()
+                    };
+                    answer.pipeline = Some(Box::new(pipeline));
+                    if redirect_results {
+                        answer.redirected_results = redirected_results_done_promise;
+                        // More to do here?
+                    } else {
+                        answer.call_completion_promise =
+                            Some(connection_state.eagerly_evaluate(fork));
                     }
                 }
             }
@@ -1432,11 +1428,10 @@ impl<VatId> ConnectionState<VatId> {
             inner = resolved;
         }
         if inner.get_brand() == state.get_brand() {
-            let result = match Client::from_ptr(inner.get_ptr(), state) {
-                Some(c) => c.write_descriptor(descriptor),
-                None => unreachable!(),
+            let Some(c) = Client::from_ptr(inner.get_ptr(), state) else {
+                unreachable!()
             };
-            Ok(result)
+            Ok(c.write_descriptor(descriptor))
         } else {
             let ptr = inner.get_ptr();
             let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
