@@ -1,8 +1,6 @@
 #![no_main]
 
-pub mod test_capnp {
-    include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
-}
+capnp::generated_code!(pub mod test_capnp, "test_capnp.rs");
 
 use capnp::{message, serialize};
 use libfuzzer_sys::fuzz_target;

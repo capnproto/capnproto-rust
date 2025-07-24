@@ -46,9 +46,7 @@
 //! `crate::test_data::simple_struct::Owned` type into [TypedReader]/[TypedBuilder]
 //!
 //! ```ignore
-//! mod simple_struct_capnp {
-//!   include!(concat!(env!("OUT_DIR"), "/simple_struct_capnp.rs"));
-//! }
+//! capnp::generated_code!(mod simple_struct_capnp, "simple_struct_capnp.rs");
 //!
 //! use capnp::message::{self, TypedBuilder, TypedReader};
 //! use simple_struct_capnp::simple_struct;
