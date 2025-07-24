@@ -26,15 +26,15 @@ use capnp::{message, serialize, serialize_packed};
 
 pub mod common;
 
-capnp::generated_code!(pub mod carsales_capnp, "carsales_capnp.rs");
+capnp::generated_code!(pub mod carsales_capnp);
 
 pub mod carsales;
 
-capnp::generated_code!(pub mod catrank_capnp, "catrank_capnp.rs");
+capnp::generated_code!(pub mod catrank_capnp);
 
 pub mod catrank;
 
-capnp::generated_code!(pub mod eval_capnp, "eval_capnp.rs");
+capnp::generated_code!(pub mod eval_capnp);
 
 pub mod eval;
 

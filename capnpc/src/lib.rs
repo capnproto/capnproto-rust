@@ -52,8 +52,8 @@
 //! In your lib.rs:
 //!
 //! ```ignore
-//! capnp::generated_code!(mod foo_capnp, "foo_capnp.rs");
-//! capnp::generated_code!(mod bar_capnp, "bar_capnp.rs");
+//! capnp::generated_code!(mod foo_capnp);
+//! capnp::generated_code!(mod bar_capnp);
 //! ```
 //!
 //! This will be equivalent to executing the shell command

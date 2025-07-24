@@ -1,4 +1,4 @@
-capnp::generated_code!(pub mod streaming_capnp, "streaming_capnp.rs");
+capnp::generated_code!(pub mod streaming_capnp);
 
 pub mod client;
 pub mod server;

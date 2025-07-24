@@ -1,6 +1,6 @@
 #![no_main]
 
-capnp::generated_code!(pub mod test_capnp, "test_capnp.rs");
+capnp::generated_code!(pub mod test_capnp);
 
 use capnp::{message, serialize};
 use libfuzzer_sys::fuzz_target;

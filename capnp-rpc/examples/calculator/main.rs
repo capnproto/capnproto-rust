@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-capnp::generated_code!(pub mod calculator_capnp, "calculator_capnp.rs");
+capnp::generated_code!(pub mod calculator_capnp);
 
 pub mod client;
 pub mod server;

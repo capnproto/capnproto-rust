@@ -23,35 +23,33 @@
 #![warn(elided_lifetimes_in_paths)]
 #![allow(clippy::bool_assert_comparison)]
 
-capnp::generated_code!(pub mod test_capnp, "test_capnp.rs");
+capnp::generated_code!(pub mod test_capnp);
 
 pub mod foo {
     pub mod bar {
-        capnp::generated_code!(pub mod in_submodule_capnp, "in_submodule_capnp.rs");
+        capnp::generated_code!(pub mod in_submodule_capnp);
     }
 }
 
 pub mod baz {
-    capnp::generated_code!(pub mod in_other_submodule_capnp, "in_other_submodule_capnp.rs");
+    capnp::generated_code!(pub mod in_other_submodule_capnp);
 }
 
 pub mod test_default_parent_module {
     pub mod test_default_parent_module_inner {
         // In build.rs we specify this is the default parent module.
-        capnp::generated_code!(pub mod test_default_parent_module_capnp,
-                               "test_default_parent_module_capnp.rs");
+        capnp::generated_code!(pub mod test_default_parent_module_capnp);
     }
 
     // Put this in somewhere other than the default parent module, to test whether the `parentModule`
     // annotation successfully overrides the default.
-    capnp::generated_code!(pub mod test_default_parent_module_override_capnp,
-                           "test_default_parent_module_override_capnp.rs");
+    capnp::generated_code!(pub mod test_default_parent_module_override_capnp);
 }
 
 capnp::generated_code!(pub mod test_in_dir_capnp, "schema/test_in_dir_capnp.rs");
 
 // The src_prefix gets stripped away, so the generated code ends up directly in OUT_DIR.
-capnp::generated_code!(pub mod test_in_src_prefix_dir_capnp, "test_in_src_prefix_dir_capnp.rs");
+capnp::generated_code!(pub mod test_in_src_prefix_dir_capnp);
 
 capnp::generated_code!(pub mod test_output_path_capnp, "inner-output-path/test_output_path_capnp.rs");
 
