@@ -71,10 +71,14 @@ pub mod traits;
 /// of `foo_capnp` and a `file_name` of `"foo_capnp.rs"`.
 #[macro_export]
 macro_rules! generated_code {
-    ($vis:vis mod $mod_name:ident, $file_name:literal) => {
+    ($vis:vis mod $mod_name:ident, $file_name:expr) => {
         $vis mod $mod_name {
             include!(concat!(env!("OUT_DIR"), "/", $file_name));
         }
+    };
+
+    ($vis:vis mod $mod_name:ident) => {
+        $crate::generated_code!($vis mod $mod_name, concat!(stringify!($mod_name), ".rs"));
     };
 }
 

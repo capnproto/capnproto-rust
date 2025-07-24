@@ -29,7 +29,7 @@ use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 use futures::channel::oneshot;
 use futures::{Future, FutureExt, TryFutureExt};
 
-capnp::generated_code!(pub mod test_capnp, "test_capnp.rs");
+capnp::generated_code!(pub mod test_capnp);
 
 pub mod impls;
 pub mod reconnect_test;

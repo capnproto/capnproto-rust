@@ -1,8 +1,8 @@
 use capnp::dynamic_value;
 use fill_random_values::Filler;
 
-capnp::generated_code!(pub mod addressbook_capnp, "addressbook_capnp.rs");
-capnp::generated_code!(pub mod fill_capnp, "fill_capnp.rs");
+capnp::generated_code!(pub mod addressbook_capnp);
+capnp::generated_code!(pub mod fill_capnp);
 
 pub fn main() {
     let mut message = ::capnp::message::Builder::new_default();

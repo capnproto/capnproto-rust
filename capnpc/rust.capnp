@@ -21,7 +21,7 @@ annotation parentModule @0xabee386cd1450364 (file) :Text;
 #
 #  pub mod foo {
 #    pub mod bar {
-#      capnp::generated_code!(pub mod baz_capnp, "baz_capnp.rs");
+#      capnp::generated_code!(pub mod baz_capnp);
 #    }
 #  }
 

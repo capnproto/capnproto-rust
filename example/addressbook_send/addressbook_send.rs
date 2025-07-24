@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-capnp::generated_code!(pub mod addressbook_capnp, "addressbook_capnp.rs");
+capnp::generated_code!(pub mod addressbook_capnp);
 
 use capnp::message::{Builder, HeapAllocator, TypedReader};
 use std::sync::mpsc;

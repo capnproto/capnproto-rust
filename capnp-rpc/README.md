@@ -42,7 +42,7 @@ fn main() {
 and you can include the generated code in your project like this:
 
 ```rust
-capnp::generated_code!(pub mod foo_capnp, "foo_capnp.rs");
+capnp::generated_code!(pub mod foo_capnp);
 ```
 
 ## Calling methods on an RPC object
