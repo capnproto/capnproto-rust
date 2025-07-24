@@ -26,19 +26,15 @@ use capnp::{message, serialize, serialize_packed};
 
 pub mod common;
 
-pub mod carsales_capnp {
-    include!(concat!(env!("OUT_DIR"), "/carsales_capnp.rs"));
-}
+capnp::generated_code!(pub mod carsales_capnp, "carsales_capnp.rs");
+
 pub mod carsales;
 
-pub mod catrank_capnp {
-    include!(concat!(env!("OUT_DIR"), "/catrank_capnp.rs"));
-}
+capnp::generated_code!(pub mod catrank_capnp, "catrank_capnp.rs");
+
 pub mod catrank;
 
-pub mod eval_capnp {
-    include!(concat!(env!("OUT_DIR"), "/eval_capnp.rs"));
-}
+capnp::generated_code!(pub mod eval_capnp, "eval_capnp.rs");
 
 pub mod eval;
 

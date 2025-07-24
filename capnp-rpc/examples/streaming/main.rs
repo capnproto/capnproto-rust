@@ -1,6 +1,4 @@
-pub mod streaming_capnp {
-    include!(concat!(env!("OUT_DIR"), "/streaming_capnp.rs"));
-}
+capnp::generated_code!(pub mod streaming_capnp, "streaming_capnp.rs");
 
 pub mod client;
 pub mod server;

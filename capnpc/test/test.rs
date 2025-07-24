@@ -23,60 +23,37 @@
 #![warn(elided_lifetimes_in_paths)]
 #![allow(clippy::bool_assert_comparison)]
 
-pub mod test_capnp {
-    include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
-}
+capnp::generated_code!(pub mod test_capnp, "test_capnp.rs");
 
 pub mod foo {
     pub mod bar {
-        pub mod in_submodule_capnp {
-            include!(concat!(env!("OUT_DIR"), "/in_submodule_capnp.rs"));
-        }
+        capnp::generated_code!(pub mod in_submodule_capnp, "in_submodule_capnp.rs");
     }
 }
 
 pub mod baz {
-    pub mod in_other_submodule_capnp {
-        include!(concat!(env!("OUT_DIR"), "/in_other_submodule_capnp.rs"));
-    }
+    capnp::generated_code!(pub mod in_other_submodule_capnp, "in_other_submodule_capnp.rs");
 }
 
 pub mod test_default_parent_module {
     pub mod test_default_parent_module_inner {
         // In build.rs we specify this is the default parent module.
-        pub mod test_default_parent_module_capnp {
-            include!(concat!(
-                env!("OUT_DIR"),
-                "/test_default_parent_module_capnp.rs"
-            ));
-        }
+        capnp::generated_code!(pub mod test_default_parent_module_capnp,
+                               "test_default_parent_module_capnp.rs");
     }
 
     // Put this in somewhere other than the default parent module, to test whether the `parentModule`
     // annotation successfully overrides the default.
-    pub mod test_default_parent_module_override_capnp {
-        include!(concat!(
-            env!("OUT_DIR"),
-            "/test_default_parent_module_override_capnp.rs"
-        ));
-    }
+    capnp::generated_code!(pub mod test_default_parent_module_override_capnp,
+                           "test_default_parent_module_override_capnp.rs");
 }
 
-pub mod test_in_dir_capnp {
-    include!(concat!(env!("OUT_DIR"), "/schema/test_in_dir_capnp.rs"));
-}
+capnp::generated_code!(pub mod test_in_dir_capnp, "schema/test_in_dir_capnp.rs");
 
-pub mod test_in_src_prefix_dir_capnp {
-    // The src_prefix gets stripped away, so the generated code ends up directly in OUT_DIR.
-    include!(concat!(env!("OUT_DIR"), "/test_in_src_prefix_dir_capnp.rs"));
-}
+// The src_prefix gets stripped away, so the generated code ends up directly in OUT_DIR.
+capnp::generated_code!(pub mod test_in_src_prefix_dir_capnp, "test_in_src_prefix_dir_capnp.rs");
 
-pub mod test_output_path_capnp {
-    include!(concat!(
-        env!("OUT_DIR"),
-        "/inner-output-path/test_output_path_capnp.rs"
-    ));
-}
+capnp::generated_code!(pub mod test_output_path_capnp, "inner-output-path/test_output_path_capnp.rs");
 
 #[cfg(test)]
 mod test_util;

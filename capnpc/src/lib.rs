@@ -52,13 +52,8 @@
 //! In your lib.rs:
 //!
 //! ```ignore
-//! mod foo_capnp {
-//!     include!(concat!(env!("OUT_DIR"), "/foo_capnp.rs"));
-//! }
-//!
-//! mod bar_capnp {
-//!     include!(concat!(env!("OUT_DIR"), "/bar_capnp.rs"));
-//! }
+//! capnp::generated_code!(mod foo_capnp, "foo_capnp.rs");
+//! capnp::generated_code!(mod bar_capnp, "bar_capnp.rs");
 //! ```
 //!
 //! This will be equivalent to executing the shell command
