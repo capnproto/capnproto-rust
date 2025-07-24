@@ -46,9 +46,12 @@
 //! `crate::test_data::simple_struct::Owned` type into [TypedReader]/[TypedBuilder]
 //!
 //! ```ignore
-//! include!(concat!(env!("OUT_DIR"), "/simple_struct_capnp.rs"));
+//! mod simple_struct_capnp {
+//!   include!(concat!(env!("OUT_DIR"), "/simple_struct_capnp.rs"));
+//! }
 //!
 //! use capnp::message::{self, TypedBuilder, TypedReader};
+//! use simple_struct_capnp::simple_struct;
 //!
 //! fn main() {
 //!     let mut builder = TypedBuilder::<simple_struct::Owned>::new_default();
