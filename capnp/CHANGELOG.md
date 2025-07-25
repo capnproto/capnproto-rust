@@ -1,3 +1,6 @@
+## v0.21.4
+- Add `generated_code!()` macro to make it easier to import generated code.
+
 ## v0.21.3
 - Add `capability::DynClientHook` to avoid warnings in generated code.
 
