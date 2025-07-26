@@ -335,6 +335,21 @@ pub trait FromClientHook {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl FromClientHook for alloc::boxed::Box<dyn ClientHook> {
+    fn new(hook: alloc::boxed::Box<dyn ClientHook>) -> Self {
+        hook
+    }
+
+    fn into_client_hook(self) -> alloc::boxed::Box<dyn ClientHook> {
+        self
+    }
+
+    fn as_client_hook(&self) -> &dyn ClientHook {
+        self.as_ref()
+    }
+}
+
 /// An untyped client.
 #[cfg(feature = "alloc")]
 pub struct Client {
@@ -380,6 +395,21 @@ impl Client {
     /// the capability does not resolve, the call results will propagate the error.
     pub fn when_resolved(&self) -> Promise<(), Error> {
         self.hook.when_resolved()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl FromClientHook for Client {
+    fn new(hook: alloc::boxed::Box<dyn ClientHook>) -> Self {
+        Client::new(hook)
+    }
+
+    fn into_client_hook(self) -> alloc::boxed::Box<dyn ClientHook> {
+        self.hook
+    }
+
+    fn as_client_hook(&self) -> &dyn ClientHook {
+        self.hook.as_ref()
     }
 }
 
