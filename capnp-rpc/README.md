@@ -39,11 +39,17 @@ fn main() {
 }
 ```
 
-and you can include the generated code in your project like this:
+Such a command generates a `foo_capnp.rs` file in the `OUT_DIR`
+directory provided by `cargo`.
+
+To import the generated code, add a line like this at the root of your crate:
 
 ```rust
 capnp::generated_code!(pub mod foo_capnp);
 ```
+
+(If you want to import the code at a non-toplevel module location, then you will
+need to use the `$Rust.parentModule` annotation, defined in `rust.capnp`.)
 
 ## Calling methods on an RPC object
 
