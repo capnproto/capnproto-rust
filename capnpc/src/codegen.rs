@@ -2810,13 +2810,18 @@ fn generate_node(
                 line("}"),
             ]));
 
-            mod_interior.push(
-                Branch(vec![
-                    Line(format!("impl {bracketed_params} Clone for Client{bracketed_params} {{")),
-                    indent(line("fn clone(&self) -> Self {")),
-                    indent(indent(Line(fmt!(ctx,"Self {{ client: {capnp}::capability::Client::new(self.client.hook.add_ref()), {} }}", params.phantom_data_value)))),
-                    indent(line("}")),
-                    line("}")]));
+            mod_interior.push(Branch(vec![
+                Line(format!(
+                    "impl {bracketed_params} Clone for Client{bracketed_params} {{"
+                )),
+                indent(line("fn clone(&self) -> Self {")),
+                indent(indent(Line(format!(
+                    "Self {{ client: self.client.clone(), {} }}",
+                    params.phantom_data_value
+                )))),
+                indent(line("}")),
+                line("}"),
+            ]));
 
             mod_interior.push(Branch(vec![
                 Line(format!(
