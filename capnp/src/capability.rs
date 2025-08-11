@@ -413,6 +413,15 @@ impl FromClientHook for Client {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl Clone for Client {
+    fn clone(&self) -> Self {
+        Self {
+            hook: self.hook.add_ref(),
+        }
+    }
+}
+
 /// The return value of Server::dispatch_call().
 #[cfg(feature = "alloc")]
 pub struct DispatchCallResult {
