@@ -102,7 +102,7 @@ mod tests {
         let messages_read1 = messages_read.clone();
 
         let done_reading = read_stream.for_each(move |m| match m {
-            Err(e) => panic!("read error: {:?}", e),
+            Err(e) => panic!("read error: {e:?}"),
             Ok(msg) => {
                 let address_book = msg.get_root::<address_book::Reader>().unwrap();
                 read_address_book(address_book);
@@ -144,7 +144,7 @@ mod tests {
         let mut pool = futures::executor::LocalPool::new();
         let (stream0, stream1) = async_byte_channel::channel();
         let f0 = serialize::write_message(stream0, message)
-            .map_err(|e| panic!("write error {:?}", e))
+            .map_err(|e| panic!("write error {e:?}"))
             .map(|_| ());
         let f1 = serialize::try_read_message(stream1, capnp::message::ReaderOptions::new())
             .and_then(|maybe_message_reader| match maybe_message_reader {
