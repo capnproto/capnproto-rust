@@ -959,7 +959,7 @@ unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
     }
 }
 
-/// An Allocator whose first and only segment is a backed by a user-provided buffer.
+/// An Allocator whose first and only segment is backed by a user-provided buffer.
 /// If the segment fills up, subsequent allocations trigger panics.
 ///
 /// The main purpose of this struct is to be used in situations where heap allocation

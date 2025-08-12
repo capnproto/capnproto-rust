@@ -49,7 +49,7 @@ mod sync {
         #[inline]
         pub fn can_read(&self, amount: usize) -> Result<()> {
             // We use separate AtomicUsize::load() and AtomicUsize::store() steps, which may
-            // result in undercounting reads if multiple threads are reading at the same.
+            // result in undercounting reads if multiple threads are reading at the same time.
             // That's okay -- a denial of service attack will eventually hit the limit anyway.
             //
             // We could instead do a single fetch_sub() step, but that seems to be slower.

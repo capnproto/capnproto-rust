@@ -240,7 +240,7 @@ pub struct BuilderArenaImplInner<A>
 where
     A: Allocator,
 {
-    allocator: Option<A>, // None if has already be deallocated.
+    allocator: Option<A>, // None if has already been deallocated.
     segments: BuilderSegmentArray,
 }
 
