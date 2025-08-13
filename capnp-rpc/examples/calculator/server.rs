@@ -145,7 +145,7 @@ impl calculator::function::Server for OperatorImpl {
     ) -> Promise<(), Error> {
         let params = pry!(pry!(params.get()).get_params());
         if params.len() != 2 {
-            Promise::err(Error::failed("Wrong number of paramters.".to_string()))
+            Promise::err(Error::failed("Wrong number of parameters.".to_string()))
         } else {
             let v = match self.op {
                 calculator::Operator::Add => params.get(0) + params.get(1),

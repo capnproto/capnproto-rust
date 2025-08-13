@@ -41,7 +41,7 @@ pub trait SetTarget<C> {
     ///
     /// This is mostly to get around that `Clone` requires `Sized` and so you need this
     /// trick to get a copy of the `Box<dyn SetTarget<C>>` you got from making the
-    /// reconneting client.
+    /// reconnecting client.
     fn add_ref(&self) -> Box<dyn SetTarget<C>>;
 
     /// Sets the target client of the reconnecting client that this trait implementation is
@@ -258,16 +258,16 @@ where
 
 /// Creates a new client that reconnects when getting [`ErrorKind::Disconnected`](capnp::ErrorKind::Disconnected) errors.
 ///
-/// Usually when you get a [`Disconnected`](capnp::ErrorKind::Disconnected) error respoonse from calling a method on a capability
+/// Usually when you get a [`Disconnected`](capnp::ErrorKind::Disconnected) error response from calling a method on a capability
 /// it means the end of that capability for good. And so you can't call methods on that
 /// capability any more.
 ///
 /// When you have a way of getting the capability back: Be it from a bootstrap or because
-/// the capability is persistent this method can help you wrap that reconnnection logic into a client
+/// the capability is persistent this method can help you wrap that reconnection logic into a client
 /// that automatically runs the logic whenever a method call returns [`Disconnected`](capnp::ErrorKind::Disconnected).
 ///
 /// The way it works is that you provide a closure that returns a fresh client or a permanent error and
-/// you get a new conected client and a [`SetTarget`] interface that you can optionally use to prematurely
+/// you get a new connected client and a [`SetTarget`] interface that you can optionally use to prematurely
 /// replace the client.
 ///
 /// There is one caveat though: The original request that got a [`Disconnected`](capnp::ErrorKind::Disconnected)
@@ -334,7 +334,7 @@ where
 /// For explanation of how this functions see: [`auto_reconnect`]
 ///
 /// The main difference between [`auto_reconnect`] and this function is that while [`auto_reconnect`] will call
-/// the closure immediatly to get an inner client to wrap, this function starts out disconnected and only calls
+/// the closure immediately to get an inner client to wrap, this function starts out disconnected and only calls
 /// the closure to get the actual client when the capability is first used.
 pub fn lazy_auto_reconnect<F, C>(connect: F) -> (C, Box<dyn SetTarget<C>>)
 where

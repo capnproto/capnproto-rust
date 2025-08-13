@@ -135,7 +135,7 @@ pub trait OutgoingMessage {
     fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator>;
 
     /// Gets the total size of the message, for flow control purposes. Although the caller
-    /// could also call get_body().target_size(0, doing that would walk th emessage tree,
+    /// could also call get_body().target_size(0, doing that would walk the message tree,
     /// whereas typical implementations can compute the size more cheaply by summing
     /// segment sizes.
     fn size_in_words(&self) -> usize;

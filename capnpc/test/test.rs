@@ -82,7 +82,7 @@ mod tests {
     }
 
     #[test]
-    fn field_subset_indexes_corrently() {
+    fn field_subset_indexes_correctly() {
         use crate::test_capnp::field_subset_indexes_correctly;
         use capnp::{
             introspect::{Introspect, TypeVariant},

@@ -323,7 +323,7 @@ fn auto_reconnect_rpc_call() {
     pool.run_until(disconnector).unwrap();
 }
 
-/// lazyAutoReconnect() initialies lazily
+/// lazyAutoReconnect() initializes lazily
 #[test]
 fn lazy_auto_reconnect_test() {
     let mut pool = LocalPool::new();
