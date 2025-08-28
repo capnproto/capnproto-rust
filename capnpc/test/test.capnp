@@ -691,6 +691,16 @@ struct TestConstants {
 
 const globalInt :UInt32 = 12345;
 
+struct TestNonFiniteFloatConsts {
+  const a :Float32 = inf;
+  const b :Float32 = -inf;
+  const c :Float32 = nan;
+
+  const x :Float64 = inf;
+  const y :Float64 = -inf;
+  const z :Float64 = nan;
+}
+
 interface TestInterface {
    foo @0 (i :UInt32, j :Bool) -> (x : Text);
    bar @1 () -> ();

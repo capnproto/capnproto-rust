@@ -2980,11 +2980,33 @@ fn generate_node(
                 }
 
                 (type_::Float32(()), value::Float32(f)) => {
-                    Line(format!("pub const {styled_name}: f32 = {f:e}f32;"))
+                    let literal = match f.classify() {
+                        std::num::FpCategory::Nan => "::core::f32::NAN".into(),
+                        std::num::FpCategory::Infinite => {
+                            if f.is_sign_positive() {
+                                "::core::f32::INFINITY".into()
+                            } else {
+                                "::core::f32::NEG_INFINITY".into()
+                            }
+                        }
+                        _ => format!("{f:e}"),
+                    };
+                    Line(format!("pub const {styled_name}: f32 = {literal};"))
                 }
 
                 (type_::Float64(()), value::Float64(f)) => {
-                    Line(format!("pub const {styled_name}: f64 = {f:e}f64;"))
+                    let literal = match f.classify() {
+                        std::num::FpCategory::Nan => "::core::f64::NAN".into(),
+                        std::num::FpCategory::Infinite => {
+                            if f.is_sign_positive() {
+                                "::core::f64::INFINITY".into()
+                            } else {
+                                "::core::f64::NEG_INFINITY".into()
+                            }
+                        }
+                        _ => format!("{f:e}"),
+                    };
+                    Line(format!("pub const {styled_name}: f64 = {literal};"))
                 }
 
                 (type_::Enum(e), value::Enum(v)) => {
