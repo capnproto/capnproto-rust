@@ -1,3 +1,6 @@
+## v0.21.3
+- Fix code generation for non-finite float point constants.
+
 ## v0.21.2
 - Use new `capability::DynClientHook` alias to avoid warnings in generated code.
 
