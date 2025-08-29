@@ -1202,6 +1202,30 @@ mod tests {
     }
 
     #[test]
+    fn test_float_constants() {
+        use crate::test_capnp::test_float_consts;
+
+        assert!(test_float_consts::A.is_infinite());
+        assert!(test_float_consts::A.is_sign_positive());
+
+        assert!(test_float_consts::B.is_infinite());
+        assert!(test_float_consts::B.is_sign_negative());
+
+        assert!(test_float_consts::C.is_nan());
+
+        assert!(test_float_consts::X.is_infinite());
+        assert!(test_float_consts::X.is_sign_positive());
+
+        assert!(test_float_consts::Y.is_infinite());
+        assert!(test_float_consts::Y.is_sign_negative());
+
+        assert!(test_float_consts::Z.is_nan());
+
+        assert_eq!(test_float_consts::PI32, std::f32::consts::PI);
+        assert_eq!(test_float_consts::PI64, std::f64::consts::PI);
+    }
+
+    #[test]
     fn test_set_root() {
         use crate::test_capnp::test_big_struct;
 

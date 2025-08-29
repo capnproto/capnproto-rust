@@ -691,7 +691,7 @@ struct TestConstants {
 
 const globalInt :UInt32 = 12345;
 
-struct TestNonFiniteFloatConsts {
+struct TestFloatConsts {
   const a :Float32 = inf;
   const b :Float32 = -inf;
   const c :Float32 = nan;
@@ -699,6 +699,9 @@ struct TestNonFiniteFloatConsts {
   const x :Float64 = inf;
   const y :Float64 = -inf;
   const z :Float64 = nan;
+
+  const pi32 : Float32 = 3.14159265358979323846264338327950288;
+  const pi64 : Float64 = 3.14159265358979323846264338327950288;
 }
 
 interface TestInterface {
