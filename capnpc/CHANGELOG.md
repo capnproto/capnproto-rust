@@ -1,3 +1,7 @@
+## v0.21.4
+- Update minimum required version of capnp base crate, to account for new
+  usage of impl Clone for capnp:: capability::Client.
+
 ## v0.21.3
 - Fix code generation for non-finite float point constants.
 
