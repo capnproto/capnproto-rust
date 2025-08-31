@@ -1,3 +1,6 @@
+## v0.21.5
+- Implement Clone for capnp::capability::Client.
+
 ## v0.21.4
 - Add `generated_code!()` macro to make it easier to import generated code.
 
