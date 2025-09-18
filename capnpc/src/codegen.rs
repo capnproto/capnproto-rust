@@ -2544,7 +2544,7 @@ fn generate_node(
                 format_u64(node_id)
             )));
 
-            mod_interior.push(line("#![allow(unused_variables)]"));
+            mod_interior.push(line("#![allow(unused_variables, unused_parens)]"));
 
             let methods = interface.get_methods()?;
             for (ordinal, method) in methods.into_iter().enumerate() {
