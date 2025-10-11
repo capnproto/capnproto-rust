@@ -536,7 +536,7 @@ where
 
 #[cfg(feature = "alloc")]
 fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> alloc::vec::Vec<u8> {
-    let word_count = compute_serialized_size(segments) * BYTES_PER_WORD;
+    let word_count = compute_serialized_size(segments);
     let segment_count = segments.len();
     let table_size = segment_count / 2 + 1;
     let mut result = alloc::vec::Vec::with_capacity(word_count);
@@ -667,13 +667,15 @@ where
     Ok(())
 }
 
+/// Returns the number of bytes required to serialize the message (including the
+/// segment table).
 fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) -> usize {
     // Table size
     let len = segments.len();
-    let mut size = (len / 2) + 1;
+    let mut size = ((len / 2) + 1) * BYTES_PER_WORD;
     for i in 0..len {
         let segment = segments.get_segment(i as u32).unwrap();
-        size += segment.len() / BYTES_PER_WORD;
+        size += segment.len();
     }
     size
 }
@@ -687,7 +689,7 @@ pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>)
 where
     A: crate::message::Allocator,
 {
-    compute_serialized_size(&message.get_segments_for_output())
+    compute_serialized_size(&message.get_segments_for_output()) / BYTES_PER_WORD
 }
 
 #[cfg(feature = "alloc")]
