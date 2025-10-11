@@ -536,7 +536,7 @@ where
 
 #[cfg(feature = "alloc")]
 fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> alloc::vec::Vec<u8> {
-    let word_count = compute_serialized_size(segments);
+    let word_count = compute_serialized_size(segments) * BYTES_PER_WORD;
     let segment_count = segments.len();
     let table_size = segment_count / 2 + 1;
     let mut result = alloc::vec::Vec::with_capacity(word_count);
@@ -549,6 +549,10 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> alloc:
         let segment = segments.get_segment(i as u32).unwrap();
         result.extend(segment);
     }
+    debug_assert!(
+        result.capacity() == word_count,
+        "unexpected result capacity growth"
+    );
     result
 }
 
