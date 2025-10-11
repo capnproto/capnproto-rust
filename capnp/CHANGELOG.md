@@ -1,3 +1,7 @@
+## v0.21.6
+- Fix buffer sizing in `flatten_segments()`. A bug was causing unnecessary allocations in
+  `write_message_to_words()` and `write_message_segments_to_words`().
+
 ## v0.21.5
 - Implement Clone for capnp::capability::Client.
 
