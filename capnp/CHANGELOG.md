@@ -1,3 +1,7 @@
+## v0.21.7
+- Resolve type on construction of `Field`. This is expected to improve performance of
+  certain usage patterns of the dynamic API.
+
 ## v0.21.6
 - Fix buffer sizing in `flatten_segments()`. A bug was causing unnecessary allocations in
   `write_message_to_words()` and `write_message_segments_to_words`().
