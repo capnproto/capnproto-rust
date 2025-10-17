@@ -132,7 +132,7 @@ impl From<RawBrandedStructSchema> for StructSchema {
 pub struct Field {
     proto: field::Reader<'static>,
     index: u16,
-    kind: introspect::Type,
+    ty: introspect::Type,
     pub(crate) parent: StructSchema,
 }
 
@@ -142,7 +142,7 @@ impl Field {
     }
 
     pub fn get_type(&self) -> introspect::Type {
-        self.kind
+        self.ty
     }
 
     pub fn get_index(&self) -> u16 {
@@ -178,7 +178,7 @@ impl FieldList {
         Field {
             proto: self.fields.get(index as u32),
             index,
-            kind: (self.parent.raw.field_types)(index),
+            ty: (self.parent.raw.field_types)(index),
             parent: self.parent,
         }
     }
@@ -225,7 +225,7 @@ impl FieldSubset {
         Field {
             proto: self.fields.get(index as u32),
             index,
-            kind: (self.parent.raw.field_types)(index),
+            ty: (self.parent.raw.field_types)(index),
             parent: self.parent,
         }
     }
