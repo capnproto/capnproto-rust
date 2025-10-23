@@ -19,13 +19,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use std::cell::RefCell;
+
+use ::capnp::message::HeapAllocator;
+use capnp::capability::Promise;
 use capnp::primitive_list;
 use capnp::Error;
 
-use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
+use ::capnp_rpc::ImbuedMessageBuilder;
+use capnp_rpc::pry;
+use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use crate::calculator_capnp::calculator;
-use capnp::capability::Promise;
 
 use futures::future;
 use futures::{AsyncReadExt, FutureExt, TryFutureExt};
@@ -41,19 +46,19 @@ impl ValueImpl {
 }
 
 impl calculator::value::Server for ValueImpl {
-    fn read(
-        &mut self,
+    async fn read(
+        &self,
         _params: calculator::value::ReadParams,
         mut results: calculator::value::ReadResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         results.get().set_value(self.value);
-        Promise::ok(())
+        Ok(())
     }
 }
 
 fn evaluate_impl(
-    expression: calculator::expression::Reader,
-    params: Option<primitive_list::Reader<f64>>,
+    expression: calculator::expression::Reader<'_>,
+    params: Option<primitive_list::Reader<'_, f64>>,
 ) -> Promise<f64, Error> {
     match pry!(expression.which()) {
         calculator::expression::Literal(v) => Promise::ok(v),
@@ -92,29 +97,29 @@ fn evaluate_impl(
 
 struct FunctionImpl {
     param_count: u32,
-    body: ::capnp_rpc::ImbuedMessageBuilder<::capnp::message::HeapAllocator>,
+    body: RefCell<ImbuedMessageBuilder<HeapAllocator>>,
 }
 
 impl FunctionImpl {
     fn new(param_count: u32, body: calculator::expression::Reader) -> ::capnp::Result<Self> {
-        let mut result = Self {
+        let result = Self {
             param_count,
-            body: ::capnp_rpc::ImbuedMessageBuilder::new(::capnp::message::HeapAllocator::new()),
+            body: RefCell::new(ImbuedMessageBuilder::new(HeapAllocator::new())),
         };
-        result.body.set_root(body)?;
+        result.body.borrow_mut().set_root(body)?;
         Ok(result)
     }
 }
 
 impl calculator::function::Server for FunctionImpl {
-    fn call(
-        &mut self,
+    async fn call(
+        &self,
         params: calculator::function::CallParams,
         mut results: calculator::function::CallResults,
-    ) -> Promise<(), Error> {
-        let params = pry!(pry!(params.get()).get_params());
+    ) -> Result<(), Error> {
+        let params = params.get()?.get_params()?;
         if params.len() != self.param_count {
-            return Promise::err(Error::failed(format!(
+            return Err(Error::failed(format!(
                 "Expected {} parameters but got {}.",
                 self.param_count,
                 params.len()
@@ -122,13 +127,15 @@ impl calculator::function::Server for FunctionImpl {
         }
 
         let eval = evaluate_impl(
-            pry!(self.body.get_root::<calculator::expression::Builder>()).into_reader(),
+            self.body
+                .borrow_mut()
+                .get_root::<calculator::expression::Builder>()?
+                .into_reader(),
             Some(params),
         );
-        Promise::from_future(async move {
-            results.get().set_value(eval.await?);
-            Ok(())
-        })
+
+        results.get().set_value(eval.await?);
+        Ok(())
     }
 }
 
@@ -138,14 +145,14 @@ pub struct OperatorImpl {
 }
 
 impl calculator::function::Server for OperatorImpl {
-    fn call(
-        &mut self,
+    async fn call(
+        &self,
         params: calculator::function::CallParams,
         mut results: calculator::function::CallResults,
-    ) -> Promise<(), Error> {
-        let params = pry!(pry!(params.get()).get_params());
+    ) -> Result<(), Error> {
+        let params = params.get()?.get_params()?;
         if params.len() != 2 {
-            Promise::err(Error::failed("Wrong number of parameters.".to_string()))
+            Err(Error::failed("Wrong number of parameters.".to_string()))
         } else {
             let v = match self.op {
                 calculator::Operator::Add => params.get(0) + params.get(1),
@@ -154,7 +161,7 @@ impl calculator::function::Server for OperatorImpl {
                 calculator::Operator::Divide => params.get(0) / params.get(1),
             };
             results.get().set_value(v);
-            Promise::ok(())
+            Ok(())
         }
     }
 }
@@ -162,42 +169,42 @@ impl calculator::function::Server for OperatorImpl {
 struct CalculatorImpl;
 
 impl calculator::Server for CalculatorImpl {
-    fn evaluate(
-        &mut self,
+    async fn evaluate(
+        &self,
         params: calculator::EvaluateParams,
         mut results: calculator::EvaluateResults,
-    ) -> Promise<(), Error> {
-        Promise::from_future(async move {
-            let v = evaluate_impl(params.get()?.get_expression()?, None).await?;
-            results
-                .get()
-                .set_value(capnp_rpc::new_client(ValueImpl::new(v)));
-            Ok(())
-        })
-    }
-    fn def_function(
-        &mut self,
-        params: calculator::DefFunctionParams,
-        mut results: calculator::DefFunctionResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
+        let v = evaluate_impl(params.get()?.get_expression()?, None).await?;
         results
             .get()
-            .set_func(capnp_rpc::new_client(pry!(FunctionImpl::new(
-                pry!(params.get()).get_param_count() as u32,
-                pry!(pry!(params.get()).get_body())
-            ))));
-        Promise::ok(())
+            .set_value(capnp_rpc::new_client(ValueImpl::new(v)));
+        Ok(())
     }
-    fn get_operator(
-        &mut self,
+
+    async fn def_function(
+        &self,
+        params: calculator::DefFunctionParams,
+        mut results: calculator::DefFunctionResults,
+    ) -> Result<(), Error> {
+        results
+            .get()
+            .set_func(capnp_rpc::new_client(FunctionImpl::new(
+                params.get()?.get_param_count() as u32,
+                params.get()?.get_body()?,
+            )?));
+        Ok(())
+    }
+
+    async fn get_operator(
+        &self,
         params: calculator::GetOperatorParams,
         mut results: calculator::GetOperatorResults,
-    ) -> Promise<(), Error> {
-        let op = pry!(pry!(params.get()).get_op());
+    ) -> Result<(), Error> {
+        let op = params.get()?.get_op()?;
         results
             .get()
             .set_func(capnp_rpc::new_client(OperatorImpl { op }));
-        Promise::ok(())
+        Ok(())
     }
 }
 

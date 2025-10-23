@@ -19,14 +19,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::pubsub_capnp::{publisher, subscriber, subscription};
-use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
-
-use capnp::capability::Promise;
+use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use futures::{AsyncReadExt, FutureExt, StreamExt};
 
@@ -68,7 +66,7 @@ impl Drop for SubscriptionImpl {
 impl subscription::Server for SubscriptionImpl {}
 
 struct PublisherImpl {
-    next_id: u64,
+    next_id: Cell<u64>,
     subscribers: Rc<RefCell<SubscriberMap>>,
 }
 
@@ -77,7 +75,7 @@ impl PublisherImpl {
         let subscribers = Rc::new(RefCell::new(SubscriberMap::new()));
         (
             Self {
-                next_id: 0,
+                next_id: Cell::new(0),
                 subscribers: subscribers.clone(),
             },
             subscribers,
@@ -86,16 +84,16 @@ impl PublisherImpl {
 }
 
 impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
-    fn subscribe(
-        &mut self,
+    async fn subscribe(
+        &self,
         params: publisher::SubscribeParams<::capnp::text::Owned>,
         mut results: publisher::SubscribeResults<::capnp::text::Owned>,
-    ) -> Promise<(), ::capnp::Error> {
+    ) -> Result<(), ::capnp::Error> {
         println!("subscribe");
         self.subscribers.borrow_mut().subscribers.insert(
-            self.next_id,
+            self.next_id.get(),
             SubscriberHandle {
-                client: pry!(pry!(params.get()).get_subscriber()),
+                client: params.get()?.get_subscriber()?,
                 requests_in_flight: 0,
             },
         );
@@ -103,12 +101,12 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
         results
             .get()
             .set_subscription(capnp_rpc::new_client(SubscriptionImpl::new(
-                self.next_id,
+                self.next_id.get(),
                 self.subscribers.clone(),
             )));
 
-        self.next_id += 1;
-        Promise::ok(())
+        self.next_id.set(self.next_id.get() + 1);
+        Ok(())
     }
 }
 

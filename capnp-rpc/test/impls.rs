@@ -24,12 +24,11 @@ use crate::test_capnp::{
     test_interface, test_more_stuff, test_pipeline, test_promise_resolve, test_streaming,
 };
 
-use capnp::capability::{FromClientHook, Promise};
+use capnp::capability::FromClientHook;
 use capnp::Error;
-use capnp_rpc::pry;
 
 use futures::channel::oneshot;
-use futures::{FutureExt, TryFutureExt};
+use futures::TryFutureExt;
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -37,93 +36,87 @@ use std::rc::Rc;
 pub struct Bootstrap;
 
 impl bootstrap::Server for Bootstrap {
-    fn test_interface(
-        &mut self,
+    async fn test_interface(
+        &self,
         _params: bootstrap::TestInterfaceParams,
         mut results: bootstrap::TestInterfaceResults,
-    ) -> Promise<(), Error> {
-        {
-            results
-                .get()
-                .set_cap(capnp_rpc::new_client(TestInterface::new()));
-        }
-        Promise::ok(())
+    ) -> Result<(), Error> {
+        results
+            .get()
+            .set_cap(capnp_rpc::new_client(TestInterface::new()));
+        Ok(())
     }
 
-    fn test_extends(
-        &mut self,
+    async fn test_extends(
+        &self,
         _params: bootstrap::TestExtendsParams,
         mut results: bootstrap::TestExtendsResults,
-    ) -> Promise<(), Error> {
-        {
-            results.get().set_cap(capnp_rpc::new_client(TestExtends));
-        }
-        Promise::ok(())
+    ) -> Result<(), Error> {
+        results.get().set_cap(capnp_rpc::new_client(TestExtends));
+        Ok(())
     }
 
-    fn test_extends2(
-        &mut self,
+    async fn test_extends2(
+        &self,
         _params: bootstrap::TestExtends2Params,
         _results: bootstrap::TestExtends2Results,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn test_pipeline(
-        &mut self,
+    async fn test_pipeline(
+        &self,
         _params: bootstrap::TestPipelineParams,
         mut results: bootstrap::TestPipelineResults,
-    ) -> Promise<(), Error> {
-        {
-            results.get().set_cap(capnp_rpc::new_client(TestPipeline));
-        }
-        Promise::ok(())
+    ) -> Result<(), Error> {
+        results.get().set_cap(capnp_rpc::new_client(TestPipeline));
+        Ok(())
     }
 
-    fn test_call_order(
-        &mut self,
+    async fn test_call_order(
+        &self,
         _params: bootstrap::TestCallOrderParams,
         mut results: bootstrap::TestCallOrderResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         {
             results
                 .get()
                 .set_cap(capnp_rpc::new_client(TestCallOrder::new()));
         }
-        Promise::ok(())
+        Ok(())
     }
-    fn test_more_stuff(
-        &mut self,
+    async fn test_more_stuff(
+        &self,
         _params: bootstrap::TestMoreStuffParams,
         mut results: bootstrap::TestMoreStuffResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         {
             results
                 .get()
                 .set_cap(capnp_rpc::new_client(TestMoreStuff::new()));
         }
-        Promise::ok(())
+        Ok(())
     }
-    fn test_capability_server_set(
-        &mut self,
+    async fn test_capability_server_set(
+        &self,
         _params: bootstrap::TestCapabilityServerSetParams,
         mut results: bootstrap::TestCapabilityServerSetResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         results
             .get()
             .set_cap(capnp_rpc::new_client(TestCapabilityServerSet::new()));
-        Promise::ok(())
+        Ok(())
     }
 
-    fn test_promise_resolve(
-        &mut self,
+    async fn test_promise_resolve(
+        &self,
         _params: bootstrap::TestPromiseResolveParams,
         mut results: bootstrap::TestPromiseResolveResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         results
             .get()
             .set_cap(capnp_rpc::new_client(TestPromiseResolveImpl {}));
-        Promise::ok(())
+        Ok(())
     }
 }
 
@@ -145,167 +138,166 @@ impl TestInterface {
 }
 
 impl test_interface::Server for TestInterface {
-    fn foo(
-        &mut self,
+    async fn foo(
+        &self,
         params: test_interface::FooParams,
         mut results: test_interface::FooResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         self.increment_call_count();
-        let params = pry!(params.get());
+        let params = params.get()?;
         if params.get_i() != 123 {
-            return Promise::err(Error::failed("expected i to equal 123".to_string()));
+            return Err(Error::failed("expected i to equal 123".to_string()));
         }
         if !params.get_j() {
-            return Promise::err(Error::failed("expected j to be true".to_string()));
+            return Err(Error::failed("expected j to be true".to_string()));
         }
-        {
-            let mut results = results.get();
-            results.set_x("foo");
-        }
-        Promise::ok(())
+
+        results.get().set_x("foo");
+
+        Ok(())
     }
 
-    fn bar(
-        &mut self,
+    async fn bar(
+        &self,
         _params: test_interface::BarParams,
         _results: test_interface::BarResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         self.increment_call_count();
-        Promise::err(Error::unimplemented("bar is not implemented".to_string()))
+        Err(Error::unimplemented("bar is not implemented".to_string()))
     }
 
-    fn baz(
-        &mut self,
+    async fn baz(
+        &self,
         params: test_interface::BazParams,
         _results: test_interface::BazResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         self.increment_call_count();
-        crate::test_util::CheckTestMessage::check_test_message(pry!(pry!(params.get()).get_s()));
-        Promise::ok(())
+        crate::test_util::CheckTestMessage::check_test_message(params.get()?.get_s()?);
+        Ok(())
     }
 }
 
 struct TestExtends;
 
 impl test_interface::Server for TestExtends {
-    fn foo(
-        &mut self,
+    async fn foo(
+        &self,
         params: test_interface::FooParams,
         mut results: test_interface::FooResults,
-    ) -> Promise<(), Error> {
-        let params = pry!(params.get());
+    ) -> Result<(), Error> {
+        let params = params.get()?;
         if params.get_i() != 321 {
-            return Promise::err(Error::failed("expected i to equal 321".to_string()));
+            return Err(Error::failed("expected i to equal 321".to_string()));
         }
         if params.get_j() {
-            return Promise::err(Error::failed("expected j to be false".to_string()));
+            return Err(Error::failed("expected j to be false".to_string()));
         }
         {
             let mut results = results.get();
             results.set_x("bar");
         }
-        Promise::ok(())
+        Ok(())
     }
 
-    fn bar(
-        &mut self,
+    async fn bar(
+        &self,
         _params: test_interface::BarParams,
         _results: test_interface::BarResults,
-    ) -> Promise<(), Error> {
-        Promise::err(Error::unimplemented("bar is not implemented".to_string()))
+    ) -> Result<(), Error> {
+        Err(Error::unimplemented("bar is not implemented".to_string()))
     }
 
-    fn baz(
-        &mut self,
+    async fn baz(
+        &self,
         _params: test_interface::BazParams,
         _results: test_interface::BazResults,
-    ) -> Promise<(), Error> {
-        Promise::err(Error::unimplemented("baz is not implemented".to_string()))
+    ) -> Result<(), Error> {
+        Err(Error::unimplemented("baz is not implemented".to_string()))
     }
 }
 
 impl test_extends::Server for TestExtends {
-    fn qux(
-        &mut self,
+    async fn qux(
+        &self,
         _params: test_extends::QuxParams,
         _results: test_extends::QuxResults,
-    ) -> Promise<(), Error> {
-        Promise::err(Error::unimplemented("qux is not implemented".to_string()))
+    ) -> Result<(), Error> {
+        Err(Error::unimplemented("qux is not implemented".to_string()))
     }
 
-    fn corge(
-        &mut self,
+    async fn corge(
+        &self,
         _params: test_extends::CorgeParams,
         _results: test_extends::CorgeResults,
-    ) -> Promise<(), Error> {
-        Promise::err(Error::unimplemented("corge is not implemented".to_string()))
+    ) -> Result<(), Error> {
+        Err(Error::unimplemented("corge is not implemented".to_string()))
     }
 
-    fn grault(
-        &mut self,
+    async fn grault(
+        &self,
         _params: test_extends::GraultParams,
         mut results: test_extends::GraultResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         crate::test_util::init_test_message(results.get());
-        Promise::ok(())
+        Ok(())
     }
 }
 
 struct TestPipeline;
 
 impl test_pipeline::Server for TestPipeline {
-    fn get_cap(
-        &mut self,
+    async fn get_cap(
+        &self,
         params: test_pipeline::GetCapParams,
         mut results: test_pipeline::GetCapResults,
-    ) -> Promise<(), Error> {
-        if pry!(params.get()).get_n() != 234 {
-            return Promise::err(Error::failed("expected n to equal 234".to_string()));
+    ) -> Result<(), Error> {
+        if params.get()?.get_n() != 234 {
+            return Err(Error::failed("expected n to equal 234".to_string()));
         }
-        let cap = pry!(pry!(params.get()).get_in_cap());
+        let cap = params.get()?.get_in_cap()?;
         let mut request = cap.foo_request();
         request.get().set_i(123);
         request.get().set_j(true);
-        Promise::from_future(request.send().promise.map(move |response| {
-            if response?.get()?.get_x()? != "foo" {
-                return Err(Error::failed("expected x to equal 'foo'".to_string()));
-            }
 
-            results.get().set_s("bar");
+        let response = request.send().promise.await;
+        if response?.get()?.get_x()? != "foo" {
+            return Err(Error::failed("expected x to equal 'foo'".to_string()));
+        }
 
-            results
-                .get()
-                .init_out_box()
-                .set_cap(capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).cast_to());
-            Ok(())
-        }))
-    }
+        results.get().set_s("bar");
 
-    fn get_null_cap(
-        &mut self,
-        _params: test_pipeline::GetNullCapParams,
-        _results: test_pipeline::GetNullCapResults,
-    ) -> Promise<(), Error> {
-        Promise::ok(())
-    }
-
-    fn get_cap_pipeline_only(
-        &mut self,
-        _params: test_pipeline::GetCapPipelineOnlyParams,
-        mut results: test_pipeline::GetCapPipelineOnlyResults,
-    ) -> Promise<(), Error> {
         results
             .get()
             .init_out_box()
             .set_cap(capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).cast_to());
-        pry!(results.set_pipeline());
-        Promise::from_future(::futures::future::pending())
+        Ok(())
+    }
+
+    async fn get_null_cap(
+        &self,
+        _params: test_pipeline::GetNullCapParams,
+        _results: test_pipeline::GetNullCapResults,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    async fn get_cap_pipeline_only(
+        &self,
+        _params: test_pipeline::GetCapPipelineOnlyParams,
+        mut results: test_pipeline::GetCapPipelineOnlyResults,
+    ) -> Result<(), Error> {
+        results
+            .get()
+            .init_out_box()
+            .set_cap(capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).cast_to());
+        results.set_pipeline()?;
+        ::futures::future::pending().await
     }
 }
 
 #[derive(Default)]
 pub struct TestCallOrder {
-    count: u32,
+    count: Cell<u32>,
 }
 
 impl TestCallOrder {
@@ -315,254 +307,242 @@ impl TestCallOrder {
 }
 
 impl test_call_order::Server for TestCallOrder {
-    fn get_call_sequence(
-        &mut self,
+    async fn get_call_sequence(
+        &self,
         _params: test_call_order::GetCallSequenceParams,
         mut results: test_call_order::GetCallSequenceResults,
-    ) -> Promise<(), Error> {
-        results.get().set_n(self.count);
-        self.count += 1;
-        Promise::ok(())
+    ) -> Result<(), Error> {
+        results.get().set_n(self.count.get());
+        self.count.set(self.count.get() + 1);
+        Ok(())
     }
 }
 
 #[derive(Default)]
 pub struct TestMoreStuff {
-    call_count: u32,
+    call_count: Cell<u32>,
     handle_count: Rc<Cell<i64>>,
-    client_to_hold: Option<test_interface::Client>,
+    client_to_hold: RefCell<Option<test_interface::Client>>,
 }
 
 impl TestMoreStuff {
     pub fn new() -> Self {
         Self::default()
     }
-    /*
-    pub fn get_call_count(&self) -> Rc<Cell<u64>> {
-        self.call_count.clone()
-    }
-    fn increment_call_count(&self) {
-        self.call_count.set(self.call_count.get() + 1);
-    } */
 }
 
 impl test_call_order::Server for TestMoreStuff {
-    fn get_call_sequence(
-        &mut self,
+    async fn get_call_sequence(
+        &self,
         _params: test_call_order::GetCallSequenceParams,
         mut results: test_call_order::GetCallSequenceResults,
-    ) -> Promise<(), Error> {
-        results.get().set_n(self.call_count);
-        self.call_count += 1;
-        Promise::ok(())
+    ) -> Result<(), Error> {
+        results.get().set_n(self.call_count.get());
+        self.call_count.set(self.call_count.get() + 1);
+        Ok(())
     }
 }
 
 impl test_more_stuff::Server for TestMoreStuff {
-    fn call_foo(
-        &mut self,
+    async fn call_foo(
+        &self,
         params: test_more_stuff::CallFooParams,
         mut results: test_more_stuff::CallFooResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
-        let cap = pry!(pry!(params.get()).get_cap());
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
+        let cap = params.get()?.get_cap()?;
         let mut request = cap.foo_request();
         request.get().set_i(123);
         request.get().set_j(true);
 
-        Promise::from_future(request.send().promise.map(move |response| {
-            if response?.get()?.get_x()? != "foo" {
-                return Err(Error::failed("expected x to equal 'foo'".to_string()));
-            }
-            results.get().set_s("bar");
-            Ok(())
-        }))
+        let response = request.send().promise.await?;
+        if response.get()?.get_x()? != "foo" {
+            return Err(Error::failed("expected x to equal 'foo'".to_string()));
+        }
+        results.get().set_s("bar");
+        Ok(())
     }
 
-    fn call_foo_when_resolved(
-        &mut self,
+    async fn call_foo_when_resolved(
+        &self,
         params: test_more_stuff::CallFooWhenResolvedParams,
         mut results: test_more_stuff::CallFooWhenResolvedResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
-        let cap = pry!(pry!(params.get()).get_cap());
-        Promise::from_future(cap.client.when_resolved().and_then(move |()| {
-            let mut request = cap.foo_request();
-            request.get().set_i(123);
-            request.get().set_j(true);
-            request.send().promise.map(move |response| {
-                if response?.get()?.get_x()? != "foo" {
-                    return Err(Error::failed("expected x to equal 'foo'".to_string()));
-                }
-                results.get().set_s("bar");
-                Ok(())
-            })
-        }))
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
+        let cap = params.get()?.get_cap()?;
+        cap.client.when_resolved().await?;
+
+        let mut request = cap.foo_request();
+        request.get().set_i(123);
+        request.get().set_j(true);
+        let response = request.send().promise.await?;
+        if response.get()?.get_x()? != "foo" {
+            return Err(Error::failed("expected x to equal 'foo'".to_string()));
+        }
+        results.get().set_s("bar");
+        Ok(())
     }
 
-    fn never_return(
-        &mut self,
+    async fn never_return(
+        &self,
         params: test_more_stuff::NeverReturnParams,
         mut results: test_more_stuff::NeverReturnResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
 
-        let cap = pry!(pry!(params.get()).get_cap());
+        let cap = params.get()?.get_cap()?;
 
-        // Attach `cap` to the promise to make sure it is released.
-        let attached = cap.clone();
-        let promise = Promise::from_future(::futures::future::pending().map_ok(|()| {
-            drop(attached);
-        }));
+        // Keep a clone alive to ensure it gets release when the promise is dropped.
+        let _attached = cap.clone();
 
         // Also attach `cap` to the result struct so we can make sure that the results are released.
         results.get().set_cap_copy(cap);
 
-        promise
+        ::futures::future::pending().await
     }
 
-    fn hold(
-        &mut self,
+    async fn hold(
+        &self,
         params: test_more_stuff::HoldParams,
         _results: test_more_stuff::HoldResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
-        self.client_to_hold = Some(pry!(pry!(params.get()).get_cap()));
-        Promise::ok(())
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
+        *self.client_to_hold.borrow_mut() = Some(params.get()?.get_cap()?);
+        Ok(())
     }
 
-    fn dont_hold(
-        &mut self,
+    async fn dont_hold(
+        &self,
         params: test_more_stuff::DontHoldParams,
         _results: test_more_stuff::DontHoldResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
-        let _ = Some(pry!(pry!(params.get()).get_cap()));
-        Promise::ok(())
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
+        let _ = Some(params.get()?.get_cap()?);
+        Ok(())
     }
 
-    fn call_held(
-        &mut self,
+    async fn call_held(
+        &self,
         _params: test_more_stuff::CallHeldParams,
         mut results: test_more_stuff::CallHeldResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
-        match self.client_to_hold {
-            None => Promise::err(Error::failed("no held client".to_string())),
-            Some(ref client) => {
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
+        match &*self.client_to_hold.borrow() {
+            None => Err(Error::failed("no held client".to_string())),
+            Some(client) => {
                 let mut request = client.foo_request();
                 {
                     let mut params = request.get();
                     params.set_i(123);
                     params.set_j(true);
                 }
-                Promise::from_future(request.send().promise.map(move |response| {
-                    if response?.get()?.get_x()? != "foo" {
-                        Err(Error::failed("expected X to equal 'foo'".to_string()))
-                    } else {
-                        results.get().set_s("bar");
-                        Ok(())
-                    }
-                }))
+                let response = request.send().promise.await?;
+                if response.get()?.get_x()? != "foo" {
+                    Err(Error::failed("expected X to equal 'foo'".to_string()))
+                } else {
+                    results.get().set_s("bar");
+                    Ok(())
+                }
             }
         }
     }
 
-    fn get_held(
-        &mut self,
+    async fn get_held(
+        &self,
         _params: test_more_stuff::GetHeldParams,
         mut results: test_more_stuff::GetHeldResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
-        match self.client_to_hold {
-            None => Promise::err(Error::failed("no held client".to_string())),
-            Some(ref client) => {
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
+        match &*self.client_to_hold.borrow() {
+            None => Err(Error::failed("no held client".to_string())),
+            Some(client) => {
                 results.get().set_cap(client.clone());
-                Promise::ok(())
+                Ok(())
             }
         }
     }
 
-    fn echo(
-        &mut self,
+    async fn echo(
+        &self,
         params: test_more_stuff::EchoParams,
         mut results: test_more_stuff::EchoResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
-        results.get().set_cap(pry!(pry!(params.get()).get_cap()));
-        Promise::ok(())
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
+        results.get().set_cap(params.get()?.get_cap()?);
+        Ok(())
     }
 
-    fn expect_cancel(
-        &mut self,
+    async fn expect_cancel(
+        &self,
         _params: test_more_stuff::ExpectCancelParams,
         _results: test_more_stuff::ExpectCancelResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn get_handle(
-        &mut self,
+    async fn get_handle(
+        &self,
         _params: test_more_stuff::GetHandleParams,
         mut results: test_more_stuff::GetHandleResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
         let handle = Handle::new(&self.handle_count);
         results.get().set_handle(capnp_rpc::new_client(handle));
-        Promise::ok(())
+        Ok(())
     }
 
-    fn get_handle_count(
-        &mut self,
+    async fn get_handle_count(
+        &self,
         _params: test_more_stuff::GetHandleCountParams,
         mut results: test_more_stuff::GetHandleCountResults,
-    ) -> Promise<(), Error> {
-        self.call_count += 1;
+    ) -> Result<(), Error> {
+        self.call_count.set(self.call_count.get() + 1);
         results.get().set_count(self.handle_count.get());
-        Promise::ok(())
+        Ok(())
     }
 
-    fn get_null(
-        &mut self,
+    async fn get_null(
+        &self,
         _params: test_more_stuff::GetNullParams,
         _results: test_more_stuff::GetNullResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn method_with_defaults(
-        &mut self,
+    async fn method_with_defaults(
+        &self,
         _params: test_more_stuff::MethodWithDefaultsParams,
         _results: test_more_stuff::MethodWithDefaultsResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn call_each_capability(
-        &mut self,
+    async fn call_each_capability(
+        &self,
         params: test_more_stuff::CallEachCapabilityParams,
         _results: test_more_stuff::CallEachCapabilityResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         let mut results = Vec::new();
-        for cap in pry!(pry!(params.get()).get_caps()) {
-            let mut request = pry!(cap).foo_request();
+        for cap in params.get()?.get_caps()? {
+            let mut request = cap?.foo_request();
             request.get().set_i(123);
             request.get().set_j(true);
             results.push(request.send().promise);
         }
 
-        Promise::from_future(::futures::future::try_join_all(results).map_ok(|_| ()))
+        ::futures::future::try_join_all(results).await?;
+        Ok(())
     }
 
-    fn get_test_streaming(
-        &mut self,
+    async fn get_test_streaming(
+        &self,
         _params: test_more_stuff::GetTestStreamingParams,
         mut results: test_more_stuff::GetTestStreamingResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         results
             .get()
             .set_cap(capnp_rpc::new_client(TestStreamingImpl::new()));
-        Promise::ok(())
+        Ok(())
     }
 }
 
@@ -609,35 +589,35 @@ impl Drop for TestCapDestructor {
 }
 
 impl test_interface::Server for TestCapDestructor {
-    fn foo(
-        &mut self,
+    async fn foo(
+        &self,
         params: test_interface::FooParams,
         results: test_interface::FooResults,
-    ) -> Promise<(), Error> {
-        self.imp.foo(params, results)
+    ) -> Result<(), Error> {
+        self.imp.foo(params, results).await
     }
 
-    fn bar(
-        &mut self,
+    async fn bar(
+        &self,
         _params: test_interface::BarParams,
         _results: test_interface::BarResults,
-    ) -> Promise<(), Error> {
-        Promise::err(Error::unimplemented("bar is not implemented".to_string()))
+    ) -> Result<(), Error> {
+        Err(Error::unimplemented("bar is not implemented".to_string()))
     }
 
-    fn baz(
-        &mut self,
+    async fn baz(
+        &self,
         _params: test_interface::BazParams,
         _results: test_interface::BazResults,
-    ) -> Promise<(), Error> {
-        Promise::err(Error::unimplemented("bar is not implemented".to_string()))
+    ) -> Result<(), Error> {
+        Err(Error::unimplemented("bar is not implemented".to_string()))
     }
 }
 
 #[derive(Default)]
 pub struct TestStreamingImpl {
-    i_sum: u32,
-    j_sum: u32,
+    i_sum: Cell<u32>,
+    j_sum: Cell<u32>,
 }
 
 impl TestStreamingImpl {
@@ -647,31 +627,33 @@ impl TestStreamingImpl {
 }
 
 impl test_streaming::Server for TestStreamingImpl {
-    fn do_stream_i(&mut self, params: test_streaming::DoStreamIParams) -> Promise<(), Error> {
-        let params = pry!(params.get());
+    async fn do_stream_i(&self, params: test_streaming::DoStreamIParams) -> Result<(), Error> {
+        let params = params.get()?;
         if params.get_throw_error() {
-            return Promise::err(Error::failed("throw requested".to_string()));
+            return Err(Error::failed("throw requested".to_string()));
         }
-        self.i_sum += params.get_i();
-        Promise::ok(())
+        self.i_sum.set(self.i_sum.get() + params.get_i());
+        Ok(())
     }
-    fn do_stream_j(&mut self, params: test_streaming::DoStreamJParams) -> Promise<(), Error> {
-        let params = pry!(params.get());
+
+    async fn do_stream_j(&self, params: test_streaming::DoStreamJParams) -> Result<(), Error> {
+        let params = params.get()?;
         if params.get_throw_error() {
-            return Promise::err(Error::failed("throw requested".to_string()));
+            return Err(Error::failed("throw requested".to_string()));
         }
-        self.j_sum += params.get_j();
-        Promise::ok(())
+        self.j_sum.set(self.j_sum.get() + params.get_j());
+        Ok(())
     }
-    fn finish_stream(
-        &mut self,
+
+    async fn finish_stream(
+        &self,
         _params: test_streaming::FinishStreamParams,
         mut results: test_streaming::FinishStreamResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         let mut results = results.get();
-        results.set_total_i(self.i_sum);
-        results.set_total_j(self.j_sum);
-        Promise::ok(())
+        results.set_total_i(self.i_sum.get());
+        results.set_total_j(self.j_sum.get());
+        Ok(())
     }
 }
 
@@ -702,84 +684,90 @@ impl TestCapabilityServerSet {
 }
 
 impl test_capability_server_set::Server for TestCapabilityServerSet {
-    fn create_handle(
-        &mut self,
+    async fn create_handle(
+        &self,
         _: test_capability_server_set::CreateHandleParams,
         mut results: test_capability_server_set::CreateHandleResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         results
             .get()
             .set_handle(self.set.borrow_mut().new_client(CssHandle::new()));
-        Promise::ok(())
+        Ok(())
     }
 
-    fn check_handle(
-        &mut self,
+    async fn check_handle(
+        &self,
         params: test_capability_server_set::CheckHandleParams,
         mut results: test_capability_server_set::CheckHandleResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         let set = self.set.clone();
-        let handle = pry!(pry!(params.get()).get_handle());
-        Promise::from_future(async move {
-            let resolved = capnp::capability::get_resolved_cap(handle).await;
-            match set.borrow().get_local_server_of_resolved(&resolved) {
-                None => (),
-                Some(_) => results.get().set_is_ours(true),
-            }
-            Ok(())
-        })
+        let handle = params.get()?.get_handle()?;
+        let resolved = capnp::capability::get_resolved_cap(handle).await;
+
+        if set
+            .borrow()
+            .get_local_server_of_resolved(&resolved)
+            .is_some()
+        {
+            results.get().set_is_ours(true)
+        }
+
+        Ok(())
     }
 }
 
 pub struct ResolverImpl {
-    sender: Option<oneshot::Sender<test_interface::Client>>,
+    sender: RefCell<Option<oneshot::Sender<test_interface::Client>>>,
 }
 
 impl test_promise_resolve::resolver::Server for ResolverImpl {
-    fn resolve_to_another_promise(
-        &mut self,
+    async fn resolve_to_another_promise(
+        &self,
         _params: test_promise_resolve::resolver::ResolveToAnotherPromiseParams,
         _results: test_promise_resolve::resolver::ResolveToAnotherPromiseResults,
-    ) -> Promise<(), Error> {
-        let Some(sender) = self.sender.take() else {
-            return Promise::err(Error::failed("no sender".into()));
+    ) -> Result<(), Error> {
+        let Some(sender) = self.sender.borrow_mut().take() else {
+            return Err(Error::failed("no sender".into()));
         };
+
         let (snd, rcv) = oneshot::channel();
         let _ = sender.send(capnp_rpc::new_future_client(
             rcv.map_err(|_| Error::failed("oneshot was canceled".to_string())),
         ));
-        self.sender = Some(snd);
-        Promise::ok(())
+        *self.sender.borrow_mut() = Some(snd);
+        Ok(())
     }
 
-    fn resolve_to_cap(
-        &mut self,
+    async fn resolve_to_cap(
+        &self,
         _params: test_promise_resolve::resolver::ResolveToCapParams,
         _results: test_promise_resolve::resolver::ResolveToCapResults,
-    ) -> Promise<(), Error> {
-        let Some(sender) = self.sender.take() else {
-            return Promise::err(Error::failed("no sender".into()));
+    ) -> Result<(), Error> {
+        let Some(sender) = self.sender.borrow_mut().take() else {
+            return Err(Error::failed("no sender".into()));
         };
         let _ = sender.send(capnp_rpc::new_client(TestInterface::new()));
-        Promise::ok(())
+        Ok(())
     }
 }
 
 pub struct TestPromiseResolveImpl {}
 
 impl test_promise_resolve::Server for TestPromiseResolveImpl {
-    fn foo(
-        &mut self,
+    async fn foo(
+        &self,
         _params: test_promise_resolve::FooParams,
         mut results: test_promise_resolve::FooResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         let (snd, rcv) = oneshot::channel();
-        let resolver = ResolverImpl { sender: Some(snd) };
+        let resolver = ResolverImpl {
+            sender: RefCell::new(Some(snd)),
+        };
         let mut results_root = results.get();
         results_root.set_cap(capnp_rpc::new_future_client(
             rcv.map_err(|_| Error::failed("oneshot was canceled".to_string())),
         ));
         results_root.set_resolver(capnp_rpc::new_client(resolver));
-        Promise::ok(())
+        Ok(())
     }
 }

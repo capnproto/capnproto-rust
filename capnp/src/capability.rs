@@ -444,11 +444,17 @@ impl DispatchCallResult {
     }
 }
 
+// Prevents using alloc directly in generated code (which would require an extern crate
+// alloc) in the crate root.
+#[cfg(feature = "alloc")]
+#[doc(hidden)]
+pub type Rc<T> = alloc::rc::Rc<T>;
+
 /// An untyped server.
 #[cfg(feature = "alloc")]
 pub trait Server {
     fn dispatch_call(
-        &mut self,
+        self: Rc<Self>,
         interface_id: u64,
         method_id: u16,
         params: Params<any_pointer::Owned>,

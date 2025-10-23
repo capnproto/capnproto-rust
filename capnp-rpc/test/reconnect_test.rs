@@ -5,7 +5,7 @@ use std::rc::Rc;
 use capnp::capability::{Promise, Response};
 use capnp::Error;
 use capnp_rpc::{
-    auto_reconnect, lazy_auto_reconnect, new_client, new_future_client, pry, rpc_twoparty_capnp,
+    auto_reconnect, lazy_auto_reconnect, new_client, new_future_client, rpc_twoparty_capnp,
     twoparty, RpcSystem,
 };
 use futures::channel::oneshot;
@@ -59,15 +59,15 @@ impl TestInterfaceImpl {
 }
 
 impl test_interface::Server for TestInterfaceImpl {
-    fn foo(
-        &mut self,
+    async fn foo(
+        &self,
         params: test_interface::FooParams,
         mut results: test_interface::FooResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         if let Some(err) = self.inner.borrow().error.as_ref() {
-            return Promise::err(err.clone());
+            return Err(err.clone());
         }
-        let params = pry!(params.get());
+        let params = params.get()?;
         let s = format!(
             "{} {} {}",
             params.get_i(),
@@ -78,11 +78,12 @@ impl test_interface::Server for TestInterfaceImpl {
             let mut results = results.get();
             results.set_x(&s[..]);
         }
-        if let Some(fut) = self.inner.borrow().block.as_ref() {
-            Promise::from_future(fut.clone())
-        } else {
-            Promise::ok(())
-        }
+
+        let Some(fut) = self.inner.borrow().block.clone() else {
+            return Ok(());
+        };
+
+        fut.await
     }
 }
 
@@ -263,16 +264,16 @@ impl Bootstrap {
 }
 
 impl test_capnp::bootstrap::Server for Bootstrap {
-    fn test_interface(
-        &mut self,
+    async fn test_interface(
+        &self,
         _params: test_capnp::bootstrap::TestInterfaceParams,
         mut results: test_capnp::bootstrap::TestInterfaceResults,
-    ) -> Promise<(), Error> {
+    ) -> Result<(), Error> {
         if let Some(client) = self.0.borrow_mut().take() {
             results.get().set_cap(client);
-            Promise::ok(())
+            Ok(())
         } else {
-            Promise::err(Error::failed("No interface available".into()))
+            Err(Error::failed("No interface available".into()))
         }
     }
 }

@@ -20,24 +20,23 @@
 // THE SOFTWARE.
 
 use crate::pubsub_capnp::{publisher, subscriber};
-use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
-use capnp::capability::Promise;
 use futures::AsyncReadExt;
 
 struct SubscriberImpl;
 
 impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
-    fn push_message(
-        &mut self,
+    async fn push_message(
+        &self,
         params: subscriber::PushMessageParams<::capnp::text::Owned>,
         _results: subscriber::PushMessageResults<::capnp::text::Owned>,
-    ) -> Promise<(), ::capnp::Error> {
+    ) -> Result<(), ::capnp::Error> {
         println!(
             "message from publisher: {}",
-            pry!(pry!(pry!(params.get()).get_message()).to_str())
+            params.get()?.get_message()?.to_str()?
         );
-        Promise::ok(())
+        Ok(())
     }
 }
 
