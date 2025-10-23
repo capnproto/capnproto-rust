@@ -18,46 +18,46 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+use std::cell::RefCell;
 
-use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 use futures::channel::oneshot;
 
 use crate::foo_capnp::foo;
-use capnp::capability::Promise;
 
 use futures::{AsyncReadExt, TryFutureExt};
 
 // Rust server defining an implementation of Foo.
 struct FooImpl {
-    disconnect: Option<oneshot::Sender<()>>,
+    disconnect: RefCell<Option<oneshot::Sender<()>>>,
 }
 impl FooImpl {
     pub fn new() -> (Self, oneshot::Receiver<()>) {
         let (sender, receiver) = oneshot::channel();
         (
             FooImpl {
-                disconnect: Some(sender),
+                disconnect: RefCell::new(Some(sender)),
             },
             receiver,
         )
     }
 }
 impl foo::Server for FooImpl {
-    fn identity(
-        &mut self,
+    async fn identity(
+        &self,
         params: foo::IdentityParams,
         mut results: foo::IdentityResults,
-    ) -> Promise<(), ::capnp::Error> {
-        let x = pry!(params.get()).get_x();
+    ) -> Result<(), ::capnp::Error> {
+        let x = params.get()?.get_x();
         results.get().set_y(x);
-        Promise::ok(())
+        Ok(())
     }
 
-    fn crash(&mut self, _: foo::CrashParams, _: foo::CrashResults) -> Promise<(), ::capnp::Error> {
-        if let Some(d) = self.disconnect.take() {
+    async fn crash(&self, _: foo::CrashParams, _: foo::CrashResults) -> Result<(), ::capnp::Error> {
+        if let Some(d) = self.disconnect.borrow_mut().take() {
             let _ = d.send(());
         }
-        Promise::ok(())
+        Ok(())
     }
 }
 

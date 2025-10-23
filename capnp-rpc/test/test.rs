@@ -1081,13 +1081,13 @@ fn capability_server_set() {
     // Getting the local server using the correct set works.
     let own_server1_again = futures::executor::block_on(set1.get_local_server(&client1)).unwrap();
     assert_eq!(
-        own_server1_again.borrow().get_call_count().as_ptr(),
+        own_server1_again.get_call_count().as_ptr(),
         own_server1_counter.as_ptr()
     );
 
     let own_server2_again = futures::executor::block_on(set2.get_local_server(&client2)).unwrap();
     assert_eq!(
-        own_server2_again.borrow().get_call_count().as_ptr(),
+        own_server2_again.get_call_count().as_ptr(),
         own_server2_counter.as_ptr()
     );
 
@@ -1112,7 +1112,7 @@ fn capability_server_set() {
     let own_server1_again2 =
         futures::executor::block_on(set1.get_local_server(&client_promise)).unwrap();
     assert_eq!(
-        own_server1_again2.borrow().get_call_count().as_ptr(),
+        own_server1_again2.get_call_count().as_ptr(),
         own_server1_counter.as_ptr()
     );
 

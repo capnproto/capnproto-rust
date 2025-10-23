@@ -339,7 +339,7 @@ pub struct Client<S>
 where
     S: capability::Server,
 {
-    inner: Rc<RefCell<S>>,
+    inner: Rc<S>,
 
     /// If a streaming call on this capability has returned an error,
     /// this contains a copy of that error.
@@ -352,12 +352,12 @@ where
 {
     pub fn new(server: S) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(server)),
+            inner: Rc::new(server),
             broken_error: Rc::new(RefCell::new(None)),
         }
     }
 
-    pub fn from_rc(inner: Rc<RefCell<S>>) -> Self {
+    pub fn from_rc(inner: Rc<S>) -> Self {
         Self {
             inner,
             broken_error: Rc::new(RefCell::new(None)),
@@ -419,17 +419,12 @@ where
         // This currently relies on the task scheduler being first-in-first-out.
         let inner = self.inner.clone();
         Promise::from_future(async move {
-            let f = {
-                // We put this borrow_mut() inside a block to avoid a potential
-                // double borrow during f.await
-                let server = &mut *inner.borrow_mut();
-                server.dispatch_call(
-                    interface_id,
-                    method_id,
-                    ::capnp::capability::Params::new(params),
-                    ::capnp::capability::Results::new(results),
-                )
-            };
+            let f = inner.dispatch_call(
+                interface_id,
+                method_id,
+                ::capnp::capability::Params::new(params),
+                ::capnp::capability::Results::new(results),
+            );
             let result = f.promise.await;
             if let (true, Err(e)) = (f.is_streaming, &result) {
                 *streaming_error.borrow_mut() = Some(e.clone());
@@ -439,7 +434,7 @@ where
     }
 
     fn get_ptr(&self) -> usize {
-        self.inner.as_ptr() as usize
+        Rc::as_ptr(&self.inner) as usize
     }
 
     fn get_brand(&self) -> usize {
