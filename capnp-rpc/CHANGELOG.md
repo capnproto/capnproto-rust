@@ -1,3 +1,6 @@
+## v0.22.0
+- Update for new `async fn` method support.
+
 ## v0.21.0
 - Follow v0.21.0 release of other capnp crates.
 - Remove deprecated `new_promise_client()` function.

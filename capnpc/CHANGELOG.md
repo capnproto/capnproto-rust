@@ -1,3 +1,10 @@
+## v0.22.0
+- Update generated code of `Server` traits to support `async fn` methods.
+  What previously was a `&mut self` parameter is now `&self`. Therefore
+  RPC objects must now add their own interior mutability as needed.
+  `Cell` or `RefCell` should suffice in most cases.
+- Remove support for rustc editions older than 2021 (when `await` was added).
+
 ## v0.21.4
 - Update minimum required version of capnp base crate, to account for new
   usage of impl Clone for capnp:: capability::Client.

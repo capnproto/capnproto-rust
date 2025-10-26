@@ -1,3 +1,7 @@
+## v0.22.0
+- Update `capability::Server` trait for new `async fn` support.
+- Update optional embedded-io dependency from 0.6.1 to 0.7.1.
+
 ## v0.21.7
 - Resolve type on construction of `Field`. This is expected to improve performance of
   certain usage patterns of the dynamic API.

@@ -1,3 +1,6 @@
+## v0.22.0
+- Follow v0.22.0 release of other capnp crates.
+
 ## v0.21.0
 - Follow v0.21.0 release of other capnp crates.
 
