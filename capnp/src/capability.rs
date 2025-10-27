@@ -444,10 +444,9 @@ impl DispatchCallResult {
     }
 }
 
-// Prevents using alloc directly in generated code (which would require an extern crate
-// alloc) in the crate root.
+/// Type alias that allows us to avoid using `alloc` directly in generated code,
+/// which would require an `extern crate alloc` in the crate root.
 #[cfg(feature = "alloc")]
-#[doc(hidden)]
 pub type Rc<T> = alloc::rc::Rc<T>;
 
 /// An untyped server.
