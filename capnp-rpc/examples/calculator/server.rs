@@ -22,18 +22,16 @@
 use std::cell::RefCell;
 
 use ::capnp::message::HeapAllocator;
-use capnp::capability::Promise;
 use capnp::primitive_list;
 use capnp::Error;
 
 use ::capnp_rpc::ImbuedMessageBuilder;
-use capnp_rpc::pry;
 use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use crate::calculator_capnp::calculator;
 
 use futures::future;
-use futures::{AsyncReadExt, FutureExt, TryFutureExt};
+use futures::{AsyncReadExt, TryFutureExt};
 
 struct ValueImpl {
     value: f64,
@@ -56,41 +54,31 @@ impl calculator::value::Server for ValueImpl {
     }
 }
 
-fn evaluate_impl(
+async fn evaluate_impl(
     expression: calculator::expression::Reader<'_>,
     params: Option<primitive_list::Reader<'_, f64>>,
-) -> Promise<f64, Error> {
-    match pry!(expression.which()) {
-        calculator::expression::Literal(v) => Promise::ok(v),
-        calculator::expression::PreviousResult(p) => Promise::from_future(
-            pry!(p)
-                .read_request()
-                .send()
-                .promise
-                .map(|v| Ok(v?.get()?.get_value())),
-        ),
+) -> Result<f64, Error> {
+    match expression.which()? {
+        calculator::expression::Literal(v) => Ok(v),
+        calculator::expression::PreviousResult(p) => {
+            let v = p?.read_request().send().promise.await?;
+            Ok(v.get()?.get_value())
+        }
         calculator::expression::Parameter(p) => match params {
-            Some(params) if p < params.len() => Promise::ok(params.get(p)),
-            _ => Promise::err(Error::failed(format!("bad parameter: {p}"))),
+            Some(params) if p < params.len() => Ok(params.get(p)),
+            _ => Err(Error::failed(format!("bad parameter: {p}"))),
         },
         calculator::expression::Call(call) => {
-            let func = pry!(call.get_function());
-            let eval_params = future::try_join_all(
-                pry!(call.get_params())
-                    .iter()
-                    .map(|p| evaluate_impl(p, params)),
-            );
-            Promise::from_future(async move {
-                let param_values = eval_params.await?;
-                let mut request = func.call_request();
-                {
-                    let mut params = request.get().init_params(param_values.len() as u32);
-                    for (ii, value) in param_values.iter().enumerate() {
-                        params.set(ii as u32, *value);
-                    }
-                }
-                Ok(request.send().promise.await?.get()?.get_value())
-            })
+            let func = call.get_function()?;
+            let eval_params =
+                future::try_join_all(call.get_params()?.iter().map(|p| evaluate_impl(p, params)));
+            let param_values = eval_params.await?;
+            let mut request = func.call_request();
+            let mut params = request.get().init_params(param_values.len() as u32);
+            for (ii, value) in param_values.iter().enumerate() {
+                params.set(ii as u32, *value);
+            }
+            Ok(request.send().promise.await?.get()?.get_value())
         }
     }
 }
@@ -132,9 +120,10 @@ impl calculator::function::Server for FunctionImpl {
                 .get_root::<calculator::expression::Builder>()?
                 .into_reader(),
             Some(params),
-        );
+        )
+        .await?;
 
-        results.get().set_value(eval.await?);
+        results.get().set_value(eval);
         Ok(())
     }
 }
