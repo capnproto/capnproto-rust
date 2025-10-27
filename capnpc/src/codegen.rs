@@ -2624,7 +2624,7 @@ fn generate_node(
                     )));
                     server_interior.push(
                         Line(fmt!(ctx,
-                                  "fn {}(&self, _: {}Params<{}>, _: {}Results<{}>) -> impl ::std::future::Future<Output = Result<(), {capnp}::Error>> + '_ {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
+                                  "fn {}(&self, _: {}Params<{}>, _: {}Results<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + '_ {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
                                   module_name(name),
                                   capitalize_first_letter(name), params_ty_params,
                                   capitalize_first_letter(name), results_ty_params,
@@ -2653,7 +2653,7 @@ fn generate_node(
 
                     server_interior.push(
                         Line(fmt!(ctx,
-                                  "fn {}(&self, _: {}Params<{}>) -> impl ::std::future::Future<Output = Result<(), {capnp}::Error>> + '_ {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
+                                  "fn {}(&self, _: {}Params<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + '_ {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
                                   module_name(name),
                                   capitalize_first_letter(name), params_ty_params,
                                   node_name, module_name(name)
