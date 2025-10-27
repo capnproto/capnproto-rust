@@ -1,7 +1,7 @@
 [package]
 
 name = "capnpc"
-version = "0.22.0-alpha"
+version = "0.22.0"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 license = "MIT"
 description = "Cap'n Proto code generation"
@@ -25,7 +25,7 @@ path = "src/capnpc-rust-bootstrap.rs"
 
 
 [dependencies.capnp]
-version = "0.22.0-alpha"
+version = "0.22.0"
 path = "../capnp"
 
 [lints]

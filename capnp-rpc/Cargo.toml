@@ -1,7 +1,7 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.22.0-alpha"
+version = "0.22.0"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 license = "MIT"
 description = "implementation of the Cap'n Proto remote procedure call protocol"
@@ -19,8 +19,8 @@ default-features = false
 features = ["std"]
 
 [dependencies]
-capnp-futures = { version = "0.22.0-alpha", path = "../capnp-futures" }
-capnp = {version = "0.22.0-alpha", path = "../capnp"}
+capnp-futures = { version = "0.22.0", path = "../capnp-futures" }
+capnp = {version = "0.22.0", path = "../capnp"}
 
 #[lints]
 #workspace = true
