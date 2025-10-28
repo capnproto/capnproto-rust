@@ -2592,7 +2592,7 @@ fn generate_node(
                 if result_id != STREAM_RESULT_ID {
                     dispatch_arms.push(
                         Line(fmt!(ctx,
-                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::from_future(async move {{ (**this).{}({capnp}::private::capability::internal_get_typed_params(params), {capnp}::private::capability::internal_get_typed_results(results)).await }}), false),",
+                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::from_future(this.{}({capnp}::private::capability::internal_get_typed_params(params), {capnp}::private::capability::internal_get_typed_results(results))), false),",
                                   module_name(name))));
 
                     let result_node = &ctx.node_map[&result_id];
@@ -2624,7 +2624,7 @@ fn generate_node(
                     )));
                     server_interior.push(
                         Line(fmt!(ctx,
-                                  "fn {}(&self, _: {}Params<{}>, _: {}Results<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + '_ {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
+                                  "fn {}(self: {capnp}::capability::Rc<Self>, _: {}Params<{}>, _: {}Results<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + 'static {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
                                   module_name(name),
                                   capitalize_first_letter(name), params_ty_params,
                                   capitalize_first_letter(name), results_ty_params,
@@ -2647,13 +2647,13 @@ fn generate_node(
                     // It's a streaming method.
                     dispatch_arms.push(
                         Line(fmt!(ctx,
-                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::from_future(async move {{ (**this).{}({capnp}::private::capability::internal_get_typed_params(params)).await }}), true),",
+                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::from_future(this.{}({capnp}::private::capability::internal_get_typed_params(params))), true),",
 
                                   module_name(name))));
 
                     server_interior.push(
                         Line(fmt!(ctx,
-                                  "fn {}(&self, _: {}Params<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + '_ {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
+                                  "fn {}(self: {capnp}::capability::Rc<Self>, _: {}Params<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + 'static {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
                                   module_name(name),
                                   capitalize_first_letter(name), params_ty_params,
                                   node_name, module_name(name)
@@ -2706,7 +2706,7 @@ fn generate_node(
                     let the_mod = ctx.get_qualified_module(type_id);
 
                     base_dispatch_arms.push(Line(format!(
-                        "0x{type_id:x} => {}::dispatch_call_internal(self, method_id, params, results),",
+                        "0x{type_id:x} => {}::dispatch_call_internal(self.server, method_id, params, results),",
                         do_branding(
                             ctx, type_id, brand, Leaf::ServerDispatch, &the_mod)?)));
                     base_traits.push(do_branding(ctx, type_id, brand, Leaf::Server, &the_mod)?);
@@ -2849,7 +2849,7 @@ fn generate_node(
                     "pub struct ServerDispatch<_T,{}> {{",
                     params.params
                 )),
-                indent(line("pub server: _T,")),
+                indent(line(fmt!(ctx, "pub server: {capnp}::capability::Rc<_T>,"))),
                 indent(if is_generic {
                     vec![Line(params.phantom_data_type.clone())]
                 } else {
@@ -2864,7 +2864,7 @@ fn generate_node(
                             params.params, bracketed_params, params.where_clause_with_static)),
                 indent(vec![
                     Line(format!("type Dispatch = ServerDispatch<_S, {}>;", params.params)),
-                    Line(format!("fn from_server(s: _S) -> ServerDispatch<_S, {}> {{", params.params)),
+                    Line(fmt!(ctx, "fn from_server(s: {capnp}::capability::Rc<_S>) -> ServerDispatch<_S, {}> {{", params.params)),
                     indent(Line(format!("ServerDispatch {{ server: s, {} }}", params.phantom_data_value))),
                     line("}"),
                 ]),
@@ -2886,11 +2886,12 @@ fn generate_node(
             mod_interior.push(
                 Branch(vec![
                     (if is_generic {
-                        Line(format!("impl <{}, _T: Server{}> ::core::ops::DerefMut for ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
+                        Line(format!("impl <{}, _T: Server{}> ::core::clone::Clone for ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
                     } else {
-                        line("impl <_T: Server> ::core::ops::DerefMut for ServerDispatch<_T> {")
+                        line("impl <_T: Server> ::core::clone::Clone for ServerDispatch<_T> {")
                     }),
-                    indent(line("fn deref_mut(&mut self) -> &mut _T { &mut self.server}")),
+                    indent(line(
+                        format!("fn clone(&self) -> Self {{ Self {{ server: self.server.clone(), {} }} }}", params.phantom_data_value))),
                     line("}"),
                     ]));
 
@@ -2901,13 +2902,16 @@ fn generate_node(
                     } else {
                         Line(fmt!(ctx,"impl <_T: Server> {capnp}::capability::Server for ServerDispatch<_T> {{"))
                     }),
-                    indent(Line(fmt!(ctx,"fn dispatch_call(self: {capnp}::capability::Rc<Self>, interface_id: u64, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::DispatchCallResult {{"))),
+                    indent(Line(fmt!(ctx,"fn dispatch_call(self, interface_id: u64, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::DispatchCallResult {{"))),
                     indent(indent(line("match interface_id {"))),
-                    indent(indent(indent(line("_private::TYPE_ID => Self::dispatch_call_internal(self, method_id, params, results),")))),
+                    indent(indent(indent(line("_private::TYPE_ID => Self::dispatch_call_internal(self.server, method_id, params, results),")))),
                     indent(indent(indent(base_dispatch_arms))),
                     indent(indent(indent(Line(fmt!(ctx,"_ => {{ {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"Method not implemented.\".to_string())), false) }}"))))),
                     indent(indent(line("}"))),
                     indent(line("}")),
+
+                    indent(Line(fmt!(ctx, "fn as_ptr(&self) -> usize {{ {capnp}::capability::Rc::as_ptr(&self.server) as usize }}"))),
+
                     line("}")]));
 
             mod_interior.push(
@@ -2917,14 +2921,8 @@ fn generate_node(
                     } else {
                         line("impl <_T :Server> ServerDispatch<_T> {")
                     }),
-                    // This seems more complex that it needs to be at first, but the extra generic
-                    // here allows extended interfaces to call methods on its base interface
-                    // without extra allocations. If `B extends A`, in this block `Self` is
-                    // `ADispatch`, but during the construction of `BDispatch`, we need to
-                    // also dispatch methods for A, so the function should also support
-                    // receiving `Rc<BDispatch>` in place of `Rc<ADispatch>`. We pigback on Deref
-                    // to allow us to call the expected server methods.
-                    indent(Line(fmt!(ctx,"pub fn dispatch_call_internal(this: {capnp}::capability::Rc<impl ::core::ops::Deref<Target = _T> + 'static>, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::DispatchCallResult {{"))),
+
+                    indent(Line(fmt!(ctx,"pub fn dispatch_call_internal(this: {capnp}::capability::Rc<_T>, method_id: u16, params: {capnp}::capability::Params<{capnp}::any_pointer::Owned>, results: {capnp}::capability::Results<{capnp}::any_pointer::Owned>) -> {capnp}::capability::DispatchCallResult {{"))),
                     indent(indent(line("match method_id {"))),
                     indent(indent(indent(dispatch_arms))),
                     indent(indent(indent(Line(fmt!(ctx,"_ => {{ {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::err({capnp}::Error::unimplemented(\"Method not implemented.\".to_string())), false) }}"))))),

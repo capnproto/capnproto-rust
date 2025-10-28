@@ -30,7 +30,7 @@ struct HelloWorldImpl;
 
 impl hello_world::Server for HelloWorldImpl {
     async fn say_hello(
-        &self,
+        self: std::rc::Rc<Self>,
         params: hello_world::SayHelloParams,
         mut results: hello_world::SayHelloResults,
     ) -> Result<(), ::capnp::Error> {

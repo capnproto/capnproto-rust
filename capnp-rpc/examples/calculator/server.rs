@@ -45,7 +45,7 @@ impl ValueImpl {
 
 impl calculator::value::Server for ValueImpl {
     async fn read(
-        &self,
+        self: std::rc::Rc<Self>,
         _params: calculator::value::ReadParams,
         mut results: calculator::value::ReadResults,
     ) -> Result<(), Error> {
@@ -101,7 +101,7 @@ impl FunctionImpl {
 
 impl calculator::function::Server for FunctionImpl {
     async fn call(
-        &self,
+        self: std::rc::Rc<Self>,
         params: calculator::function::CallParams,
         mut results: calculator::function::CallResults,
     ) -> Result<(), Error> {
@@ -135,7 +135,7 @@ pub struct OperatorImpl {
 
 impl calculator::function::Server for OperatorImpl {
     async fn call(
-        &self,
+        self: std::rc::Rc<Self>,
         params: calculator::function::CallParams,
         mut results: calculator::function::CallResults,
     ) -> Result<(), Error> {
@@ -159,7 +159,7 @@ struct CalculatorImpl;
 
 impl calculator::Server for CalculatorImpl {
     async fn evaluate(
-        &self,
+        self: std::rc::Rc<Self>,
         params: calculator::EvaluateParams,
         mut results: calculator::EvaluateResults,
     ) -> Result<(), Error> {
@@ -171,7 +171,7 @@ impl calculator::Server for CalculatorImpl {
     }
 
     async fn def_function(
-        &self,
+        self: std::rc::Rc<Self>,
         params: calculator::DefFunctionParams,
         mut results: calculator::DefFunctionResults,
     ) -> Result<(), Error> {
@@ -185,7 +185,7 @@ impl calculator::Server for CalculatorImpl {
     }
 
     async fn get_operator(
-        &self,
+        self: std::rc::Rc<Self>,
         params: calculator::GetOperatorParams,
         mut results: calculator::GetOperatorResults,
     ) -> Result<(), Error> {

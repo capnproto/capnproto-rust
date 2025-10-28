@@ -44,7 +44,7 @@ impl FooImpl {
 }
 impl foo::Server for FooImpl {
     async fn identity(
-        &self,
+        self: std::rc::Rc<Self>,
         params: foo::IdentityParams,
         mut results: foo::IdentityResults,
     ) -> Result<(), ::capnp::Error> {
@@ -53,7 +53,11 @@ impl foo::Server for FooImpl {
         Ok(())
     }
 
-    async fn crash(&self, _: foo::CrashParams, _: foo::CrashResults) -> Result<(), ::capnp::Error> {
+    async fn crash(
+        self: std::rc::Rc<Self>,
+        _: foo::CrashParams,
+        _: foo::CrashResults,
+    ) -> Result<(), ::capnp::Error> {
         if let Some(d) = self.disconnect.borrow_mut().take() {
             let _ = d.send(());
         }

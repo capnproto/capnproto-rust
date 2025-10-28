@@ -29,7 +29,7 @@ pub struct PowerFunction;
 
 impl calculator::function::Server for PowerFunction {
     async fn call(
-        &self,
+        self: std::rc::Rc<Self>,
         params: calculator::function::CallParams,
         mut results: calculator::function::CallResults,
     ) -> Result<(), ::capnp::Error> {

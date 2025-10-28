@@ -60,7 +60,7 @@ impl TestInterfaceImpl {
 
 impl test_interface::Server for TestInterfaceImpl {
     async fn foo(
-        &self,
+        self: Rc<Self>,
         params: test_interface::FooParams,
         mut results: test_interface::FooResults,
     ) -> Result<(), Error> {
@@ -265,7 +265,7 @@ impl Bootstrap {
 
 impl test_capnp::bootstrap::Server for Bootstrap {
     async fn test_interface(
-        &self,
+        self: Rc<Self>,
         _params: test_capnp::bootstrap::TestInterfaceParams,
         mut results: test_capnp::bootstrap::TestInterfaceResults,
     ) -> Result<(), Error> {

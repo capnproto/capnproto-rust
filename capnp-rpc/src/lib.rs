@@ -379,7 +379,7 @@ where
     C: capnp::capability::FromServer<S>,
 {
     capnp::capability::FromClientHook::new(Box::new(local::Client::new(
-        <C as capnp::capability::FromServer<S>>::from_server(s),
+        <C as capnp::capability::FromServer<S>>::from_server(Rc::new(s)),
     )))
 }
 
@@ -393,7 +393,8 @@ pub struct CapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
 {
-    caps: std::collections::HashMap<usize, Weak<C::Dispatch>>,
+    caps: std::collections::HashMap<usize, Weak<S>>,
+    marker: std::marker::PhantomData<C>,
 }
 
 impl<S, C> Default for CapabilityServerSet<S, C>
@@ -403,6 +404,7 @@ where
     fn default() -> Self {
         Self {
             caps: std::default::Default::default(),
+            marker: std::marker::PhantomData,
         }
     }
 }
@@ -417,16 +419,18 @@ where
 
     /// Adds a new capability to the set and returns a client backed by it.
     pub fn new_client(&mut self, s: S) -> C {
-        let dispatch = <C as capnp::capability::FromServer<S>>::from_server(s);
-        let wrapped = Rc::new(dispatch);
-        let ptr = Rc::as_ptr(&wrapped) as usize;
-        self.caps.insert(ptr, Rc::downgrade(&wrapped));
-        capnp::capability::FromClientHook::new(Box::new(local::Client::from_rc(wrapped)))
+        let rc = Rc::new(s);
+        let weak = Rc::downgrade(&rc);
+        let ptr = Rc::as_ptr(&rc) as usize;
+        self.caps.insert(ptr, weak);
+
+        let dispatch = <C as capnp::capability::FromServer<S>>::from_server(rc);
+        capnp::capability::FromClientHook::new(Box::new(local::Client::new(dispatch)))
     }
 
     /// Looks up a capability and returns its underlying server object, if found.
     /// Fully resolves the capability before looking it up.
-    pub async fn get_local_server(&self, client: &C) -> Option<Rc<C::Dispatch>>
+    pub async fn get_local_server(&self, client: &C) -> Option<Rc<S>>
     where
         C: capnp::capability::FromClientHook,
     {
@@ -444,7 +448,7 @@ where
     /// to call `get_resolved_cap()` before calling this. The advantage of this method
     /// over `get_local_server()` is that this one is synchronous and borrows `self`
     /// over a shorter span (which can be very important if `self` is inside a `RefCell`).
-    pub fn get_local_server_of_resolved(&self, client: &C) -> Option<Rc<C::Dispatch>>
+    pub fn get_local_server_of_resolved(&self, client: &C) -> Option<Rc<S>>
     where
         C: capnp::capability::FromClientHook,
     {

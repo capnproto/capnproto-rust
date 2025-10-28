@@ -337,9 +337,9 @@ impl PipelineHook for Pipeline {
 
 pub struct Client<S>
 where
-    S: capability::Server,
+    S: capability::Server + Clone,
 {
-    inner: Rc<S>,
+    inner: S,
 
     /// If a streaming call on this capability has returned an error,
     /// this contains a copy of that error.
@@ -348,18 +348,11 @@ where
 
 impl<S> Client<S>
 where
-    S: capability::Server,
+    S: capability::Server + Clone,
 {
     pub fn new(server: S) -> Self {
         Self {
-            inner: Rc::new(server),
-            broken_error: Rc::new(RefCell::new(None)),
-        }
-    }
-
-    pub fn from_rc(inner: Rc<S>) -> Self {
-        Self {
-            inner,
+            inner: server,
             broken_error: Rc::new(RefCell::new(None)),
         }
     }
@@ -367,7 +360,7 @@ where
 
 impl<S> Clone for Client<S>
 where
-    S: capability::Server,
+    S: capability::Server + Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -379,7 +372,7 @@ where
 
 impl<S> ClientHook for Client<S>
 where
-    S: capability::Server + 'static,
+    S: capability::Server + Clone + 'static,
 {
     fn add_ref(&self) -> Box<dyn ClientHook> {
         Box::new(self.clone())
@@ -434,7 +427,7 @@ where
     }
 
     fn get_ptr(&self) -> usize {
-        Rc::as_ptr(&self.inner) as usize
+        self.inner.as_ptr()
     }
 
     fn get_brand(&self) -> usize {
