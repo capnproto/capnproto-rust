@@ -83,7 +83,8 @@ To create an RPC-enabled object, you must implement that trait.
 struct MyBar {}
 
 impl ::foo_capnp::bar::Server for MyBar {
-     async fn baz(&self,
+     async fn baz(
+            self: Rc<Self>,
             params: ::foo_capnp::bar::BazParams,
             mut results: ::foo_capnp::bar::BazResults)
         -> Result<(), ::capnp::Error>
@@ -123,7 +124,8 @@ Here's an example of a method implementation that does not return immediately:
 struct MyQux {}
 
 impl ::foo_capnp::qux::Server for MyQux {
-     async fn quux(&mut self,
+     async fn quux(
+             self: Rc<Self>,
              params: ::foo_capnp::qux::QuuxParams,
              mut results: ::foo_capnp::wux::QuuxResults)
         -> Result<(), ::capnp::Error>

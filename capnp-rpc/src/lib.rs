@@ -34,7 +34,8 @@
 //! // Rust server defining an implementation of Foo.
 //! struct FooImpl;
 //! impl foo::Server for FooImpl {
-//!     async fn identity(&self,
+//!     async fn identity(
+//!         self: Rc<Self>,
 //!         params: foo::IdentityParams,
 //!         mut results: foo::IdentityResults
 //!     ) -> Result<(), ::capnp::Error> {
