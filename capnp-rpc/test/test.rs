@@ -1254,3 +1254,30 @@ fn promise_resolve_twice() {
         Ok(())
     });
 }
+
+#[test]
+fn get_self() {
+    rpc_and_local_top_level(|_spawner, client| async move {
+        let response = client.test_more_stuff_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+        let response = client.get_test_self_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+
+        let response1 = client.foo_request().send().promise.await?;
+
+        assert_eq!(response1.get()?.get_x(), 1);
+
+        let response2 = client.get_self_request().send().promise.await?;
+        let client2 = response2.get()?.get_cap()?;
+
+        // `client` and `client2` point to the same underlying object.
+
+        let response3 = client2.foo_request().send().promise.await?;
+        assert_eq!(response3.get()?.get_x(), 2);
+
+        let response4 = client.foo_request().send().promise.await?;
+        assert_eq!(response4.get()?.get_x(), 3);
+
+        Ok(())
+    });
+}
