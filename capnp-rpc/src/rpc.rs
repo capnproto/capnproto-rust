@@ -3161,12 +3161,11 @@ impl<VatId> ClientHook for Client<VatId> {
             Ok(request) => {
                 let ::capnp::capability::RemotePromise { promise, .. } = request.send();
 
-                let promise = promise.and_then(move |response| {
-                    pry!(pry!(results.get()).set_as(pry!(response.get())));
-                    Promise::ok(())
-                });
-
-                Promise::from_future(promise)
+                Promise::from_future(async move {
+                    let response = promise.await?;
+                    results.get()?.set_as(response.get()?)?;
+                    Ok(())
+                })
             }
         }
         // TODO implement this in terms of direct tail call.
