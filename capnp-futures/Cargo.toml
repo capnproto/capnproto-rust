@@ -1,6 +1,6 @@
 [package]
 name = "capnp-futures"
-version = "0.23.0-alpha"
+version = "0.23.0"
 authors = [ "David Renshaw <drenshaw@gmail.com>" ]
 license = "MIT"
 
@@ -30,7 +30,7 @@ default-features = false
 features = ["executor"]
 
 [dev-dependencies]
-capnp = { version = "0.23.0-alpha", path = "../capnp", features = ["quickcheck"] }
+capnp = { version = "0.23.0", path = "../capnp", features = ["quickcheck"] }
 quickcheck = "1"
 
 [lints]

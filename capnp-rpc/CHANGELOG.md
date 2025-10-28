@@ -1,3 +1,7 @@
+## v0.23.0
+- Update `local::Client` for new `async fn` method signatures.
+- Add `new_client_from_rc()`.
+
 ## v0.22.0
 - Update for new `async fn` method support.
 

@@ -1,3 +1,6 @@
+## v0.23.0
+- Update generated code of `Server` trait methods to take `self` as `Rc<Self>`.
+
 ## v0.22.0
 - Update generated code of `Server` traits to support `async fn` methods.
   What previously was a `&mut self` parameter is now `&self`. Therefore
