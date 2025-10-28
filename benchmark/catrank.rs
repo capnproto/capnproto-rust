@@ -48,7 +48,7 @@ impl crate::TestCase for CatRank {
             result.set_score(1000.0 - i as f64);
             let url_size = rng.next_less_than(100);
 
-            let url_prefix_length = URL_PREFIX.as_bytes().len();
+            let url_prefix_length = URL_PREFIX.len();
             {
                 let mut url = result
                     .reborrow()
