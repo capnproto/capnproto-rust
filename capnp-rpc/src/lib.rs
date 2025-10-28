@@ -379,8 +379,16 @@ pub fn new_client<C, S>(s: S) -> C
 where
     C: capnp::capability::FromServer<S>,
 {
+    new_client_from_rc(Rc::new(s))
+}
+
+/// Variant of `new_client` that works on an `Rc<S>`.
+pub fn new_client_from_rc<C, S>(s: Rc<S>) -> C
+where
+    C: capnp::capability::FromServer<S>,
+{
     capnp::capability::FromClientHook::new(Box::new(local::Client::new(
-        <C as capnp::capability::FromServer<S>>::from_server(Rc::new(s)),
+        <C as capnp::capability::FromServer<S>>::from_server(s),
     )))
 }
 
@@ -420,7 +428,11 @@ where
 
     /// Adds a new capability to the set and returns a client backed by it.
     pub fn new_client(&mut self, s: S) -> C {
-        let rc = Rc::new(s);
+        self.new_client_from_rc(Rc::new(s))
+    }
+
+    /// Variant of `new_client` that works on an `Rc<S>`.
+    pub fn new_client_from_rc(&mut self, rc: Rc<S>) -> C {
         let weak = Rc::downgrade(&rc);
         let ptr = Rc::as_ptr(&rc) as usize;
         self.caps.insert(ptr, weak);
