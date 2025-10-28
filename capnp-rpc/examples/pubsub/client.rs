@@ -28,7 +28,7 @@ struct SubscriberImpl;
 
 impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
     async fn push_message(
-        &self,
+        self: std::rc::Rc<Self>,
         params: subscriber::PushMessageParams<::capnp::text::Owned>,
         _results: subscriber::PushMessageResults<::capnp::text::Owned>,
     ) -> Result<(), ::capnp::Error> {

@@ -37,7 +37,7 @@ pub struct Bootstrap;
 
 impl bootstrap::Server for Bootstrap {
     async fn test_interface(
-        &self,
+        self: Rc<Self>,
         _params: bootstrap::TestInterfaceParams,
         mut results: bootstrap::TestInterfaceResults,
     ) -> Result<(), Error> {
@@ -48,7 +48,7 @@ impl bootstrap::Server for Bootstrap {
     }
 
     async fn test_extends(
-        &self,
+        self: Rc<Self>,
         _params: bootstrap::TestExtendsParams,
         mut results: bootstrap::TestExtendsResults,
     ) -> Result<(), Error> {
@@ -57,7 +57,7 @@ impl bootstrap::Server for Bootstrap {
     }
 
     async fn test_extends2(
-        &self,
+        self: Rc<Self>,
         _params: bootstrap::TestExtends2Params,
         _results: bootstrap::TestExtends2Results,
     ) -> Result<(), Error> {
@@ -65,7 +65,7 @@ impl bootstrap::Server for Bootstrap {
     }
 
     async fn test_pipeline(
-        &self,
+        self: Rc<Self>,
         _params: bootstrap::TestPipelineParams,
         mut results: bootstrap::TestPipelineResults,
     ) -> Result<(), Error> {
@@ -74,7 +74,7 @@ impl bootstrap::Server for Bootstrap {
     }
 
     async fn test_call_order(
-        &self,
+        self: Rc<Self>,
         _params: bootstrap::TestCallOrderParams,
         mut results: bootstrap::TestCallOrderResults,
     ) -> Result<(), Error> {
@@ -86,7 +86,7 @@ impl bootstrap::Server for Bootstrap {
         Ok(())
     }
     async fn test_more_stuff(
-        &self,
+        self: Rc<Self>,
         _params: bootstrap::TestMoreStuffParams,
         mut results: bootstrap::TestMoreStuffResults,
     ) -> Result<(), Error> {
@@ -98,7 +98,7 @@ impl bootstrap::Server for Bootstrap {
         Ok(())
     }
     async fn test_capability_server_set(
-        &self,
+        self: Rc<Self>,
         _params: bootstrap::TestCapabilityServerSetParams,
         mut results: bootstrap::TestCapabilityServerSetResults,
     ) -> Result<(), Error> {
@@ -109,7 +109,7 @@ impl bootstrap::Server for Bootstrap {
     }
 
     async fn test_promise_resolve(
-        &self,
+        self: Rc<Self>,
         _params: bootstrap::TestPromiseResolveParams,
         mut results: bootstrap::TestPromiseResolveResults,
     ) -> Result<(), Error> {
@@ -139,7 +139,7 @@ impl TestInterface {
 
 impl test_interface::Server for TestInterface {
     async fn foo(
-        &self,
+        self: Rc<Self>,
         params: test_interface::FooParams,
         mut results: test_interface::FooResults,
     ) -> Result<(), Error> {
@@ -158,7 +158,7 @@ impl test_interface::Server for TestInterface {
     }
 
     async fn bar(
-        &self,
+        self: Rc<Self>,
         _params: test_interface::BarParams,
         _results: test_interface::BarResults,
     ) -> Result<(), Error> {
@@ -167,7 +167,7 @@ impl test_interface::Server for TestInterface {
     }
 
     async fn baz(
-        &self,
+        self: Rc<Self>,
         params: test_interface::BazParams,
         _results: test_interface::BazResults,
     ) -> Result<(), Error> {
@@ -181,7 +181,7 @@ struct TestExtends;
 
 impl test_interface::Server for TestExtends {
     async fn foo(
-        &self,
+        self: Rc<Self>,
         params: test_interface::FooParams,
         mut results: test_interface::FooResults,
     ) -> Result<(), Error> {
@@ -200,7 +200,7 @@ impl test_interface::Server for TestExtends {
     }
 
     async fn bar(
-        &self,
+        self: Rc<Self>,
         _params: test_interface::BarParams,
         _results: test_interface::BarResults,
     ) -> Result<(), Error> {
@@ -208,7 +208,7 @@ impl test_interface::Server for TestExtends {
     }
 
     async fn baz(
-        &self,
+        self: Rc<Self>,
         _params: test_interface::BazParams,
         _results: test_interface::BazResults,
     ) -> Result<(), Error> {
@@ -218,7 +218,7 @@ impl test_interface::Server for TestExtends {
 
 impl test_extends::Server for TestExtends {
     async fn qux(
-        &self,
+        self: Rc<Self>,
         _params: test_extends::QuxParams,
         _results: test_extends::QuxResults,
     ) -> Result<(), Error> {
@@ -226,7 +226,7 @@ impl test_extends::Server for TestExtends {
     }
 
     async fn corge(
-        &self,
+        self: Rc<Self>,
         _params: test_extends::CorgeParams,
         _results: test_extends::CorgeResults,
     ) -> Result<(), Error> {
@@ -234,7 +234,7 @@ impl test_extends::Server for TestExtends {
     }
 
     async fn grault(
-        &self,
+        self: Rc<Self>,
         _params: test_extends::GraultParams,
         mut results: test_extends::GraultResults,
     ) -> Result<(), Error> {
@@ -247,7 +247,7 @@ struct TestPipeline;
 
 impl test_pipeline::Server for TestPipeline {
     async fn get_cap(
-        &self,
+        self: Rc<Self>,
         params: test_pipeline::GetCapParams,
         mut results: test_pipeline::GetCapResults,
     ) -> Result<(), Error> {
@@ -274,7 +274,7 @@ impl test_pipeline::Server for TestPipeline {
     }
 
     async fn get_null_cap(
-        &self,
+        self: Rc<Self>,
         _params: test_pipeline::GetNullCapParams,
         _results: test_pipeline::GetNullCapResults,
     ) -> Result<(), Error> {
@@ -282,7 +282,7 @@ impl test_pipeline::Server for TestPipeline {
     }
 
     async fn get_cap_pipeline_only(
-        &self,
+        self: Rc<Self>,
         _params: test_pipeline::GetCapPipelineOnlyParams,
         mut results: test_pipeline::GetCapPipelineOnlyResults,
     ) -> Result<(), Error> {
@@ -308,7 +308,7 @@ impl TestCallOrder {
 
 impl test_call_order::Server for TestCallOrder {
     async fn get_call_sequence(
-        &self,
+        self: Rc<Self>,
         _params: test_call_order::GetCallSequenceParams,
         mut results: test_call_order::GetCallSequenceResults,
     ) -> Result<(), Error> {
@@ -333,7 +333,7 @@ impl TestMoreStuff {
 
 impl test_call_order::Server for TestMoreStuff {
     async fn get_call_sequence(
-        &self,
+        self: Rc<Self>,
         _params: test_call_order::GetCallSequenceParams,
         mut results: test_call_order::GetCallSequenceResults,
     ) -> Result<(), Error> {
@@ -345,7 +345,7 @@ impl test_call_order::Server for TestMoreStuff {
 
 impl test_more_stuff::Server for TestMoreStuff {
     async fn call_foo(
-        &self,
+        self: Rc<Self>,
         params: test_more_stuff::CallFooParams,
         mut results: test_more_stuff::CallFooResults,
     ) -> Result<(), Error> {
@@ -364,7 +364,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn call_foo_when_resolved(
-        &self,
+        self: Rc<Self>,
         params: test_more_stuff::CallFooWhenResolvedParams,
         mut results: test_more_stuff::CallFooWhenResolvedResults,
     ) -> Result<(), Error> {
@@ -384,7 +384,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn never_return(
-        &self,
+        self: Rc<Self>,
         params: test_more_stuff::NeverReturnParams,
         mut results: test_more_stuff::NeverReturnResults,
     ) -> Result<(), Error> {
@@ -402,7 +402,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn hold(
-        &self,
+        self: Rc<Self>,
         params: test_more_stuff::HoldParams,
         _results: test_more_stuff::HoldResults,
     ) -> Result<(), Error> {
@@ -412,7 +412,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn dont_hold(
-        &self,
+        self: Rc<Self>,
         params: test_more_stuff::DontHoldParams,
         _results: test_more_stuff::DontHoldResults,
     ) -> Result<(), Error> {
@@ -422,7 +422,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn call_held(
-        &self,
+        self: Rc<Self>,
         _params: test_more_stuff::CallHeldParams,
         mut results: test_more_stuff::CallHeldResults,
     ) -> Result<(), Error> {
@@ -448,7 +448,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn get_held(
-        &self,
+        self: Rc<Self>,
         _params: test_more_stuff::GetHeldParams,
         mut results: test_more_stuff::GetHeldResults,
     ) -> Result<(), Error> {
@@ -463,7 +463,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn echo(
-        &self,
+        self: Rc<Self>,
         params: test_more_stuff::EchoParams,
         mut results: test_more_stuff::EchoResults,
     ) -> Result<(), Error> {
@@ -473,7 +473,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn expect_cancel(
-        &self,
+        self: Rc<Self>,
         _params: test_more_stuff::ExpectCancelParams,
         _results: test_more_stuff::ExpectCancelResults,
     ) -> Result<(), Error> {
@@ -481,7 +481,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn get_handle(
-        &self,
+        self: Rc<Self>,
         _params: test_more_stuff::GetHandleParams,
         mut results: test_more_stuff::GetHandleResults,
     ) -> Result<(), Error> {
@@ -492,7 +492,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn get_handle_count(
-        &self,
+        self: Rc<Self>,
         _params: test_more_stuff::GetHandleCountParams,
         mut results: test_more_stuff::GetHandleCountResults,
     ) -> Result<(), Error> {
@@ -502,7 +502,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn get_null(
-        &self,
+        self: Rc<Self>,
         _params: test_more_stuff::GetNullParams,
         _results: test_more_stuff::GetNullResults,
     ) -> Result<(), Error> {
@@ -510,7 +510,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn method_with_defaults(
-        &self,
+        self: Rc<Self>,
         _params: test_more_stuff::MethodWithDefaultsParams,
         _results: test_more_stuff::MethodWithDefaultsResults,
     ) -> Result<(), Error> {
@@ -518,7 +518,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn call_each_capability(
-        &self,
+        self: Rc<Self>,
         params: test_more_stuff::CallEachCapabilityParams,
         _results: test_more_stuff::CallEachCapabilityResults,
     ) -> Result<(), Error> {
@@ -535,7 +535,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     async fn get_test_streaming(
-        &self,
+        self: Rc<Self>,
         _params: test_more_stuff::GetTestStreamingParams,
         mut results: test_more_stuff::GetTestStreamingResults,
     ) -> Result<(), Error> {
@@ -568,14 +568,14 @@ impl test_handle::Server for Handle {}
 
 pub struct TestCapDestructor {
     fulfiller: Option<oneshot::Sender<()>>,
-    imp: TestInterface,
+    imp: Rc<TestInterface>,
 }
 
 impl TestCapDestructor {
     pub fn new(fulfiller: oneshot::Sender<()>) -> Self {
         Self {
             fulfiller: Some(fulfiller),
-            imp: TestInterface::new(),
+            imp: Rc::new(TestInterface::new()),
         }
     }
 }
@@ -590,15 +590,15 @@ impl Drop for TestCapDestructor {
 
 impl test_interface::Server for TestCapDestructor {
     async fn foo(
-        &self,
+        self: Rc<Self>,
         params: test_interface::FooParams,
         results: test_interface::FooResults,
     ) -> Result<(), Error> {
-        self.imp.foo(params, results).await
+        self.imp.clone().foo(params, results).await
     }
 
     async fn bar(
-        &self,
+        self: Rc<Self>,
         _params: test_interface::BarParams,
         _results: test_interface::BarResults,
     ) -> Result<(), Error> {
@@ -606,7 +606,7 @@ impl test_interface::Server for TestCapDestructor {
     }
 
     async fn baz(
-        &self,
+        self: Rc<Self>,
         _params: test_interface::BazParams,
         _results: test_interface::BazResults,
     ) -> Result<(), Error> {
@@ -627,7 +627,10 @@ impl TestStreamingImpl {
 }
 
 impl test_streaming::Server for TestStreamingImpl {
-    async fn do_stream_i(&self, params: test_streaming::DoStreamIParams) -> Result<(), Error> {
+    async fn do_stream_i(
+        self: Rc<Self>,
+        params: test_streaming::DoStreamIParams,
+    ) -> Result<(), Error> {
         let params = params.get()?;
         if params.get_throw_error() {
             return Err(Error::failed("throw requested".to_string()));
@@ -636,7 +639,10 @@ impl test_streaming::Server for TestStreamingImpl {
         Ok(())
     }
 
-    async fn do_stream_j(&self, params: test_streaming::DoStreamJParams) -> Result<(), Error> {
+    async fn do_stream_j(
+        self: Rc<Self>,
+        params: test_streaming::DoStreamJParams,
+    ) -> Result<(), Error> {
         let params = params.get()?;
         if params.get_throw_error() {
             return Err(Error::failed("throw requested".to_string()));
@@ -646,7 +652,7 @@ impl test_streaming::Server for TestStreamingImpl {
     }
 
     async fn finish_stream(
-        &self,
+        self: Rc<Self>,
         _params: test_streaming::FinishStreamParams,
         mut results: test_streaming::FinishStreamResults,
     ) -> Result<(), Error> {
@@ -685,7 +691,7 @@ impl TestCapabilityServerSet {
 
 impl test_capability_server_set::Server for TestCapabilityServerSet {
     async fn create_handle(
-        &self,
+        self: Rc<Self>,
         _: test_capability_server_set::CreateHandleParams,
         mut results: test_capability_server_set::CreateHandleResults,
     ) -> Result<(), Error> {
@@ -696,7 +702,7 @@ impl test_capability_server_set::Server for TestCapabilityServerSet {
     }
 
     async fn check_handle(
-        &self,
+        self: Rc<Self>,
         params: test_capability_server_set::CheckHandleParams,
         mut results: test_capability_server_set::CheckHandleResults,
     ) -> Result<(), Error> {
@@ -722,7 +728,7 @@ pub struct ResolverImpl {
 
 impl test_promise_resolve::resolver::Server for ResolverImpl {
     async fn resolve_to_another_promise(
-        &self,
+        self: Rc<Self>,
         _params: test_promise_resolve::resolver::ResolveToAnotherPromiseParams,
         _results: test_promise_resolve::resolver::ResolveToAnotherPromiseResults,
     ) -> Result<(), Error> {
@@ -739,7 +745,7 @@ impl test_promise_resolve::resolver::Server for ResolverImpl {
     }
 
     async fn resolve_to_cap(
-        &self,
+        self: Rc<Self>,
         _params: test_promise_resolve::resolver::ResolveToCapParams,
         _results: test_promise_resolve::resolver::ResolveToCapResults,
     ) -> Result<(), Error> {
@@ -755,7 +761,7 @@ pub struct TestPromiseResolveImpl {}
 
 impl test_promise_resolve::Server for TestPromiseResolveImpl {
     async fn foo(
-        &self,
+        self: Rc<Self>,
         _params: test_promise_resolve::FooParams,
         mut results: test_promise_resolve::FooResults,
     ) -> Result<(), Error> {

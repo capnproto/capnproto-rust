@@ -29,7 +29,7 @@ impl ByteStreamImpl {
 }
 
 impl byte_stream::Server for ByteStreamImpl {
-    async fn write(&self, params: byte_stream::WriteParams) -> Result<(), Error> {
+    async fn write(self: std::rc::Rc<Self>, params: byte_stream::WriteParams) -> Result<(), Error> {
         let bytes = params.get()?.get_bytes()?;
         self.hasher.borrow_mut().update(bytes);
         self.bytes_received
@@ -38,7 +38,7 @@ impl byte_stream::Server for ByteStreamImpl {
     }
 
     async fn end(
-        &self,
+        self: std::rc::Rc<Self>,
         _params: byte_stream::EndParams,
         _results: byte_stream::EndResults,
     ) -> Result<(), Error> {
@@ -66,7 +66,7 @@ impl ReceiverImpl {
 
 impl receiver::Server for ReceiverImpl {
     async fn write_stream(
-        &self,
+        self: std::rc::Rc<Self>,
         _params: receiver::WriteStreamParams,
         mut results: receiver::WriteStreamResults,
     ) -> Result<(), Error> {

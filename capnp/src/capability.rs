@@ -453,21 +453,23 @@ pub type Rc<T> = alloc::rc::Rc<T>;
 #[cfg(feature = "alloc")]
 pub trait Server {
     fn dispatch_call(
-        self: Rc<Self>,
+        self,
         interface_id: u64,
         method_id: u16,
         params: Params<any_pointer::Owned>,
         results: Results<any_pointer::Owned>,
     ) -> DispatchCallResult;
+
+    fn as_ptr(&self) -> usize;
 }
 
 /// Trait to track the relationship between generated Server traits and Client structs.
 #[cfg(feature = "alloc")]
 pub trait FromServer<S>: FromClientHook {
     // Implemented by the generated ServerDispatch struct.
-    type Dispatch: Server + 'static + core::ops::DerefMut<Target = S>;
+    type Dispatch: Server + 'static + core::ops::Deref<Target = S> + Clone;
 
-    fn from_server(s: S) -> Self::Dispatch;
+    fn from_server(s: Rc<S>) -> Self::Dispatch;
 }
 
 /// Gets the "resolved" version of a capability. One place this is useful is for pre-resolving
