@@ -188,6 +188,8 @@ interface TestMoreStuff extends(TestCallOrder) {
   # Calls TestInterface::foo(123, true) on each cap.
 
   getTestStreaming @14 () -> (cap :TestStreaming);
+
+  getTestSelf @15 () -> (cap :TestSelf);
 }
 
 interface TestCapabilityServerSet {
@@ -206,4 +208,9 @@ interface TestPromiseResolve {
   foo @0 () -> (cap: TestInterface, resolver: Resolver);
   # Teturns a promise capability whose resolution can
   # be triggered by a `resolver` capability.
+}
+
+interface TestSelf {
+  foo @0 () -> (x :UInt32);
+  getSelf @1 () -> (cap: TestSelf);
 }

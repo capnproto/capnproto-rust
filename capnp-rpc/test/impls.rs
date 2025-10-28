@@ -21,7 +21,8 @@
 
 use crate::test_capnp::{
     bootstrap, test_call_order, test_capability_server_set, test_extends, test_handle,
-    test_interface, test_more_stuff, test_pipeline, test_promise_resolve, test_streaming,
+    test_interface, test_more_stuff, test_pipeline, test_promise_resolve, test_self,
+    test_streaming,
 };
 
 use capnp::capability::FromClientHook;
@@ -544,6 +545,17 @@ impl test_more_stuff::Server for TestMoreStuff {
             .set_cap(capnp_rpc::new_client(TestStreamingImpl::new()));
         Ok(())
     }
+
+    async fn get_test_self(
+        self: Rc<Self>,
+        _params: test_more_stuff::GetTestSelfParams,
+        mut results: test_more_stuff::GetTestSelfResults,
+    ) -> Result<(), Error> {
+        results
+            .get()
+            .set_cap(capnp_rpc::new_client(TestSelfImpl::new()));
+        Ok(())
+    }
 }
 
 struct Handle {
@@ -774,6 +786,40 @@ impl test_promise_resolve::Server for TestPromiseResolveImpl {
             rcv.map_err(|_| Error::failed("oneshot was canceled".to_string())),
         ));
         results_root.set_resolver(capnp_rpc::new_client(resolver));
+        Ok(())
+    }
+}
+
+pub struct TestSelfImpl {
+    foo_count: Cell<u32>,
+}
+
+impl TestSelfImpl {
+    pub fn new() -> Self {
+        Self {
+            foo_count: Cell::new(0),
+        }
+    }
+}
+
+impl test_self::Server for TestSelfImpl {
+    async fn foo(
+        self: Rc<Self>,
+        _params: test_self::FooParams,
+        mut results: test_self::FooResults,
+    ) -> Result<(), Error> {
+        let foo_count = self.foo_count.get() + 1;
+        self.foo_count.set(foo_count);
+        results.get().set_x(foo_count);
+        Ok(())
+    }
+
+    async fn get_self(
+        self: Rc<Self>,
+        _params: test_self::GetSelfParams,
+        mut results: test_self::GetSelfResults,
+    ) -> Result<(), Error> {
+        results.get().set_cap(capnp_rpc::new_client_from_rc(self));
         Ok(())
     }
 }
