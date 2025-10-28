@@ -1,3 +1,6 @@
+## v0.23.1
+- Use `f64::INFINITY` instead of `::core::f64::INFINITY` in generated code.
+
 ## v0.23.0
 - Update generated code of `Server` trait methods to take `self` as `Rc<Self>`.
 
