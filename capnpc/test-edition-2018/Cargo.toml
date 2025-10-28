@@ -1,0 +1,19 @@
+[package]
+
+name = "capnpc-test-edition-2018"
+version = "0.0.0"
+build = "build.rs"
+edition = "2018"
+
+[lib]
+
+name = "capnpc_test_edition_2018"
+path = "test.rs"
+
+[build-dependencies]
+capnpc = { path = "../" }
+
+[dependencies]
+capnp = { path = "../../capnp" }
+capnpc = { path = "../" }
+external-crate = { path = "../test/external-crate" }
