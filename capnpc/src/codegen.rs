@@ -2653,7 +2653,7 @@ fn generate_node(
 
                     server_interior.push(
                         Line(fmt!(ctx,
-                                  "fn {}(self: {capnp}::capability::Rc<Self>, _: {}Params<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + 'static {{ async {{ Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string())) }} }}",
+                                  "fn {}(self: {capnp}::capability::Rc<Self>, _: {}Params<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + 'static {{ ::core::future::ready(Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string()))) }}",
                                   module_name(name),
                                   capitalize_first_letter(name), params_ty_params,
                                   node_name, module_name(name)
