@@ -861,3 +861,7 @@ struct Issue260(T, Q) {
     val2 @3 :Int8;
   }
 }
+
+interface TestStream {
+  send @0 (data : Data) -> stream;
+}
