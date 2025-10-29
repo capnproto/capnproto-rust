@@ -109,16 +109,18 @@ and you can pass it in RPC method arguments and results.
 
 The methods of the generated `Server` traits return
 a value of type `impl Future<Output = Result<(), ::capnp::Error>>`.
-These can be implented as `async fn` methods returning `Result<(), ::capnp::Error>`.
+As you have seen above,
+these can be implented as `async fn` methods returning `Result<(), ::capnp::Error>`.
 
-The response will be sent back to the method's caller once two things have happened:
+The RPC response will be sent back to the method's caller once two things have happened:
 
   1. The `Results` struct has been dropped.
-  2. The returned `Future` has resolved.
+  2. The method's returned `Future` has resolved.
 
 Usually (1) happens before (2).
 
-Here's an example of a method implementation that does not return immediately:
+Here's an example of a method implementation that does not return immediately
+because it awaits another request:
 
 ```rust
 struct MyQux {}
@@ -131,7 +133,6 @@ impl ::foo_capnp::qux::Server for MyQux {
         -> Result<(), ::capnp::Error>
      {
          // Call `baz()` on the passed-in client.
-
          let bar_client = params.get()?.get_bar()?;
          let mut req = bar_client.baz_request();
          req.get().set_x(42);
