@@ -1,3 +1,6 @@
+## v0.23.2
+- Remove `async` block in generated code for streaming methods.
+
 ## v0.23.1
 - Use `f64::INFINITY` instead of `::core::f64::INFINITY` in generated code.
 
