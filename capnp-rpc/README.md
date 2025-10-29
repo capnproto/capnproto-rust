@@ -136,7 +136,7 @@ impl ::foo_capnp::qux::Server for MyQux {
          let bar_client = params.get()?.get_bar()?;
          let mut req = bar_client.baz_request();
          req.get().set_x(42);
-         let response = req.send().promise.await?;
+         let response = req.send().promise.await?; // <-- await
          results.get().set_y(response.get()?.get_y());
          Ok(())
      }
