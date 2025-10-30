@@ -82,6 +82,21 @@ impl<'a> crate::traits::SetterInput<Owned> for Reader<'a> {
     }
 }
 
+impl<'a, const N: usize> crate::traits::SetterInput<Owned> for &'a [u8; N] {
+    #[inline]
+    fn set_pointer_builder<'b>(
+        pointer: PointerBuilder<'b>,
+        value: &'a [u8; N],
+        canonicalize: bool,
+    ) -> Result<()> {
+        <Reader<'a> as crate::traits::SetterInput<Owned>>::set_pointer_builder(
+            pointer,
+            &value[..],
+            canonicalize,
+        )
+    }
+}
+
 impl<'a> From<Reader<'a>> for crate::dynamic_value::Reader<'a> {
     fn from(d: Reader<'a>) -> crate::dynamic_value::Reader<'a> {
         crate::dynamic_value::Reader::Data(d)
