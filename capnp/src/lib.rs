@@ -37,6 +37,8 @@ extern crate alloc;
 /// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
 pub mod schema_capnp;
 
+pub mod json_capnp;
+
 pub mod any_pointer;
 pub mod any_pointer_list;
 pub mod capability;
@@ -50,6 +52,7 @@ pub mod dynamic_value;
 pub mod enum_list;
 pub mod introspect;
 pub mod io;
+pub mod json;
 pub mod list_list;
 pub mod message;
 pub mod primitive_list;
