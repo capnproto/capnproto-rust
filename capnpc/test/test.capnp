@@ -938,21 +938,3 @@ struct TestJsonFlattenUnion {
 
   after @4 :Text;
 }
-
-struct TestJsonDiscriminatedUnion $Json.discriminator() {
-  before @0 :Text;
-
-  maybe :union $Json.flatten("maybe_") $Json.discriminator() { # field, group, union to test
-    foo @1 :UInt16;
-    bar @3 :UInt32;
-  }
-
-  middle @2 :UInt16;
-
-  after @4 :Text;
-
-  union {
-    a @5 :UInt8;
-    b @6 :Text;
-  }
-}
