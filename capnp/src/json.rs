@@ -10,8 +10,6 @@
 // does that work in rust without specdialization?
 //
 
-// TODO: Support for discriminators
-
 pub fn to_json(reader: crate::dynamic_value::Reader<'_>) -> crate::Result<String> {
     let mut writer = std::io::Cursor::new(Vec::with_capacity(4096));
     serialize_json_to(&mut writer, reader)?;
@@ -26,6 +24,7 @@ where
     W: std::io::Write,
 {
     let meta = EncodingOptions {
+        prefix: "".into(),
         name: "",
         flatten: None,
         discriminator: None,
@@ -46,14 +45,16 @@ enum DataEncoding {
 
 #[derive(Debug)]
 struct EncodingOptions<'schema> {
+    prefix: String,
     name: &'schema str,
     flatten: Option<json_capnp::flatten_options::Reader<'schema>>,
+
     discriminator: Option<json_capnp::discriminator_options::Reader<'schema>>,
     data_encoding: DataEncoding,
 }
 
 impl<'schema> EncodingOptions<'schema> {
-    fn from_field(field: &crate::schema::Field) -> crate::Result<Self> {
+    fn from_field(prefix: String, field: &crate::schema::Field) -> crate::Result<Self> {
         let field_name = match field
             .get_annotations()?
             .iter()
@@ -119,6 +120,7 @@ impl<'schema> EncodingOptions<'schema> {
             None => None,
         };
         Ok(Self {
+            prefix,
             name: field_name,
             flatten: flatten_options,
             discriminator: discriminator_options,
@@ -244,10 +246,35 @@ fn write_object<'reader, W: std::io::Write>(
     meta: &EncodingOptions<'_>,
 ) -> crate::Result<()> {
     let (flatten, field_prefix) = if let Some(flatten_options) = &meta.flatten {
-        (true, flatten_options.get_prefix()?.to_str()?)
+        (
+            true,
+            format!("{}{}", meta.prefix, flatten_options.get_prefix()?.to_str()?),
+        )
     } else {
-        (false, "")
+        (false, "".into())
     };
+
+    // Comment copied verbatim from the Cap'n Proto C++ implementation:
+    // There are two cases of unions:
+    // * Named unions, which are special cases of named groups. In this case, the union may be
+    //   annotated by annotating the field. In this case, we receive a non-null `discriminator`
+    //   as a constructor parameter, and schemaProto.getAnnotations() must be empty because
+    //   it's not possible to annotate a group's type (because the type is anonymous).
+    // * Unnamed unions, of which there can only be one in any particular scope. In this case,
+    //   the parent struct type itself is annotated.
+    // So if we received `null` as the constructor parameter, check for annotations on the struct
+    // type.
+    let struct_discriminator = reader
+        .get_schema()
+        .get_annotations()?
+        .iter()
+        .find(|a| a.get_id() == json_capnp::discriminator::ID)
+        .and_then(|annotation| {
+            annotation
+                .get_value()
+                .ok()
+                .map(|v| v.downcast_struct::<json_capnp::discriminator_options::Owned>())
+        });
 
     if !flatten {
         write!(writer, "{{")?;
@@ -257,32 +284,59 @@ fn write_object<'reader, W: std::io::Write>(
         if !reader.has(field)? {
             continue;
         }
+        let field_meta = EncodingOptions::from_field(field_prefix.clone(), &field)?;
+        let mut value_name = field_meta.name;
         if field.get_proto().get_discriminant_value() != crate::schema_capnp::field::NO_DISCRIMINANT
         {
             if let Some(active_union_member) = reader.which()? {
+                let active_union_member_meta =
+                    EncodingOptions::from_field(field_prefix.clone(), &active_union_member)?;
                 if field.get_proto().get_discriminant_value()
                     != active_union_member.get_proto().get_discriminant_value()
                 {
                     // Skip union members that are not set.
                     continue;
                 }
-                // TODO: there's a specific annotation 'discriminator' which says to
-                // write out the discriminant field name as a field in the object,
-                // allowing to use flatten on the union member (only for named union
-                // fields).
+                let discriminator = match meta.discriminator {
+                    Some(ref d) => Some(d),
+                    None => struct_discriminator.as_ref(),
+                };
+                if let Some(discriminator) = discriminator {
+                    // write out the discriminator
+                    if !first {
+                        write!(writer, ",")?;
+                    }
+                    first = false;
+                    let discriminator_name = if discriminator.has_name() {
+                        discriminator.get_name()?.to_str()?
+                    } else {
+                        meta.name
+                    };
+                    if discriminator.has_value_name() {
+                        value_name = discriminator.get_value_name()?.to_str()?;
+                    }
+
+                    write_string(
+                        writer,
+                        format!("{}{}", field_prefix, discriminator_name).as_str(),
+                    )?;
+                    write!(writer, ":")?;
+                    write_string(writer, active_union_member_meta.name)?;
+                }
+                // TODO: value_name. should that just change meta.name printed
+                // below?
             }
         }
-        let meta = EncodingOptions::from_field(&field)?;
         if !first {
             write!(writer, ",")?;
         }
         first = false;
-        if meta.flatten.is_none() {
-            write_string(writer, format!("{}{}", field_prefix, meta.name).as_str())?;
+        if field_meta.flatten.is_none() {
+            write_string(writer, format!("{}{}", field_prefix, value_name).as_str())?;
             write!(writer, ":")?;
         }
         let field_value = reader.get(field)?;
-        serialize_value_to(writer, field_value, &meta)?;
+        serialize_value_to(writer, field_value, &field_meta)?;
     }
     if !flatten {
         write!(writer, "}}")?;

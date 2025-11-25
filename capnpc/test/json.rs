@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use crate::json_test_capnp::test_json_annotations;
 use crate::test_capnp::{
     test_json_flatten_union, test_json_types, test_union, test_unnamed_union, TestEnum,
 };
@@ -241,3 +242,94 @@ fn test_named_union_flattened() {
     );
     assert_eq!(expected, json_str);
 }
+
+#[test]
+fn test_discriminated_union() {
+    let mut builder = message::Builder::new_default();
+    let mut root: test_json_annotations::Builder<'_> = builder.init_root();
+
+    let mut expected = String::from("{");
+
+    root.set_some_field("Some Field");
+    expected.push_str(r#""names-can_contain!anything Really":"Some Field","#);
+
+    {
+        let mut a_group = root.reborrow().init_a_group();
+        // a_group is flattenned
+        a_group.set_flat_foo(0xF00);
+        expected.push_str(r#""flatFoo":3840,"#);
+
+        a_group.set_flat_bar("0xBaa");
+        expected.push_str(r#""flatBar":"0xBaa","#);
+
+        a_group.reborrow().init_flat_baz().set_hello(true);
+        expected.push_str(r#""renamed-flatBaz":{"hello":true},"#);
+
+        a_group.reborrow().init_double_flat().set_flat_qux("Qux");
+        expected.push_str(r#""flatQux":"Qux","#);
+    }
+
+    {
+        let mut prefixed_group = root.reborrow().init_prefixed_group();
+        prefixed_group.set_foo("Foo");
+        expected.push_str(r#""pfx.foo":"Foo","#);
+
+        prefixed_group.set_bar(0xBAA);
+        expected.push_str(r#""pfx.renamed-bar":2986,"#);
+
+        prefixed_group.reborrow().init_baz().set_hello(false);
+        expected.push_str(r#""pfx.baz":{"hello":false},"#);
+
+        prefixed_group.reborrow().init_more_prefix().set_qux("Qux");
+        expected.push_str(r#""pfx.xfp.qux":"Qux","#);
+    }
+
+    {
+        let mut a_union_bar = root.reborrow().init_a_union().init_bar();
+        expected.push_str(r#""union-type":"renamed-bar","#);
+        a_union_bar.set_bar_member(0xAAB);
+        expected.push_str(r#""barMember":2731,"#);
+        a_union_bar.set_multi_member("Member");
+        expected.push_str(r#""multiMember":"Member","#);
+    }
+
+    {
+        let mut dependency = root.reborrow().init_dependency();
+        dependency.set_foo("dep-foo");
+        expected.push_str(r#""dependency":{"renamed-foo":"dep-foo"},"#);
+    }
+
+    {
+        let mut simple_group = root.reborrow().init_simple_group();
+        simple_group.set_grault("grault");
+        expected.push_str(r#""simpleGroup":{"renamed-grault":"grault"},"#);
+    }
+
+    {
+        let mut b_union = root.reborrow().init_b_union();
+        expected.push_str(r#""bUnion":"foo","#);
+        b_union.set_foo("b-free");
+        expected.push_str(r#""bValue":"b-free","#);
+    }
+
+    {
+        let mut external_union = root.reborrow().init_external_union();
+        external_union.reborrow().init_bar().set_value("Value");
+        expected.push_str(r#""externalUnion":{"type":"bar","value":"Value"},"#);
+    }
+
+    {
+        let mut union_with_void = root.reborrow().init_union_with_void();
+        union_with_void.set_void_value(());
+        expected.push_str(r#""unionWithVoid":{"type":"voidValue","voidValue":null},"#);
+    }
+
+    expected.pop(); // Remove trailing comma
+    expected.push('}');
+
+    let root: dynamic_value::Builder<'_> = root.into();
+    let msg = root.into_reader();
+    let json_str = json::to_json(msg).unwrap();
+    assert_eq!(expected, json_str);
+}
+
