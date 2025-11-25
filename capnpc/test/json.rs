@@ -23,7 +23,6 @@ use crate::json_test_capnp::test_json_annotations;
 use crate::test_capnp::{
     test_json_flatten_union, test_json_types, test_union, test_unnamed_union, TestEnum,
 };
-use capnp::dynamic_value;
 use capnp::message::{self};
 
 use capnp::json::{self};
@@ -34,12 +33,8 @@ use capnp::json::{self};
 fn test_encode_json_types_default() {
     let mut builder = message::Builder::new_default();
     let root: test_json_types::Builder<'_> = builder.init_root();
-    let root: dynamic_value::Builder<'_> = root.into();
-
-    let msg = root.into_reader();
-    let json_str = json::to_json(msg).unwrap();
     let expected = r#"{"voidField":null,"boolField":false,"int8Field":0,"int16Field":0,"int32Field":0,"int64Field":0,"uInt8Field":0,"uInt16Field":0,"uInt32Field":0,"uInt64Field":0,"float32Field":0,"float64Field":0,"enumField":"foo"}"#;
-    assert_eq!(expected, json_str);
+    assert_eq!(expected, json::to_json(root.reborrow_as_reader()).unwrap());
 }
 
 #[test]
@@ -95,10 +90,6 @@ fn test_encode_all_json_types() {
         floats.set(2, f64::NEG_INFINITY);
     }
 
-    let root: dynamic_value::Builder<'_> = root.into();
-
-    let msg = root.into_reader();
-    let json_str = json::to_json(msg).unwrap();
     let expected = concat!(
         "{",
         r#""voidField":null,"#,
@@ -142,7 +133,7 @@ fn test_encode_all_json_types() {
         r#""enumList":["foo","bar","garply"]"#,
         "}"
     );
-    assert_eq!(expected, json_str);
+    assert_eq!(expected, json::to_json(root.reborrow_as_reader()).unwrap());
 }
 
 // Union encoding with flattening
@@ -163,10 +154,6 @@ fn test_named_union_non_flattened() {
     union0.set_u0f0sp("not this one");
     union0.set_u0f0s16(-12345);
 
-    let root: dynamic_value::Builder<'_> = root.into();
-    let msg = root.into_reader();
-    let json_str = json::to_json(msg).unwrap();
-
     let expected = concat!(
         "{",
         r#""union0":{"u0f0s16":-12345},"#,
@@ -184,7 +171,7 @@ fn test_named_union_non_flattened() {
         "}",
     );
 
-    assert_eq!(expected, json_str);
+    assert_eq!(expected, json::to_json(root.reborrow_as_reader()).unwrap());
 }
 
 #[test]
@@ -196,9 +183,6 @@ fn test_unnamed_union() {
     root.set_after("after");
     root.set_foo(16);
     root.set_bar(32);
-    let root: dynamic_value::Builder<'_> = root.into();
-    let msg = root.into_reader();
-    let json_str = json::to_json(msg).unwrap();
     let expected = concat!(
         "{",
         r#""before":"before","#,
@@ -207,7 +191,7 @@ fn test_unnamed_union() {
         r#""after":"after""#,
         "}",
     );
-    assert_eq!(expected, json_str);
+    assert_eq!(expected, json::to_json(root.reborrow_as_reader()).unwrap());
 }
 
 #[test]
@@ -221,9 +205,6 @@ fn test_named_union_flattened() {
     maybe.set_foo(16);
     maybe.set_bar(32);
 
-    let root: dynamic_value::Builder<'_> = root.into();
-    let msg = root.into_reader();
-    let json_str = json::to_json(msg).unwrap();
     let expected = concat!(
         "{",
         r#""before":"before","#,
@@ -236,7 +217,7 @@ fn test_named_union_flattened() {
         r#""baz":0"#,
         "}",
     );
-    assert_eq!(expected, json_str);
+    assert_eq!(expected, json::to_json(root.reborrow_as_reader()).unwrap());
 }
 
 #[test]
@@ -332,10 +313,7 @@ fn test_discriminated_union() {
     expected.pop(); // Remove trailing comma
     expected.push('}');
 
-    let root: dynamic_value::Builder<'_> = root.into();
-    let msg = root.into_reader();
-    let json_str = json::to_json(msg).unwrap();
-    assert_eq!(expected, json_str);
+    assert_eq!(expected, json::to_json(root.reborrow_as_reader()).unwrap());
 }
 
 #[test]
@@ -343,50 +321,45 @@ fn test_base64_union() {
     let mut builder = message::Builder::new_default();
     let mut root: crate::json_test_capnp::test_base64_union::Builder<'_> = builder.init_root();
 
-    let mut expected = String::from("{");
     root.set_foo(&[0xde, 0xad, 0xbe, 0xef]);
-    expected.push_str(r#""foo":"3q2+7w==","#);
-
-    expected.pop(); // Remove trailing comma
-    expected.push('}');
-
-    let root: dynamic_value::Builder<'_> = root.into();
-    let msg = root.into_reader();
-    let json_str = json::to_json(msg).unwrap();
-    assert_eq!(expected, json_str);
+    assert_eq!(
+        r#"{"foo":"3q2+7w=="}"#,
+        json::to_json(root.reborrow_as_reader()).unwrap()
+    );
 }
 
 #[test]
 fn test_string_encoding() {
     let mut builder = message::Builder::new_default();
     let mut root: crate::json_test_capnp::test_flattened_struct::Builder<'_> = builder.init_root();
+
     root.set_value("");
     assert_eq!(
         r#"{"value":""}"#,
-        json::to_json(root.reborrow_as_reader().into()).unwrap()
+        json::to_json(root.reborrow_as_reader()).unwrap()
     );
 
     root.set_value("tab: \t, newline: \n, carriage return: \r, quote: \", backslash: \\");
     assert_eq!(
         r#"{"value":"tab: \t, newline: \n, carriage return: \r, quote: \", backslash: \\"}"#,
-        json::to_json(root.reborrow_as_reader().into()).unwrap()
+        json::to_json(root.reborrow_as_reader()).unwrap()
     );
 
     root.set_value("unicode: †eśt");
     assert_eq!(
         r#"{"value":"unicode: †eśt"}"#,
-        json::to_json(root.reborrow_as_reader().into()).unwrap()
+        json::to_json(root.reborrow_as_reader()).unwrap()
     );
 
     root.set_value("backspace: \u{0008}, formfeed: \u{000C}");
     assert_eq!(
         r#"{"value":"backspace: \b, formfeed: \f"}"#,
-        json::to_json(root.reborrow_as_reader().into()).unwrap()
+        json::to_json(root.reborrow_as_reader()).unwrap()
     );
 
     root.set_value("bell: \u{0007}, SOH: \u{0001}");
     assert_eq!(
         r#"{"value":"bell: \u0007, SOH: \u0001"}"#,
-        json::to_json(root.reborrow_as_reader().into()).unwrap()
+        json::to_json(root.reborrow_as_reader()).unwrap()
     );
 }
