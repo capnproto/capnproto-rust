@@ -82,6 +82,18 @@ fn test_encode_all_json_types() {
         enum_list.set(1, TestEnum::Bar);
         enum_list.set(2, TestEnum::Garply);
     }
+    {
+        let mut floats = root.reborrow().init_float32_list(3);
+        floats.set(0, f32::NAN);
+        floats.set(1, f32::INFINITY);
+        floats.set(2, f32::NEG_INFINITY);
+    }
+    {
+        let mut floats = root.reborrow().init_float64_list(3);
+        floats.set(0, f64::NAN);
+        floats.set(1, f64::INFINITY);
+        floats.set(2, f64::NEG_INFINITY);
+    }
 
     let root: dynamic_value::Builder<'_> = root.into();
 
@@ -125,29 +137,13 @@ fn test_encode_all_json_types() {
         r#""hexList":["deadbeef","badf00d0"]"#,
         "},",
         r#""enumField":"quux","#,
+        r#""float32List":["NaN","Infinity","-Infinity"],"#,
+        r#""float64List":["NaN","Infinity","-Infinity"],"#,
         r#""enumList":["foo","bar","garply"]"#,
         "}"
     );
     assert_eq!(expected, json_str);
 }
-
-#[test]
-fn test_integer_encoding() {}
-
-#[test]
-fn test_float_encoding() {}
-
-#[test]
-fn test_hex_encoding() {}
-
-#[test]
-fn test_base64_encoding() {}
-
-#[test]
-fn test_string_encoding() {}
-
-#[test]
-fn test_array_encoding() {}
 
 // Union encoding with flattening
 
@@ -332,6 +328,24 @@ fn test_discriminated_union() {
         union_with_void.set_void_value(());
         expected.push_str(r#""unionWithVoid":{"type":"voidValue","voidValue":null},"#);
     }
+
+    expected.pop(); // Remove trailing comma
+    expected.push('}');
+
+    let root: dynamic_value::Builder<'_> = root.into();
+    let msg = root.into_reader();
+    let json_str = json::to_json(msg).unwrap();
+    assert_eq!(expected, json_str);
+}
+
+#[test]
+fn test_base64_union() {
+    let mut builder = message::Builder::new_default();
+    let mut root: crate::json_test_capnp::test_base64_union::Builder<'_> = builder.init_root();
+
+    let mut expected = String::from("{");
+    root.set_foo(&[0xde, 0xad, 0xbe, 0xef]);
+    expected.push_str(r#""foo":"3q2+7w==","#);
 
     expected.pop(); // Remove trailing comma
     expected.push('}');
