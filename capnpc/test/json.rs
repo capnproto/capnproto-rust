@@ -306,10 +306,19 @@ fn test_discriminated_union() {
     }
 
     {
+        let mut e = root.reborrow().init_enums(4);
+        e.set(0, crate::json_test_capnp::TestJsonAnnotatedEnum::Foo);
+        e.set(1, crate::json_test_capnp::TestJsonAnnotatedEnum::Bar);
+        e.set(2, crate::json_test_capnp::TestJsonAnnotatedEnum::Baz);
+        e.set(3, crate::json_test_capnp::TestJsonAnnotatedEnum::Qux);
+        expected.push_str(r#""enums":["foo","renamed-bar","renamed-baz","qux"],"#);
+    }
+
+    {
         let mut b_union = root.reborrow().init_b_union();
-        expected.push_str(r#""bUnion":"foo","#);
-        b_union.set_foo("b-free");
-        expected.push_str(r#""bValue":"b-free","#);
+        expected.push_str(r#""bUnion":"renamed-bar","#);
+        b_union.set_bar(100);
+        expected.push_str(r#""bValue":100,"#);
     }
 
     {
@@ -332,4 +341,3 @@ fn test_discriminated_union() {
     let json_str = json::to_json(msg).unwrap();
     assert_eq!(expected, json_str);
 }
-
