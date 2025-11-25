@@ -86,14 +86,12 @@ impl<'schema, 'prefix> EncodingOptions<'schema, 'prefix> {
             },
         };
         if data_encoding != DataEncoding::Default {
-            let element_type = if let crate::introspect::TypeVariant::List(element_type) =
-                field.get_type().which()
+            let mut element_type = field.get_type();
+            while let crate::introspect::TypeVariant::List(sub_element_type) = element_type.which()
             {
-                element_type.which()
-            } else {
-                field.get_type().which()
-            };
-            if !matches!(element_type, crate::introspect::TypeVariant::Data) {
+                element_type = sub_element_type;
+            }
+            if !matches!(element_type.which(), crate::introspect::TypeVariant::Data) {
                 return Err(crate::Error::failed(
                     "base64/hex annotation can only be applied to Data fields".into(),
                 ));

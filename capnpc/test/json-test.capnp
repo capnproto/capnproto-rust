@@ -121,3 +121,7 @@ struct TestBase64Union {
     bar @1 :Text;
   }
 }
+
+struct NestedHex {
+  dataAllTheWayDown @0 : List(List(Data)) $Json.hex;
+}
