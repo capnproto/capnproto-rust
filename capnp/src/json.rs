@@ -24,7 +24,7 @@ where
     W: std::io::Write,
 {
     let meta = EncodingOptions {
-        prefix: "".into(),
+        prefix: &std::borrow::Cow::Borrowed(""),
         name: "",
         flatten: None,
         discriminator: None,
@@ -44,17 +44,19 @@ enum DataEncoding {
 }
 
 #[derive(Debug)]
-struct EncodingOptions<'schema> {
-    prefix: String,
+struct EncodingOptions<'schema, 'prefix> {
+    prefix: &'prefix std::borrow::Cow<'schema, str>,
     name: &'schema str,
     flatten: Option<json_capnp::flatten_options::Reader<'schema>>,
-
     discriminator: Option<json_capnp::discriminator_options::Reader<'schema>>,
     data_encoding: DataEncoding,
 }
 
-impl<'schema> EncodingOptions<'schema> {
-    fn from_field(prefix: String, field: &crate::schema::Field) -> crate::Result<Self> {
+impl<'schema, 'prefix> EncodingOptions<'schema, 'prefix> {
+    fn from_field(
+        prefix: &'prefix std::borrow::Cow<'schema, str>,
+        field: &crate::schema::Field,
+    ) -> crate::Result<Self> {
         let field_name = match field
             .get_annotations()?
             .iter()
@@ -132,7 +134,7 @@ impl<'schema> EncodingOptions<'schema> {
 fn serialize_value_to<W>(
     writer: &mut W,
     reader: crate::dynamic_value::Reader<'_>,
-    meta: &EncodingOptions<'_>,
+    meta: &EncodingOptions<'_, '_>,
 ) -> crate::Result<()>
 where
     W: std::io::Write,
@@ -157,7 +159,17 @@ where
         crate::dynamic_value::Reader::Float64(value) => write_float_number(writer, value),
         crate::dynamic_value::Reader::Enum(value) => {
             if let Some(enumerant) = value.get_enumerant()? {
-                write_string(writer, enumerant.get_proto().get_name()?.to_str()?)
+                let value = enumerant
+                    .get_annotations()?
+                    .iter()
+                    .find(|a| a.get_id() == json_capnp::name::ID)
+                    .and_then(|a| {
+                        a.get_value()
+                            .ok()
+                            .and_then(|v| v.downcast::<crate::text::Reader>().to_str().ok())
+                    })
+                    .unwrap_or(enumerant.get_proto().get_name()?.to_str()?);
+                write_string(writer, value)
             } else {
                 write_unsigned_number(writer, value.get_value() as u64)
             }
@@ -243,15 +255,19 @@ where
 fn write_object<'reader, W: std::io::Write>(
     writer: &mut W,
     reader: crate::dynamic_struct::Reader<'reader>,
-    meta: &EncodingOptions<'_>,
+    meta: &EncodingOptions<'_, '_>,
 ) -> crate::Result<()> {
     let (flatten, field_prefix) = if let Some(flatten_options) = &meta.flatten {
         (
             true,
-            format!("{}{}", meta.prefix, flatten_options.get_prefix()?.to_str()?),
+            std::borrow::Cow::Owned(format!(
+                "{}{}",
+                meta.prefix,
+                flatten_options.get_prefix()?.to_str()?
+            )),
         )
     } else {
-        (false, "".into())
+        (false, std::borrow::Cow::Borrowed(""))
     };
 
     // Comment copied verbatim from the Cap'n Proto C++ implementation:
@@ -284,13 +300,13 @@ fn write_object<'reader, W: std::io::Write>(
         if !reader.has(field)? {
             continue;
         }
-        let field_meta = EncodingOptions::from_field(field_prefix.clone(), &field)?;
+        let field_meta = EncodingOptions::from_field(&field_prefix, &field)?;
         let mut value_name = field_meta.name;
         if field.get_proto().get_discriminant_value() != crate::schema_capnp::field::NO_DISCRIMINANT
         {
             if let Some(active_union_member) = reader.which()? {
                 let active_union_member_meta =
-                    EncodingOptions::from_field(field_prefix.clone(), &active_union_member)?;
+                    EncodingOptions::from_field(&field_prefix, &active_union_member)?;
                 if field.get_proto().get_discriminant_value()
                     != active_union_member.get_proto().get_discriminant_value()
                 {
