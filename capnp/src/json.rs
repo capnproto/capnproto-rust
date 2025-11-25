@@ -166,10 +166,10 @@ where
                     .and_then(|a| {
                         a.get_value()
                             .ok()
-                            .and_then(|v| v.downcast::<crate::text::Reader>().to_str().ok())
+                            .map(|v| v.downcast::<crate::text::Reader>().to_str())
                     })
-                    .unwrap_or(enumerant.get_proto().get_name()?.to_str()?);
-                write_string(writer, value)
+                    .unwrap_or(enumerant.get_proto().get_name()?.to_str());
+                write_string(writer, value?)
             } else {
                 write_unsigned_number(writer, value.get_value() as u64)
             }
@@ -198,6 +198,9 @@ fn write_signed_number<W: std::io::Write>(writer: &mut W, value: i64) -> crate::
 }
 
 fn write_float_number<W: std::io::Write>(writer: &mut W, value: f64) -> crate::Result<()> {
+    // From the C++ codec comments:
+    // Inf, -inf and NaN are not allowed in the JSON spec. Storing into string.
+
     if value.is_finite() {
         write!(writer, "{}", value)?;
     } else if value.is_nan() {
