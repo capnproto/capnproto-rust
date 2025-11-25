@@ -10,15 +10,17 @@
 // does that work in rust without specdialization?
 //
 
-pub fn to_json(reader: crate::dynamic_value::Reader<'_>) -> crate::Result<String> {
+pub fn to_json<'reader>(
+    reader: impl Into<crate::dynamic_value::Reader<'reader>>,
+) -> crate::Result<String> {
     let mut writer = std::io::Cursor::new(Vec::with_capacity(4096));
     serialize_json_to(&mut writer, reader)?;
     String::from_utf8(writer.into_inner()).map_err(|e| e.into())
 }
 
-pub fn serialize_json_to<W>(
+pub fn serialize_json_to<'reader, W>(
     writer: &mut W,
-    reader: crate::dynamic_value::Reader<'_>,
+    reader: impl Into<crate::dynamic_value::Reader<'reader>>,
 ) -> crate::Result<()>
 where
     W: std::io::Write,
@@ -30,7 +32,7 @@ where
         discriminator: None,
         data_encoding: DataEncoding::Default,
     };
-    serialize_value_to(writer, reader, &meta)
+    serialize_value_to(writer, reader.into(), &meta)
 }
 
 use crate::json_capnp;
