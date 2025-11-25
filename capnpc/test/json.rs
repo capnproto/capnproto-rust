@@ -355,3 +355,38 @@ fn test_base64_union() {
     let json_str = json::to_json(msg).unwrap();
     assert_eq!(expected, json_str);
 }
+
+#[test]
+fn test_string_encoding() {
+    let mut builder = message::Builder::new_default();
+    let mut root: crate::json_test_capnp::test_flattened_struct::Builder<'_> = builder.init_root();
+    root.set_value("");
+    assert_eq!(
+        r#"{"value":""}"#,
+        json::to_json(root.reborrow_as_reader().into()).unwrap()
+    );
+
+    root.set_value("tab: \t, newline: \n, carriage return: \r, quote: \", backslash: \\");
+    assert_eq!(
+        r#"{"value":"tab: \t, newline: \n, carriage return: \r, quote: \", backslash: \\"}"#,
+        json::to_json(root.reborrow_as_reader().into()).unwrap()
+    );
+
+    root.set_value("unicode: †eśt");
+    assert_eq!(
+        r#"{"value":"unicode: †eśt"}"#,
+        json::to_json(root.reborrow_as_reader().into()).unwrap()
+    );
+
+    root.set_value("backspace: \u{0008}, formfeed: \u{000C}");
+    assert_eq!(
+        r#"{"value":"backspace: \b, formfeed: \f"}"#,
+        json::to_json(root.reborrow_as_reader().into()).unwrap()
+    );
+
+    root.set_value("bell: \u{0007}, SOH: \u{0001}");
+    assert_eq!(
+        r#"{"value":"bell: \u0007, SOH: \u0001"}"#,
+        json::to_json(root.reborrow_as_reader().into()).unwrap()
+    );
+}
