@@ -24,6 +24,7 @@
 
 using Rust = import "rust.capnp";
 using External = import "./external-crate/external.capnp";
+using Json = import "/capnp/compat/json.capnp";
 
 # The test case is that this builds. This ensure we're able to refer to a struct
 # (external_capnp::opts) in the generated code.
@@ -872,4 +873,86 @@ struct Issue260(T, Q) {
 
 interface TestStream {
   send @0 (data : Data) -> stream;
+}
+
+struct TestJsonTypes {
+  voidField      @0  : Void;
+  boolField      @1  : Bool;
+  int8Field      @2  : Int8;
+  int16Field     @3  : Int16;
+  int32Field     @4  : Int32;
+  int64Field     @5  : Int64;
+  uInt8Field     @6  : UInt8;
+  uInt16Field    @7  : UInt16;
+  uInt32Field    @8  : UInt32;
+  uInt64Field    @9  : UInt64;
+  float32Field   @10 : Float32;
+  float64Field   @11 : Float64;
+  textField      @12 : Text;
+  dataField      @13 : Data;
+  base64Field    @14 : Data $Json.base64;
+  hexField       @15 : Data $Json.hex;
+  structField    @16 : TestJsonTypes;
+  enumField      @17 : TestEnum;
+
+  voidList      @18 : List(Void);
+  boolList      @19 : List(Bool);
+  int8List      @20 : List(Int8);
+  int16List     @21 : List(Int16);
+  int32List     @22 : List(Int32);
+  int64List     @23 : List(Int64);
+  uInt8List     @24 : List(UInt8);
+  uInt16List    @25 : List(UInt16);
+  uInt32List    @26 : List(UInt32);
+  uInt64List    @27 : List(UInt64);
+  float32List   @28 : List(Float32);
+  float64List   @29 : List(Float64);
+  textList      @30 : List(Text);
+  dataList      @31 : List(Data);
+  base64List    @32 : List(Data) $Json.base64;
+  hexList       @33 : List(Data) $Json.hex;
+  structList    @34 : List(TestJsonTypes);
+  enumList      @35 : List(TestEnum);
+}
+
+struct TestJsonFlattenUnion {
+  before @0 :Text;
+
+  maybe :union $Json.flatten("maybe_") { # field, group, union to test
+    foo @1 :UInt16;
+    bar @3 :UInt32;
+  }
+
+  groupie :group $Json.flatten() {
+    foo @5 :UInt16;
+    bar @6 :UInt32;
+    prefixed :group $Json.flatten("nested_") {
+      baz @7 :UInt8;
+    }
+    nested :group $Json.flatten() {
+      baz @8 :UInt8;
+    }
+  }
+
+  middle @2 :UInt16;
+
+  after @4 :Text;
+}
+
+struct TestJsonDiscriminatedUnion $Json.discriminator() {
+  before @0 :Text;
+
+  maybe :union $Json.flatten("maybe_") $Json.discriminator() { # field, group, union to test
+    foo @1 :UInt16;
+    bar @3 :UInt32;
+  }
+
+  middle @2 :UInt16;
+
+  after @4 :Text;
+
+  union {
+    a @5 :UInt8;
+    b @6 :Text;
+  }
 }
