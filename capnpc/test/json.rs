@@ -23,11 +23,8 @@ use crate::json_test_capnp::test_json_annotations;
 use crate::test_capnp::{
     test_json_flatten_union, test_json_types, test_union, test_unnamed_union, TestEnum,
 };
-use capnp::message::{self};
-
 use capnp::json::{self};
-
-// Primitive and Pointer field encoding
+use capnp::message::{self};
 
 #[test]
 fn test_encode_json_types_default() {
@@ -362,4 +359,23 @@ fn test_string_encoding() {
         r#"{"value":"bell: \u0007, SOH: \u0001"}"#,
         json::to_json(root.reborrow_as_reader()).unwrap()
     );
+}
+
+#[test]
+fn test_nested_data_list() -> capnp::Result<()> {
+    let mut builder = message::Builder::new_default();
+    let mut root = builder.init_root::<crate::json_test_capnp::nested_hex::Builder<'_>>();
+    let mut awd = root.reborrow().init_data_all_the_way_down(2);
+    let mut first = awd.reborrow().init(0, 2);
+    first.set(0, &[0xde, 0xad, 0xbe, 0xef]);
+    first.set(1, &[0xef, 0xbe, 0xad, 0xde]);
+    let mut second = awd.reborrow().init(1, 1);
+    second.set(0, &[0xba, 0xdf, 0x00, 0xd0]);
+
+    assert_eq!(
+        r#"{"dataAllTheWayDown":[["deadbeef","efbeadde"],["badf00d0"]]}"#,
+        json::to_json(root.reborrow_as_reader())?
+    );
+
+    Ok(())
 }
