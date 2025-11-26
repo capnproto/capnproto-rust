@@ -59,33 +59,56 @@ impl<'schema, 'prefix> EncodingOptions<'schema, 'prefix> {
         prefix: &'prefix std::borrow::Cow<'schema, str>,
         field: &crate::schema::Field,
     ) -> crate::Result<Self> {
-        let field_name = match field
-            .get_annotations()?
-            .iter()
-            .find(|a| a.get_id() == json_capnp::name::ID)
-        {
-            Some(name_annotation) => name_annotation
-                .get_value()?
-                .downcast::<crate::text::Reader>()
-                .to_str()?,
-            None => field.get_proto().get_name()?.to_str()?,
+        let mut options = Self {
+            prefix,
+            name: field.get_proto().get_name()?.to_str()?,
+            flatten: None,
+            discriminator: None,
+            data_encoding: DataEncoding::Default,
         };
-        let data_encoding = match field
-            .get_annotations()?
-            .iter()
-            .find(|a| a.get_id() == json_capnp::base64::ID)
-        {
-            Some(_) => DataEncoding::Base64,
-            None => match field
-                .get_annotations()?
-                .iter()
-                .find(|a| a.get_id() == json_capnp::hex::ID)
-            {
-                Some(_) => DataEncoding::Hex,
-                None => DataEncoding::Default,
-            },
-        };
-        if data_encoding != DataEncoding::Default {
+
+        for anno in field.get_annotations()?.iter() {
+            match anno.get_id() {
+                json_capnp::name::ID => {
+                    options.name = anno
+                        .get_value()?
+                        .downcast::<crate::text::Reader>()
+                        .to_str()?;
+                }
+                json_capnp::base64::ID => {
+                    if options.data_encoding != DataEncoding::Default {
+                        return Err(crate::Error::failed(
+                            "Cannot specify both base64 and hex annotations on the same field"
+                                .into(),
+                        ));
+                    }
+                    options.data_encoding = DataEncoding::Base64;
+                }
+                json_capnp::hex::ID => {
+                    if options.data_encoding != DataEncoding::Default {
+                        return Err(crate::Error::failed(
+                            "Cannot specify both base64 and hex annotations on the same field"
+                                .into(),
+                        ));
+                    }
+                    options.data_encoding = DataEncoding::Hex;
+                }
+                json_capnp::flatten::ID => {
+                    options.flatten = Some(
+                        anno.get_value()?
+                            .downcast_struct::<json_capnp::flatten_options::Owned>(),
+                    );
+                }
+                json_capnp::discriminator::ID => {
+                    options.discriminator = Some(
+                        anno.get_value()?
+                            .downcast_struct::<json_capnp::discriminator_options::Owned>(),
+                    );
+                }
+                _ => {}
+            }
+        }
+        if options.data_encoding != DataEncoding::Default {
             let mut element_type = field.get_type();
             while let crate::introspect::TypeVariant::List(sub_element_type) = element_type.which()
             {
@@ -97,37 +120,7 @@ impl<'schema, 'prefix> EncodingOptions<'schema, 'prefix> {
                 ));
             }
         }
-        let flatten_options = match field
-            .get_annotations()?
-            .iter()
-            .find(|a| a.get_id() == json_capnp::flatten::ID)
-        {
-            Some(annotation) => Some(
-                annotation
-                    .get_value()?
-                    .downcast_struct::<json_capnp::flatten_options::Owned>(),
-            ),
-            None => None,
-        };
-        let discriminator_options = match field
-            .get_annotations()?
-            .iter()
-            .find(|a| a.get_id() == json_capnp::discriminator::ID)
-        {
-            Some(annotation) => Some(
-                annotation
-                    .get_value()?
-                    .downcast_struct::<json_capnp::discriminator_options::Owned>(),
-            ),
-            None => None,
-        };
-        Ok(Self {
-            prefix,
-            name: field_name,
-            flatten: flatten_options,
-            discriminator: discriminator_options,
-            data_encoding,
-        })
+        Ok(options)
     }
 }
 
