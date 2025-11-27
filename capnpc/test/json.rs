@@ -379,3 +379,130 @@ fn test_nested_data_list() -> capnp::Result<()> {
 
     Ok(())
 }
+
+// Decode
+
+#[test]
+fn test_decode_simple() -> capnp::Result<()> {
+    let mut builder = message::Builder::new_default();
+    let mut root: test_json_types::Builder<'_> = builder.init_root();
+    json::from_json(
+        r#"
+          {
+            "voidField": null,
+            "boolField": true,
+            "int8Field": -8,
+            "int16Field": -16,
+            "int32Field": -32,
+            "int64Field": -64,
+            "uInt8Field": 8,
+            "uInt16Field": 16,
+            "uInt32Field": 32,
+            "uInt64Field": 64,
+            "float32Field": 1.3200000524520874,
+            "float64Field": 0.164e2,
+            "textField": "hello",
+            "dataField": [
+              222,
+              173
+
+              ,
+
+              190,
+              239,
+              202,
+              254,
+              186,
+              190
+            ],
+            "base64Field": "3q2+78r+ur4=",
+            "hexField": "deadbeefcafebabe",
+            "structField": {
+              "voidField": null,
+              "boolField": false,
+              "int8Field": 0,
+              "int16Field": 0,
+              "int32Field": 0,
+              "int64Field": 0,
+              "uInt8Field": 0,
+              "uInt16Field"            
+              : 0,
+              "uInt32Field": 0,
+              "uInt64Field": 0,
+              "float32Field": 0,
+              "float64Field": 0,
+              "textField": "inner",
+              "enumField": "foo",
+              "textList": [
+                "frist",
+                "segund"
+              ],
+              "base64List": [
+                "3q2+7w==",
+                "ut8A0A=="
+              ],
+              "hexList": [
+                "deadbeef",
+                "badf00d0"
+              ]
+            },
+            "enumField": "quux",
+            "float32List": [
+              "NaN",
+              "Infinity",
+              "-Infinity"
+            ],
+            "float64List": [
+              "NaN",
+              "Infinity" ,
+              "-Infinity"
+            ],
+            "enumList": [
+              "foo",
+              "bar",
+              "garply"
+            ],
+            "int64List": [
+              1,
+              2,
+              4,
+              8
+            ]
+          }
+        "#,
+        root.reborrow(),
+    )?;
+
+    let reader = root.into_reader();
+    assert_eq!((), reader.get_void_field());
+    assert_eq!(true, reader.get_bool_field());
+    assert_eq!(-8, reader.get_int8_field());
+    assert_eq!(-16, reader.get_int16_field());
+    assert_eq!(-32, reader.get_int32_field());
+    assert_eq!(-64, reader.get_int64_field());
+    assert_eq!(8, reader.get_u_int8_field());
+    assert_eq!(16, reader.get_u_int16_field());
+    assert_eq!(32, reader.get_u_int32_field());
+    assert_eq!(64, reader.get_u_int64_field());
+    assert_eq!(1.32, reader.get_float32_field());
+    assert_eq!(16.4, reader.get_float64_field());
+    assert_eq!("hello", reader.get_text_field()?.to_str()?);
+    assert_eq!(
+        [0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe],
+        reader.get_data_field()?
+    );
+    assert_eq!(
+        [0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe],
+        reader.get_base64_field()?
+    );
+    assert_eq!(
+        [0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe],
+        reader.get_hex_field()?
+    );
+
+    for i in 0..4 {
+        assert_eq!(1 << i, reader.get_int64_list()?.get(i as u32));
+    }
+
+    Ok(())
+}
