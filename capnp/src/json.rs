@@ -471,17 +471,34 @@ pub mod decode {
             }
         }
 
+        /// Advance past any whitespace and peek at next value
+        fn peek_next(&mut self) -> Option<char> {
+            self.discard_whitespace();
+            self.peek()
+        }
+
+        /// Peek at the current value
+        fn peek(&mut self) -> Option<char> {
+            self.input_iter.peek().copied()
+        }
+
+        /// Consume the current value
         fn advance(&mut self) -> crate::Result<char> {
             self.input_iter
                 .next()
                 .ok_or(ParseError::UnexpectedEndOfInput.into())
         }
 
-        fn peek(&mut self) -> Option<char> {
-            self.input_iter.peek().copied()
+        /// Consume the current value if it matches `c`, otherwise error
+        fn consume(&mut self, c: char) -> crate::Result<char> {
+            match self.advance()? {
+                p if p == c => Ok(p),
+                p => Err(ParseError::InvalidToken(p).into()),
+            }
         }
 
-        fn consume(&mut self, c: char) -> crate::Result<char> {
+        /// Advance past any whitespace and consume the current value if it matches `c`, otherwise error
+        fn consume_next(&mut self, c: char) -> crate::Result<char> {
             self.discard_whitespace();
             match self.advance()? {
                 p if p == c => Ok(p),
@@ -499,30 +516,25 @@ pub mod decode {
             }
         }
 
-        fn discard_peek(&mut self) -> Option<char> {
-            self.discard_whitespace();
-            self.peek()
-        }
-
         fn parse_value(&mut self) -> crate::Result<JsonValue> {
-            match self.discard_peek() {
+            match self.peek_next() {
                 None => Err(ParseError::UnexpectedEndOfInput.into()),
                 Some('n') => {
-                    self.consume('n')?;
+                    self.advance()?;
                     self.consume('u')?;
                     self.consume('l')?;
                     self.consume('l')?;
                     Ok(JsonValue::Null)
                 }
                 Some('t') => {
-                    self.consume('t')?;
+                    self.advance()?;
                     self.consume('r')?;
                     self.consume('u')?;
                     self.consume('e')?;
                     Ok(JsonValue::Boolean(true))
                 }
                 Some('f') => {
-                    self.consume('f')?;
+                    self.advance()?;
                     self.consume('a')?;
                     self.consume('l')?;
                     self.consume('s')?;
@@ -538,10 +550,10 @@ pub mod decode {
                     Ok(JsonValue::Number(num))
                 }
                 Some('[') => {
-                    self.consume('[')?;
+                    self.advance()?;
                     let mut items = Vec::new();
                     let mut require_comma = false;
-                    while self.discard_peek().is_some_and(|c| c != ']') {
+                    while self.peek_next().is_some_and(|c| c != ']') {
                         if require_comma {
                             self.consume(',')?;
                         }
@@ -549,20 +561,20 @@ pub mod decode {
                         let item = self.parse_value()?;
                         items.push(item);
                     }
-                    self.consume(']')?;
+                    self.consume_next(']')?;
                     Ok(JsonValue::Array(items))
                 }
                 Some('{') => {
-                    self.consume('{')?;
+                    self.advance()?;
                     let mut members = HashMap::new();
                     let mut require_comma = false;
-                    while self.discard_peek().is_some_and(|c| c != '}') {
+                    while self.peek_next().is_some_and(|c| c != '}') {
                         if require_comma {
                             self.consume(',')?;
                         }
                         require_comma = true;
                         let key = self.parse_string()?;
-                        self.consume(':')?;
+                        self.consume_next(':')?;
                         let value = self.parse_value()?;
                         if members.insert(key.clone(), value).is_some() {
                             return Err(ParseError::Other(format!(
@@ -572,7 +584,7 @@ pub mod decode {
                             .into());
                         }
                     }
-                    self.consume('}')?;
+                    self.consume_next('}')?;
                     Ok(JsonValue::Object(members))
                 }
                 Some(c) => Err(ParseError::InvalidToken(c).into()),
@@ -580,7 +592,7 @@ pub mod decode {
         }
 
         fn parse_string(&mut self) -> crate::Result<String> {
-            self.consume('\"')?;
+            self.consume_next('\"')?;
             let mut result = String::new();
             loop {
                 let c = self.advance()?;
@@ -631,7 +643,7 @@ pub mod decode {
 
         fn parse_number(&mut self) -> crate::Result<String> {
             let mut num_str = String::new();
-            if self.discard_peek().is_some_and(|c| c == '-') {
+            if self.peek_next().is_some_and(|c| c == '-') {
                 num_str.push(self.advance()?);
             }
             while self.peek().is_some_and(|c| c.is_ascii_digit()) {
