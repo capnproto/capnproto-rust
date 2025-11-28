@@ -58,9 +58,6 @@
 //!
 //! For a more complete example, see <https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator>
 
-#![deny(clippy::std_instead_of_alloc)]
-#![deny(clippy::std_instead_of_core)]
-#![deny(clippy::alloc_instead_of_core)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "alloc")]

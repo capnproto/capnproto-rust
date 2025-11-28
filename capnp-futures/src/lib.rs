@@ -18,9 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#![deny(clippy::std_instead_of_alloc)]
-#![deny(clippy::std_instead_of_core)]
-#![deny(clippy::alloc_instead_of_core)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "alloc")]
