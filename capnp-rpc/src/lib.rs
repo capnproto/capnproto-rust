@@ -58,15 +58,27 @@
 //!
 //! For a more complete example, see <https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator>
 
+#![deny(clippy::std_instead_of_alloc)]
+#![deny(clippy::std_instead_of_core)]
+#![deny(clippy::alloc_instead_of_core)]
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
+use alloc::boxed::Box;
+use alloc::format;
+use alloc::rc::{Rc, Weak};
+use alloc::string::ToString;
+use alloc::vec::Vec;
 use capnp::capability::Promise;
 use capnp::private::capability::ClientHook;
 use capnp::Error;
+use core::cell::RefCell;
+use core::pin::Pin;
+use core::task::{Context, Poll};
 use futures::channel::oneshot;
 use futures::{Future, FutureExt, TryFutureExt};
-use std::cell::RefCell;
-use std::pin::Pin;
-use std::rc::{Rc, Weak};
-use std::task::{Context, Poll};
 
 pub use crate::rpc::Disconnector;
 use crate::task_set::TaskSet;
@@ -402,8 +414,11 @@ pub struct CapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
 {
+    #[cfg(feature = "std")]
     caps: std::collections::HashMap<usize, Weak<S>>,
-    marker: std::marker::PhantomData<C>,
+    #[cfg(not(feature = "std"))]
+    caps: alloc::collections::BTreeMap<usize, Weak<S>>,
+    marker: core::marker::PhantomData<C>,
 }
 
 impl<S, C> Default for CapabilityServerSet<S, C>
@@ -412,8 +427,8 @@ where
 {
     fn default() -> Self {
         Self {
-            caps: std::default::Default::default(),
-            marker: std::marker::PhantomData,
+            caps: core::default::Default::default(),
+            marker: core::marker::PhantomData,
         }
     }
 }
@@ -501,7 +516,16 @@ where
 struct SystemTaskReaper;
 impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
-        println!("ERROR: {error}");
+        #[cfg(feature = "std")]
+        {
+            println!("ERROR: {error}");
+        }
+
+        #[cfg(not(feature = "std"))]
+        {
+            // In no_std environments we can't print the error, so just do nothing.
+            drop(error);
+        }
     }
 }
 

@@ -18,14 +18,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use alloc::boxed::Box;
+use alloc::{vec, vec::Vec};
+use core::pin::Pin;
+use core::task::{Context, Poll};
 use futures::channel::{mpsc, oneshot};
 use futures::stream::FuturesUnordered;
 use futures::{Future, FutureExt, Stream};
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
-use std::cell::RefCell;
-use std::rc::Rc;
+use alloc::rc::Rc;
+use core::cell::RefCell;
 
 enum EnqueuedTask<E> {
     Task(Pin<Box<dyn Future<Output = Result<(), E>>>>),
@@ -74,7 +76,7 @@ where
     pub fn new(reaper: Box<dyn TaskReaper<E>>) -> (TaskSetHandle<E>, Self)
     where
         E: 'static,
-        E: ::std::fmt::Debug,
+        E: ::core::fmt::Debug,
     {
         let (sender, receiver) = mpsc::unbounded();
 
@@ -98,7 +100,7 @@ where
     fn update_on_empty_fulfillers(&mut self) {
         // There is always the one pending() future that we added in `new()`.
         if self.in_progress.len() <= 1 {
-            for f in std::mem::take(&mut self.on_empty_fulfillers) {
+            for f in core::mem::take(&mut self.on_empty_fulfillers) {
                 let _ = f.send(());
             }
         }

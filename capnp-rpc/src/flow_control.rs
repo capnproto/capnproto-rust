@@ -1,10 +1,10 @@
 use capnp::capability::Promise;
 use capnp::Error;
 
+use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
+use core::cell::RefCell;
 use futures::channel::oneshot;
 use futures::TryFutureExt;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 use crate::task_set::{TaskReaper, TaskSet, TaskSetHandle};
 
@@ -47,7 +47,7 @@ impl TaskReaper<Error> for Reaper {
     fn task_failed(&mut self, error: Error) {
         let mut inner = self.inner.borrow_mut();
         if let State::Running(ref mut blocked_sends) = &mut inner.state {
-            for s in std::mem::take(blocked_sends) {
+            for s in core::mem::take(blocked_sends) {
                 let _ = s.send(Err(error.clone()));
             }
             inner.state = State::Failed(error)
@@ -99,7 +99,7 @@ impl crate::FlowController for FixedWindowFlowController {
             match inner.state {
                 State::Running(ref mut blocked_sends) => {
                     if is_ready {
-                        for s in std::mem::take(blocked_sends) {
+                        for s in core::mem::take(blocked_sends) {
                             let _ = s.send(Ok(()));
                         }
                     }

@@ -22,13 +22,26 @@
 //! An implementation of [`VatNetwork`](crate::VatNetwork) for the common case
 //! of a client-server connection.
 
+use alloc::boxed::Box;
+use alloc::string::ToString;
 use capnp::capability::Promise;
 use capnp::message::ReaderOptions;
 use futures::channel::oneshot;
-use futures::{AsyncRead, AsyncWrite, FutureExt, TryFutureExt};
+use futures::{FutureExt, TryFutureExt};
+#[cfg(not(feature = "embedded-io"))]
+use futures::AsyncWrite;
+#[cfg(not(feature = "embedded-io"))]
+use futures::AsyncRead;
 
-use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+#[cfg(feature = "embedded-io")]
+use embedded_io_async::Write as AsyncWrite;
+
+#[cfg(feature = "embedded-io")]
+use embedded_io_async::Read as AsyncRead;
+
+
+use alloc::rc::{Rc, Weak};
+use core::cell::RefCell;
 
 pub type VatId = crate::rpc_twoparty_capnp::Side;
 

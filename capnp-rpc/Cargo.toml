@@ -16,11 +16,17 @@ readme = "README.md"
 [dependencies.futures]
 version = "0.3.0"
 default-features = false
-features = ["std"]
 
 [dependencies]
-capnp-futures = { version = "0.23.0", path = "../capnp-futures" }
+capnp-futures = { version = "0.23.0", path = "../capnp-futures", default-features = false }
 capnp = {version = "0.23.0", path = "../capnp"}
+embedded-io-async = { version = "0.7.0", optional = true }
+
+[features]
+default = ["std"]
+std = ["futures/std", "embedded-io-async?/std", "capnp-futures/std", "alloc"]
+alloc = ["futures/alloc", "embedded-io-async?/alloc", "capnp-futures/alloc"]
+embedded-io = ["dep:embedded-io-async"]
 
 #[lints]
 #workspace = true

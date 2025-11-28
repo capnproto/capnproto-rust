@@ -22,8 +22,8 @@
 //! Asynchronous reading and writing of messages using the
 //! [packed stream encoding](https://capnproto.org/encoding.html#packing).
 
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use core::pin::Pin;
+use core::task::{Context, Poll};
 
 use capnp::serialize::OwnedSegments;
 use capnp::{message, Result};
@@ -82,9 +82,9 @@ where
 {
     fn poll_read(
         mut self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
+        cx: &mut core::task::Context<'_>,
         outbuf: &mut [u8],
-    ) -> Poll<std::result::Result<usize, std::io::Error>> {
+    ) -> Poll<core::result::Result<usize, std::io::Error>> {
         let Self {
             stage,
             inner,
@@ -129,7 +129,7 @@ where
                     }
                 }
                 PackedReadStage::WritingZeroes => {
-                    let num_zeroes = std::cmp::min(outbuf.len(), *num_run_bytes_remaining);
+                    let num_zeroes = core::cmp::min(outbuf.len(), *num_run_bytes_remaining);
 
                     for value in outbuf.iter_mut().take(num_zeroes) {
                         *value = 0;
@@ -186,7 +186,7 @@ where
                     return Poll::Ready(Ok(ii));
                 }
                 PackedReadStage::WritingPassthrough => {
-                    let upper_bound = std::cmp::min(*num_run_bytes_remaining, outbuf.len());
+                    let upper_bound = core::cmp::min(*num_run_bytes_remaining, outbuf.len());
                     if upper_bound == 0 {
                         *stage = PackedReadStage::Start;
                     } else {
@@ -281,11 +281,11 @@ where
     }
 }
 
-impl<W> std::future::Future for FinishPendingWrites<W>
+impl<W> core::future::Future for FinishPendingWrites<W>
 where
     W: AsyncWrite + Unpin,
 {
-    type Output = std::result::Result<(), capnp::Error>;
+    type Output = core::result::Result<(), capnp::Error>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         match self.inner.finish_pending_writes(cx)? {
             Poll::Ready(()) => Poll::Ready(Ok(())),
@@ -332,7 +332,7 @@ where
         &mut self,
         cx: &mut Context<'_>,
         mut inbuf: &[u8],
-    ) -> Poll<std::result::Result<usize, std::io::Error>> {
+    ) -> Poll<core::result::Result<usize, std::io::Error>> {
         let mut inbuf_bytes_consumed: usize = 0;
         let Self {
             stage,
@@ -352,7 +352,7 @@ where
 
                     // copy inbuf into buf
                     let buf_bytes_remaining = 8 - *buf_pos;
-                    let bytes_to_copy = std::cmp::min(buf_bytes_remaining, inbuf.len());
+                    let bytes_to_copy = core::cmp::min(buf_bytes_remaining, inbuf.len());
                     buf[*buf_pos..(*buf_pos + bytes_to_copy)]
                         .copy_from_slice(&inbuf[..bytes_to_copy]);
                     inbuf = &inbuf[bytes_to_copy..];
@@ -488,7 +488,7 @@ where
     fn finish_pending_writes(
         &mut self,
         cx: &mut Context<'_>,
-    ) -> Poll<std::result::Result<(), std::io::Error>> {
+    ) -> Poll<core::result::Result<(), std::io::Error>> {
         while self.stage == PackedWriteStage::WriteWord
             || self.stage == PackedWriteStage::WriteRunWordCount
         {
@@ -509,14 +509,14 @@ where
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         inbuf: &[u8],
-    ) -> Poll<std::result::Result<usize, std::io::Error>> {
+    ) -> Poll<core::result::Result<usize, std::io::Error>> {
         (*self).poll_write_aux(cx, inbuf)
     }
 
     fn poll_flush(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-    ) -> Poll<std::result::Result<(), std::io::Error>> {
+    ) -> Poll<core::result::Result<(), std::io::Error>> {
         match (*self).finish_pending_writes(cx)? {
             Poll::Pending => return Poll::Pending,
             Poll::Ready(_) => (),
@@ -528,7 +528,7 @@ where
     fn poll_close(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-    ) -> Poll<std::result::Result<(), std::io::Error>> {
+    ) -> Poll<core::result::Result<(), std::io::Error>> {
         Pin::new(&mut self.inner).poll_close(cx)
     }
 }

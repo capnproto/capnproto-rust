@@ -13,16 +13,16 @@ keywords = ["async"]
 
 [dependencies]
 capnp = { version = "0.23.0-alpha", path = "../capnp" }
+embedded-io-async = { version = "0.7.0", optional = true }
 
 [dependencies.futures-channel]
 version = "0.3.0"
 default-features = false
-features = ["std"]
 
 [dependencies.futures-util]
 version = "0.3.0"
 default-features = false
-features = ["io", "std"]
+features = ["io"]
 
 [dev-dependencies.futures]
 version = "0.3.0"
@@ -32,6 +32,13 @@ features = ["executor"]
 [dev-dependencies]
 capnp = { version = "0.23.0", path = "../capnp", features = ["quickcheck"] }
 quickcheck = "1"
+
+
+[features]
+default = ["std"]
+std = ["futures-channel/std", "futures-util/std", "embedded-io-async?/std", "alloc"]
+alloc = ["futures/alloc", "embedded-io-async?/alloc"]
+embedded-io = ["dep:embedded-io-async"]
 
 [lints]
 workspace = true
