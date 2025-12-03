@@ -1015,13 +1015,13 @@ pub mod decode {
             std::borrow::Cow::Borrowed("")
         };
 
-        for field in builder.get_schema().get_non_union_fields()? {
-            //
-            // TODO: Handle unions, discriminators, etc.
-            //
-            let field_meta = EncodingOptions::from_field(meta.prefix, &field)?;
-            let field_name = format!("{}{}", field_prefix, field_meta.name);
-
+        fn decode_member(
+            mut builder: crate::dynamic_struct::Builder<'_>,
+            field: crate::schema::Field,
+            field_meta: &EncodingOptions,
+            value: &mut HashMap<String, JsonValue>,
+            value_name: &str,
+        ) -> crate::Result<()> {
             match field.get_type().which() {
                 crate::introspect::TypeVariant::Struct(_struct_schema) => {
                     let struct_builder = builder
@@ -1029,9 +1029,9 @@ pub mod decode {
                         .init(field)?
                         .downcast::<crate::dynamic_struct::Builder>();
                     if field_meta.flatten.is_none() {
-                        let field_value = match value.remove(&field_name) {
+                        let field_value = match value.remove(value_name) {
                             Some(v) => v,
-                            None => continue,
+                            None => return Ok(()),
                         };
 
                         let JsonValue::Object(mut field_value) = field_value else {
@@ -1040,16 +1040,15 @@ pub mod decode {
                                 field_meta.name
                             )));
                         };
-                        decode_struct(&mut field_value, struct_builder, &field_meta)?;
+                        decode_struct(&mut field_value, struct_builder, field_meta)?;
                     } else {
                         // Flattened struct; pass the JsonValue at this level down
-                        decode_struct(value, struct_builder, &field_meta)?;
+                        decode_struct(value, struct_builder, field_meta)?;
                     }
                 }
                 crate::introspect::TypeVariant::List(_element_type) => {
-                    let field_value = match value.remove(&field_name) {
-                        Some(v) => v,
-                        None => continue,
+                    let Some(field_value) = value.remove(value_name) else {
+                        return Ok(());
                     };
 
                     let JsonValue::Array(field_value) = field_value else {
@@ -1062,7 +1061,7 @@ pub mod decode {
                         .reborrow()
                         .initn(field, field_value.len() as u32)?
                         .downcast::<crate::dynamic_list::Builder>();
-                    decode_list(field_value, list_builder, &field_meta)?;
+                    decode_list(field_value, list_builder, field_meta)?;
                 }
 
                 crate::introspect::TypeVariant::AnyPointer => {
@@ -1077,17 +1076,24 @@ pub mod decode {
                 }
 
                 _ => {
-                    let mut field_value = match value.remove(&field_name) {
-                        Some(v) => v,
-                        None => continue,
+                    let Some(mut field_value) = value.remove(value_name) else {
+                        return Ok(());
                     };
 
                     builder.set(
                         field,
-                        decode_primitive(&mut field_value, &field.get_type(), &field_meta)?,
+                        decode_primitive(&mut field_value, &field.get_type(), field_meta)?,
                     )?;
                 }
             }
+            Ok(())
+        }
+
+        for field in builder.get_schema().get_non_union_fields()? {
+            let field_meta = EncodingOptions::from_field(meta.prefix, &field)?;
+            let field_name = format!("{}{}", field_prefix, field_meta.name);
+
+            decode_member(builder.reborrow(), field, &field_meta, value, &field_name)?;
         }
 
         let struct_discriminator = builder
@@ -1103,6 +1109,9 @@ pub mod decode {
             });
         let discriminator = meta.discriminator.or(struct_discriminator);
 
+        // FIXME: refactor this to only loop through union memberes once; each
+        // iteration check if it matches the discriminant, *or* the requisite
+        // named field is present, then decode and break;
         let discriminant = match discriminator {
             Some(discriminator) => {
                 let discriminator_name = if discriminator.has_name() {
@@ -1146,74 +1155,8 @@ pub mod decode {
                 } else {
                     field_meta.name
                 };
-                // TODO: factor out the following block (it's copypaste)
-                // The problem is we have continue and stuff in the block
-                match field.get_type().which() {
-                    crate::introspect::TypeVariant::Struct(_struct_schema) => {
-                        let struct_builder = builder
-                            .reborrow()
-                            .init(field)?
-                            .downcast::<crate::dynamic_struct::Builder>();
-                        if field_meta.flatten.is_none() {
-                            let field_value = match value.remove(value_name) {
-                                Some(v) => v,
-                                None => continue,
-                            };
-
-                            let JsonValue::Object(mut field_value) = field_value else {
-                                return Err(crate::Error::failed(format!(
-                                    "Expected object for field {}",
-                                    field_meta.name
-                                )));
-                            };
-                            decode_struct(&mut field_value, struct_builder, &field_meta)?;
-                        } else {
-                            // Flattened struct; pass the JsonValue at this level down
-                            decode_struct(value, struct_builder, &field_meta)?;
-                        }
-                    }
-                    crate::introspect::TypeVariant::List(_element_type) => {
-                        let field_value = match value.remove(value_name) {
-                            Some(v) => v,
-                            None => continue,
-                        };
-
-                        let JsonValue::Array(field_value) = field_value else {
-                            return Err(crate::Error::failed(format!(
-                                "Expected array for field {}",
-                                field_meta.name
-                            )));
-                        };
-                        let list_builder = builder
-                            .reborrow()
-                            .initn(field, field_value.len() as u32)?
-                            .downcast::<crate::dynamic_list::Builder>();
-                        decode_list(field_value, list_builder, &field_meta)?;
-                    }
-
-                    crate::introspect::TypeVariant::AnyPointer => {
-                        return Err(crate::Error::unimplemented(
-                            "AnyPointer cannot be represented in JSON".into(),
-                        ))
-                    }
-                    crate::introspect::TypeVariant::Capability => {
-                        return Err(crate::Error::unimplemented(
-                            "Capability cannot be represented in JSON".into(),
-                        ))
-                    }
-
-                    _ => {
-                        let mut field_value = match value.remove(value_name) {
-                            Some(v) => v,
-                            None => continue,
-                        };
-
-                        builder.set(
-                            field,
-                            decode_primitive(&mut field_value, &field.get_type(), &field_meta)?,
-                        )?;
-                    }
-                }
+                decode_member(builder.reborrow(), field, &field_meta, value, value_name)?;
+                break;
             }
         }
 
@@ -1221,10 +1164,9 @@ pub mod decode {
     }
 }
 
+// We don't want to pull in base64 crate just for this. So hand-rolling a
+// base64 codec.
 mod base64 {
-    // We don't want to pull in base64 crate just for this. So hand-rolling a
-    // base64 codec.
-
     const BASE64_CHARS: &[u8; 64] =
         b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -1299,10 +1241,9 @@ mod base64 {
     }
 }
 
+// We don't want to pull in hex crate just for this. So hand-rolling a
+// hex codec.
 mod hex {
-    // We don't want to pull in hex crate just for this. So hand-rolling a
-    // hex codec.
-
     const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
     fn hex_char_to_value(c: u8) -> crate::Result<u8> {
         match c {

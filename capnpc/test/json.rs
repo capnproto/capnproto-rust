@@ -542,8 +542,6 @@ fn test_decode_flattened() -> capnp::Result<()> {
         builder.init_root::<crate::json_test_capnp::test_json_annotations::Builder<'_>>();
     json::from_json(j, root.reborrow())?;
 
-    println!("{}", json::to_json(root.reborrow_as_reader())?);
-
     let reader = root.into_reader();
     assert_eq!("Some Field", reader.get_some_field()?.to_str()?);
     assert_eq!(1234, reader.get_a_group().get_flat_foo());
@@ -598,8 +596,6 @@ fn test_decode_base64_union() -> capnp::Result<()> {
             builder.init_root::<crate::json_test_capnp::test_base64_union::Builder<'_>>();
         json::from_json(j, root.reborrow())?;
 
-        println!("{}", json::to_json(root.reborrow_as_reader())?);
-
         let reader = root.into_reader();
         assert!(matches!(
             reader.which()?,
@@ -624,8 +620,6 @@ fn test_decode_base64_union() -> capnp::Result<()> {
         let mut root =
             builder.init_root::<crate::json_test_capnp::test_base64_union::Builder<'_>>();
         json::from_json(j, root.reborrow())?;
-
-        println!("{}", json::to_json(root.reborrow_as_reader())?);
 
         let reader = root.into_reader();
         assert!(matches!(
@@ -654,8 +648,6 @@ fn test_decode_base64_union() -> capnp::Result<()> {
             builder.init_root::<crate::json_test_capnp::test_base64_union::Builder<'_>>();
         json::from_json(j, root.reborrow())?;
 
-        println!("{}", json::to_json(root.reborrow_as_reader())?);
-
         let reader = root.into_reader();
         assert!(matches!(
             reader.which()?,
@@ -682,8 +674,6 @@ fn test_decode_base64_union() -> capnp::Result<()> {
             builder.init_root::<crate::json_test_capnp::test_renamed_anon_union::Builder<'_>>();
         json::from_json(j, root.reborrow())?;
 
-        println!("{}", json::to_json(root.reborrow_as_reader())?);
-
         let reader = root.into_reader();
         assert!(matches!(
             reader.which()?,
@@ -709,8 +699,6 @@ fn test_decode_base64_union() -> capnp::Result<()> {
         let mut root =
             builder.init_root::<crate::json_test_capnp::test_renamed_anon_union::Builder<'_>>();
         json::from_json(j, root.reborrow())?;
-
-        println!("{}", json::to_json(root.reborrow_as_reader())?);
 
         let reader = root.into_reader();
         assert!(matches!(
