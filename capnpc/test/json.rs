@@ -184,8 +184,8 @@ fn test_unnamed_union() {
         "{",
         r#""before":"before","#,
         r#""middle":1234,"#,
-        r#""bar":32,"#,
-        r#""after":"after""#,
+        r#""after":"after","#,
+        r#""bar":32"#,
         "}",
     );
     assert_eq!(expected, json::to_json(root.reborrow_as_reader()).unwrap());
@@ -506,3 +506,140 @@ fn test_decode_simple() -> capnp::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_encode_with_empty_flattened() -> capnp::Result<()> {
+    let mut builder = capnp::message::Builder::new_default();
+    let root = builder.init_root::<crate::json_test_capnp::test_json_annotations::Builder<'_>>();
+
+    assert_eq!(
+        r#"{"flatFoo":0,"renamed-flatBaz":{"hello":false},"pfx.renamed-bar":0,"pfx.baz":{"hello":false},"union-type":"foo","multiMember":0,"simpleGroup":{},"unionWithVoid":{"type":"intValue","intValue":0}}"#,
+        json::to_json(root.reborrow_as_reader())?
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_decode_flattened() -> capnp::Result<()> {
+    let j = r#"
+      {
+        "names-can_contain!anything Really": "Some Field",
+        "flatFoo": 1234,
+        "flatBar": "0xBaa",
+        "renamed-flatBaz": {"hello": true},
+        "flatQux": "Qux",
+        "pfx.baz": {"hello": true},
+        "union-type": "renamed-bar",
+        "barMember": 2731,
+        "multiMember": "Member",
+        "bUnion": "renamed-bar",
+        "bValue": 100
+      }
+    "#;
+    let mut builder = capnp::message::Builder::new_default();
+    let mut root =
+        builder.init_root::<crate::json_test_capnp::test_json_annotations::Builder<'_>>();
+    json::from_json(j, root.reborrow())?;
+
+    println!("{}", json::to_json(root.reborrow_as_reader())?);
+
+    let reader = root.into_reader();
+    assert_eq!("Some Field", reader.get_some_field()?.to_str()?);
+    assert_eq!(1234, reader.get_a_group().get_flat_foo());
+    assert_eq!("0xBaa", reader.get_a_group().get_flat_bar()?.to_str()?);
+    assert_eq!(true, reader.get_a_group().get_flat_baz().get_hello());
+    assert_eq!(
+        "Qux",
+        reader
+            .get_a_group()
+            .get_double_flat()
+            .get_flat_qux()?
+            .to_str()?
+    );
+    assert_eq!(true, reader.get_prefixed_group().get_baz().get_hello());
+    assert!(matches!(
+        reader.get_a_union().which()?,
+        crate::json_test_capnp::test_json_annotations::a_union::Bar(_)
+    ));
+    {
+        let bar = match reader.get_a_union().which()? {
+            crate::json_test_capnp::test_json_annotations::a_union::Bar(b) => b,
+            _ => panic!("Expected Bar"),
+        };
+        assert_eq!(2731, bar.get_bar_member());
+        assert_eq!("Member", bar.get_multi_member()?.to_str()?);
+    }
+    assert!(matches!(
+        reader.get_b_union().which()?,
+        crate::json_test_capnp::test_json_annotations::b_union::Bar(_)
+    ));
+    {
+        let bar = match reader.get_b_union().which()? {
+            crate::json_test_capnp::test_json_annotations::b_union::Bar(b) => b,
+            _ => panic!("Expected Bar"),
+        };
+        assert_eq!(100, bar);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_decode_base64_union() -> capnp::Result<()> {
+    {
+        let j = r#"
+        {
+          "foo":"3q2+7w=="
+        }
+      "#;
+        let mut builder = capnp::message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::test_base64_union::Builder<'_>>();
+        json::from_json(j, root.reborrow())?;
+
+        println!("{}", json::to_json(root.reborrow_as_reader())?);
+
+        let reader = root.into_reader();
+        assert!(matches!(
+            reader.which()?,
+            crate::json_test_capnp::test_base64_union::Foo(_)
+        ));
+        {
+            let foo = match reader.which()? {
+                crate::json_test_capnp::test_base64_union::Foo(f) => f,
+                _ => panic!("Expected Foo"),
+            }?;
+            assert_eq!(&[0xde, 0xad, 0xbe, 0xef], foo);
+        }
+    }
+
+    {
+        let j = r#"
+        {
+          "bar":"To the bar!"
+        }
+      "#;
+        let mut builder = capnp::message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::test_base64_union::Builder<'_>>();
+        json::from_json(j, root.reborrow())?;
+
+        println!("{}", json::to_json(root.reborrow_as_reader())?);
+
+        let reader = root.into_reader();
+        assert!(matches!(
+            reader.which()?,
+            crate::json_test_capnp::test_base64_union::Bar(_)
+        ));
+        {
+            let bar = match reader.which()? {
+                crate::json_test_capnp::test_base64_union::Bar(b) => b?,
+                _ => panic!("Expected Foo"),
+            };
+            assert_eq!("To the bar!", bar.to_str()?);
+        }
+    }
+    Ok(())
+}
+
