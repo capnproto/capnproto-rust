@@ -22,14 +22,7 @@
 
 @0x99d187209d25cee7;
 
-using Rust = import "rust.capnp";
-using External = import "./external-crate/external.capnp";
-
-# The test case is that this builds. This ensure we're able to refer to a struct
-# (external_capnp::opts) in the generated code.
-struct UseExternalAnnotation $External.annot(field = "foo") {
-  field @0 :Text;
-}
+using Json = import "/capnp/compat/json.capnp";
 
 struct FieldSubsetIndexesCorrectly {
   common @2 :Text;
@@ -462,20 +455,6 @@ struct TestNewUnionVersion {
   }
 }
 
-struct TestFieldGetOption {
-  text @0 :Text $Rust.option;
-  data @1 :Data $Rust.option;
-  list @2 :List(UInt8) $Rust.option;
-  emptyStruct @3 :EmptyStruct $Rust.option;
-  simpleStruct @4 :SimpleStruct $Rust.option;
-  any @5 :AnyPointer $Rust.option;
-
-  struct EmptyStruct {}
-  struct SimpleStruct {
-    field @0 :Text $Rust.option;
-  }
-}
-
 struct TestGenerics(Foo, Bar) {
   foo @0 :Foo;
   bar @1 :Bar;
@@ -715,10 +694,6 @@ interface TestExtends extends(TestInterface) {
    qux @0 ();
    corge @1 TestBigStruct -> ();
    grault @2 () -> TestBigStruct;
-
-   # Two methods whose names deliberately clash with TestInterface methods.
-   bar @3 () -> ();
-   foo @4 (i :Text) -> (x : UInt32);
 }
 
 struct TestCapabilityList {
@@ -820,56 +795,69 @@ struct Map(Key, Value) {
 }
 
 interface GenericBase(T) {}
-interface GenericExtend extends(GenericBase(Data)) {
-   foo @0 () -> ();
-}
-interface GenericExtend2 extends (GenericBase(GenericBase(Data))) {
-   foo @0 () -> ();
+interface GenericExtend extends(GenericBase(Data)) {}
+interface GenericExtend2 extends (GenericBase(GenericBase(Data))) {}
+
+struct TestJsonTypes {
+  voidField      @0  : Void;
+  boolField      @1  : Bool;
+  int8Field      @2  : Int8;
+  int16Field     @3  : Int16;
+  int32Field     @4  : Int32;
+  int64Field     @5  : Int64;
+  uInt8Field     @6  : UInt8;
+  uInt16Field    @7  : UInt16;
+  uInt32Field    @8  : UInt32;
+  uInt64Field    @9  : UInt64;
+  float32Field   @10 : Float32;
+  float64Field   @11 : Float64;
+  textField      @12 : Text;
+  dataField      @13 : Data;
+  base64Field    @14 : Data $Json.base64;
+  hexField       @15 : Data $Json.hex;
+  structField    @16 : TestJsonTypes;
+  enumField      @17 : TestEnum;
+
+  voidList      @18 : List(Void);
+  boolList      @19 : List(Bool);
+  int8List      @20 : List(Int8);
+  int16List     @21 : List(Int16);
+  int32List     @22 : List(Int32);
+  int64List     @23 : List(Int64);
+  uInt8List     @24 : List(UInt8);
+  uInt16List    @25 : List(UInt16);
+  uInt32List    @26 : List(UInt32);
+  uInt64List    @27 : List(UInt64);
+  float32List   @28 : List(Float32);
+  float64List   @29 : List(Float64);
+  textList      @30 : List(Text);
+  dataList      @31 : List(Data);
+  base64List    @32 : List(Data) $Json.base64;
+  hexList       @33 : List(Data) $Json.hex;
+  structList    @34 : List(TestJsonTypes);
+  enumList      @35 : List(TestEnum);
 }
 
-struct TestNameAnnotation $Rust.name("RenamedStruct") {
-  union {
-    badFieldName @0 :Bool $Rust.name("goodFieldName");
-    bar @1 :Int8;
+struct TestJsonFlattenUnion {
+  before @0 :Text;
+
+  maybe :union $Json.flatten("maybe_") { # field, group, union to test
+    foo @1 :UInt16;
+    bar @3 :UInt32;
   }
 
-  enum BadlyNamedEnum $Rust.name("RenamedEnum") {
-    foo @0;
-    bar @1;
-    baz @2 $Rust.name("qux");
-  }
-
-  anotherBadFieldName @2 :BadlyNamedEnum $Rust.name("anotherGoodFieldName");
-
-  struct NestedStruct $Rust.name("RenamedNestedStruct") {
-    badNestedFieldName @0 :Bool $Rust.name("goodNestedFieldName");
-    anotherBadNestedFieldName @1 :NestedStruct $Rust.name("anotherGoodNestedFieldName");
-
-    enum DeeplyNestedEnum $Rust.name("RenamedDeeplyNestedEnum") {
-      quux @0;
-      corge @1;
-      grault @2 $Rust.name("garply");
+  groupie :group $Json.flatten() {
+    foo @5 :UInt16;
+    bar @6 :UInt32;
+    prefixed :group $Json.flatten("nested_") {
+      baz @7 :UInt8;
+    }
+    nested :group $Json.flatten() {
+      baz @8 :UInt8;
     }
   }
 
-  badlyNamedUnion :union $Rust.name("renamedUnion") {
-    badlyNamedGroup :group $Rust.name("renamedGroup") {
-      foo @3 :Void;
-      bar @4 :Void;
-    }
-    baz @5 :NestedStruct $Rust.name("qux");
-  }
-}
+  middle @2 :UInt16;
 
-struct Issue260(T, Q) {
-  val0 @0 :Int8;
-  gVal @1 :T;
-  union {
-    val1 @2 :Q;
-    val2 @3 :Int8;
-  }
-}
-
-interface TestStream {
-  send @0 (data : Data) -> stream;
+  after @4 :Text;
 }

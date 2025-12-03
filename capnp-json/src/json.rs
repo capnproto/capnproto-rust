@@ -4,15 +4,15 @@
 // encoder, but still dumb as bricks, probably.
 //
 // e.g.
-// impl ToJson for crate::dynamic_value::Reader<'_> { ... }
-// impl ToJson for mycrate::my_capnp::my_struct::Reader<'_> { ... } // more specific
+// impl ToJson for capnp::dynamic_value::Reader<'_> { ... }
+// impl ToJson for mycapnp::my_capnp::my_struct::Reader<'_> { ... } // more specific
 //
 // does that work in rust without specdialization?
 //
 
 pub fn to_json<'reader>(
-    reader: impl Into<crate::dynamic_value::Reader<'reader>>,
-) -> crate::Result<String> {
+    reader: impl Into<capnp::dynamic_value::Reader<'reader>>,
+) -> capnp::Result<String> {
     let mut writer = std::io::Cursor::new(Vec::with_capacity(4096));
     encode::serialize_json_to(&mut writer, reader)?;
     String::from_utf8(writer.into_inner()).map_err(|e| e.into())
@@ -20,10 +20,10 @@ pub fn to_json<'reader>(
 
 pub fn from_json<'segments>(
     json: &str,
-    builder: impl Into<crate::dynamic_value::Builder<'segments>>,
-) -> crate::Result<()> {
-    let crate::dynamic_value::Builder::Struct(builder) = builder.into() else {
-        return Err(crate::Error::failed(
+    builder: impl Into<capnp::dynamic_value::Builder<'segments>>,
+) -> capnp::Result<()> {
+    let capnp::dynamic_value::Builder::Struct(builder) = builder.into() else {
+        return Err(capnp::Error::failed(
             "Top-level JSON value must be an object".into(),
         ));
     };
@@ -52,8 +52,8 @@ struct EncodingOptions<'schema, 'prefix> {
 impl<'schema, 'prefix> EncodingOptions<'schema, 'prefix> {
     fn from_field(
         prefix: &'prefix std::borrow::Cow<'schema, str>,
-        field: &crate::schema::Field,
-    ) -> crate::Result<Self> {
+        field: &capnp::schema::Field,
+    ) -> capnp::Result<Self> {
         let mut options = Self {
             prefix,
             name: field.get_proto().get_name()?.to_str()?,
@@ -67,12 +67,12 @@ impl<'schema, 'prefix> EncodingOptions<'schema, 'prefix> {
                 json_capnp::name::ID => {
                     options.name = anno
                         .get_value()?
-                        .downcast::<crate::text::Reader>()
+                        .downcast::<capnp::text::Reader>()
                         .to_str()?;
                 }
                 json_capnp::base64::ID => {
                     if options.data_encoding != DataEncoding::Default {
-                        return Err(crate::Error::failed(
+                        return Err(capnp::Error::failed(
                             "Cannot specify both base64 and hex annotations on the same field"
                                 .into(),
                         ));
@@ -81,7 +81,7 @@ impl<'schema, 'prefix> EncodingOptions<'schema, 'prefix> {
                 }
                 json_capnp::hex::ID => {
                     if options.data_encoding != DataEncoding::Default {
-                        return Err(crate::Error::failed(
+                        return Err(capnp::Error::failed(
                             "Cannot specify both base64 and hex annotations on the same field"
                                 .into(),
                         ));
@@ -105,12 +105,12 @@ impl<'schema, 'prefix> EncodingOptions<'schema, 'prefix> {
         }
         if options.data_encoding != DataEncoding::Default {
             let mut element_type = field.get_type();
-            while let crate::introspect::TypeVariant::List(sub_element_type) = element_type.which()
+            while let capnp::introspect::TypeVariant::List(sub_element_type) = element_type.which()
             {
                 element_type = sub_element_type;
             }
-            if !matches!(element_type.which(), crate::introspect::TypeVariant::Data) {
-                return Err(crate::Error::failed(
+            if !matches!(element_type.which(), capnp::introspect::TypeVariant::Data) {
+                return Err(capnp::Error::failed(
                     "base64/hex annotation can only be applied to Data fields".into(),
                 ));
             }
@@ -126,8 +126,8 @@ pub mod encode {
 
     pub fn serialize_json_to<'reader, W>(
         writer: &mut W,
-        reader: impl Into<crate::dynamic_value::Reader<'reader>>,
-    ) -> crate::Result<()>
+        reader: impl Into<capnp::dynamic_value::Reader<'reader>>,
+    ) -> capnp::Result<()>
     where
         W: std::io::Write,
     {
@@ -143,40 +143,40 @@ pub mod encode {
 
     fn serialize_value_to<W>(
         writer: &mut W,
-        reader: crate::dynamic_value::Reader<'_>,
+        reader: capnp::dynamic_value::Reader<'_>,
         meta: &EncodingOptions<'_, '_>,
         first: &mut bool,
-    ) -> crate::Result<()>
+    ) -> capnp::Result<()>
     where
         W: std::io::Write,
     {
         match reader {
-            crate::dynamic_value::Reader::Void => write!(writer, "null").map_err(|e| e.into()),
-            crate::dynamic_value::Reader::Bool(value) => if value {
+            capnp::dynamic_value::Reader::Void => write!(writer, "null").map_err(|e| e.into()),
+            capnp::dynamic_value::Reader::Bool(value) => if value {
                 write!(writer, "true")
             } else {
                 write!(writer, "false")
             }
             .map_err(|e| e.into()),
-            crate::dynamic_value::Reader::Int8(value) => write_signed_number(writer, value as i64),
-            crate::dynamic_value::Reader::Int16(value) => write_signed_number(writer, value as i64),
-            crate::dynamic_value::Reader::Int32(value) => write_signed_number(writer, value as i64),
-            crate::dynamic_value::Reader::Int64(value) => write_signed_number(writer, value),
-            crate::dynamic_value::Reader::UInt8(value) => {
+            capnp::dynamic_value::Reader::Int8(value) => write_signed_number(writer, value as i64),
+            capnp::dynamic_value::Reader::Int16(value) => write_signed_number(writer, value as i64),
+            capnp::dynamic_value::Reader::Int32(value) => write_signed_number(writer, value as i64),
+            capnp::dynamic_value::Reader::Int64(value) => write_signed_number(writer, value),
+            capnp::dynamic_value::Reader::UInt8(value) => {
                 write_unsigned_number(writer, value as u64)
             }
-            crate::dynamic_value::Reader::UInt16(value) => {
+            capnp::dynamic_value::Reader::UInt16(value) => {
                 write_unsigned_number(writer, value as u64)
             }
-            crate::dynamic_value::Reader::UInt32(value) => {
+            capnp::dynamic_value::Reader::UInt32(value) => {
                 write_unsigned_number(writer, value as u64)
             }
-            crate::dynamic_value::Reader::UInt64(value) => write_unsigned_number(writer, value),
-            crate::dynamic_value::Reader::Float32(value) => {
+            capnp::dynamic_value::Reader::UInt64(value) => write_unsigned_number(writer, value),
+            capnp::dynamic_value::Reader::Float32(value) => {
                 write_float_number(writer, value as f64)
             }
-            crate::dynamic_value::Reader::Float64(value) => write_float_number(writer, value),
-            crate::dynamic_value::Reader::Enum(value) => {
+            capnp::dynamic_value::Reader::Float64(value) => write_float_number(writer, value),
+            capnp::dynamic_value::Reader::Enum(value) => {
                 if let Some(enumerant) = value.get_enumerant()? {
                     let value = enumerant
                         .get_annotations()?
@@ -185,7 +185,7 @@ pub mod encode {
                         .and_then(|a| {
                             a.get_value()
                                 .ok()
-                                .map(|v| v.downcast::<crate::text::Reader>().to_str())
+                                .map(|v| v.downcast::<capnp::text::Reader>().to_str())
                         })
                         .unwrap_or(enumerant.get_proto().get_name()?.to_str());
                     write_string(writer, value?)
@@ -193,34 +193,34 @@ pub mod encode {
                     write_unsigned_number(writer, value.get_value() as u64)
                 }
             }
-            crate::dynamic_value::Reader::Text(reader) => write_string(writer, reader.to_str()?),
-            crate::dynamic_value::Reader::Data(data) => {
+            capnp::dynamic_value::Reader::Text(reader) => write_string(writer, reader.to_str()?),
+            capnp::dynamic_value::Reader::Data(data) => {
                 write_data(writer, data, meta.data_encoding)
             }
-            crate::dynamic_value::Reader::Struct(reader) => {
+            capnp::dynamic_value::Reader::Struct(reader) => {
                 write_object(writer, reader, meta, first)
             }
-            crate::dynamic_value::Reader::List(reader) => write_array(writer, reader.iter(), meta),
-            crate::dynamic_value::Reader::AnyPointer(_) => Err(crate::Error::unimplemented(
+            capnp::dynamic_value::Reader::List(reader) => write_array(writer, reader.iter(), meta),
+            capnp::dynamic_value::Reader::AnyPointer(_) => Err(capnp::Error::unimplemented(
                 "AnyPointer cannot be represented in JSON".into(),
             )),
-            crate::dynamic_value::Reader::Capability(_) => Err(crate::Error::unimplemented(
+            capnp::dynamic_value::Reader::Capability(_) => Err(capnp::Error::unimplemented(
                 "Capability cannot be represented in JSON".into(),
             )),
         }
     }
 
-    // TODO: use crate::io::Write ?
-    fn write_unsigned_number<W: std::io::Write>(writer: &mut W, value: u64) -> crate::Result<()> {
+    // TODO: use capnp::io::Write ?
+    fn write_unsigned_number<W: std::io::Write>(writer: &mut W, value: u64) -> capnp::Result<()> {
         write!(writer, "{}", value)?;
         Ok(())
     }
-    fn write_signed_number<W: std::io::Write>(writer: &mut W, value: i64) -> crate::Result<()> {
+    fn write_signed_number<W: std::io::Write>(writer: &mut W, value: i64) -> capnp::Result<()> {
         write!(writer, "{}", value)?;
         Ok(())
     }
 
-    fn write_float_number<W: std::io::Write>(writer: &mut W, value: f64) -> crate::Result<()> {
+    fn write_float_number<W: std::io::Write>(writer: &mut W, value: f64) -> capnp::Result<()> {
         // From the C++ codec comments:
         // Inf, -inf and NaN are not allowed in the JSON spec. Storing into string.
 
@@ -238,7 +238,7 @@ pub mod encode {
         Ok(())
     }
 
-    fn write_string<W: std::io::Write>(writer: &mut W, value: &str) -> crate::Result<()> {
+    fn write_string<W: std::io::Write>(writer: &mut W, value: &str) -> capnp::Result<()> {
         write!(writer, "\"")?;
         for c in value.chars() {
             match c {
@@ -261,9 +261,9 @@ pub mod encode {
         writer: &mut W,
         items: I,
         meta: &EncodingOptions,
-    ) -> crate::Result<()>
+    ) -> capnp::Result<()>
     where
-        I: Iterator<Item = crate::Result<crate::dynamic_value::Reader<'reader>>>,
+        I: Iterator<Item = capnp::Result<capnp::dynamic_value::Reader<'reader>>>,
     {
         write!(writer, "[")?;
         let mut first = true;
@@ -280,10 +280,10 @@ pub mod encode {
 
     fn write_object<'reader, W: std::io::Write>(
         writer: &mut W,
-        reader: crate::dynamic_struct::Reader<'reader>,
+        reader: capnp::dynamic_struct::Reader<'reader>,
         meta: &EncodingOptions<'_, '_>,
         first: &mut bool,
-    ) -> crate::Result<()> {
+    ) -> capnp::Result<()> {
         let (flatten, field_prefix) = if let Some(flatten_options) = &meta.flatten {
             (
                 true,
@@ -395,9 +395,9 @@ pub mod encode {
 
     fn write_data<W: std::io::Write>(
         writer: &mut W,
-        data: crate::data::Reader<'_>,
+        data: capnp::data::Reader<'_>,
         encoding: DataEncoding,
-    ) -> crate::Result<()> {
+    ) -> capnp::Result<()> {
         match encoding {
             DataEncoding::Default => {
                 write!(writer, "[")?;
@@ -429,17 +429,17 @@ pub mod decode {
         Other(String),
     }
 
-    impl From<ParseError> for crate::Error {
+    impl From<ParseError> for capnp::Error {
         fn from(err: ParseError) -> Self {
             match err {
                 ParseError::UnexpectedEndOfInput => {
-                    crate::Error::failed("Unexpected end of input while parsing JSON".into())
+                    capnp::Error::failed("Unexpected end of input while parsing JSON".into())
                 }
                 ParseError::InvalidToken(c) => {
-                    crate::Error::failed(format!("Invalid token '{c}' while parsing JSON"))
+                    capnp::Error::failed(format!("Invalid token '{c}' while parsing JSON"))
                 }
                 // TODO: Use better values here?
-                ParseError::Other(msg) => crate::Error::failed(msg),
+                ParseError::Other(msg) => capnp::Error::failed(msg),
             }
         }
     }
@@ -494,14 +494,14 @@ pub mod decode {
         }
 
         /// Consume the current value
-        fn advance(&mut self) -> crate::Result<char> {
+        fn advance(&mut self) -> capnp::Result<char> {
             self.input_iter
                 .next()
                 .ok_or(ParseError::UnexpectedEndOfInput.into())
         }
 
         /// Consume the current value if it matches `c`, otherwise error
-        fn consume(&mut self, c: char) -> crate::Result<char> {
+        fn consume(&mut self, c: char) -> capnp::Result<char> {
             match self.advance()? {
                 p if p == c => Ok(p),
                 p => Err(ParseError::InvalidToken(p).into()),
@@ -509,7 +509,7 @@ pub mod decode {
         }
 
         /// Advance past any whitespace and consume the current value if it matches `c`, otherwise error
-        fn consume_next(&mut self, c: char) -> crate::Result<char> {
+        fn consume_next(&mut self, c: char) -> capnp::Result<char> {
             self.discard_whitespace();
             match self.advance()? {
                 p if p == c => Ok(p),
@@ -527,7 +527,7 @@ pub mod decode {
             }
         }
 
-        fn parse_value(&mut self) -> crate::Result<JsonValue> {
+        fn parse_value(&mut self) -> capnp::Result<JsonValue> {
             match self.peek_next() {
                 None => Err(ParseError::UnexpectedEndOfInput.into()),
                 Some('n') => {
@@ -602,7 +602,7 @@ pub mod decode {
             }
         }
 
-        fn parse_string(&mut self) -> crate::Result<String> {
+        fn parse_string(&mut self) -> capnp::Result<String> {
             self.consume_next('\"')?;
             let mut result = String::new();
             loop {
@@ -652,7 +652,7 @@ pub mod decode {
             }
         }
 
-        fn parse_number(&mut self) -> crate::Result<String> {
+        fn parse_number(&mut self) -> capnp::Result<String> {
             let mut num_str = String::new();
             if self.peek_next().is_some_and(|c| c == '-') {
                 num_str.push(self.advance()?);
@@ -679,7 +679,7 @@ pub mod decode {
         }
     }
 
-    pub fn parse(json: &str, builder: crate::dynamic_struct::Builder<'_>) -> crate::Result<()> {
+    pub fn parse(json: &str, builder: capnp::dynamic_struct::Builder<'_>) -> capnp::Result<()> {
         let mut parser = Parser::new(json.chars());
         let value = parser.parse_value()?;
         let meta = EncodingOptions {
@@ -690,7 +690,7 @@ pub mod decode {
             data_encoding: DataEncoding::Default,
         };
         let JsonValue::Object(mut value) = value else {
-            return Err(crate::Error::failed(
+            return Err(capnp::Error::failed(
                 "Top-level JSON value must be an object".into(),
             ));
         };
@@ -699,102 +699,102 @@ pub mod decode {
 
     fn decode_primitive<'json, 'meta>(
         field_value: &'json mut JsonValue,
-        field_type: &'meta crate::introspect::Type,
+        field_type: &'meta capnp::introspect::Type,
         field_meta: &'meta EncodingOptions,
-    ) -> crate::Result<crate::dynamic_value::Reader<'json>> {
+    ) -> capnp::Result<capnp::dynamic_value::Reader<'json>> {
         match field_type.which() {
-            crate::introspect::TypeVariant::Void => {
+            capnp::introspect::TypeVariant::Void => {
                 if !matches!(field_value, JsonValue::Null) {
-                    Err(crate::Error::failed(format!(
+                    Err(capnp::Error::failed(format!(
                         "Expected null for void field {}",
                         field_meta.name
                     )))
                 } else {
-                    Ok(crate::dynamic_value::Reader::Void)
+                    Ok(capnp::dynamic_value::Reader::Void)
                 }
             }
-            crate::introspect::TypeVariant::Bool => {
+            capnp::introspect::TypeVariant::Bool => {
                 let JsonValue::Boolean(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected boolean for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value).into())
             }
-            crate::introspect::TypeVariant::Int8 => {
+            capnp::introspect::TypeVariant::Int8 => {
                 let JsonValue::Number(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected number for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value as i8).into())
             }
-            crate::introspect::TypeVariant::Int16 => {
+            capnp::introspect::TypeVariant::Int16 => {
                 let JsonValue::Number(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected number for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value as i16).into())
             }
-            crate::introspect::TypeVariant::Int32 => {
+            capnp::introspect::TypeVariant::Int32 => {
                 let JsonValue::Number(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected number for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value as i32).into())
             }
-            crate::introspect::TypeVariant::Int64 => {
+            capnp::introspect::TypeVariant::Int64 => {
                 let JsonValue::Number(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected number for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value as i64).into())
             }
-            crate::introspect::TypeVariant::UInt8 => {
+            capnp::introspect::TypeVariant::UInt8 => {
                 let JsonValue::Number(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected number for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value as u8).into())
             }
-            crate::introspect::TypeVariant::UInt16 => {
+            capnp::introspect::TypeVariant::UInt16 => {
                 let JsonValue::Number(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected number for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value as u16).into())
             }
-            crate::introspect::TypeVariant::UInt32 => {
+            capnp::introspect::TypeVariant::UInt32 => {
                 let JsonValue::Number(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected number for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value as u32).into())
             }
-            crate::introspect::TypeVariant::UInt64 => {
+            capnp::introspect::TypeVariant::UInt64 => {
                 let JsonValue::Number(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected number for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value as u64).into())
             }
-            crate::introspect::TypeVariant::Float32 => {
+            capnp::introspect::TypeVariant::Float32 => {
                 let field_value = match field_value {
                     JsonValue::Number(field_value) => *field_value as f32,
                     JsonValue::String(field_value) => match field_value.as_str() {
@@ -802,14 +802,14 @@ pub mod decode {
                         "Infinity" => f32::INFINITY,
                         "-Infinity" => f32::NEG_INFINITY,
                         _ => {
-                            return Err(crate::Error::failed(format!(
+                            return Err(capnp::Error::failed(format!(
                                 "Expected number for field {}",
                                 field_meta.name
                             )));
                         }
                     },
                     _ => {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Expected number for field {}",
                             field_meta.name
                         )));
@@ -817,7 +817,7 @@ pub mod decode {
                 };
                 Ok(field_value.into())
             }
-            crate::introspect::TypeVariant::Float64 => {
+            capnp::introspect::TypeVariant::Float64 => {
                 let field_value = match field_value {
                     JsonValue::Number(field_value) => *field_value,
                     JsonValue::String(field_value) => match field_value.as_str() {
@@ -825,14 +825,14 @@ pub mod decode {
                         "Infinity" => f64::INFINITY,
                         "-Infinity" => f64::NEG_INFINITY,
                         _ => {
-                            return Err(crate::Error::failed(format!(
+                            return Err(capnp::Error::failed(format!(
                                 "Expected number for field {}",
                                 field_meta.name
                             )));
                         }
                     },
                     _ => {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Expected number for field {}",
                             field_meta.name
                         )));
@@ -840,18 +840,18 @@ pub mod decode {
                 };
                 Ok(field_value.into())
             }
-            crate::introspect::TypeVariant::Text => {
+            capnp::introspect::TypeVariant::Text => {
                 let JsonValue::String(field_value) = field_value else {
-                    return Err(crate::Error::failed(format!(
+                    return Err(capnp::Error::failed(format!(
                         "Expected string for field {}",
                         field_meta.name
                     )));
                 };
                 Ok((*field_value.as_str()).into())
             }
-            crate::introspect::TypeVariant::Enum(enum_schema) => match field_value {
+            capnp::introspect::TypeVariant::Enum(enum_schema) => match field_value {
                 JsonValue::String(field_value) => {
-                    let enum_schema = crate::schema::EnumSchema::new(enum_schema);
+                    let enum_schema = capnp::schema::EnumSchema::new(enum_schema);
                     let Some(enum_value) = enum_schema.get_enumerants()?.iter().find(|e| {
                         e.get_proto()
                             .get_name()
@@ -859,31 +859,31 @@ pub mod decode {
                             .and_then(|n| n.to_str().ok())
                             .is_some_and(|s| s == field_value)
                     }) else {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Invalid enum value '{}' for field {}",
                             field_value, field_meta.name
                         )));
                     };
 
-                    Ok(crate::dynamic_value::Reader::Enum(
-                        crate::dynamic_value::Enum::new(
+                    Ok(capnp::dynamic_value::Reader::Enum(
+                        capnp::dynamic_value::Enum::new(
                             enum_value.get_ordinal(),
                             enum_value.get_containing_enum(),
                         ),
                     ))
                 }
                 JsonValue::Number(enum_value) => {
-                    let enum_schema = crate::schema::EnumSchema::new(enum_schema);
-                    Ok(crate::dynamic_value::Reader::Enum(
-                        crate::dynamic_value::Enum::new(*enum_value as u16, enum_schema),
+                    let enum_schema = capnp::schema::EnumSchema::new(enum_schema);
+                    Ok(capnp::dynamic_value::Reader::Enum(
+                        capnp::dynamic_value::Enum::new(*enum_value as u16, enum_schema),
                     ))
                 }
-                _ => Err(crate::Error::failed(format!(
+                _ => Err(capnp::Error::failed(format!(
                     "Expected string or number for enum field {}",
                     field_meta.name
                 ))),
             },
-            crate::introspect::TypeVariant::Data => match field_meta.data_encoding {
+            capnp::introspect::TypeVariant::Data => match field_meta.data_encoding {
                 // The reason we have this ugly DataBuffer hack is to ensure that we
                 // can return a Reader from this function whose lifetime is tied to
                 // the field_value, as there is no other buffer we can use. We don't
@@ -891,7 +891,7 @@ pub mod decode {
                 // dance could probably be avoided.
                 DataEncoding::Default => {
                     let JsonValue::Array(data_value) = field_value else {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Expected array for data field {}",
                             field_meta.name
                         )));
@@ -899,7 +899,7 @@ pub mod decode {
                     let mut data = Vec::with_capacity(data_value.len());
                     for byte_value in data_value.drain(..) {
                         let JsonValue::Number(byte_value) = byte_value else {
-                            return Err(crate::Error::failed(format!(
+                            return Err(capnp::Error::failed(format!(
                                 "Expected number for data byte in field {}",
                                 field_meta.name
                             )));
@@ -907,39 +907,39 @@ pub mod decode {
                         data.push(byte_value as u8);
                     }
                     *field_value = JsonValue::DataBuffer(data);
-                    Ok(crate::dynamic_value::Reader::Data(match field_value {
+                    Ok(capnp::dynamic_value::Reader::Data(match field_value {
                         JsonValue::DataBuffer(ref data) => data.as_slice(),
                         _ => unreachable!(),
                     }))
                 }
                 DataEncoding::Base64 => {
                     let JsonValue::String(data_value) = field_value else {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Expected string for base64 data field {}",
                             field_meta.name
                         )));
                     };
                     *field_value = JsonValue::DataBuffer(base64::decode(data_value)?);
-                    Ok(crate::dynamic_value::Reader::Data(match field_value {
+                    Ok(capnp::dynamic_value::Reader::Data(match field_value {
                         JsonValue::DataBuffer(ref data) => data.as_slice(),
                         _ => unreachable!(),
                     }))
                 }
                 DataEncoding::Hex => {
                     let JsonValue::String(data_value) = field_value else {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Expected string for hex data field {}",
                             field_meta.name
                         )));
                     };
                     *field_value = JsonValue::DataBuffer(hex::decode(data_value)?);
-                    Ok(crate::dynamic_value::Reader::Data(match field_value {
+                    Ok(capnp::dynamic_value::Reader::Data(match field_value {
                         JsonValue::DataBuffer(ref data) => data.as_slice(),
                         _ => unreachable!(),
                     }))
                 }
             },
-            _ => Err(crate::Error::failed(format!(
+            _ => Err(capnp::Error::failed(format!(
                 "Unsupported primitive type for field {}",
                 field_meta.name
             ))),
@@ -948,14 +948,14 @@ pub mod decode {
 
     fn decode_list(
         mut field_values: Vec<JsonValue>,
-        mut list_builder: crate::dynamic_list::Builder,
+        mut list_builder: capnp::dynamic_list::Builder,
         field_meta: &EncodingOptions,
-    ) -> crate::Result<()> {
+    ) -> capnp::Result<()> {
         match list_builder.element_type().which() {
-            crate::introspect::TypeVariant::Struct(_sub_element_schema) => {
+            capnp::introspect::TypeVariant::Struct(_sub_element_schema) => {
                 for (i, item_value) in field_values.drain(..).enumerate() {
                     let JsonValue::Object(mut item_value) = item_value else {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Expected object for struct list field {}",
                             field_meta.name
                         )));
@@ -963,15 +963,15 @@ pub mod decode {
                     let struct_builder = list_builder
                         .reborrow()
                         .get(i as u32)?
-                        .downcast::<crate::dynamic_struct::Builder>();
+                        .downcast::<capnp::dynamic_struct::Builder>();
                     decode_struct(&mut item_value, struct_builder, field_meta)?;
                 }
                 Ok(())
             }
-            crate::introspect::TypeVariant::List(_sub_element_type) => {
+            capnp::introspect::TypeVariant::List(_sub_element_type) => {
                 for (i, item_value) in field_values.drain(..).enumerate() {
                     let JsonValue::Array(item_value) = item_value else {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Expected array for list field {}",
                             field_meta.name
                         )));
@@ -979,7 +979,7 @@ pub mod decode {
                     let sub_element_builder = list_builder
                         .reborrow()
                         .init(i as u32, item_value.len() as u32)?
-                        .downcast::<crate::dynamic_list::Builder>();
+                        .downcast::<capnp::dynamic_list::Builder>();
                     decode_list(item_value, sub_element_builder, field_meta)?;
                 }
                 Ok(())
@@ -1002,9 +1002,9 @@ pub mod decode {
 
     fn decode_struct(
         value: &mut HashMap<String, JsonValue>,
-        mut builder: crate::dynamic_struct::Builder<'_>,
+        mut builder: capnp::dynamic_struct::Builder<'_>,
         meta: &EncodingOptions,
-    ) -> crate::Result<()> {
+    ) -> capnp::Result<()> {
         let field_prefix = if let Some(flatten_options) = &meta.flatten {
             std::borrow::Cow::Owned(format!(
                 "{}{}",
@@ -1016,18 +1016,18 @@ pub mod decode {
         };
 
         fn decode_member(
-            mut builder: crate::dynamic_struct::Builder<'_>,
-            field: crate::schema::Field,
+            mut builder: capnp::dynamic_struct::Builder<'_>,
+            field: capnp::schema::Field,
             field_meta: &EncodingOptions,
             value: &mut HashMap<String, JsonValue>,
             value_name: &str,
-        ) -> crate::Result<()> {
+        ) -> capnp::Result<()> {
             match field.get_type().which() {
-                crate::introspect::TypeVariant::Struct(_struct_schema) => {
+                capnp::introspect::TypeVariant::Struct(_struct_schema) => {
                     let struct_builder = builder
                         .reborrow()
                         .init(field)?
-                        .downcast::<crate::dynamic_struct::Builder>();
+                        .downcast::<capnp::dynamic_struct::Builder>();
                     if field_meta.flatten.is_none() {
                         let field_value = match value.remove(value_name) {
                             Some(v) => v,
@@ -1035,7 +1035,7 @@ pub mod decode {
                         };
 
                         let JsonValue::Object(mut field_value) = field_value else {
-                            return Err(crate::Error::failed(format!(
+                            return Err(capnp::Error::failed(format!(
                                 "Expected object for field {}",
                                 field_meta.name
                             )));
@@ -1046,13 +1046,13 @@ pub mod decode {
                         decode_struct(value, struct_builder, field_meta)?;
                     }
                 }
-                crate::introspect::TypeVariant::List(_element_type) => {
+                capnp::introspect::TypeVariant::List(_element_type) => {
                     let Some(field_value) = value.remove(value_name) else {
                         return Ok(());
                     };
 
                     let JsonValue::Array(field_value) = field_value else {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Expected array for field {}",
                             field_meta.name
                         )));
@@ -1060,17 +1060,17 @@ pub mod decode {
                     let list_builder = builder
                         .reborrow()
                         .initn(field, field_value.len() as u32)?
-                        .downcast::<crate::dynamic_list::Builder>();
+                        .downcast::<capnp::dynamic_list::Builder>();
                     decode_list(field_value, list_builder, field_meta)?;
                 }
 
-                crate::introspect::TypeVariant::AnyPointer => {
-                    return Err(crate::Error::unimplemented(
+                capnp::introspect::TypeVariant::AnyPointer => {
+                    return Err(capnp::Error::unimplemented(
                         "AnyPointer cannot be represented in JSON".into(),
                     ))
                 }
-                crate::introspect::TypeVariant::Capability => {
-                    return Err(crate::Error::unimplemented(
+                capnp::introspect::TypeVariant::Capability => {
+                    return Err(capnp::Error::unimplemented(
                         "Capability cannot be represented in JSON".into(),
                     ))
                 }
@@ -1198,10 +1198,10 @@ mod base64 {
         encoded
     }
 
-    pub fn decode(data: &str) -> crate::Result<Vec<u8>> {
+    pub fn decode(data: &str) -> capnp::Result<Vec<u8>> {
         let bytes = data.as_bytes();
-        if bytes.len() % 4 != 0 {
-            return Err(crate::Error::failed(
+        if !bytes.len().is_multiple_of(4) {
+            return Err(capnp::Error::failed(
                 "Base64 string length must be a multiple of 4".into(),
             ));
         }
@@ -1222,7 +1222,7 @@ mod base64 {
                         padding += 1;
                     }
                     _ => {
-                        return Err(crate::Error::failed(format!(
+                        return Err(capnp::Error::failed(format!(
                             "Invalid base64 character: {}",
                             c as char
                         )));
@@ -1245,12 +1245,12 @@ mod base64 {
 // hex codec.
 mod hex {
     const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
-    fn hex_char_to_value(c: u8) -> crate::Result<u8> {
+    fn hex_char_to_value(c: u8) -> capnp::Result<u8> {
         match c {
             b'0'..=b'9' => Ok(c - b'0'),
             b'a'..=b'f' => Ok(c - b'a' + 10),
             b'A'..=b'F' => Ok(c - b'A' + 10),
-            _ => Err(crate::Error::failed(format!(
+            _ => Err(capnp::Error::failed(format!(
                 "Invalid hex character: {}",
                 c as char
             ))),
@@ -1268,9 +1268,9 @@ mod hex {
         encoded
     }
 
-    pub fn decode(data: &str) -> crate::Result<Vec<u8>> {
-        if data.len() % 2 != 0 {
-            return Err(crate::Error::failed(
+    pub fn decode(data: &str) -> capnp::Result<Vec<u8>> {
+        if !data.len().is_multiple_of(2) {
+            return Err(capnp::Error::failed(
                 "Hex string must have even length".into(),
             ));
         }

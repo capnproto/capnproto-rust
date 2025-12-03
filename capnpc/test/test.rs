@@ -24,7 +24,6 @@
 #![allow(clippy::bool_assert_comparison, clippy::approx_constant)]
 
 capnp::generated_code!(pub mod test_capnp);
-capnp::generated_code!(pub mod json_test_capnp);
 
 pub mod foo {
     pub mod bar {
@@ -59,9 +58,6 @@ mod test_util;
 
 #[cfg(test)]
 mod dynamic;
-
-#[cfg(test)]
-mod json;
 
 #[cfg(test)]
 mod tests {

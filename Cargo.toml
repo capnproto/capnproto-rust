@@ -11,6 +11,7 @@ members = [
     "capnpc",
     "capnp-futures",
     "capnp-rpc",
+    "capnp-json",
 
     # testing and examples
     "async-byte-channel",
@@ -30,6 +31,7 @@ members = [
     "example/addressbook",
     "example/addressbook_send",
     "example/fill_random_values",
+    "capnp-json/test",
 ]
 default-members = [
     "capnp",
