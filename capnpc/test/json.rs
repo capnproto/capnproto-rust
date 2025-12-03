@@ -589,10 +589,10 @@ fn test_decode_flattened() -> capnp::Result<()> {
 fn test_decode_base64_union() -> capnp::Result<()> {
     {
         let j = r#"
-        {
-          "foo":"3q2+7w=="
-        }
-      "#;
+          {
+            "foo":"3q2+7w=="
+          }
+        "#;
         let mut builder = capnp::message::Builder::new_default();
         let mut root =
             builder.init_root::<crate::json_test_capnp::test_base64_union::Builder<'_>>();
@@ -616,10 +616,10 @@ fn test_decode_base64_union() -> capnp::Result<()> {
 
     {
         let j = r#"
-        {
-          "bar":"To the bar!"
-        }
-      "#;
+          {
+            "bar":"To the bar!"
+          }
+        "#;
         let mut builder = capnp::message::Builder::new_default();
         let mut root =
             builder.init_root::<crate::json_test_capnp::test_base64_union::Builder<'_>>();
@@ -638,6 +638,91 @@ fn test_decode_base64_union() -> capnp::Result<()> {
                 _ => panic!("Expected Foo"),
             };
             assert_eq!("To the bar!", bar.to_str()?);
+        }
+    }
+
+    // When both variants are present, we pick the first one in the spec
+    {
+        let j = r#"
+          {
+            "bar":"To the bar!",
+            "foo":"3q2+7w=="
+          }
+        "#;
+        let mut builder = capnp::message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::test_base64_union::Builder<'_>>();
+        json::from_json(j, root.reborrow())?;
+
+        println!("{}", json::to_json(root.reborrow_as_reader())?);
+
+        let reader = root.into_reader();
+        assert!(matches!(
+            reader.which()?,
+            crate::json_test_capnp::test_base64_union::Foo(_)
+        ));
+        {
+            let foo = match reader.which()? {
+                crate::json_test_capnp::test_base64_union::Foo(f) => f,
+                _ => panic!("Expected Foo"),
+            }?;
+            assert_eq!(&[0xde, 0xad, 0xbe, 0xef], foo);
+        }
+    }
+
+    {
+        let j = r#"
+          {
+            "bar":"To the bar!",
+            "foo":"3q2+7w=="
+          }
+        "#;
+        let mut builder = capnp::message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::test_renamed_anon_union::Builder<'_>>();
+        json::from_json(j, root.reborrow())?;
+
+        println!("{}", json::to_json(root.reborrow_as_reader())?);
+
+        let reader = root.into_reader();
+        assert!(matches!(
+            reader.which()?,
+            crate::json_test_capnp::test_renamed_anon_union::Bar(_)
+        ));
+        {
+            let bar = match reader.which()? {
+                crate::json_test_capnp::test_renamed_anon_union::Bar(b) => b?,
+                _ => panic!("Expected Foo"),
+            };
+            assert_eq!("To the bar!", bar.to_str()?);
+        }
+    }
+
+    {
+        let j = r#"
+          {
+            "bar":"To the bar!",
+            "renamed-foo":"3q2+7w=="
+          }
+        "#;
+        let mut builder = capnp::message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::test_renamed_anon_union::Builder<'_>>();
+        json::from_json(j, root.reborrow())?;
+
+        println!("{}", json::to_json(root.reborrow_as_reader())?);
+
+        let reader = root.into_reader();
+        assert!(matches!(
+            reader.which()?,
+            crate::json_test_capnp::test_renamed_anon_union::Foo(_)
+        ));
+        {
+            let foo = match reader.which()? {
+                crate::json_test_capnp::test_renamed_anon_union::Foo(f) => f,
+                _ => panic!("Expected Foo"),
+            }?;
+            assert_eq!(&[0xde, 0xad, 0xbe, 0xef], foo);
         }
     }
     Ok(())
