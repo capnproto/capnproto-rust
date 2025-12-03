@@ -1,0 +1,20 @@
+[package]
+
+name = "capnp-json-test"
+version = "0.0.0"
+authors = [ "David Renshaw <dwrenshaw@sandstorm.io>", "Ben Jackson <puremourning@gmail.com>"  ]
+build = "build.rs"
+edition = "2021"
+
+[lib]
+name = "capnp_json_test"
+path = "json.rs"
+
+[build-dependencies]
+capnpc = { path = "../../capnpc" }
+
+[dependencies]
+capnp = { path = "../../capnp" }
+capnpc = { path = "../../capnpc" }
+capnp-json = { path = "../" }
+external-crate = { path = "../../capnpc/test/external-crate" }
