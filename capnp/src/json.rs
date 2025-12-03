@@ -1146,6 +1146,8 @@ pub mod decode {
                 } else {
                     field_meta.name
                 };
+                // TODO: factor out the following block (it's copypaste)
+                // The problem is we have continue and stuff in the block
                 match field.get_type().which() {
                     crate::introspect::TypeVariant::Struct(_struct_schema) => {
                         let struct_builder = builder

@@ -122,6 +122,13 @@ struct TestBase64Union {
   }
 }
 
+struct TestRenamedAnonUnion {
+  union {
+    foo @0 :Data $Json.base64 $Json.name("renamed-foo");
+    bar @1 :Text;
+  }
+}
+
 struct NestedHex {
   dataAllTheWayDown @0 : List(List(Data)) $Json.hex;
 }
