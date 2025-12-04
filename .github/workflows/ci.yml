@@ -151,7 +151,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly-2025-05-13
+          toolchain: nightly-2025-12-02
           components: clippy
       - uses: actions-rs-plus/clippy-check@v2
         with:
