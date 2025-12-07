@@ -481,7 +481,7 @@ mod tests {
 
         let reader = root.into_reader();
         assert_eq!((), reader.get_void_field());
-        assert_eq!(true, reader.get_bool_field());
+        assert!(reader.get_bool_field());
         assert_eq!(-8, reader.get_int8_field());
         assert_eq!(-16, reader.get_int16_field());
         assert_eq!(-32, reader.get_int32_field());
@@ -553,7 +553,7 @@ mod tests {
         assert_eq!("Some Field", reader.get_some_field()?.to_str()?);
         assert_eq!(1234, reader.get_a_group().get_flat_foo());
         assert_eq!("0xBaa", reader.get_a_group().get_flat_bar()?.to_str()?);
-        assert_eq!(true, reader.get_a_group().get_flat_baz().get_hello());
+        assert!(reader.get_a_group().get_flat_baz().get_hello());
         assert_eq!(
             "Qux",
             reader
@@ -562,7 +562,7 @@ mod tests {
                 .get_flat_qux()?
                 .to_str()?
         );
-        assert_eq!(true, reader.get_prefixed_group().get_baz().get_hello());
+        assert!(reader.get_prefixed_group().get_baz().get_hello());
         assert!(matches!(
             reader.get_a_union().which()?,
             crate::json_test_capnp::test_json_annotations::a_union::Bar(_)
