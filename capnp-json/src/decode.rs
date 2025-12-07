@@ -736,3 +736,44 @@ fn decode_struct(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_parse_string() -> capnp::Result<()> {
+        let json = r#""Hello, World!""#;
+
+        let mut parser = Parser::new(json.chars());
+        let value = parser.parse_value()?;
+
+        assert!(matches!(value, JsonValue::String(s) if s == "Hello, World!"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_string_with_special_chars() -> capnp::Result<()> {
+        let json = r#""Hełło,\nWorld!\"†ęś†: \u0007""#;
+
+        let mut parser = Parser::new(json.chars());
+        let value = parser.parse_value()?;
+
+        assert!(matches!(value, JsonValue::String(s) if s == "Hełło,\nWorld!\"†ęś†: \u{0007}"));
+
+        let json =
+            r#"{"value":"tab: \t, newline: \n, carriage return: \r, quote: \", backslash: \\"}"#;
+        let mut parser = Parser::new(json.chars());
+        let value = parser.parse_value()?;
+        let JsonValue::Object(map) = value else {
+            panic!("Expected object at top level");
+        };
+        let Some(JsonValue::String(s)) = map.get("value") else {
+            panic!("Expected string value for 'value' key");
+        };
+        assert_eq!(
+            s,
+            "tab: \t, newline: \n, carriage return: \r, quote: \", backslash: \\"
+        );
+        Ok(())
+    }
+}
