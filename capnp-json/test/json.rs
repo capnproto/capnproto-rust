@@ -722,4 +722,28 @@ mod tests {
         }
         Ok(())
     }
+
+    #[test]
+    fn test_decode_nested_data_list() -> capnp::Result<()> {
+        let json = r#"{"dataAllTheWayDown":[["deadbeef","efbeadde"],["badf00d0"]]}"#;
+        let mut builder = message::Builder::new_default();
+        let mut root = builder.init_root::<crate::json_test_capnp::nested_hex::Builder<'_>>();
+        json::from_json(json, root.reborrow())?;
+
+        let reader = root.into_reader();
+
+        {
+            let awd = reader.get_data_all_the_way_down()?;
+            let first = awd.get(0)?;
+            assert_eq!(2, first.len());
+            assert_eq!(&[0xde, 0xad, 0xbe, 0xef], first.get(0)?);
+            assert_eq!(&[0xef, 0xbe, 0xad, 0xde], first.get(1)?);
+            let second = awd.get(1)?;
+            assert_eq!(1, second.len());
+            assert_eq!(&[0xba, 0xdf, 0x00, 0xd0], second.get(0)?);
+        }
+
+        Ok(())
+    }
 }
+
