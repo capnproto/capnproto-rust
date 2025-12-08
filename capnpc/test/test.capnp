@@ -715,6 +715,8 @@ interface TestExtends extends(TestInterface) {
    qux @0 ();
    corge @1 TestBigStruct -> ();
    grault @2 () -> TestBigStruct;
+   bar @3 () -> ();
+   foo @4 (i :Text) -> (x : UInt32);
 }
 
 struct TestCapabilityList {
