@@ -78,11 +78,11 @@ where
 
 // TODO: use capnp::io::Write ?
 fn write_unsigned_number<W: std::io::Write>(writer: &mut W, value: u64) -> capnp::Result<()> {
-    write!(writer, "{}", value)?;
+    write!(writer, "{value}")?;
     Ok(())
 }
 fn write_signed_number<W: std::io::Write>(writer: &mut W, value: i64) -> capnp::Result<()> {
-    write!(writer, "{}", value)?;
+    write!(writer, "{value}")?;
     Ok(())
 }
 
@@ -91,7 +91,7 @@ fn write_float_number<W: std::io::Write>(writer: &mut W, value: f64) -> capnp::R
     // Inf, -inf and NaN are not allowed in the JSON spec. Storing into string.
 
     if value.is_finite() {
-        write!(writer, "{}", value)?;
+        write!(writer, "{value}")?;
     } else if value.is_nan() {
         write_string(writer, "NaN")?;
     } else if value.is_infinite() {
@@ -116,7 +116,7 @@ fn write_string<W: std::io::Write>(writer: &mut W, value: &str) -> capnp::Result
             '\u{08}' => write!(writer, "\\b")?,
             '\u{0C}' => write!(writer, "\\f")?,
             c if c.is_control() => write!(writer, "\\u{:04x}", c as u32)?,
-            c => write!(writer, "{}", c)?,
+            c => write!(writer, "{c}")?,
         }
     }
     write!(writer, "\"")?;
@@ -235,7 +235,7 @@ fn write_object<'reader, W: std::io::Write>(
 
                 write_string(
                     writer,
-                    format!("{}{}", field_prefix, discriminator_name).as_str(),
+                    format!("{field_prefix}{discriminator_name}").as_str(),
                 )?;
                 write!(writer, ":")?;
                 write_string(writer, active_union_member_meta.name)?;
@@ -245,7 +245,7 @@ fn write_object<'reader, W: std::io::Write>(
                     write!(writer, ",")?;
                 }
                 *first = false;
-                write_string(writer, format!("{}{}", field_prefix, value_name).as_str())?;
+                write_string(writer, format!("{field_prefix}{value_name}").as_str())?;
                 write!(writer, ":")?;
             }
             let field_value = reader.get(active_union_member)?;
@@ -272,7 +272,7 @@ fn write_data<W: std::io::Write>(
                     write!(writer, ",")?;
                 }
                 first = false;
-                write!(writer, "{}", byte)?;
+                write!(writer, "{byte}")?;
             }
             write!(writer, "]")?;
             Ok(())

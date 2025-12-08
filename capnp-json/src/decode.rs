@@ -137,7 +137,7 @@ where
                 let num_str = self.parse_number()?;
                 let num = num_str
                     .parse::<f64>()
-                    .map_err(|e| ParseError::Other(format!("Invalid number format: {}", e)))?;
+                    .map_err(|e| ParseError::Other(format!("Invalid number format: {e}")))?;
                 Ok(JsonValue::Number(num))
             }
             Some('[') => {
@@ -169,7 +169,7 @@ where
                     let value = self.parse_value()?;
                     if members.insert(key.clone(), value).is_some() {
                         return Err(
-                            ParseError::Other(format!("Duplicate key in object: {}", key)).into(),
+                            ParseError::Other(format!("Duplicate key in object: {key}")).into()
                         );
                     }
                 }
@@ -204,22 +204,20 @@ where
                                 hex.push(self.advance()?);
                             }
                             let code_point = u16::from_str_radix(&hex, 16).map_err(|_| {
-                                ParseError::Other(format!("Invalid unicode escape: \\u{}", hex))
+                                ParseError::Other(format!("Invalid unicode escape: \\u{hex}"))
                             })?;
                             if let Some(ch) = std::char::from_u32(code_point as u32) {
                                 result.push(ch);
                             } else {
                                 return Err(ParseError::Other(format!(
-                                    "Invalid unicode code point: \\u{}",
-                                    hex
+                                    "Invalid unicode code point: \\u{hex}"
                                 ))
                                 .into());
                             }
                         }
                         other => {
                             return Err(ParseError::Other(format!(
-                                "Invalid escape character: \\{}",
-                                other
+                                "Invalid escape character: \\{other}"
                             ))
                             .into());
                         }
@@ -693,7 +691,7 @@ fn decode_struct(
             } else {
                 meta.name
             };
-            let field_name = format!("{}{}", field_prefix, discriminator_name);
+            let field_name = format!("{field_prefix}{discriminator_name}");
             if let Some(JsonValue::String(discriminant)) = value.remove(&field_name) {
                 Some(discriminant)
             } else {
