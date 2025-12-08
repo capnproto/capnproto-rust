@@ -431,7 +431,7 @@ mod tests {
                 "int32Field": 0,
                 "int64Field": 0,
                 "uInt8Field": 0,
-                "uInt16Field"            
+                "uInt16Field"
                 : 0,
                 "uInt32Field": 0,
                 "uInt64Field": 0,
