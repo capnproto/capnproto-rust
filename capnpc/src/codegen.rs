@@ -2592,7 +2592,7 @@ fn generate_node(
                 if result_id != STREAM_RESULT_ID {
                     dispatch_arms.push(
                         Line(fmt!(ctx,
-                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::from_future(this.{}({capnp}::private::capability::internal_get_typed_params(params), {capnp}::private::capability::internal_get_typed_results(results))), false),",
+                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::from_future(<_T as Server{bracketed_params}>::{}(this, {capnp}::private::capability::internal_get_typed_params(params), {capnp}::private::capability::internal_get_typed_results(results))), false),",
                                   module_name(name))));
 
                     let result_node = &ctx.node_map[&result_id];
@@ -2647,7 +2647,7 @@ fn generate_node(
                     // It's a streaming method.
                     dispatch_arms.push(
                         Line(fmt!(ctx,
-                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::from_future(this.{}({capnp}::private::capability::internal_get_typed_params(params))), true),",
+                                  "{ordinal} => {capnp}::capability::DispatchCallResult::new({capnp}::capability::Promise::from_future(<_T as Server{bracketed_params}>::{}(this, {capnp}::private::capability::internal_get_typed_params(params))), true),",
 
                                   module_name(name))));
 
