@@ -20,6 +20,7 @@ capnp-json = { path = "../" }
 external-crate = { path = "../../capnpc/test/external-crate" }
 
 [lints.clippy]
-type_complexity = "allow"  # this should be removed in future
+type_complexity = "allow"
 extra_unused_type_parameters = "allow"
 match_single_binding = "allow"
+approx_constant = "allow"
