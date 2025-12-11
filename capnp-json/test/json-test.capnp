@@ -132,3 +132,15 @@ struct TestRenamedAnonUnion {
 struct NestedHex {
   dataAllTheWayDown @0 : List(List(Data)) $Json.hex;
 }
+
+struct UnnamedDiscriminator {
+  baz: union $Json.discriminator() {
+    foo @0 :Text;
+    bar @1 :UInt32;
+  }
+
+  sbaz: union $Json.discriminator() $Json.flatten() {
+    sfoo @2 :Text;
+    sbar @3 :UInt32;
+  }
+}
