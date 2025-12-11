@@ -309,7 +309,7 @@ mod tests {
         {
             let mut union_with_void = root.reborrow().init_union_with_void();
             union_with_void.set_void_value(());
-            expected.push_str(r#""unionWithVoid":{"type":"voidValue","voidValue":null},"#);
+            expected.push_str(r#""unionWithVoid":{"type":"voidValue"},"#);
         }
 
         expected.pop(); // Remove trailing comma
@@ -742,6 +742,30 @@ mod tests {
             assert_eq!(1, second.len());
             assert_eq!(&[0xba, 0xdf, 0x00, 0xd0], second.get(0)?);
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_decode_union_with_void() -> capnp::Result<()> {
+        let json = r#"
+        {
+          "unionWithVoid": {
+            "type": "voidValue"
+          }
+        }
+      "#;
+
+        let mut builder = capnp::message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::test_json_annotations::Builder<'_>>();
+        json::from_json(json, root.reborrow())?;
+
+        let reader = root.into_reader();
+        assert!(matches!(
+            reader.get_union_with_void().which()?,
+            crate::json_test_capnp::test_json_annotations::union_with_void::VoidValue(_)
+        ));
 
         Ok(())
     }

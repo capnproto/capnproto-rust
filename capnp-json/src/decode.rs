@@ -727,6 +727,16 @@ fn decode_struct(
             } else {
                 field_meta.name
             };
+            if matches!(
+                field.get_type().which(),
+                capnp::introspect::TypeVariant::Void
+            ) {
+                // Void union member; just set the discriminant
+                builder
+                    .reborrow()
+                    .set(field, capnp::dynamic_value::Reader::Void)?;
+                break;
+            }
             decode_member(builder.reborrow(), field, &field_meta, value, value_name)?;
             break;
         }
