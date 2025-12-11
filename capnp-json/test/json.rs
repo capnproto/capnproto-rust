@@ -769,4 +769,40 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_encode_decode_no_name_discriminator() -> capnp::Result<()> {
+        let mut builder = capnp::message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::unnamed_discriminator::Builder<'_>>();
+        root.reborrow().init_baz().set_bar(100);
+        root.reborrow().init_sbaz().set_sfoo("Hello");
+        let json = json::to_json(root.reborrow_as_reader())?;
+        assert_eq!(
+            r#"{"baz":{"baz":"bar","bar":100},"sbaz":"sfoo","sfoo":"Hello"}"#,
+            json
+        );
+
+        let mut builder = capnp::message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::unnamed_discriminator::Builder<'_>>();
+        json::from_json(&json, root.reborrow())?;
+        let reader = root.into_reader();
+        assert_eq!(
+            100,
+            match reader.get_baz().which()? {
+                crate::json_test_capnp::unnamed_discriminator::baz::Bar(b) => b,
+                _ => panic!("Expected Bar"),
+            },
+        );
+        assert_eq!(
+            "Hello",
+            match reader.get_sbaz().which()? {
+                crate::json_test_capnp::unnamed_discriminator::sbaz::Sfoo(s) => s?.to_str()?,
+                _ => panic!("Expected Sfoo"),
+            }
+        );
+
+        Ok(())
+    }
 }
