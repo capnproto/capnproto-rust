@@ -219,7 +219,9 @@ fn write_object<'reader, W: std::io::Write>(
             EncodingOptions::from_field(&field_prefix, &active_union_member)?;
         if reader.has(active_union_member)? {
             let mut value_name = active_union_member_meta.name;
+            let mut suppress_void = false;
             if let Some(discriminator) = discriminator {
+                suppress_void = true;
                 if !*first {
                     write!(writer, ",")?;
                 }
@@ -240,16 +242,18 @@ fn write_object<'reader, W: std::io::Write>(
                 write!(writer, ":")?;
                 write_string(writer, active_union_member_meta.name)?;
             }
-            if active_union_member_meta.flatten.is_none() {
-                if !*first {
-                    write!(writer, ",")?;
-                }
-                *first = false;
-                write_string(writer, format!("{field_prefix}{value_name}").as_str())?;
-                write!(writer, ":")?;
-            }
             let field_value = reader.get(active_union_member)?;
-            serialize_value_to(writer, field_value, &active_union_member_meta, first)?;
+            if !suppress_void || !matches!(field_value, capnp::dynamic_value::Reader::Void) {
+                if active_union_member_meta.flatten.is_none() {
+                    if !*first {
+                        write!(writer, ",")?;
+                    }
+                    *first = false;
+                    write_string(writer, format!("{field_prefix}{value_name}").as_str())?;
+                    write!(writer, ":")?;
+                }
+                serialize_value_to(writer, field_value, &active_union_member_meta, first)?;
+            }
         }
     }
     if !flatten {
