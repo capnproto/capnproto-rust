@@ -22,6 +22,8 @@
 capnp::generated_code!(pub mod test_capnp);
 capnp::generated_code!(pub mod json_test_capnp);
 
+mod cppcompat;
+
 #[cfg(test)]
 mod tests {
     use crate::json_test_capnp::test_json_annotations;

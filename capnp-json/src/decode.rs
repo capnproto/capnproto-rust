@@ -429,11 +429,22 @@ fn decode_primitive<'json, 'meta>(
             JsonValue::String(field_value) => {
                 let enum_schema = capnp::schema::EnumSchema::new(enum_schema);
                 let Some(enum_value) = enum_schema.get_enumerants()?.iter().find(|e| {
-                    e.get_proto()
-                        .get_name()
-                        .ok()
-                        .and_then(|n| n.to_str().ok())
-                        .is_some_and(|s| s == field_value)
+                    // FIXME: this is naive, enum values can be renamed using
+                    // $Json.name so we need to handle that
+
+                    let annotations = e.get_annotations().ok();
+                    let value = annotations
+                        .and_then(|anns| {
+                            anns.iter()
+                                .find(|a| a.get_id() == json_capnp::name::ID)
+                                .and_then(|a| {
+                                    a.get_value()
+                                        .ok()
+                                        .map(|v| v.downcast::<capnp::text::Reader>().to_str().ok())
+                                })
+                        })
+                        .unwrap_or(e.get_proto().get_name().ok().and_then(|n| n.to_str().ok()));
+                    value.is_some_and(|s| s == field_value)
                 }) else {
                     return Err(capnp::Error::failed(format!(
                         "Invalid enum value '{}' for field {}",
@@ -662,7 +673,7 @@ fn decode_struct(
     }
 
     for field in builder.get_schema().get_non_union_fields()? {
-        let field_meta = EncodingOptions::from_field(meta.prefix, &field)?;
+        let field_meta = EncodingOptions::from_field(&field_prefix, &field)?;
         let field_name = format!("{}{}", field_prefix, field_meta.name);
 
         decode_member(builder.reborrow(), field, &field_meta, value, &field_name)?;
