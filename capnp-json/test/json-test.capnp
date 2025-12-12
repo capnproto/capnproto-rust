@@ -144,3 +144,15 @@ struct UnnamedDiscriminator {
     sbar @3 :UInt32;
   }
 }
+
+struct NamedDiscriminator {
+  baz: union $Json.discriminator(name="baz_kind") {
+    foo @0 :Text;
+    bar @1 :UInt32;
+  }
+
+  sbaz: union $Json.discriminator(name="sbaz_kind") $Json.flatten() {
+    sfoo @2 :Text;
+    sbar @3 :UInt32;
+  }
+}
