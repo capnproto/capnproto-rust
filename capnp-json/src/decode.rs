@@ -709,6 +709,11 @@ fn decode_struct(
                 None
             }
         }
+        None => None,
+    };
+
+    let discriminant = match discriminant {
+        Some(discriminant) => Some(discriminant),
         None => {
             // find the first field that exists matching a union field?
             let mut discriminant = None;
@@ -723,6 +728,7 @@ fn decode_struct(
             discriminant
         }
     };
+
     if let Some(discriminant) = discriminant {
         for field in builder.get_schema().get_union_fields()? {
             let field_meta = EncodingOptions::from_field(meta.prefix, &field)?;
