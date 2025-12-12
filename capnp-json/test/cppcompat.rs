@@ -222,4 +222,143 @@ mod tests {
 
         check_test_message(msg.get_root::<test_json_annotations::Reader<'_>>()?)
     }
+
+    #[test]
+    fn roundtrip_unnamed_discriminator() -> capnp::Result<()> {
+        let mut builder = message::Builder::new_default();
+        let mut root =
+            builder.init_root::<crate::json_test_capnp::unnamed_discriminator::Builder>();
+        root.reborrow().init_baz().set_bar(100);
+        root.reborrow().init_sbaz().set_sfoo("Hello");
+
+        let rust_json = capnp_json::to_json(root.reborrow_as_reader())?;
+        eprintln!("Generated JSON: {}", rust_json);
+
+        let mut buf = vec![];
+        capnp::serialize::write_message(&mut buf, &builder)?;
+        let cpp_json = cpp_binary_to_json("./json-test.capnp", "UnnamedDiscriminator", &buf)?;
+        eprintln!("CPP generated JSON: {}", cpp_json);
+
+        let mut read_json_builder = message::Builder::new_default();
+        let mut read_json_root =
+            read_json_builder.init_root::<crate::json_test_capnp::unnamed_discriminator::Builder>();
+        capnp_json::from_json(&cpp_json, read_json_root.reborrow())?;
+        let read_json_root = read_json_root.into_reader();
+
+        assert_eq!(
+            100,
+            match read_json_root.get_baz().which()? {
+                crate::json_test_capnp::unnamed_discriminator::baz::Bar(bar) => bar,
+                _ => panic!("Expected Bar variant"),
+            },
+        );
+        assert_eq!(
+            "Hello",
+            match read_json_root.get_sbaz().which()? {
+                crate::json_test_capnp::unnamed_discriminator::sbaz::Sfoo(sfoo) =>
+                    sfoo?.to_str()?,
+                _ => panic!("Expected SFoo variant"),
+            },
+        );
+
+        let cpp_binary = cpp_json_to_binary(
+            "./json-test.capnp",
+            "UnnamedDiscriminator",
+            rust_json.as_bytes(),
+        )?;
+        let mut cpp_binary = cpp_binary.as_slice();
+
+        let read_binary = capnp::serialize::read_message_from_flat_slice(
+            &mut cpp_binary,
+            capnp::message::ReaderOptions::default(),
+        )?;
+        let read_binary_root =
+            read_binary.get_root::<crate::json_test_capnp::unnamed_discriminator::Reader<'_>>()?;
+
+        assert_eq!(
+            100,
+            match read_binary_root.get_baz().which()? {
+                crate::json_test_capnp::unnamed_discriminator::baz::Bar(bar) => bar,
+                _ => panic!("Expected Bar variant"),
+            },
+        );
+        assert_eq!(
+            "Hello",
+            match read_binary_root.get_sbaz().which()? {
+                crate::json_test_capnp::unnamed_discriminator::sbaz::Sfoo(sfoo) =>
+                    sfoo?.to_str()?,
+                _ => panic!("Expected SFoo variant"),
+            },
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn roundtrip_named_discriminator() -> capnp::Result<()> {
+        let mut builder = message::Builder::new_default();
+        let mut root = builder.init_root::<crate::json_test_capnp::named_discriminator::Builder>();
+        root.reborrow().init_baz().set_bar(100);
+        root.reborrow().init_sbaz().set_sfoo("Hello");
+
+        let rust_json = capnp_json::to_json(root.reborrow_as_reader())?;
+        eprintln!("Generated JSON: {}", rust_json);
+
+        let mut buf = vec![];
+        capnp::serialize::write_message(&mut buf, &builder)?;
+        let cpp_json = cpp_binary_to_json("./json-test.capnp", "UnnamedDiscriminator", &buf)?;
+        eprintln!("CPP generated JSON: {}", cpp_json);
+
+        let mut read_json_builder = message::Builder::new_default();
+        let mut read_json_root =
+            read_json_builder.init_root::<crate::json_test_capnp::named_discriminator::Builder>();
+        capnp_json::from_json(&cpp_json, read_json_root.reborrow())?;
+        let read_json_root = read_json_root.into_reader();
+
+        assert_eq!(
+            100,
+            match read_json_root.get_baz().which()? {
+                crate::json_test_capnp::named_discriminator::baz::Bar(bar) => bar,
+                _ => panic!("Expected Bar variant"),
+            },
+        );
+        assert_eq!(
+            "Hello",
+            match read_json_root.get_sbaz().which()? {
+                crate::json_test_capnp::named_discriminator::sbaz::Sfoo(sfoo) => sfoo?.to_str()?,
+                _ => panic!("Expected SFoo variant"),
+            },
+        );
+
+        let cpp_binary = cpp_json_to_binary(
+            "./json-test.capnp",
+            "UnnamedDiscriminator",
+            rust_json.as_bytes(),
+        )?;
+        let mut cpp_binary = cpp_binary.as_slice();
+
+        let read_binary = capnp::serialize::read_message_from_flat_slice(
+            &mut cpp_binary,
+            capnp::message::ReaderOptions::default(),
+        )?;
+        let read_binary_root =
+            read_binary.get_root::<crate::json_test_capnp::named_discriminator::Reader<'_>>()?;
+
+        assert_eq!(
+            100,
+            match read_binary_root.get_baz().which()? {
+                crate::json_test_capnp::named_discriminator::baz::Bar(bar) => bar,
+                _ => panic!("Expected Bar variant"),
+            },
+        );
+        assert_eq!(
+            "Hello",
+            match read_binary_root.get_sbaz().which()? {
+                crate::json_test_capnp::named_discriminator::sbaz::Sfoo(sfoo) => sfoo?.to_str()?,
+                _ => panic!("Expected SFoo variant"),
+            },
+        );
+
+        Ok(())
+    }
 }
