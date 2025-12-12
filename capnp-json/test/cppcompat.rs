@@ -31,9 +31,9 @@ mod tests {
         Ok(output.stdout)
     }
 
-    #[test]
-    fn read_json_from_cpp_encoder() -> capnp::Result<()> {
-        let mut builder = message::Builder::new_default();
+    fn make_test_message<A: capnp::message::Allocator>(
+        builder: &mut message::Builder<A>,
+    ) -> capnp::Result<test_json_annotations::Builder<'_>> {
         let mut root: test_json_annotations::Builder<'_> = builder.init_root();
 
         root.set_some_field("Some Field");
@@ -93,16 +93,10 @@ mod tests {
             union_with_void.set_void_value(());
         }
 
-        let mut buf = vec![];
-        capnp::serialize::write_message(&mut buf, &builder)?;
-        let cpp_json = cpp_binary_to_json("./json-test.capnp", "TestJsonAnnotations", &buf)?;
+        Ok(root)
+    }
 
-        let mut buidler = message::Builder::new_default();
-        let mut root = buidler.init_root::<test_json_annotations::Builder<'_>>();
-        eprintln!("CPP generated JSON: {}", cpp_json);
-        capnp_json::from_json(&cpp_json, root.reborrow())?;
-
-        let reader = root.into_reader();
+    fn check_test_message(reader: test_json_annotations::Reader<'_>) -> capnp::Result<()> {
         assert_eq!(reader.get_some_field()?, "Some Field");
 
         {
@@ -196,67 +190,25 @@ mod tests {
     }
 
     #[test]
+    fn read_json_from_cpp_encoder() -> capnp::Result<()> {
+        let mut builder = message::Builder::new_default();
+        make_test_message(&mut builder)?;
+        let mut buf = vec![];
+        capnp::serialize::write_message(&mut buf, &builder)?;
+        let cpp_json = cpp_binary_to_json("./json-test.capnp", "TestJsonAnnotations", &buf)?;
+
+        let mut buidler = message::Builder::new_default();
+        let mut root = buidler.init_root::<test_json_annotations::Builder<'_>>();
+        eprintln!("CPP generated JSON: {}", cpp_json);
+        capnp_json::from_json(&cpp_json, root.reborrow())?;
+
+        check_test_message(root.into_reader())
+    }
+
+    #[test]
     fn write_json_to_cpp() -> capnp::Result<()> {
         let mut builder = message::Builder::new_default();
-        let mut root: test_json_annotations::Builder<'_> = builder.init_root();
-
-        root.set_some_field("Some Field");
-        {
-            let mut a_group = root.reborrow().init_a_group();
-            // a_group is flattenned
-            a_group.set_flat_foo(0xF00);
-            a_group.set_flat_bar("0xBaa");
-            a_group.reborrow().init_flat_baz().set_hello(true);
-            a_group.reborrow().init_double_flat().set_flat_qux("Qux");
-        }
-
-        {
-            let mut prefixed_group = root.reborrow().init_prefixed_group();
-            prefixed_group.set_foo("Foo");
-            prefixed_group.set_bar(0xBAA);
-            prefixed_group.reborrow().init_baz().set_hello(false);
-            prefixed_group.reborrow().init_more_prefix().set_qux("Qux");
-        }
-
-        {
-            let mut a_union_bar = root.reborrow().init_a_union().init_bar();
-            a_union_bar.set_bar_member(0xAAB);
-            a_union_bar.set_multi_member("Member");
-        }
-
-        {
-            let mut dependency = root.reborrow().init_dependency();
-            dependency.set_foo("dep-foo");
-        }
-
-        {
-            let mut simple_group = root.reborrow().init_simple_group();
-            simple_group.set_grault("grault");
-        }
-
-        {
-            let mut e = root.reborrow().init_enums(4);
-            e.set(0, crate::json_test_capnp::TestJsonAnnotatedEnum::Foo);
-            e.set(1, crate::json_test_capnp::TestJsonAnnotatedEnum::Bar);
-            e.set(2, crate::json_test_capnp::TestJsonAnnotatedEnum::Baz);
-            e.set(3, crate::json_test_capnp::TestJsonAnnotatedEnum::Qux);
-        }
-
-        {
-            let mut b_union = root.reborrow().init_b_union();
-            b_union.set_bar(100);
-        }
-
-        {
-            let mut external_union = root.reborrow().init_external_union();
-            external_union.reborrow().init_bar().set_value("Value");
-        }
-
-        {
-            let mut union_with_void = root.reborrow().init_union_with_void();
-            union_with_void.set_void_value(());
-        }
-
+        let root = make_test_message(&mut builder)?;
         let json = capnp_json::to_json(root.into_reader())?;
         eprintln!("Generated JSON: {}", json);
         let cpp_binary =
@@ -268,96 +220,6 @@ mod tests {
             capnp::message::ReaderOptions::default(),
         )?;
 
-        let reader = msg.get_root::<test_json_annotations::Reader<'_>>()?;
-        assert_eq!(reader.get_some_field()?, "Some Field");
-
-        {
-            let a_group = reader.get_a_group();
-            assert_eq!(a_group.get_flat_foo(), 0xF00);
-            assert_eq!(a_group.get_flat_bar()?, "0xBaa");
-            assert!(a_group.get_flat_baz().get_hello());
-            assert_eq!(a_group.get_double_flat().get_flat_qux()?, "Qux");
-        }
-
-        {
-            let prefixed_group = reader.get_prefixed_group();
-            assert_eq!(prefixed_group.get_foo()?, "Foo");
-            assert_eq!(prefixed_group.get_bar(), 0xBAA);
-            assert!(!prefixed_group.get_baz().get_hello());
-            assert_eq!(prefixed_group.get_more_prefix().get_qux()?, "Qux");
-        }
-
-        {
-            let a_union = reader.get_a_union();
-            match a_union.which()? {
-                crate::json_test_capnp::test_json_annotations::a_union::Bar(bar) => {
-                    assert_eq!(bar.get_bar_member(), 0xAAB);
-                    assert_eq!(bar.get_multi_member()?, "Member");
-                }
-                _ => panic!("Expected Bar variant"),
-            }
-        }
-
-        {
-            let dependency = reader.get_dependency()?;
-            assert_eq!(dependency.get_foo()?, "dep-foo");
-        }
-
-        {
-            let simple_group = reader.get_simple_group();
-            assert_eq!(simple_group.get_grault()?, "grault");
-        }
-
-        {
-            let enums = reader.get_enums()?;
-            assert_eq!(enums.len(), 4);
-            assert_eq!(
-                enums.get(0)?,
-                crate::json_test_capnp::TestJsonAnnotatedEnum::Foo
-            );
-            assert_eq!(
-                enums.get(1)?,
-                crate::json_test_capnp::TestJsonAnnotatedEnum::Bar
-            );
-            assert_eq!(
-                enums.get(2)?,
-                crate::json_test_capnp::TestJsonAnnotatedEnum::Baz
-            );
-            assert_eq!(
-                enums.get(3)?,
-                crate::json_test_capnp::TestJsonAnnotatedEnum::Qux
-            );
-        }
-
-        {
-            let b_union = reader.get_b_union();
-            match b_union.which()? {
-                crate::json_test_capnp::test_json_annotations::b_union::Bar(value) => {
-                    assert_eq!(value, 100);
-                }
-                _ => panic!("Expected Bar variant"),
-            }
-        }
-
-        {
-            let external_union = reader.get_external_union()?;
-            match external_union.which()? {
-                crate::json_test_capnp::test_json_annotations3::Bar(bar) => {
-                    assert_eq!(bar?.get_value()?, "Value");
-                }
-                _ => panic!("Expected Bar variant"),
-            }
-        }
-
-        {
-            let union_with_void = reader.get_union_with_void();
-            match union_with_void.which()? {
-                crate::json_test_capnp::test_json_annotations::union_with_void::VoidValue(()) => {
-                    // ok
-                }
-                _ => panic!("Expected VoidValue variant"),
-            }
-        }
-        Ok(())
+        check_test_message(msg.get_root::<test_json_annotations::Reader<'_>>()?)
     }
 }
