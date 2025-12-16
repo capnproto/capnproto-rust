@@ -221,26 +221,35 @@ fn write_object<'reader, W: std::io::Write>(
             let mut value_name = active_union_member_meta.name;
             let mut suppress_void = false;
             if let Some(discriminator) = discriminator {
-                suppress_void = true;
-                if !*first {
-                    write!(writer, ",")?;
-                }
-                *first = false;
                 let discriminator_name = if discriminator.has_name() {
-                    discriminator.get_name()?.to_str()?
+                    Some(discriminator.get_name()?.to_str()?)
+                } else if flatten {
+                    Some(meta.name)
                 } else {
-                    meta.name
+                    // https://github.com/capnproto/capnproto/issues/2461
+                    // The discriminator is not output even if the annoyation is
+                    // present if:
+                    //  - it doesn't have an explicit name, and
+                    //  - the group is _not_ being flattened.
+                    None
                 };
                 if discriminator.has_value_name() {
                     value_name = discriminator.get_value_name()?.to_str()?;
                 }
 
-                write_string(
-                    writer,
-                    format!("{field_prefix}{discriminator_name}").as_str(),
-                )?;
-                write!(writer, ":")?;
-                write_string(writer, active_union_member_meta.name)?;
+                if let Some(discriminator_name) = discriminator_name {
+                    if !*first {
+                        write!(writer, ",")?;
+                    }
+                    *first = false;
+                    suppress_void = true;
+                    write_string(
+                        writer,
+                        format!("{field_prefix}{discriminator_name}").as_str(),
+                    )?;
+                    write!(writer, ":")?;
+                    write_string(writer, active_union_member_meta.name)?;
+                }
             }
             let field_value = reader.get(active_union_member)?;
             if !suppress_void || !matches!(field_value, capnp::dynamic_value::Reader::Void) {

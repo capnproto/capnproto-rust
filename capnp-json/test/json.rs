@@ -780,10 +780,7 @@ mod tests {
         root.reborrow().init_baz().set_bar(100);
         root.reborrow().init_sbaz().set_sfoo("Hello");
         let json = json::to_json(root.reborrow_as_reader())?;
-        assert_eq!(
-            r#"{"baz":{"baz":"bar","bar":100},"sbaz":"sfoo","sfoo":"Hello"}"#,
-            json
-        );
+        assert_eq!(r#"{"baz":{"bar":100},"sbaz":"sfoo","sfoo":"Hello"}"#, json);
 
         let mut builder = capnp::message::Builder::new_default();
         let mut root =
