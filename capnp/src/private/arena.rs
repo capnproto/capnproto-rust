@@ -157,7 +157,7 @@ where
         let mut result = 0;
         for ii in 0..self.segments.len() {
             if let Some(seg) = self.segments.get_segment(ii as u32) {
-                result += seg.len();
+                result += seg.len() / BYTES_PER_WORD;
             }
         }
         result
