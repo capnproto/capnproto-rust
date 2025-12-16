@@ -1,3 +1,6 @@
+## v0.23.1
+- Fix `ReaderArenaImpl::size_in_words()`, which had been returning the size in bytes.
+
 ## v0.23.0
 - Update `capability::FromServer` trait for new `async fn` method signatures.
 
