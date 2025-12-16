@@ -232,12 +232,13 @@ mod tests {
         root.reborrow().init_sbaz().set_sfoo("Hello");
 
         let rust_json = capnp_json::to_json(root.reborrow_as_reader())?;
-        eprintln!("Generated JSON: {}", rust_json);
+        eprintln!("unnamed_discriminator Generated JSON: {}", rust_json);
 
         let mut buf = vec![];
         capnp::serialize::write_message(&mut buf, &builder)?;
+
         let cpp_json = cpp_binary_to_json("./json-test.capnp", "UnnamedDiscriminator", &buf)?;
-        eprintln!("CPP generated JSON: {}", cpp_json);
+        eprintln!("unnamed_discriminator CPP generated JSON: {}", cpp_json);
 
         let mut read_json_builder = message::Builder::new_default();
         let mut read_json_root =
@@ -302,12 +303,13 @@ mod tests {
         root.reborrow().init_sbaz().set_sfoo("Hello");
 
         let rust_json = capnp_json::to_json(root.reborrow_as_reader())?;
-        eprintln!("Generated JSON: {}", rust_json);
+        eprintln!("named_discriminator Generated JSON: {}", rust_json);
 
         let mut buf = vec![];
         capnp::serialize::write_message(&mut buf, &builder)?;
-        let cpp_json = cpp_binary_to_json("./json-test.capnp", "UnnamedDiscriminator", &buf)?;
-        eprintln!("CPP generated JSON: {}", cpp_json);
+
+        let cpp_json = cpp_binary_to_json("./json-test.capnp", "NamedDiscriminator", &buf)?;
+        eprintln!("named_discriminator CPP generated JSON: {}", cpp_json);
 
         let mut read_json_builder = message::Builder::new_default();
         let mut read_json_root =
@@ -332,7 +334,7 @@ mod tests {
 
         let cpp_binary = cpp_json_to_binary(
             "./json-test.capnp",
-            "UnnamedDiscriminator",
+            "NamedDiscriminator",
             rust_json.as_bytes(),
         )?;
         let mut cpp_binary = cpp_binary.as_slice();
