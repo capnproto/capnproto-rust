@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use capnp::any_pointer;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp, ResultsHook};
@@ -26,8 +28,8 @@ use capnp::Error;
 
 use futures::{Future, FutureExt, TryFutureExt};
 
-use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+use alloc::rc::{Rc, Weak};
+use core::cell::RefCell;
 
 use crate::attach::Attach;
 use crate::sender_queue::SenderQueue;

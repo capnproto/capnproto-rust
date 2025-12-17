@@ -178,7 +178,7 @@ where
     }
 }
 
-impl<A> AsOutputSegments for ::std::rc::Rc<message::Builder<A>>
+impl<A> AsOutputSegments for ::alloc::rc::Rc<message::Builder<A>>
 where
     A: message::Allocator,
 {
@@ -187,7 +187,7 @@ where
     }
 }
 
-impl<A> AsOutputSegments for ::std::sync::Arc<message::Builder<A>>
+impl<A> AsOutputSegments for ::alloc::sync::Arc<message::Builder<A>>
 where
     A: message::Allocator,
 {
@@ -238,7 +238,7 @@ where
                 buf[(idx - 1) * 4..idx * 4]
                     .copy_from_slice(&((segments[idx].len() / 8) as u32).to_le_bytes());
             }
-            if segment_count % 2 == 0 {
+            if segment_count.is_multiple_of(2) {
                 for idx in (buf.len() - 4)..(buf.len()) {
                     buf[idx] = 0
                 }

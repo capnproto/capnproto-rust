@@ -18,9 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use core::pin::Pin;
+use core::task::{Context, Poll};
 use futures::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
 pub struct AttachFuture<F, T>
 where

@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::future::Future;
+use core::future::Future;
 
 use futures_channel::oneshot;
 use futures_util::{AsyncWrite, AsyncWriteExt, StreamExt, TryFutureExt};
@@ -41,7 +41,7 @@ where
     M: AsOutputSegments,
 {
     sender: futures_channel::mpsc::UnboundedSender<Item<M>>,
-    in_flight: std::sync::Arc<std::sync::atomic::AtomicI32>,
+    in_flight: alloc::sync::Arc<core::sync::atomic::AtomicI32>,
 }
 
 impl<M> Clone for Sender<M>
@@ -69,7 +69,7 @@ where
 {
     let (tx, mut rx) = futures_channel::mpsc::unbounded::<Item<M>>();
 
-    let in_flight = std::sync::Arc::new(std::sync::atomic::AtomicI32::new(0));
+    let in_flight = alloc::sync::Arc::new(core::sync::atomic::AtomicI32::new(0));
 
     let sender = Sender {
         sender: tx,
@@ -81,7 +81,7 @@ where
             match item {
                 Item::Message(m, returner) => {
                     let result = crate::serialize::write_message(&mut writer, &m).await;
-                    in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                    in_flight.fetch_sub(1, core::sync::atomic::Ordering::SeqCst);
                     result?;
                     writer.flush().await?;
                     let _ = returner.send(m);
@@ -123,7 +123,7 @@ where
     /// has completed. Dropping the returned future does *not* cancel the write.
     pub fn send(&mut self, message: M) -> impl Future<Output = Result<M, Error>> + Unpin {
         self.in_flight
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            .fetch_add(1, core::sync::atomic::Ordering::SeqCst);
         let (complete, oneshot) = oneshot::channel();
 
         let _ = self.sender.unbounded_send(Item::Message(message, complete));
@@ -133,7 +133,7 @@ where
 
     /// Returns the number of messages queued to be written.
     pub fn len(&self) -> usize {
-        let result = self.in_flight.load(std::sync::atomic::Ordering::SeqCst);
+        let result = self.in_flight.load(core::sync::atomic::Ordering::SeqCst);
         assert!(result >= 0);
         result as usize
     }

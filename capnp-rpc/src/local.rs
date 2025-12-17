@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use alloc::boxed::Box;
+use alloc::{vec, vec::Vec};
 use capnp::capability::{self, Promise};
 use capnp::private::capability::{
     ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResponseHook, ResultsHook,
@@ -29,8 +31,8 @@ use capnp::{any_pointer, message};
 use futures::channel::oneshot;
 use futures::TryFutureExt;
 
-use std::cell::RefCell;
-use std::rc::Rc;
+use alloc::rc::Rc;
+use core::cell::RefCell;
 
 pub trait ResultsDoneHook {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook>;
@@ -107,7 +109,7 @@ impl Drop for Results {
         if let (Some(message), Some(fulfiller)) =
             (self.message.take(), self.results_done_fulfiller.take())
         {
-            let cap_table = ::std::mem::take(&mut self.cap_table);
+            let cap_table = ::core::mem::take(&mut self.cap_table);
             let _ = fulfiller.send(Box::new(ResultsDone::new(message, cap_table)));
         } else {
             unreachable!()
