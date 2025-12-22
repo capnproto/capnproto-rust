@@ -43,6 +43,13 @@ impl<T> Reader<T>
 where
     T: Owned,
 {
+    pub const unsafe fn new(words: &'static [crate::Word]) -> Self {
+        Self {
+            phantom: PhantomData,
+            words,
+        }
+    }
+
     /// Retrieve the value.
     pub fn get(&self) -> Result<<T as Owned>::Reader<'static>> {
         any_pointer::Reader::new(unsafe {
