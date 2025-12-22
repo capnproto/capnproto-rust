@@ -1,3 +1,6 @@
+## v0.23.2
+- Add `#![allow(clippy::all)]` in `capnp::generated_code()`.
+
 ## v0.23.1
 - Fix `ReaderArenaImpl::size_in_words()`, which had been returning the size in bytes.
 
