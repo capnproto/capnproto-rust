@@ -55,11 +55,15 @@ pub mod message {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -313,11 +317,15 @@ pub mod message {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -1160,11 +1168,15 @@ pub mod bootstrap {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -1248,11 +1260,15 @@ pub mod bootstrap {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -1478,11 +1494,15 @@ pub mod call {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -1604,11 +1624,15 @@ pub mod call {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -2044,13 +2068,15 @@ pub mod call {
             fn from(reader: Reader<'a>) -> Self {
                 Self::Struct(::capnp::dynamic_struct::Reader::new(
                     reader.reader,
-                    ::capnp::schema::StructSchema::new(
-                        ::capnp::introspect::RawBrandedStructSchema {
-                            generic: &_private::RAW_SCHEMA,
-                            field_types: _private::get_field_types,
-                            annotation_types: _private::get_annotation_types,
-                        },
-                    ),
+                    unsafe {
+                        ::capnp::schema::StructSchema::new(
+                            ::capnp::introspect::RawBrandedStructSchema {
+                                generic: &_private::RAW_SCHEMA,
+                                field_types: _private::get_field_types,
+                                annotation_types: _private::get_annotation_types,
+                            },
+                        )
+                    },
                 ))
             }
         }
@@ -2140,13 +2166,15 @@ pub mod call {
             fn from(builder: Builder<'a>) -> Self {
                 Self::Struct(::capnp::dynamic_struct::Builder::new(
                     builder.builder,
-                    ::capnp::schema::StructSchema::new(
-                        ::capnp::introspect::RawBrandedStructSchema {
-                            generic: &_private::RAW_SCHEMA,
-                            field_types: _private::get_field_types,
-                            annotation_types: _private::get_annotation_types,
-                        },
-                    ),
+                    unsafe {
+                        ::capnp::schema::StructSchema::new(
+                            ::capnp::introspect::RawBrandedStructSchema {
+                                generic: &_private::RAW_SCHEMA,
+                                field_types: _private::get_field_types,
+                                annotation_types: _private::get_annotation_types,
+                            },
+                        )
+                    },
                 ))
             }
         }
@@ -2414,11 +2442,15 @@ pub mod return_ {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -2549,11 +2581,15 @@ pub mod return_ {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -3017,11 +3053,15 @@ pub mod finish {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -3105,11 +3145,15 @@ pub mod finish {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -3355,11 +3399,15 @@ pub mod resolve {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -3467,11 +3515,15 @@ pub mod resolve {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -3772,11 +3824,15 @@ pub mod release {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -3856,11 +3912,15 @@ pub mod release {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -4074,11 +4134,15 @@ pub mod disembargo {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -4165,11 +4229,15 @@ pub mod disembargo {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -4405,13 +4473,15 @@ pub mod disembargo {
             fn from(reader: Reader<'a>) -> Self {
                 Self::Struct(::capnp::dynamic_struct::Reader::new(
                     reader.reader,
-                    ::capnp::schema::StructSchema::new(
-                        ::capnp::introspect::RawBrandedStructSchema {
-                            generic: &_private::RAW_SCHEMA,
-                            field_types: _private::get_field_types,
-                            annotation_types: _private::get_annotation_types,
-                        },
-                    ),
+                    unsafe {
+                        ::capnp::schema::StructSchema::new(
+                            ::capnp::introspect::RawBrandedStructSchema {
+                                generic: &_private::RAW_SCHEMA,
+                                field_types: _private::get_field_types,
+                                annotation_types: _private::get_annotation_types,
+                            },
+                        )
+                    },
                 ))
             }
         }
@@ -4497,13 +4567,15 @@ pub mod disembargo {
             fn from(builder: Builder<'a>) -> Self {
                 Self::Struct(::capnp::dynamic_struct::Builder::new(
                     builder.builder,
-                    ::capnp::schema::StructSchema::new(
-                        ::capnp::introspect::RawBrandedStructSchema {
-                            generic: &_private::RAW_SCHEMA,
-                            field_types: _private::get_field_types,
-                            annotation_types: _private::get_annotation_types,
-                        },
-                    ),
+                    unsafe {
+                        ::capnp::schema::StructSchema::new(
+                            ::capnp::introspect::RawBrandedStructSchema {
+                                generic: &_private::RAW_SCHEMA,
+                                field_types: _private::get_field_types,
+                                annotation_types: _private::get_annotation_types,
+                            },
+                        )
+                    },
                 ))
             }
         }
@@ -4780,11 +4852,15 @@ pub mod provide {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -4879,11 +4955,15 @@ pub mod provide {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -5153,11 +5233,15 @@ pub mod accept {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -5245,11 +5329,15 @@ pub mod accept {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -5498,11 +5586,15 @@ pub mod join {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -5597,11 +5689,15 @@ pub mod join {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -5871,11 +5967,15 @@ pub mod message_target {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -5967,11 +6067,15 @@ pub mod message_target {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -6220,11 +6324,15 @@ pub mod payload {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -6319,11 +6427,15 @@ pub mod payload {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -6583,11 +6695,15 @@ pub mod cap_descriptor {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -6703,11 +6819,15 @@ pub mod cap_descriptor {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -7112,11 +7232,15 @@ pub mod promised_answer {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -7207,11 +7331,15 @@ pub mod promised_answer {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -7466,13 +7594,15 @@ pub mod promised_answer {
             fn from(reader: Reader<'a>) -> Self {
                 Self::Struct(::capnp::dynamic_struct::Reader::new(
                     reader.reader,
-                    ::capnp::schema::StructSchema::new(
-                        ::capnp::introspect::RawBrandedStructSchema {
-                            generic: &_private::RAW_SCHEMA,
-                            field_types: _private::get_field_types,
-                            annotation_types: _private::get_annotation_types,
-                        },
-                    ),
+                    unsafe {
+                        ::capnp::schema::StructSchema::new(
+                            ::capnp::introspect::RawBrandedStructSchema {
+                                generic: &_private::RAW_SCHEMA,
+                                field_types: _private::get_field_types,
+                                annotation_types: _private::get_annotation_types,
+                            },
+                        )
+                    },
                 ))
             }
         }
@@ -7554,13 +7684,15 @@ pub mod promised_answer {
             fn from(builder: Builder<'a>) -> Self {
                 Self::Struct(::capnp::dynamic_struct::Builder::new(
                     builder.builder,
-                    ::capnp::schema::StructSchema::new(
-                        ::capnp::introspect::RawBrandedStructSchema {
-                            generic: &_private::RAW_SCHEMA,
-                            field_types: _private::get_field_types,
-                            annotation_types: _private::get_annotation_types,
-                        },
-                    ),
+                    unsafe {
+                        ::capnp::schema::StructSchema::new(
+                            ::capnp::introspect::RawBrandedStructSchema {
+                                generic: &_private::RAW_SCHEMA,
+                                field_types: _private::get_field_types,
+                                annotation_types: _private::get_annotation_types,
+                            },
+                        )
+                    },
                 ))
             }
         }
@@ -7788,11 +7920,15 @@ pub mod third_party_cap_descriptor {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -7876,11 +8012,15 @@ pub mod third_party_cap_descriptor {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -8105,11 +8245,15 @@ pub mod exception {
         fn from(reader: Reader<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Reader::new(
                 reader.reader,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }
@@ -8218,11 +8362,15 @@ pub mod exception {
         fn from(builder: Builder<'a>) -> Self {
             Self::Struct(::capnp::dynamic_struct::Builder::new(
                 builder.builder,
-                ::capnp::schema::StructSchema::new(::capnp::introspect::RawBrandedStructSchema {
-                    generic: &_private::RAW_SCHEMA,
-                    field_types: _private::get_field_types,
-                    annotation_types: _private::get_annotation_types,
-                }),
+                unsafe {
+                    ::capnp::schema::StructSchema::new(
+                        ::capnp::introspect::RawBrandedStructSchema {
+                            generic: &_private::RAW_SCHEMA,
+                            field_types: _private::get_field_types,
+                            annotation_types: _private::get_annotation_types,
+                        },
+                    )
+                },
             ))
         }
     }

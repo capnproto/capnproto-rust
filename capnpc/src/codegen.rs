@@ -2254,7 +2254,7 @@ fn generate_node(
                             params.params, params.where_clause)),
                 indent(vec![
                     Line(format!("fn from(reader: Reader<'a,{0}>) -> Self {{", params.params)),
-                    indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Reader::new(reader.reader, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})))", params.params))),
+                    indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Reader::new(reader.reader, unsafe {{{capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})}}))", params.params))),
                     line("}")
                 ]),
                 line("}"),
@@ -2348,7 +2348,7 @@ fn generate_node(
                             params.params, params.where_clause)),
                 indent(vec![
                         Line(format!("fn from(builder: Builder<'a,{0}>) -> Self {{", params.params)),
-                        indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Builder::new(builder.builder, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})))", params.params))),
+                    indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Builder::new(builder.builder, unsafe {{{capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})}}))", params.params))),
                         line("}")
                 ]),
                 line("}"),
