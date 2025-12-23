@@ -241,19 +241,18 @@ primitive_introspect!(f64, Float64);
 /// Type information that gets included in the generated code for every
 /// user-defined Cap'n Proto struct.
 #[derive(Copy, Clone)]
-#[non_exhaustive]
 pub struct RawStructSchema {
     /// The Node (as defined in schema.capnp), as a single segment message.
-    pub encoded_node: &'static [crate::Word],
+    pub(crate) encoded_node: &'static [crate::Word],
 
     /// Indices (not ordinals) of fields that don't have a discriminant value.
-    pub nonunion_members: &'static [u16],
+    pub(crate) nonunion_members: &'static [u16],
 
     /// Map from discriminant value to field index.
-    pub members_by_discriminant: &'static [u16],
+    pub(crate) members_by_discriminant: &'static [u16],
 
     /// Indices of fields, sorted by their respective names.
-    pub members_by_name: &'static [u16],
+    pub(crate) members_by_name: &'static [u16],
 }
 
 impl RawStructSchema {
