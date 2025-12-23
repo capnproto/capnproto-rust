@@ -241,6 +241,7 @@ primitive_introspect!(f64, Float64);
 /// Type information that gets included in the generated code for every
 /// user-defined Cap'n Proto struct.
 #[derive(Copy, Clone)]
+#[non_exhaustive]
 pub struct RawStructSchema {
     /// The Node (as defined in schema.capnp), as a single segment message.
     pub encoded_node: &'static [crate::Word],
@@ -253,6 +254,24 @@ pub struct RawStructSchema {
 
     /// Indices of fields, sorted by their respective names.
     pub members_by_name: &'static [u16],
+}
+
+impl RawStructSchema {
+    /// Constructs a new `RawStructSchema`. Unsafe because `encoded_node` is assumed
+    /// to be a valid message and bounds-checking will be disabled on it.
+    pub const unsafe fn new(
+        encoded_node: &'static [crate::Word],
+        nonunion_members: &'static [u16],
+        members_by_discriminant: &'static [u16],
+        members_by_name: &'static [u16],
+    ) -> Self {
+        Self {
+            encoded_node,
+            nonunion_members,
+            members_by_discriminant,
+            members_by_name,
+        }
+    }
 }
 
 /// A RawStructSchema with branding information, i.e. resolution of type parameters.

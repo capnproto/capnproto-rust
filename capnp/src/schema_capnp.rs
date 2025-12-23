@@ -761,13 +761,14 @@ pub mod node {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 12, 13];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[6, 7, 8, 9, 10, 11];
         pub static MEMBERS_BY_NAME: &[u16] = &[11, 5, 10, 1, 2, 8, 6, 0, 9, 13, 4, 12, 3, 7];
@@ -1079,13 +1080,14 @@ pub mod node {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[0];
@@ -1404,13 +1406,14 @@ pub mod node {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
@@ -1821,13 +1824,14 @@ pub mod node {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 0, 2];
@@ -2131,13 +2135,14 @@ pub mod node {
                 ) -> crate::introspect::Type {
                     crate::introspect::panic_invalid_annotation_indices(child_index, index)
                 }
-                pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                    crate::introspect::RawStructSchema {
-                        encoded_node: &ENCODED_NODE,
-                        nonunion_members: NONUNION_MEMBERS,
-                        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                        members_by_name: MEMBERS_BY_NAME,
-                    };
+                pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                    crate::introspect::RawStructSchema::new(
+                        &ENCODED_NODE,
+                        NONUNION_MEMBERS,
+                        MEMBERS_BY_DISCRIMINANT,
+                        MEMBERS_BY_NAME,
+                    )
+                };
                 pub static NONUNION_MEMBERS: &[u16] = &[0];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
                 pub static MEMBERS_BY_NAME: &[u16] = &[0];
@@ -2628,13 +2633,14 @@ pub mod node {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 6];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[0, 4, 5, 6, 3, 1, 2];
@@ -2943,13 +2949,14 @@ pub mod node {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[0];
@@ -3329,13 +3336,14 @@ pub mod node {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
@@ -3692,13 +3700,14 @@ pub mod node {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
@@ -4348,13 +4357,14 @@ pub mod node {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[12, 2, 3, 4, 6, 1, 8, 9, 10, 11, 5, 7, 0];
@@ -4850,13 +4860,14 @@ pub mod field {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 6];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[4, 5];
         pub static MEMBERS_BY_NAME: &[u16] = &[2, 1, 3, 5, 0, 6, 4];
@@ -5288,13 +5299,14 @@ pub mod field {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[2, 3, 0, 1];
@@ -5561,13 +5573,14 @@ pub mod field {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[0];
@@ -5869,13 +5882,14 @@ pub mod field {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
@@ -6265,13 +6279,14 @@ pub mod enumerant {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
         pub static MEMBERS_BY_NAME: &[u16] = &[2, 1, 0];
@@ -6595,13 +6610,14 @@ pub mod superclass {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
         pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
@@ -7228,13 +7244,14 @@ pub mod method {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3, 4, 5, 6, 7];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
         pub static MEMBERS_BY_NAME: &[u16] = &[4, 1, 7, 0, 5, 2, 6, 3];
@@ -7889,13 +7906,14 @@ pub mod type_ {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
@@ -8234,13 +8252,14 @@ pub mod type_ {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[0];
@@ -8566,13 +8585,14 @@ pub mod type_ {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
@@ -8899,13 +8919,14 @@ pub mod type_ {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
@@ -9232,13 +9253,14 @@ pub mod type_ {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
@@ -9554,13 +9576,14 @@ pub mod type_ {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2];
             pub static MEMBERS_BY_NAME: &[u16] = &[2, 1, 0];
@@ -9927,13 +9950,14 @@ pub mod type_ {
                 ) -> crate::introspect::Type {
                     crate::introspect::panic_invalid_annotation_indices(child_index, index)
                 }
-                pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                    crate::introspect::RawStructSchema {
-                        encoded_node: &ENCODED_NODE,
-                        nonunion_members: NONUNION_MEMBERS,
-                        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                        members_by_name: MEMBERS_BY_NAME,
-                    };
+                pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                    crate::introspect::RawStructSchema::new(
+                        &ENCODED_NODE,
+                        NONUNION_MEMBERS,
+                        MEMBERS_BY_DISCRIMINANT,
+                        MEMBERS_BY_NAME,
+                    )
+                };
                 pub static NONUNION_MEMBERS: &[u16] = &[];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1, 2, 3];
                 pub static MEMBERS_BY_NAME: &[u16] = &[0, 3, 2, 1];
@@ -10247,13 +10271,14 @@ pub mod type_ {
                 ) -> crate::introspect::Type {
                     crate::introspect::panic_invalid_annotation_indices(child_index, index)
                 }
-                pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                    crate::introspect::RawStructSchema {
-                        encoded_node: &ENCODED_NODE,
-                        nonunion_members: NONUNION_MEMBERS,
-                        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                        members_by_name: MEMBERS_BY_NAME,
-                    };
+                pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                    crate::introspect::RawStructSchema::new(
+                        &ENCODED_NODE,
+                        NONUNION_MEMBERS,
+                        MEMBERS_BY_DISCRIMINANT,
+                        MEMBERS_BY_NAME,
+                    )
+                };
                 pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
                 pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
@@ -10533,13 +10558,14 @@ pub mod type_ {
                 ) -> crate::introspect::Type {
                     crate::introspect::panic_invalid_annotation_indices(child_index, index)
                 }
-                pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                    crate::introspect::RawStructSchema {
-                        encoded_node: &ENCODED_NODE,
-                        nonunion_members: NONUNION_MEMBERS,
-                        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                        members_by_name: MEMBERS_BY_NAME,
-                    };
+                pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                    crate::introspect::RawStructSchema::new(
+                        &ENCODED_NODE,
+                        NONUNION_MEMBERS,
+                        MEMBERS_BY_DISCRIMINANT,
+                        MEMBERS_BY_NAME,
+                    )
+                };
                 pub static NONUNION_MEMBERS: &[u16] = &[0];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
                 pub static MEMBERS_BY_NAME: &[u16] = &[0];
@@ -10849,13 +10875,14 @@ pub mod brand {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
         pub static MEMBERS_BY_NAME: &[u16] = &[0];
@@ -11228,13 +11255,14 @@ pub mod brand {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[1, 2];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 2, 0];
@@ -11586,13 +11614,14 @@ pub mod brand {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[0, 1];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 0];
@@ -12412,13 +12441,14 @@ pub mod value {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
@@ -12840,13 +12870,14 @@ pub mod annotation {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
         pub static MEMBERS_BY_NAME: &[u16] = &[2, 0, 1];
@@ -13291,13 +13322,14 @@ pub mod capnp_version {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
         pub static MEMBERS_BY_NAME: &[u16] = &[0, 2, 1];
@@ -13818,13 +13850,14 @@ pub mod code_generator_request {
         ) -> crate::introspect::Type {
             crate::introspect::panic_invalid_annotation_indices(child_index, index)
         }
-        pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-            crate::introspect::RawStructSchema {
-                encoded_node: &ENCODED_NODE,
-                nonunion_members: NONUNION_MEMBERS,
-                members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                members_by_name: MEMBERS_BY_NAME,
-            };
+        pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+            crate::introspect::RawStructSchema::new(
+                &ENCODED_NODE,
+                NONUNION_MEMBERS,
+                MEMBERS_BY_DISCRIMINANT,
+                MEMBERS_BY_NAME,
+            )
+        };
         pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2, 3];
         pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
         pub static MEMBERS_BY_NAME: &[u16] = &[2, 0, 1, 3];
@@ -14236,13 +14269,14 @@ pub mod code_generator_request {
             ) -> crate::introspect::Type {
                 crate::introspect::panic_invalid_annotation_indices(child_index, index)
             }
-            pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                crate::introspect::RawStructSchema {
-                    encoded_node: &ENCODED_NODE,
-                    nonunion_members: NONUNION_MEMBERS,
-                    members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                    members_by_name: MEMBERS_BY_NAME,
-                };
+            pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                crate::introspect::RawStructSchema::new(
+                    &ENCODED_NODE,
+                    NONUNION_MEMBERS,
+                    MEMBERS_BY_DISCRIMINANT,
+                    MEMBERS_BY_NAME,
+                )
+            };
             pub static NONUNION_MEMBERS: &[u16] = &[0, 1, 2];
             pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
             pub static MEMBERS_BY_NAME: &[u16] = &[1, 0, 2];
@@ -14575,13 +14609,14 @@ pub mod code_generator_request {
                 ) -> crate::introspect::Type {
                     crate::introspect::panic_invalid_annotation_indices(child_index, index)
                 }
-                pub static RAW_SCHEMA: crate::introspect::RawStructSchema =
-                    crate::introspect::RawStructSchema {
-                        encoded_node: &ENCODED_NODE,
-                        nonunion_members: NONUNION_MEMBERS,
-                        members_by_discriminant: MEMBERS_BY_DISCRIMINANT,
-                        members_by_name: MEMBERS_BY_NAME,
-                    };
+                pub static RAW_SCHEMA: crate::introspect::RawStructSchema = unsafe {
+                    crate::introspect::RawStructSchema::new(
+                        &ENCODED_NODE,
+                        NONUNION_MEMBERS,
+                        MEMBERS_BY_DISCRIMINANT,
+                        MEMBERS_BY_NAME,
+                    )
+                };
                 pub static NONUNION_MEMBERS: &[u16] = &[0, 1];
                 pub static MEMBERS_BY_DISCRIMINANT: &[u16] = &[];
                 pub static MEMBERS_BY_NAME: &[u16] = &[0, 1];
