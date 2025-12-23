@@ -32,17 +32,16 @@ use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Reader<T> {
-    #[doc(hidden)]
-    pub phantom: PhantomData<T>,
-
-    #[doc(hidden)]
-    pub words: &'static [crate::Word],
+    pub(crate) phantom: PhantomData<T>,
+    pub(crate) words: &'static [crate::Word],
 }
 
 impl<T> Reader<T>
 where
     T: Owned,
 {
+    /// Constructs a new `constant::Reader`. Unsafe because `words` is assumed
+    /// to be a valid message and bounds-checking will be disabled on it.
     pub const unsafe fn new(words: &'static [crate::Word]) -> Self {
         Self {
             phantom: PhantomData,
