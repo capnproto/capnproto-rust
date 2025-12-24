@@ -243,16 +243,34 @@ primitive_introspect!(f64, Float64);
 #[derive(Copy, Clone)]
 pub struct RawStructSchema {
     /// The Node (as defined in schema.capnp), as a single segment message.
-    pub encoded_node: &'static [crate::Word],
+    pub(crate) encoded_node: &'static [crate::Word],
 
     /// Indices (not ordinals) of fields that don't have a discriminant value.
-    pub nonunion_members: &'static [u16],
+    pub(crate) nonunion_members: &'static [u16],
 
     /// Map from discriminant value to field index.
-    pub members_by_discriminant: &'static [u16],
+    pub(crate) members_by_discriminant: &'static [u16],
 
     /// Indices of fields, sorted by their respective names.
-    pub members_by_name: &'static [u16],
+    pub(crate) members_by_name: &'static [u16],
+}
+
+impl RawStructSchema {
+    /// Constructs a new `RawStructSchema`. Unsafe because `encoded_node` is assumed
+    /// to be a valid message and bounds-checking will be disabled on it.
+    pub const unsafe fn new(
+        encoded_node: &'static [crate::Word],
+        nonunion_members: &'static [u16],
+        members_by_discriminant: &'static [u16],
+        members_by_name: &'static [u16],
+    ) -> Self {
+        Self {
+            encoded_node,
+            nonunion_members,
+            members_by_discriminant,
+            members_by_name,
+        }
+    }
 }
 
 /// A RawStructSchema with branding information, i.e. resolution of type parameters.
