@@ -238,6 +238,9 @@ where
                 buf[(idx - 1) * 4..idx * 4]
                     .copy_from_slice(&((segments[idx].len() / 8) as u32).to_le_bytes());
             }
+
+            // capnp's minimum rust version does not suppoert is_multiple_of() yet.
+            #[allow(clippy::manual_is_multiple_of)]
             if segment_count % 2 == 0 {
                 for idx in (buf.len() - 4)..(buf.len()) {
                     buf[idx] = 0
