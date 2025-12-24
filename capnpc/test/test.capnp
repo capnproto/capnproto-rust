@@ -715,6 +715,8 @@ interface TestExtends extends(TestInterface) {
    qux @0 ();
    corge @1 TestBigStruct -> ();
    grault @2 () -> TestBigStruct;
+
+   # Two methods whose names deliberately clash with TestInterface methods.
    bar @3 () -> ();
    foo @4 (i :Text) -> (x : UInt32);
 }
@@ -818,8 +820,12 @@ struct Map(Key, Value) {
 }
 
 interface GenericBase(T) {}
-interface GenericExtend extends(GenericBase(Data)) {}
-interface GenericExtend2 extends (GenericBase(GenericBase(Data))) {}
+interface GenericExtend extends(GenericBase(Data)) {
+   foo @0 () -> ();
+}
+interface GenericExtend2 extends (GenericBase(GenericBase(Data))) {
+   foo @0 () -> ();
+}
 
 struct TestNameAnnotation $Rust.name("RenamedStruct") {
   union {
