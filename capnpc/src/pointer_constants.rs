@@ -113,12 +113,10 @@ pub fn generate_pointer_constant(
                 value,
                 WordArrayDeclarationOptions { public: false },
             )?,
-            Line(fmt!(ctx, "{capnp}::constant::Reader {{")),
-            Indent(Box::new(Branch(vec![
-                Line("phantom: ::core::marker::PhantomData,".into()),
-                Line("words: &WORDS,".into()),
-            ]))),
-            Line("}".into()),
+            Line(fmt!(
+                ctx,
+                "unsafe {{{capnp}::constant::Reader::new(&WORDS)}}"
+            )),
         ]))),
         line("};"),
     ]))
