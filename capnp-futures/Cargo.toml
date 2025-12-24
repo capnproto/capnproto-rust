@@ -1,6 +1,6 @@
 [package]
 name = "capnp-futures"
-version = "0.23.0"
+version = "0.23.1"
 authors = [ "David Renshaw <drenshaw@gmail.com>" ]
 license = "MIT"
 
@@ -12,7 +12,7 @@ edition = "2021"
 keywords = ["async"]
 
 [dependencies]
-capnp = { version = "0.23.0-alpha", path = "../capnp" }
+capnp = { version = "0.23.0", path = "../capnp" }
 
 [dependencies.futures-channel]
 version = "0.3.0"
