@@ -1,3 +1,6 @@
+## v0.24.0
+- Follow v0.24.0 release of other capnp crates.
+
 ## v0.23.0
 - Update `local::Client` for new `async fn` method signatures.
 - Add `new_client_from_rc()`.

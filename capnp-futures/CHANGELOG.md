@@ -1,3 +1,6 @@
+## v0.24.0
+- Follow v0.24.0 release of other capnp crates.
+
 ## v0.23.1
 - Fix capnp dependency to be capnp-v0.23.0 rather than capnp-v0.23.0-alpha.
 

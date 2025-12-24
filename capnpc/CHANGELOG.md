@@ -1,3 +1,6 @@
+## v0.24.0
+- Adjust generated code to used new constructors for constants and RawStructSchema.
+
 ## v0.23.3
 - Adjust generated dispatch code to properly disambiguate when an 'extends' interface method
   conflicts with another method.

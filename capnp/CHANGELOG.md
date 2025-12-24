@@ -1,3 +1,7 @@
+## v0.24.0
+- Add unsafe const constructor of `constant::Reader` and prevent direction construction.
+- Add unsafe const constructor of `RawStructSchema` and prevent direction construction.
+
 ## v0.23.2
 - Add `#![allow(clippy::all)]` in `capnp::generated_code()`.
 
