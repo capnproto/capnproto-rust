@@ -1,3 +1,7 @@
+## v0.23.3
+- Adjust generated dispatch code to properly disambiguate when an 'extends' interface method
+  conflicts with another method.
+
 ## v0.23.2
 - Remove `async` block in generated code for streaming methods.
 
