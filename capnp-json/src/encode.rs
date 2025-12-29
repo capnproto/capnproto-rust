@@ -283,7 +283,7 @@ fn write_data<W: std::io::Write>(
                     write!(writer, ",")?;
                 }
                 first = false;
-                write!(writer, "{byte}")?;
+                write_number(writer, *byte)?;
             }
             write!(writer, "]")?;
             Ok(())
