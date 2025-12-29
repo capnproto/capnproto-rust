@@ -326,13 +326,19 @@ fn decode_primitive<'json, 'meta>(
             Ok((*field_value as i32).into())
         }
         capnp::introspect::TypeVariant::Int64 => {
-            let JsonValue::Number(field_value) = field_value else {
+            let JsonValue::String(field_value) = field_value else {
                 return Err(capnp::Error::failed(format!(
-                    "Expected number for field {}",
+                    "Expected string number for field {}",
                     field_meta.name
                 )));
             };
-            Ok((*field_value as i64).into())
+            Ok((field_value.parse::<i64>().map_err(|_| {
+                capnp::Error::failed(format!(
+                    "Invalid numeric value '{}' for field {}",
+                    field_value, field_meta.name
+                ))
+            })?)
+            .into())
         }
         capnp::introspect::TypeVariant::UInt8 => {
             let JsonValue::Number(field_value) = field_value else {
@@ -362,13 +368,19 @@ fn decode_primitive<'json, 'meta>(
             Ok((*field_value as u32).into())
         }
         capnp::introspect::TypeVariant::UInt64 => {
-            let JsonValue::Number(field_value) = field_value else {
+            let JsonValue::String(field_value) = field_value else {
                 return Err(capnp::Error::failed(format!(
-                    "Expected number for field {}",
+                    "Expected string number for field {}",
                     field_meta.name
                 )));
             };
-            Ok((*field_value as u64).into())
+            Ok((field_value.parse::<u64>().map_err(|_| {
+                capnp::Error::failed(format!(
+                    "Invalid numeric value '{}' for field {}",
+                    field_value, field_meta.name
+                ))
+            })?)
+            .into())
         }
         capnp::introspect::TypeVariant::Float32 => {
             let field_value = match field_value {

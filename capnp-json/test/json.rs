@@ -37,7 +37,7 @@ mod tests {
     fn test_encode_json_types_default() {
         let mut builder = message::Builder::new_default();
         let root: test_json_types::Builder<'_> = builder.init_root();
-        let expected = r#"{"voidField":null,"boolField":false,"int8Field":0,"int16Field":0,"int32Field":0,"int64Field":0,"uInt8Field":0,"uInt16Field":0,"uInt32Field":0,"uInt64Field":0,"float32Field":0,"float64Field":0,"enumField":"foo"}"#;
+        let expected = r#"{"voidField":null,"boolField":false,"int8Field":0,"int16Field":0,"int32Field":0,"int64Field":"0","uInt8Field":0,"uInt16Field":0,"uInt32Field":0,"uInt64Field":"0","float32Field":0,"float64Field":0,"enumField":"foo"}"#;
         assert_eq!(expected, json::to_json(root.reborrow_as_reader()).unwrap());
     }
 
@@ -101,11 +101,11 @@ mod tests {
             r#""int8Field":-8,"#,
             r#""int16Field":-16,"#,
             r#""int32Field":-32,"#,
-            r#""int64Field":-64,"#,
+            r#""int64Field":"-64","#,
             r#""uInt8Field":8,"#,
             r#""uInt16Field":16,"#,
             r#""uInt32Field":32,"#,
-            r#""uInt64Field":64,"#,
+            r#""uInt64Field":"64","#,
             r#""float32Field":1.3200000524520874,"#,
             r#""float64Field":1.64,"#,
             r#""textField":"hello","#,
@@ -118,11 +118,11 @@ mod tests {
             r#""int8Field":0,"#,
             r#""int16Field":0,"#,
             r#""int32Field":0,"#,
-            r#""int64Field":0,"#,
+            r#""int64Field":"0","#,
             r#""uInt8Field":0,"#,
             r#""uInt16Field":0,"#,
             r#""uInt32Field":0,"#,
-            r#""uInt64Field":0,"#,
+            r#""uInt64Field":"0","#,
             r#""float32Field":0,"#,
             r#""float64Field":0,"#,
             r#""textField":"inner","#,
@@ -402,11 +402,11 @@ mod tests {
               "int8Field": -8,
               "int16Field": -16,
               "int32Field": -32,
-              "int64Field": -64,
+              "int64Field": "-64",
               "uInt8Field": 8,
               "uInt16Field": 16,
               "uInt32Field": 32,
-              "uInt64Field": 64,
+              "uInt64Field": "64",
               "float32Field": 1.3200000524520874,
               "float64Field": 0.164e2,
               "textField": "hello",
@@ -431,12 +431,12 @@ mod tests {
                 "int8Field": 0,
                 "int16Field": 0,
                 "int32Field": 0,
-                "int64Field": 0,
+                "int64Field": "0",
                 "uInt8Field": 0,
                 "uInt16Field"
                 : 0,
                 "uInt32Field": 0,
-                "uInt64Field": 0,
+                "uInt64Field": "0",
                 "float32Field": 0,
                 "float64Field": 0,
                 "textField": "inner",
@@ -471,10 +471,10 @@ mod tests {
                 "garply"
               ],
               "int64List": [
-                1,
-                2,
-                4,
-                8
+                "1",
+                "2",
+                "4",
+                "8"
               ]
             }
           "#,

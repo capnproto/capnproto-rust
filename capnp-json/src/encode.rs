@@ -36,16 +36,20 @@ where
             write!(writer, "false")
         }
         .map_err(|e| e.into()),
-        capnp::dynamic_value::Reader::Int8(value) => write_signed_number(writer, value as i64),
-        capnp::dynamic_value::Reader::Int16(value) => write_signed_number(writer, value as i64),
-        capnp::dynamic_value::Reader::Int32(value) => write_signed_number(writer, value as i64),
-        capnp::dynamic_value::Reader::Int64(value) => write_signed_number(writer, value),
-        capnp::dynamic_value::Reader::UInt8(value) => write_unsigned_number(writer, value as u64),
-        capnp::dynamic_value::Reader::UInt16(value) => write_unsigned_number(writer, value as u64),
-        capnp::dynamic_value::Reader::UInt32(value) => write_unsigned_number(writer, value as u64),
-        capnp::dynamic_value::Reader::UInt64(value) => write_unsigned_number(writer, value),
-        capnp::dynamic_value::Reader::Float32(value) => write_float_number(writer, value as f64),
-        capnp::dynamic_value::Reader::Float64(value) => write_float_number(writer, value),
+        capnp::dynamic_value::Reader::Int8(value) => write_number(writer, value),
+        capnp::dynamic_value::Reader::Int16(value) => write_number(writer, value),
+        capnp::dynamic_value::Reader::Int32(value) => write_number(writer, value),
+        capnp::dynamic_value::Reader::Int64(value) => {
+            write_string(writer, format!("{value}").as_str())
+        }
+        capnp::dynamic_value::Reader::UInt8(value) => write_number(writer, value),
+        capnp::dynamic_value::Reader::UInt16(value) => write_number(writer, value),
+        capnp::dynamic_value::Reader::UInt32(value) => write_number(writer, value),
+        capnp::dynamic_value::Reader::UInt64(value) => {
+            write_string(writer, format!("{value}").as_str())
+        }
+        capnp::dynamic_value::Reader::Float32(value) => write_number(writer, value),
+        capnp::dynamic_value::Reader::Float64(value) => write_number(writer, value),
         capnp::dynamic_value::Reader::Enum(value) => {
             if let Some(enumerant) = value.get_enumerant()? {
                 let value = enumerant
@@ -60,7 +64,7 @@ where
                     .unwrap_or(enumerant.get_proto().get_name()?.to_str());
                 write_string(writer, value?)
             } else {
-                write_unsigned_number(writer, value.get_value() as u64)
+                write_number(writer, value.get_value())
             }
         }
         capnp::dynamic_value::Reader::Text(reader) => write_string(writer, reader.to_str()?),
@@ -76,17 +80,11 @@ where
     }
 }
 
-// TODO: use capnp::io::Write ?
-fn write_unsigned_number<W: std::io::Write>(writer: &mut W, value: u64) -> capnp::Result<()> {
-    write!(writer, "{value}")?;
-    Ok(())
-}
-fn write_signed_number<W: std::io::Write>(writer: &mut W, value: i64) -> capnp::Result<()> {
-    write!(writer, "{value}")?;
-    Ok(())
-}
+fn write_number<W: std::io::Write>(writer: &mut W, value: impl TryInto<f64>) -> capnp::Result<()> {
+    let value = value
+        .try_into()
+        .map_err(|_| capnp::Error::failed("Value out of range".into()))?;
 
-fn write_float_number<W: std::io::Write>(writer: &mut W, value: f64) -> capnp::Result<()> {
     // From the C++ codec comments:
     // Inf, -inf and NaN are not allowed in the JSON spec. Storing into string.
 
