@@ -14,7 +14,7 @@ edition = "2021"
 readme = "README.md"
 
 [dependencies]
-capnp = {version = "0.23.0", path = "../capnp"}
+capnp = {version = "0.24.0", path = "../capnp"}
 
 #[lints]
 #workspace = true
