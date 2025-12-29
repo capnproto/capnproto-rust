@@ -19,8 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#[cfg(test)]
 capnp::generated_code!(pub mod test_capnp);
+#[cfg(test)]
 capnp::generated_code!(pub mod json_test_capnp);
+#[cfg(test)]
 capnp::generated_code!(pub mod test_compat_capnp);
 
 mod cppcompat;
