@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::json_test_capnp::test_json_annotations;
+    use crate::test_compat_capnp::test_json_types_compat as test_json_types;
     use std::io::Write;
 
     use capnp::message;
@@ -362,5 +363,213 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_roundtrip_primitive_types() -> capnp::Result<()> {
+        let mut builder = message::Builder::new_default();
+        let mut root = builder.init_root::<test_json_types::Builder<'_>>();
+
+        // Create the message
+        let json = r#"{
+          "voidField": null,
+          "boolField": true,
+          "int8Field": -8,
+          "int16Field": -16,
+          "int32Field": -32,
+          "int64Field": "-64",
+          "uint8Field": 8,
+          "uint16Field": 16,
+          "uint32Field": 32,
+          "uint64Field": "64",
+          "float32Field": 3.14,
+          "float64Field": 6.28,
+          "textField": "Hello, World!",
+          "dataField": [ 72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 33 ],
+          "base64Field": "SGVsbG8sIFdvcmxkIQ==",
+          "hexField": "48656c6c6f2c20576f726c6421"
+        }"#;
+        capnp_json::from_json(json, root.reborrow())?;
+
+        assert!(
+            !root.reborrow_as_reader().has_struct_field(),
+            "Shouldn't have a struct field"
+        );
+
+        // Serialise to binary and back to json via C++ impl
+        let mut buf = vec![];
+        capnp::serialize::write_message(&mut buf, &builder)?;
+        let cpp_json = cpp_binary_to_json("./test-compat.capnp", "TestJsonTypesCompat", &buf)?;
+
+        eprintln!("CPP generated JSON: {}", cpp_json);
+
+        // Read generated JSON back
+        let mut read_json_builder = message::Builder::new_default();
+        let mut read_json_root = read_json_builder.init_root::<test_json_types::Builder<'_>>();
+        capnp_json::from_json(&cpp_json, read_json_root.reborrow())?;
+
+        assert!(
+            !read_json_root.reborrow_as_reader().has_struct_field(),
+            "Read JSON Shouldn't have a struct field"
+        );
+
+        fn path_to_string(path: &[String]) -> String {
+            path.join(".")
+        }
+
+        fn cmp(
+            path: &mut Vec<String>,
+            a: capnp::dynamic_value::Reader,
+            b: capnp::dynamic_value::Reader,
+        ) -> capnp::Result<()> {
+            match (a, b) {
+                (
+                    capnp::dynamic_value::Reader::Struct(a_struct),
+                    capnp::dynamic_value::Reader::Struct(b_struct),
+                ) => {
+                    let a_fields = a_struct.get_schema().get_fields()?;
+                    for field in a_fields {
+                        path.push(field.get_proto().get_name()?.to_string()?);
+                        assert_eq!(
+                            a_struct.has(field)?,
+                            b_struct.has(field)?,
+                            "Rust-from-JSON {} field but Rust-from-CPP-JSON {} field in path {}",
+                            if a_struct.has(field)? {
+                                "has"
+                            } else {
+                                "does not have"
+                            },
+                            if b_struct.has(field)? {
+                                "has"
+                            } else {
+                                "does not have"
+                            },
+                            path_to_string(path)
+                        );
+                        if !a_struct.has(field)? {
+                            path.pop();
+                            continue;
+                        }
+                        let a_value = a_struct.get(field)?;
+                        let b_value = b_struct.get(field)?;
+                        cmp(path, a_value, b_value)?;
+                        path.pop();
+                    }
+                }
+                (
+                    capnp::dynamic_value::Reader::List(a_list),
+                    capnp::dynamic_value::Reader::List(b_list),
+                ) => {
+                    assert_eq!(
+                        a_list.len(),
+                        b_list.len(),
+                        "Rust-from-JSON has {} items but Rust-from-CPP-JSON has {} items in path {}",
+                        a_list.len(),
+                        b_list.len(),
+                        path_to_string(path)
+                    );
+                    for i in 0..a_list.len() {
+                        path.push(format!("[{}]", i));
+                        cmp(path, a_list.get(i)?, b_list.get(i)?)?;
+                        path.pop();
+                    }
+                }
+                (capnp::dynamic_value::Reader::Bool(a), capnp::dynamic_value::Reader::Bool(b)) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (capnp::dynamic_value::Reader::Int8(a), capnp::dynamic_value::Reader::Int8(b)) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::Int16(a),
+                    capnp::dynamic_value::Reader::Int16(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::Int32(a),
+                    capnp::dynamic_value::Reader::Int32(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::Int64(a),
+                    capnp::dynamic_value::Reader::Int64(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::UInt8(a),
+                    capnp::dynamic_value::Reader::UInt8(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::UInt16(a),
+                    capnp::dynamic_value::Reader::UInt16(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::UInt32(a),
+                    capnp::dynamic_value::Reader::UInt32(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::UInt64(a),
+                    capnp::dynamic_value::Reader::UInt64(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::Float32(a),
+                    capnp::dynamic_value::Reader::Float32(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (
+                    capnp::dynamic_value::Reader::Float64(a),
+                    capnp::dynamic_value::Reader::Float64(b),
+                ) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (capnp::dynamic_value::Reader::Text(a), capnp::dynamic_value::Reader::Text(b)) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (capnp::dynamic_value::Reader::Data(a), capnp::dynamic_value::Reader::Data(b)) => {
+                    assert_eq!(a, b, "path {}", path_to_string(path));
+                }
+                (capnp::dynamic_value::Reader::Void, capnp::dynamic_value::Reader::Void) => {
+                    // Nothing to see here
+                }
+                (capnp::dynamic_value::Reader::Enum(a), capnp::dynamic_value::Reader::Enum(b)) => {
+                    assert_eq!(
+                        a.get_value(),
+                        b.get_value(),
+                        "path {}",
+                        path_to_string(path)
+                    );
+                }
+                (a, b) => {
+                    panic!(
+                        "Mismatched types: {:?} vs {:?} in path {}",
+                        a,
+                        b,
+                        path_to_string(path)
+                    );
+                }
+            }
+            Ok(())
+        }
+
+        // Compare fields
+        cmp(
+            &mut vec![],
+            builder
+                .get_root_as_reader::<test_json_types::Reader>()?
+                .into(),
+            read_json_root.reborrow_as_reader().into(),
+        )
     }
 }

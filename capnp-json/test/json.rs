@@ -21,6 +21,7 @@
 
 capnp::generated_code!(pub mod test_capnp);
 capnp::generated_code!(pub mod json_test_capnp);
+capnp::generated_code!(pub mod test_compat_capnp);
 
 mod cppcompat;
 

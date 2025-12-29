@@ -619,15 +619,16 @@ fn decode_struct(
     ) -> capnp::Result<()> {
         match field.get_type().which() {
             capnp::introspect::TypeVariant::Struct(_struct_schema) => {
-                let struct_builder = builder
-                    .reborrow()
-                    .init(field)?
-                    .downcast::<capnp::dynamic_struct::Builder>();
                 if field_meta.flatten.is_none() {
                     let field_value = match value.remove(value_name) {
                         Some(v) => v,
                         None => return Ok(()),
                     };
+
+                    let struct_builder = builder
+                        .reborrow()
+                        .init(field)?
+                        .downcast::<capnp::dynamic_struct::Builder>();
 
                     let JsonValue::Object(mut field_value) = field_value else {
                         return Err(capnp::Error::failed(format!(
@@ -637,6 +638,21 @@ fn decode_struct(
                     };
                     decode_struct(&mut field_value, struct_builder, field_meta)?;
                 } else {
+                    //
+                    // FIXME: We should only init this struct if any field is
+                    // found in decode_struct. For now, we always init it.
+                    // To do that we would need to get decode_struct to actually
+                    // take the builder+field, or a callback to init it.
+                    //
+                    // The current implementation results in has_<field>()
+                    // returning true even if all fields are missing in the
+                    // JSON.
+                    //
+                    let struct_builder = builder
+                        .reborrow()
+                        .init(field)?
+                        .downcast::<capnp::dynamic_struct::Builder>();
+
                     // Flattened struct; pass the JsonValue at this level down
                     decode_struct(value, struct_builder, field_meta)?;
                 }
