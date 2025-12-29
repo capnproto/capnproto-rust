@@ -23,7 +23,6 @@ path = "src/capnpc-rust.rs"
 name = "capnpc-rust-bootstrap"
 path = "src/capnpc-rust-bootstrap.rs"
 
-
 [dependencies.capnp]
 version = "0.24.0"
 path = "../capnp"
