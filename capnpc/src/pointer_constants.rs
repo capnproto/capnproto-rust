@@ -113,6 +113,7 @@ pub fn generate_pointer_constant(
                 value,
                 WordArrayDeclarationOptions { public: false },
             )?,
+            Line("#[allow(unsafe_code)]".into()),
             Line(fmt!(
                 ctx,
                 "unsafe {{{capnp}::constant::Reader::new(&WORDS)}}"
