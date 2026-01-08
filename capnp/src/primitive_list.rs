@@ -25,7 +25,8 @@ use core::marker;
 
 use crate::introspect;
 use crate::private::layout::{
-    data_bits_per_element, ListBuilder, ListReader, PointerBuilder, PointerReader, PrimitiveElement,
+    data_bits_per_element, ElementSize, ListBuilder, ListReader, PointerBuilder, PointerReader,
+    PrimitiveElement,
 };
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
 use crate::Result;
@@ -115,14 +116,23 @@ impl<T: PrimitiveElement> Reader<'_, T> {
     const _CHECK_SLICE: () = check_slice_supported::<T>();
 
     /// Attempts to return a view of the list as a native Rust slice.
-    /// Returns `None` if the elements of the list are non-contiguous,
-    /// which can happen if the schema has evolved.
+    ///
+    /// Returns `None` if either:
+    ///  * The elements of the list are non-contiguous, which can happen if the
+    ///    schema has evolved.
+    ///  * The elements of the list are bit-sized, i.e. T is bool. In the case, the
+    ///    list is bit-packed, and therefore differs in representation from Rust's
+    ///    `&[bool]`.
     ///
     /// This method raises a compile-time error if `T` is larger than one
     /// byte and either the `unaligned` feature is enabled or the target
     /// is big-endian.
     pub fn as_slice(&self) -> Option<&[T]> {
         let () = Self::_CHECK_SLICE;
+        if self.reader.get_element_size() == ElementSize::Bit {
+            // TODO: make this a comple-time check.
+            return None;
+        }
         if self.reader.get_element_size() == T::element_size() {
             let bytes = self.reader.into_raw_bytes();
             let bits_per_element = data_bits_per_element(T::element_size()) as usize;
@@ -200,14 +210,23 @@ where
     const _CHECK_SLICE: () = check_slice_supported::<T>();
 
     /// Attempts to return a view of the list as a native Rust slice.
-    /// Returns `None` if the elements of the list are non-contiguous,
-    /// which can happen if the schema has evolved.
+    ///
+    /// Returns `None` if either:
+    ///  * The elements of the list are non-contiguous, which can happen if the
+    ///    schema has evolved.
+    ///  * The elements of the list are bit-sized, i.e. T is bool. In the case, the
+    ///    list is bit-packed, and therefore differs in representation from Rust's
+    ///    `&[bool]`.
     ///
     /// This method raises a compile-time error if `T` is larger than one
     /// byte and either the `unaligned` feature is enabled or the target
     /// is big-endian.
     pub fn as_slice(&mut self) -> Option<&mut [T]> {
         let () = Self::_CHECK_SLICE;
+        if self.builder.get_element_size() == ElementSize::Bit {
+            // TODO: make this a comple-time check.
+            return None;
+        }
         if self.builder.get_element_size() == T::element_size() {
             let bytes = self.builder.as_raw_bytes();
             let bits_per_element = data_bits_per_element(T::element_size()) as usize;

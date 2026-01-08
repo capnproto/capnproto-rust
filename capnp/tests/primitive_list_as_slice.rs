@@ -26,6 +26,17 @@ pub fn primitive_list_as_slice() {
     }
 
     {
+        let mut bool_list = msg.initn_root::<primitive_list::Builder<bool>>(8);
+
+        bool_list.set(0, true);
+        bool_list.set(1, true);
+
+        // Rust's slices cannot represent bit-packed bools.
+        assert!(bool_list.as_slice().is_none());
+        assert!(bool_list.into_reader().as_slice().is_none());
+    }
+
+    {
         let mut u8list = msg.initn_root::<primitive_list::Builder<u8>>(0);
         assert_eq!(u8list.as_slice().unwrap().len(), 0);
         assert_eq!(u8list.into_reader().as_slice().unwrap().len(), 0);
