@@ -30,7 +30,7 @@ use crate::{Error, ErrorKind, Result};
 
 pub type SegmentId = u32;
 
-pub trait ReaderArena {
+pub unsafe trait ReaderArena {
     // return pointer to start of segment, and number of words in that segment
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
 
@@ -103,7 +103,7 @@ where
     }
 }
 
-impl<S> ReaderArena for ReaderArenaImpl<S>
+unsafe impl<S> ReaderArena for ReaderArenaImpl<S>
 where
     S: ReaderSegments,
 {
@@ -158,7 +158,7 @@ where
     }
 }
 
-pub trait BuilderArena: ReaderArena {
+pub unsafe trait BuilderArena: ReaderArena {
     fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32>;
     fn allocate_anywhere(&mut self, amount: u32) -> (SegmentId, u32);
     fn get_segment_mut(&mut self, id: u32) -> (*mut u8, u32);
@@ -319,7 +319,7 @@ where
     }
 }
 
-impl<A> ReaderArena for BuilderArenaImpl<A>
+unsafe impl<A> ReaderArena for BuilderArenaImpl<A>
 where
     A: Allocator,
 {
@@ -430,7 +430,7 @@ where
     }
 }
 
-impl<A> BuilderArena for BuilderArenaImpl<A>
+unsafe impl<A> BuilderArena for BuilderArenaImpl<A>
 where
     A: Allocator,
 {
@@ -462,7 +462,7 @@ where
 
 pub struct NullArena;
 
-impl ReaderArena for NullArena {
+unsafe impl ReaderArena for NullArena {
     fn get_segment(&self, _id: u32) -> Result<(*const u8, u32)> {
         Err(Error::from_kind(ErrorKind::TriedToReadFromNullArena))
     }
@@ -508,7 +508,7 @@ impl GeneratedCodeArena {
     }
 }
 
-impl ReaderArena for GeneratedCodeArena {
+unsafe impl ReaderArena for GeneratedCodeArena {
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
         if id == 0 {
             Ok((self.words.as_ptr() as *const _, self.words.len() as u32))
