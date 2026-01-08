@@ -2899,6 +2899,17 @@ impl<'a> PointerReader<'a> {
         }
     }
 
+    pub fn get_root_from_arena(arena: &'a dyn ReaderArena) -> Result<Self> {
+        let (segment_start, _seg_len) = arena.get_segment(0)?;
+        Ok(PointerReader {
+            arena: arena,
+            segment_id: 0,
+            cap_table: Default::default(),
+            pointer: segment_start as *const _,
+            nesting_limit: arena.nesting_limit(),
+        })
+    }
+
     pub fn imbue(&mut self, cap_table: CapTableReader) {
         self.cap_table = cap_table;
     }

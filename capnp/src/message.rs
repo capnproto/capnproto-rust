@@ -132,16 +132,16 @@ impl Default for ReaderOptions {
 }
 
 impl ReaderOptions {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         DEFAULT_READER_OPTIONS
     }
 
-    pub fn nesting_limit(&mut self, value: i32) -> &mut Self {
+    pub const fn nesting_limit(&mut self, value: i32) -> &mut Self {
         self.nesting_limit = value;
         self
     }
 
-    pub fn traversal_limit_in_words(&mut self, value: Option<usize>) -> &mut Self {
+    pub const fn traversal_limit_in_words(&mut self, value: Option<usize>) -> &mut Self {
         self.traversal_limit_in_words = value;
         self
     }

@@ -2047,15 +2047,15 @@ fn generate_node(
             // `static` instead of `const` so that this has a fixed memory address
             // and we can check equality of `RawStructSchema` values by comparing pointers.
             private_mod_interior.push(Branch(vec![
-                Line("#[allow(unsafe_code)]".into()),
-                Line(fmt!(ctx,"pub static RAW_SCHEMA: {capnp}::introspect::RawStructSchema = unsafe {{{capnp}::introspect::RawStructSchema::new(")),
+                Line(fmt!(ctx, "pub static ARENA: {capnp}::private::arena::GeneratedCodeArena = {capnp}::private::arena::GeneratedCodeArena::new(&ENCODED_NODE);")),
+                Line(fmt!(ctx,"pub static RAW_SCHEMA: {capnp}::introspect::RawStructSchema = {capnp}::introspect::RawStructSchema::new(")),
                 indent(vec![
-                    Line("&ENCODED_NODE,".into()),
+                    Line("&ARENA,".into()),
                     Line("NONUNION_MEMBERS,".into()),
                     Line("MEMBERS_BY_DISCRIMINANT,".into()),
                     Line("MEMBERS_BY_NAME".into()),
                 ]),
-                Line(")};".into()),
+                Line(");".into()),
             ]));
 
             private_mod_interior.push(generate_members_by_discriminant(*node_reader)?);

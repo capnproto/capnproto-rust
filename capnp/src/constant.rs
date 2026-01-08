@@ -33,27 +33,23 @@ use crate::Result;
 #[derive(Copy, Clone)]
 pub struct Reader<T> {
     pub(crate) phantom: PhantomData<T>,
-    pub(crate) words: &'static [crate::Word],
+    pub(crate) arena: &'static crate::private::arena::GeneratedCodeArena,
 }
 
 impl<T> Reader<T>
 where
     T: Owned,
 {
-    /// Constructs a new `constant::Reader`. Unsafe because `words` is assumed
-    /// to be a valid message and bounds-checking will be disabled on it.
-    pub const unsafe fn new(words: &'static [crate::Word]) -> Self {
+    /// Constructs a new `constant::Reader`.
+    pub const fn new(arena: &'static crate::private::arena::GeneratedCodeArena) -> Self {
         Self {
             phantom: PhantomData,
-            words,
+            arena,
         }
     }
 
     /// Retrieve the value.
     pub fn get(&self) -> Result<<T as Owned>::Reader<'static>> {
-        any_pointer::Reader::new(unsafe {
-            PointerReader::get_root_unchecked(self.words.as_ptr() as *const u8)
-        })
-        .get_as()
+        any_pointer::Reader::new(PointerReader::get_root_from_arena(self.arena)?).get_as()
     }
 }
