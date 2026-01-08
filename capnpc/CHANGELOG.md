@@ -1,3 +1,6 @@
+## v0.24.1
+- Add local `#[allow(unsafe_code)]` annotations to generated code.
+
 ## v0.24.0
 - Adjust generated code to used new constructors for constants and RawStructSchema.
 
