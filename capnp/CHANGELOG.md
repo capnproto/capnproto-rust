@@ -1,3 +1,6 @@
+## v0.24.1
+- Make primitive_list<bool> return None from `as_slice()`, to prevent undefined behavior.
+
 ## v0.24.0
 - Add unsafe const constructor of `constant::Reader` and prevent direction construction.
 - Add unsafe const constructor of `RawStructSchema` and prevent direction construction.
