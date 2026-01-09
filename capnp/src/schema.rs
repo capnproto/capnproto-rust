@@ -17,14 +17,11 @@ pub struct StructSchema {
 
 impl StructSchema {
     pub fn new(raw: RawBrandedStructSchema) -> Self {
-        let proto =
-            crate::any_pointer::Reader::new(unsafe {
-                layout::PointerReader::get_root_unchecked(
-                    raw.generic.encoded_node.as_ptr() as *const u8
-                )
-            })
-            .get_as()
-            .unwrap();
+        let proto = crate::any_pointer::Reader::new(
+            layout::PointerReader::get_root_from_arena(raw.generic.arena).unwrap(),
+        )
+        .get_as()
+        .unwrap();
         Self { raw, proto }
     }
 

@@ -132,7 +132,7 @@ impl Default for ReaderOptions {
 }
 
 impl ReaderOptions {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         DEFAULT_READER_OPTIONS
     }
 

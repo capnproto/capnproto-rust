@@ -113,10 +113,13 @@ pub fn generate_pointer_constant(
                 value,
                 WordArrayDeclarationOptions { public: false },
             )?,
-            Line("#[allow(unsafe_code)]".into()),
             Line(fmt!(
                 ctx,
-                "unsafe {{{capnp}::constant::Reader::new(&WORDS)}}"
+                "static ARENA: {capnp}::private::arena::GeneratedCodeArena = {capnp}::private::arena::GeneratedCodeArena::new(&WORDS);"
+            )),
+            Line(fmt!(
+                ctx,
+                "{capnp}::constant::Reader::new(&ARENA)"
             )),
         ]))),
         line("};"),
