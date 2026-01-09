@@ -1,3 +1,1 @@
-pub mod external_capnp {
-    include!(concat!(env!("OUT_DIR"), "/external_capnp.rs"));
-}
+capnp::generated_code!(pub mod external_capnp);
