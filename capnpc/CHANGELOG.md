@@ -1,3 +1,6 @@
+## v0.25.0
+- Use new GeneratedCodeArena to avoid need for `unsafe` in generated code.
+
 ## v0.24.1
 - Add local `#[allow(unsafe_code)]` annotations to generated code.
 

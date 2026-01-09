@@ -1,3 +1,7 @@
+## v0.25.0
+- Add GeneratedCodeArena, allowing `constant::Reader::new()` and `RawStructSchema::new()` to
+  no loner need an `unsafe` marker.
+
 ## v0.24.1
 - Make primitive_list<bool> return None from `as_slice()`, to prevent undefined behavior.
 
