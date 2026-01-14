@@ -1093,15 +1093,19 @@ fn generate_setter(
                     )
                 }
                 type_::Data(()) => {
-                    setter_interior.push(Line(format!(
-                        "self.builder.reborrow().get_pointer_field({offset}).set_data(value);"
+                    // The data::Reader impl of SetterInput never fails, so we can unwrap().
+                    setter_interior.push(Line(fmt!(ctx,
+                        "{capnp}::traits::SetterInput::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false).unwrap()"
                     )));
                     initter_interior.push(Line(format!(
                         "self.builder.get_pointer_field({offset}).init_data(size)"
                     )));
                     initter_params.push("size: u32");
                     (
-                        Some(fmt!(ctx, "{capnp}::data::Reader<'_>")),
+                        Some(fmt!(
+                            ctx,
+                            "impl {capnp}::traits::SetterInput<{capnp}::data::Owned>"
+                        )),
                         Some(fmt!(ctx, "{capnp}::data::Builder<'a>")),
                     )
                 }
@@ -1176,7 +1180,11 @@ fn generate_setter(
                         Line(fmt!(ctx,"{capnp}::traits::SetterInput::set_pointer_builder(self.builder.reborrow().get_pointer_field({offset}), value, false)")));
 
                     (
-                        Some(typ.type_string(ctx, Leaf::Reader("'_"))?),
+                        Some(fmt!(
+                            ctx,
+                            "impl {capnp}::traits::SetterInput<{}>",
+                            typ.type_string(ctx, Leaf::Owned)?
+                        )),
                         Some(typ.type_string(ctx, Leaf::Builder("'a"))?),
                     )
                 }
