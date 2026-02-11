@@ -1,3 +1,7 @@
+## v0.25.1
+- Return `PrematureEndOfFile` instead of just `Failed` when `read_message()` hits end-of-stream
+  too soon.
+
 ## v0.25.0
 - Follow v0.25.0 release of other capnp crates.
 
