@@ -473,7 +473,8 @@ unsafe impl ReaderArena for NullArena {
         start: *const u8,
         offset_in_words: i32,
     ) -> Result<*const u8> {
-        unsafe { Ok(start.add(offset_in_words as usize * BYTES_PER_WORD)) }
+        let offset_in_bytes = (offset_in_words as i64) * BYTES_PER_WORD as i64;
+        unsafe { Ok(start.offset(offset_in_bytes as isize)) }
     }
 
     fn contains_interval(&self, _id: u32, _start: *const u8, _size: usize) -> Result<()> {
