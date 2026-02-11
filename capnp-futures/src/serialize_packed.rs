@@ -236,7 +236,9 @@ where
 {
     match try_read_message(reader, options).await? {
         Some(s) => Ok(s),
-        None => Err(capnp::Error::failed("Premature end of file".to_string())),
+        None => Err(capnp::Error::from_kind(
+            capnp::ErrorKind::PrematureEndOfFile,
+        )),
     }
 }
 
