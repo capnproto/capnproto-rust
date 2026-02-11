@@ -1716,6 +1716,8 @@ mod wire_helpers {
         segment_id: u32,
         size: ByteCount32,
     ) -> SegmentAnd<text::Builder<'_>> {
+        assert!(size < (1 << 29), "text size too large");
+
         //# The byte list must include a NUL terminator.
         let byte_size = size + 1;
 
