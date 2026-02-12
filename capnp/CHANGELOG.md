@@ -1,3 +1,6 @@
+## v0.25.1
+- Prevent multiple potential integer overflows in message construction logic.
+
 ## v0.25.0
 - Add GeneratedCodeArena, allowing `constant::Reader::new()` and `RawStructSchema::new()` to
   no loner need an `unsafe` marker.
