@@ -1590,10 +1590,12 @@ mod wire_helpers {
                 src = src.offset(old_step as isize);
             }
 
+            // Zero out the old location, making sure to include the tag word.
             ptr::write_bytes(
                 old_ptr.offset(-(BYTES_PER_WORD as isize)),
                 0,
-                (u64::from(old_step) * u64::from(element_count)) as usize * BYTES_PER_WORD,
+                (u64::from(old_step) * u64::from(element_count)) as usize * BYTES_PER_WORD
+                    + POINTER_SIZE_IN_WORDS,
             );
 
             Ok(ListBuilder {
