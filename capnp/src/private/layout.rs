@@ -1300,7 +1300,12 @@ mod wire_helpers {
         let words_per_element = element_size.total();
 
         //# Allocate the list, prefixed by a single WirePointer.
-        let word_count: WordCount32 = element_count * words_per_element;
+        let word_count_u64 = u64::from(element_count) * u64::from(words_per_element);
+        assert!(
+            word_count_u64 < (1 << 29),
+            "Inline composite lists are limited to 2**29 words"
+        );
+        let word_count: WordCount32 = word_count_u64 as u32;
         let (ptr, reff, segment_id) = allocate(
             arena,
             reff,
