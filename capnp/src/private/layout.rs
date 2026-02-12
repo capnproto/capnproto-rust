@@ -1545,7 +1545,14 @@ mod wire_helpers {
             let new_pointer_count = ::core::cmp::max(old_pointer_count, element_size.pointers);
             let new_step =
                 u32::from(new_data_size) + u32::from(new_pointer_count) * WORDS_PER_POINTER as u32;
-            let total_size = new_step * element_count;
+
+            let total_size_u64 = u64::from(new_step) * u64::from(element_count);
+            if total_size_u64 >= (1 << 29) {
+                return Err(Error::from_kind(ErrorKind::MessageTooLarge(
+                    total_size_u64 as usize,
+                )));
+            }
+            let total_size = total_size_u64 as u32;
 
             // Don't let allocate() zero out the object just yet.
             zero_pointer_and_fars(arena, orig_segment_id, orig_ref)?;
@@ -1648,7 +1655,14 @@ mod wire_helpers {
 
                 let new_step = u32::from(new_data_size)
                     + u32::from(new_pointer_count) * WORDS_PER_POINTER as u32;
-                let total_words = element_count * new_step;
+
+                let total_words_u64 = u64::from(new_step) * u64::from(element_count);
+                if total_words_u64 >= (1 << 29) {
+                    return Err(Error::from_kind(ErrorKind::MessageTooLarge(
+                        total_words_u64 as usize,
+                    )));
+                }
+                let total_words = total_words_u64 as u32;
 
                 // Don't let allocate() zero out the object just yet.
                 zero_pointer_and_fars(arena, orig_segment_id, orig_ref)?;
