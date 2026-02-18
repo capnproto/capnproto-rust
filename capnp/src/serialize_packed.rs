@@ -553,6 +553,7 @@ mod tests {
             &[0xed, 8, 100, 6, 1, 1, 2, 0, 2, 0xd4, 1, 2, 3, 1],
         );
 
+        check_packing(&[0; 8], &[0, 0]);
         check_packing(&[0; 16], &[0, 1]);
         check_packing(
             &[
@@ -560,6 +561,7 @@ mod tests {
             ],
             &[0, 2],
         );
+        check_packing(&[0; 258 * 8], &[0, 255, 0, 1]);
     }
 
     quickcheck! {
