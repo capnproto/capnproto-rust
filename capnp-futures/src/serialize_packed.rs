@@ -395,8 +395,8 @@ where
                     if *buf_pos == *packed_buf_size {
                         if packed_buf[0] == 0 {
                             // see how long of a run we can make
-                            let mut words_in_run = inbuf.len() / 8;
-                            for (idx, inb) in inbuf.iter().enumerate() {
+                            let mut words_in_run = (inbuf.len() / 8).min(u8::MAX.into());
+                            for (idx, inb) in inbuf[..words_in_run * 8].iter().enumerate() {
                                 if *inb != 0 {
                                     words_in_run = idx / 8;
                                     break;
@@ -408,10 +408,9 @@ where
                             // See how long of a run we can make.
                             // We look for at least two zeros because that's the point
                             // where our compression scheme becomes a net win.
-                            let mut words_in_run = inbuf.len() / 8;
-
+                            let mut words_in_run = (inbuf.len() / 8).min(u8::MAX.into());
                             let mut zero_bytes_in_word = 0;
-                            for (idx, inb) in inbuf.iter().enumerate() {
+                            for (idx, inb) in inbuf[..words_in_run * 8].iter().enumerate() {
                                 if idx % 8 == 0 {
                                     zero_bytes_in_word = 0;
                                 }
@@ -432,9 +431,12 @@ where
                     }
                 }
                 PackedWriteStage::WriteRunWordCount => {
-                    match Pin::new(&mut *inner)
-                        .poll_write(cx, &[(*run_bytes_remaining / 8) as u8])?
-                    {
+                    match Pin::new(&mut *inner).poll_write(
+                        cx,
+                        &[(*run_bytes_remaining / 8)
+                            .try_into()
+                            .expect("overflow writing run word count")],
+                    )? {
                         Poll::Pending => {
                             if inbuf_bytes_consumed == 0 {
                                 return Poll::Pending;

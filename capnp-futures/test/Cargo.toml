@@ -19,3 +19,7 @@ capnp-futures = {path = "./../"}
 capnp = { path = "../../capnp" }
 futures = "0.3.0"
 async-byte-channel = {path = "./../../async-byte-channel"}
+
+[[test]]
+name = "overflow_test"
+path = "overflow_test.rs"
