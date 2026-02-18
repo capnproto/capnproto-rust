@@ -433,7 +433,7 @@ where
                 }
                 PackedWriteStage::WriteRunWordCount => {
                     match Pin::new(&mut *inner)
-                        .poll_write(cx, &[(*run_bytes_remaining / 8) as u8])?
+                        .poll_write(cx, &[(*run_bytes_remaining / 8).try_into().expect("overflow writing run word count")])?
                     {
                         Poll::Pending => {
                             if inbuf_bytes_consumed == 0 {
