@@ -1,0 +1,20 @@
+[package]
+
+name = "capnp-json"
+version = "0.23.0"
+authors = [ "Ben Jackson <puremourning@gmail.com>" ]
+license = "MIT"
+description = "implementation of the Cap'n Proto JSON codec in rust"
+repository = "https://github.com/capnproto/capnproto-rust"
+documentation = "https://docs.rs/capnp-rpc/"
+categories = ["network-programming"]
+autoexamples = false
+edition = "2021"
+
+readme = "README.md"
+
+[dependencies]
+capnp = {version = "0.24.0", path = "../capnp"}
+
+#[lints]
+#workspace = true
