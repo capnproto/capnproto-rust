@@ -1,3 +1,6 @@
+## v0.25.2
+- Fix bug in `PackedWrite` that incorrectly encoded long streams of zeroes or non-zeroes.
+
 ## v0.25.1
 - Return `PrematureEndOfFile` instead of just `Failed` when `read_message()` hits end-of-stream
   too soon.
