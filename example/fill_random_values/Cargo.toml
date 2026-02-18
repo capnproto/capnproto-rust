@@ -11,7 +11,7 @@ readme = "README.md"
 keywords = ["encoding", "protocol", "serialization"]
 
 [dependencies]
-rand = "0.9.0"
+rand = "0.10.0"
 
 [dependencies.capnp]
 path = "../../capnp"
