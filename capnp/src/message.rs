@@ -785,6 +785,10 @@ impl HeapAllocator {
 unsafe impl Allocator for HeapAllocator {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         let size = core::cmp::max(minimum_size, self.next_size);
+        if size == 0 {
+            // passing a zero-sized layout to alloc_zeroed() leads to undefined behavior
+            return (core::ptr::dangling_mut(), 0);
+        }
         let layout =
             alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD, 8).unwrap();
         let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
