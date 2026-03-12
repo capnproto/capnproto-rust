@@ -787,7 +787,7 @@ unsafe impl Allocator for HeapAllocator {
         let size = core::cmp::max(minimum_size, self.next_size);
         if size == 0 {
             // passing a zero-sized layout to alloc_zeroed() leads to undefined behavior
-            return (core::ptr::dangling_mut(), 0);
+            return (core::ptr::NonNull::dangling().as_ptr(), 0);
         }
         let layout =
             alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD, 8).unwrap();
