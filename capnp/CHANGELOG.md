@@ -1,3 +1,6 @@
+## v0.25.2
+- Prevent undefined behavior on zero-sized alloc in HeapAllocator.
+
 ## v0.25.1
 - Prevent multiple potential integer overflows in message construction logic.
 
