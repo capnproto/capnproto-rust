@@ -30,6 +30,7 @@ members = [
     "example/addressbook",
     "example/addressbook_send",
     "example/fill_random_values",
+    "example/json_config",
 ]
 default-members = [
     "capnp",

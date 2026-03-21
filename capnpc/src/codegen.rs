@@ -38,6 +38,7 @@ pub struct CodeGenerationCommand {
     raw_code_generator_request_path: Option<PathBuf>,
     capnp_root: String,
     crates_provide_map: HashMap<u64, String>,
+    serde_derive: bool,
 }
 
 impl Default for CodeGenerationCommand {
@@ -48,6 +49,7 @@ impl Default for CodeGenerationCommand {
             raw_code_generator_request_path: None,
             capnp_root: "::capnp".into(),
             crates_provide_map: HashMap::new(),
+            serde_derive: false,
         }
     }
 }
@@ -104,6 +106,12 @@ impl CodeGenerationCommand {
     /// See [`crate::CompilerCommand::crate_provides`] for more details.
     pub fn crates_provide_map(&mut self, map: HashMap<u64, String>) -> &mut Self {
         self.crates_provide_map = map;
+        self
+    }
+
+    /// Enables `serde` derives on generated `Owned` types.
+    pub fn serde_derive(&mut self, serde_derive: bool) -> &mut Self {
+        self.serde_derive = serde_derive;
         self
     }
 
@@ -195,6 +203,7 @@ pub struct GeneratorContext<'a> {
 
     /// Root path for referencing things in the `capnp` crate from the generated code.
     pub capnp_root: String,
+    pub serde_derive: bool,
 }
 
 impl<'a> GeneratorContext<'a> {
@@ -218,6 +227,7 @@ impl<'a> GeneratorContext<'a> {
             scope_map: collections::hash_map::HashMap::<u64, Vec<String>>::new(),
             node_parents: collections::hash_map::HashMap::new(),
             capnp_root: code_generation_command.capnp_root.clone(),
+            serde_derive: code_generation_command.serde_derive,
         };
 
         let crates_provide = &code_generation_command.crates_provide_map;
@@ -386,6 +396,377 @@ fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<
             path.as_ref()
         )))
     }
+}
+
+fn supports_serde_struct(
+    ctx: &GeneratorContext<'_>,
+    node_reader: schema_capnp::node::Reader,
+) -> capnp::Result<bool> {
+    let mut seen = HashSet::new();
+    supports_serde_struct_inner(ctx, node_reader, &mut seen)
+}
+
+fn supports_serde_struct_inner(
+    ctx: &GeneratorContext<'_>,
+    node_reader: schema_capnp::node::Reader,
+    seen: &mut HashSet<u64>,
+) -> capnp::Result<bool> {
+    use capnp::schema_capnp::{field, node};
+    let node::Struct(st) = node_reader.which()? else {
+        return Ok(false);
+    };
+    if node_reader.get_is_generic() || st.get_discriminant_count() > 0 {
+        return Ok(false);
+    }
+    if !seen.insert(node_reader.get_id()) {
+        return Ok(false);
+    }
+
+    for field in st.get_fields()? {
+        let field::Slot(slot) = field.which()? else {
+            return Ok(false);
+        };
+        if !supports_serde_type(ctx, slot.get_type()?, seen)? {
+            return Ok(false);
+        }
+    }
+
+    seen.remove(&node_reader.get_id());
+    Ok(true)
+}
+
+fn supports_serde_type(
+    ctx: &GeneratorContext<'_>,
+    ty: schema_capnp::type_::Reader,
+    seen: &mut HashSet<u64>,
+) -> capnp::Result<bool> {
+    use capnp::schema_capnp::type_;
+    match ty.which()? {
+        type_::Void(())
+        | type_::Bool(())
+        | type_::Int8(())
+        | type_::Int16(())
+        | type_::Int32(())
+        | type_::Int64(())
+        | type_::Uint8(())
+        | type_::Uint16(())
+        | type_::Uint32(())
+        | type_::Uint64(())
+        | type_::Float32(())
+        | type_::Float64(())
+        | type_::Text(())
+        | type_::Data(())
+        | type_::Enum(_) => Ok(true),
+        type_::Struct(s) => {
+            let node_reader = *ctx
+                .node_map
+                .get(&s.get_type_id())
+                .ok_or_else(|| Error::failed(format!("node not found: {}", s.get_type_id())))?;
+            supports_serde_struct_inner(ctx, node_reader, seen)
+        }
+        type_::List(list) => match list.get_element_type()?.which()? {
+            type_::List(_) | type_::Interface(_) | type_::AnyPointer(_) => Ok(false),
+            _ => supports_serde_type(ctx, list.get_element_type()?, seen),
+        },
+        type_::Interface(_) | type_::AnyPointer(_) => Ok(false),
+    }
+}
+
+fn serde_type_string(
+    ctx: &GeneratorContext<'_>,
+    ty: schema_capnp::type_::Reader,
+) -> capnp::Result<String> {
+    use capnp::schema_capnp::type_;
+    match ty.which()? {
+        type_::Void(()) => Ok("()".into()),
+        type_::Bool(()) => Ok("bool".into()),
+        type_::Int8(()) => Ok("i8".into()),
+        type_::Int16(()) => Ok("i16".into()),
+        type_::Int32(()) => Ok("i32".into()),
+        type_::Int64(()) => Ok("i64".into()),
+        type_::Uint8(()) => Ok("u8".into()),
+        type_::Uint16(()) => Ok("u16".into()),
+        type_::Uint32(()) => Ok("u32".into()),
+        type_::Uint64(()) => Ok("u64".into()),
+        type_::Float32(()) => Ok("f32".into()),
+        type_::Float64(()) => Ok("f64".into()),
+        type_::Text(()) => Ok("::std::string::String".into()),
+        type_::Data(()) => Ok("::std::vec::Vec<u8>".into()),
+        type_::Enum(e) => Ok(ctx.get_qualified_module(e.get_type_id())),
+        type_::Struct(_) => Err(Error::failed(
+            "structs do not deserialize as scalars".into(),
+        )),
+        type_::List(list) => Ok(format!(
+            "::std::vec::Vec<{}>",
+            serde_type_string(ctx, list.get_element_type()?)?
+        )),
+        type_::Interface(_) | type_::AnyPointer(_) => {
+            Err(Error::failed("unsupported serde type".into()))
+        }
+    }
+}
+
+fn serde_scalar_setter(ty: schema_capnp::type_::Reader, value_expr: &str) -> capnp::Result<String> {
+    use capnp::schema_capnp::type_;
+    match ty.which()? {
+        type_::Text(()) => Ok(format!("{value_expr}.as_str()")),
+        type_::Data(()) => Ok(format!("{value_expr}.as_slice()")),
+        type_::Void(())
+        | type_::Bool(())
+        | type_::Int8(())
+        | type_::Int16(())
+        | type_::Int32(())
+        | type_::Int64(())
+        | type_::Uint8(())
+        | type_::Uint16(())
+        | type_::Uint32(())
+        | type_::Uint64(())
+        | type_::Float32(())
+        | type_::Float64(())
+        | type_::Enum(_) => Ok(value_expr.into()),
+        _ => Err(Error::failed("not a scalar serde setter type".into())),
+    }
+}
+
+fn generate_serde_struct(
+    ctx: &GeneratorContext<'_>,
+    node_reader: schema_capnp::node::Reader,
+) -> capnp::Result<Option<FormattedText>> {
+    use capnp::schema_capnp::{field, node};
+    if !ctx.serde_derive || !supports_serde_struct(ctx, node_reader)? {
+        return Ok(None);
+    }
+    let node::Struct(st) = node_reader.which()? else {
+        return Ok(None);
+    };
+
+    let mut map_match_arms = Vec::new();
+    let mut helper_lines = Vec::new();
+
+    for field in st.get_fields()? {
+        let field::Slot(slot) = field.which()? else {
+            return Ok(None);
+        };
+        let field_name = get_field_name(field)?;
+        let styled_name = camel_to_snake_case(field_name);
+        map_match_arms.push(generate_serde_map_match_arm(
+            ctx,
+            field_name,
+            &styled_name,
+            slot.get_type()?,
+            &mut helper_lines,
+        )?);
+    }
+
+    Ok(Some(Branch(vec![
+        line("#[cfg(feature = \"serde\")]"),
+        line("pub struct SerdeSeed<'a> {"),
+        indent(line("builder: Builder<'a>,")),
+        line("}"),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        line("impl <'a> SerdeSeed<'a> {"),
+        indent(vec![
+            line("pub fn new(builder: Builder<'a>) -> Self {"),
+            indent(line("Self { builder }")),
+            line("}"),
+        ]),
+        line("}"),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        line("impl <'de, 'a> ::serde::de::DeserializeSeed<'de> for SerdeSeed<'a> {"),
+        indent(vec![
+            line("type Value = ();"),
+            line("fn deserialize<D>(self, deserializer: D) -> ::core::result::Result<Self::Value, D::Error>"),
+            line("where"),
+            indent(line("D: ::serde::Deserializer<'de>,")),
+            line("{"),
+            indent(line("deserializer.deserialize_map(SerdeVisitor { builder: self.builder })")),
+            line("}"),
+        ]),
+        line("}"),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        line("struct SerdeVisitor<'a> {"),
+        indent(line("builder: Builder<'a>,")),
+        line("}"),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        line("impl <'de, 'a> ::serde::de::Visitor<'de> for SerdeVisitor<'a> {"),
+        indent(vec![
+            line("type Value = ();"),
+            line("fn expecting(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {"),
+            indent(line("formatter.write_str(\"a map matching the Cap'n Proto struct shape\")")),
+            line("}"),
+            line("fn visit_map<A>(mut self, mut map: A) -> ::core::result::Result<Self::Value, A::Error>"),
+            line("where"),
+            indent(line("A: ::serde::de::MapAccess<'de>,")),
+            line("{"),
+            indent(vec![
+                line("while let ::core::option::Option::Some(key) = map.next_key::<::std::string::String>()? {"),
+                indent(vec![
+                    line("match key.as_str() {"),
+                    indent({
+                        let mut arms = map_match_arms;
+                        arms.push(Line(
+                            "_ => { let _: ::serde::de::IgnoredAny = map.next_value()?; }".into(),
+                        ));
+                        arms
+                    }),
+                    line("}"),
+                ]),
+                line("}"),
+                line("::core::result::Result::Ok(())"),
+            ]),
+            line("}"),
+        ]),
+        line("}"),
+        BlankLine,
+        Branch(helper_lines),
+    ])))
+}
+
+fn generate_serde_map_match_arm(
+    ctx: &GeneratorContext<'_>,
+    field_name: &str,
+    styled_name: &str,
+    ty: schema_capnp::type_::Reader,
+    helper_lines: &mut Vec<FormattedText>,
+) -> capnp::Result<FormattedText> {
+    use capnp::schema_capnp::type_;
+    match ty.which()? {
+        type_::Struct(s) => Ok(Line(format!(
+            "\"{field_name}\" => map.next_value_seed({}::SerdeSeed::new(self.builder.reborrow().init_{styled_name}()))?,",
+            ctx.get_qualified_module(s.get_type_id())
+        ))),
+        type_::List(list) => {
+            let helper_name = format!("{}SerdeSeed", capitalize_first_letter(field_name));
+            let visitor_name = format!("{}SerdeVisitor", capitalize_first_letter(field_name));
+            helper_lines.extend(generate_serde_list_seed(
+                ctx,
+                &helper_name,
+                &visitor_name,
+                styled_name,
+                list.get_element_type()?,
+            )?);
+            Ok(Line(format!(
+                "\"{field_name}\" => map.next_value_seed({helper_name}::new(self.builder.reborrow()))?,"
+            )))
+        }
+        _ => Ok(Line(format!(
+            "\"{field_name}\" => {{ let value = map.next_value::<{}>()?; self.builder.set_{styled_name}({}); }},",
+            serde_type_string(ctx, ty)?,
+            serde_scalar_setter(ty, "value")?
+        ))),
+    }
+}
+
+fn generate_serde_list_seed(
+    ctx: &GeneratorContext<'_>,
+    helper_name: &str,
+    visitor_name: &str,
+    styled_name: &str,
+    element_type: schema_capnp::type_::Reader,
+) -> capnp::Result<Vec<FormattedText>> {
+    use capnp::schema_capnp::type_;
+    let mut visit_seq_lines = vec![
+        line("let len = seq.size_hint().ok_or_else(|| <A::Error as ::serde::de::Error>::custom(\"sequence length required for Cap'n Proto list allocation\"))?;"),
+        Line(format!(
+            "let mut value = self.builder.init_{styled_name}(len as u32);"
+        )),
+        line("let mut index = 0usize;"),
+    ];
+
+    match element_type.which()? {
+        type_::Struct(s) => {
+            visit_seq_lines.push(line("while index < len {"));
+            visit_seq_lines.push(indent(Line(format!(
+                "if seq.next_element_seed({}::SerdeSeed::new(value.reborrow().get(index as u32)))?.is_none() {{ break; }}",
+                ctx.get_qualified_module(s.get_type_id())
+            ))));
+            visit_seq_lines.push(indent(line("index += 1;")));
+            visit_seq_lines.push(line("}"));
+        }
+        type_::List(_) => {
+            return Err(Error::failed(
+                "nested lists are not supported in direct serde deserialization".into(),
+            ))
+        }
+        _ => {
+            visit_seq_lines.push(Line(format!(
+                "while let ::core::option::Option::Some(element) = seq.next_element::<{}>()? {{",
+                serde_type_string(ctx, element_type)?
+            )));
+            visit_seq_lines.push(indent(line(
+                "if index >= len { return ::core::result::Result::Err(<A::Error as ::serde::de::Error>::invalid_length(index, &self)); }",
+            )));
+            visit_seq_lines.push(indent(Line(format!(
+                "value.set(index as u32, {});",
+                serde_scalar_setter(element_type, "element")?
+            ))));
+            visit_seq_lines.push(indent(line("index += 1;")));
+            visit_seq_lines.push(line("}"));
+        }
+    }
+
+    visit_seq_lines.push(line("::core::result::Result::Ok(())"));
+
+    Ok(vec![
+        line("#[cfg(feature = \"serde\")]"),
+        Line(format!("struct {helper_name}<'a> {{")),
+        indent(line("builder: Builder<'a>,")),
+        line("}"),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        Line(format!("impl <'a> {helper_name}<'a> {{")),
+        indent(vec![
+            line("fn new(builder: Builder<'a>) -> Self {"),
+            indent(line("Self { builder }")),
+            line("}"),
+        ]),
+        line("}"),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        Line(format!(
+            "impl <'de, 'a> ::serde::de::DeserializeSeed<'de> for {helper_name}<'a> {{"
+        )),
+        indent(vec![
+            line("type Value = ();"),
+            line("fn deserialize<D>(self, deserializer: D) -> ::core::result::Result<Self::Value, D::Error>"),
+            line("where"),
+            indent(line("D: ::serde::Deserializer<'de>,")),
+            line("{"),
+            indent(Line(format!(
+                "deserializer.deserialize_seq({visitor_name} {{ builder: self.builder }})"
+            ))),
+            line("}"),
+        ]),
+        line("}"),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        Line(format!("struct {visitor_name}<'a> {{")),
+        indent(line("builder: Builder<'a>,")),
+        line("}"),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        Line(format!(
+            "impl <'de, 'a> ::serde::de::Visitor<'de> for {visitor_name}<'a> {{"
+        )),
+        indent(vec![
+            line("type Value = ();"),
+            line("fn expecting(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {"),
+            indent(line("formatter.write_str(\"a sequence matching the Cap'n Proto list shape\")")),
+            line("}"),
+            line("fn visit_seq<A>(self, mut seq: A) -> ::core::result::Result<Self::Value, A::Error>"),
+            line("where"),
+            indent(line("A: ::serde::de::SeqAccess<'de>,")),
+            line("{"),
+            indent(visit_seq_lines),
+            line("}"),
+        ]),
+        line("}"),
+        BlankLine,
+    ])
 }
 
 fn snake_to_upper_case(s: &str) -> String {
@@ -2216,6 +2597,12 @@ fn generate_node(
                 }),
                 BlankLine,
                 (if !is_generic {
+                    generate_serde_struct(ctx, *node_reader)?
+                        .unwrap_or_else(|| Branch(Vec::new()))
+                } else {
+                    Branch(Vec::new())
+                }),
+                (if !is_generic {
                     Line(fmt!(ctx,"pub struct Reader<'a> {{ reader: {capnp}::private::layout::StructReader<'a> }}"))
                 } else {
                     Branch(vec![
@@ -2390,7 +2777,20 @@ fn generate_node(
                         BlankLine,
                         Line(fmt!(ctx,"pub fn total_size(&self) -> {capnp}::Result<{capnp}::MessageSize> {{")),
                         indent(line("self.builder.as_reader().total_size()")),
-                        line("}")
+                        line("}"),
+                        (if ctx.serde_derive && !is_generic {
+                            Branch(vec![
+                                line("#[cfg(feature = \"serde\")]"),
+                                line("pub fn deserialize_serde<'de, D>(&mut self, deserializer: D) -> ::core::result::Result<(), D::Error>"),
+                                line("where"),
+                                indent(line("D: ::serde::Deserializer<'de>,")),
+                                line("{"),
+                                indent(line("::serde::de::DeserializeSeed::deserialize(SerdeSeed::new(self.reborrow()), deserializer)")),
+                                line("}"),
+                            ])
+                        } else {
+                            Branch(Vec::new())
+                        })
                         ]),
                 indent(builder_members),
                 line("}"),
@@ -2450,13 +2850,19 @@ fn generate_node(
                 "n => ::core::result::Result::Err({capnp}::NotInSchema(n)),"
             )));
 
-            output.push(Branch(vec![
-                line("#[repr(u16)]"),
+            let mut enum_lines = vec![line("#[repr(u16)]")];
+            if ctx.serde_derive {
+                enum_lines.push(line(
+                    "#[cfg_attr(feature = \"serde\", derive(::serde::Serialize, ::serde::Deserialize))]",
+                ));
+            }
+            enum_lines.extend(vec![
                 line("#[derive(Clone, Copy, Debug, PartialEq, Eq)]"),
                 Line(format!("pub enum {last_name} {{")),
                 indent(members),
                 line("}"),
-            ]));
+            ]);
+            output.push(Branch(enum_lines));
 
             output.push(BlankLine);
             output.push(Branch(vec![
