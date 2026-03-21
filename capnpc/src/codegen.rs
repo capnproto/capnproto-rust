@@ -528,6 +528,45 @@ fn serde_scalar_setter(ty: schema_capnp::type_::Reader, value_expr: &str) -> cap
     }
 }
 
+fn serde_scalar_serialize_expr(
+    ctx: &GeneratorContext<'_>,
+    ty: schema_capnp::type_::Reader,
+    value_expr: &str,
+    error_ty: &str,
+) -> capnp::Result<String> {
+    use capnp::schema_capnp::type_;
+    let capnp = &ctx.capnp_root;
+    match ty.which()? {
+        type_::Text(()) => Ok(format!(
+            "{value_expr}.map_err(<{error_ty} as ::serde::ser::Error>::custom)?.to_str().map_err(<{error_ty} as ::serde::ser::Error>::custom)?"
+        )),
+        type_::Data(()) => Ok(format!(
+            "{value_expr}.map_err(<{error_ty} as ::serde::ser::Error>::custom)?"
+        )),
+        type_::Enum(_) => Ok(format!(
+            "{value_expr}.map_err(|e| <{error_ty} as ::serde::ser::Error>::custom({capnp}::Error::from(e)))?"
+        )),
+        type_::Struct(_) => Ok(format!(
+            "{value_expr}.map_err(<{error_ty} as ::serde::ser::Error>::custom)?"
+        )),
+        type_::Void(())
+        | type_::Bool(())
+        | type_::Int8(())
+        | type_::Int16(())
+        | type_::Int32(())
+        | type_::Int64(())
+        | type_::Uint8(())
+        | type_::Uint16(())
+        | type_::Uint32(())
+        | type_::Uint64(())
+        | type_::Float32(())
+        | type_::Float64(()) => Ok(value_expr.into()),
+        type_::List(_) | type_::Interface(_) | type_::AnyPointer(_) => {
+            Err(Error::failed("not a scalar serde serialize type".into()))
+        }
+    }
+}
+
 fn generate_serde_struct(
     ctx: &GeneratorContext<'_>,
     node_reader: schema_capnp::node::Reader,
@@ -542,6 +581,7 @@ fn generate_serde_struct(
 
     let mut map_match_arms = Vec::new();
     let mut helper_lines = Vec::new();
+    let mut serialize_lines = Vec::new();
 
     for field in st.get_fields()? {
         let field::Slot(slot) = field.which()? else {
@@ -550,6 +590,13 @@ fn generate_serde_struct(
         let field_name = get_field_name(field)?;
         let styled_name = camel_to_snake_case(field_name);
         map_match_arms.push(generate_serde_map_match_arm(
+            ctx,
+            field_name,
+            &styled_name,
+            slot.get_type()?,
+            &mut helper_lines,
+        )?);
+        serialize_lines.push(generate_serde_serialize_entry(
             ctx,
             field_name,
             &styled_name,
@@ -622,8 +669,56 @@ fn generate_serde_struct(
         ]),
         line("}"),
         BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        line("impl <'a> ::serde::Serialize for Reader<'a> {"),
+        indent(vec![
+            line("fn serialize<S>(&self, serializer: S) -> ::core::result::Result<S::Ok, S::Error>"),
+            line("where"),
+            indent(line("S: ::serde::Serializer,")),
+            line("{"),
+            indent(vec![
+                line("use ::serde::ser::SerializeMap;"),
+                Line(format!(
+                    "let mut map = serializer.serialize_map(::core::option::Option::Some({}))?;",
+                    st.get_fields()?.len()
+                )),
+                Branch(serialize_lines),
+                line("map.end()"),
+            ]),
+            line("}"),
+        ]),
+        line("}"),
+        BlankLine,
         Branch(helper_lines),
     ])))
+}
+
+fn generate_serde_serialize_entry(
+    ctx: &GeneratorContext<'_>,
+    field_name: &str,
+    styled_name: &str,
+    ty: schema_capnp::type_::Reader,
+    helper_lines: &mut Vec<FormattedText>,
+) -> capnp::Result<FormattedText> {
+    use capnp::schema_capnp::type_;
+    match ty.which()? {
+        type_::List(list) => {
+            let helper_name = format!("{}SerdeSerialize", capitalize_first_letter(field_name));
+            helper_lines.extend(generate_serde_list_serializer(
+                ctx,
+                &helper_name,
+                ty.type_string(ctx, Leaf::Reader("'a"))?,
+                list.get_element_type()?,
+            )?);
+            Ok(Line(format!(
+                "map.serialize_entry(\"{field_name}\", &{helper_name}(self.get_{styled_name}().map_err(<S::Error as ::serde::ser::Error>::custom)?))?;"
+            )))
+        }
+        _ => Ok(Line(format!(
+            "map.serialize_entry(\"{field_name}\", &{})?;",
+            serde_scalar_serialize_expr(ctx, ty, &format!("self.get_{styled_name}()"), "S::Error")?
+        ))),
+    }
 }
 
 fn generate_serde_map_match_arm(
@@ -762,6 +857,65 @@ fn generate_serde_list_seed(
             indent(line("A: ::serde::de::SeqAccess<'de>,")),
             line("{"),
             indent(visit_seq_lines),
+            line("}"),
+        ]),
+        line("}"),
+        BlankLine,
+    ])
+}
+
+fn generate_serde_list_serializer(
+    ctx: &GeneratorContext<'_>,
+    helper_name: &str,
+    list_reader_ty: String,
+    element_type: schema_capnp::type_::Reader,
+) -> capnp::Result<Vec<FormattedText>> {
+    use capnp::schema_capnp::type_;
+
+    let loop_lines = match element_type.which()? {
+        type_::Struct(_) => vec![
+            line("for idx in 0..self.0.len() {"),
+            indent(line("seq.serialize_element(&self.0.get(idx as u32))?;")),
+            line("}"),
+        ],
+        type_::List(_) => {
+            return Err(Error::failed(
+                "nested lists are not supported in direct serde serialization".into(),
+            ))
+        }
+        _ => vec![
+            line("for idx in 0..self.0.len() {"),
+            indent(Line(format!(
+                "let element = {};",
+                serde_scalar_serialize_expr(
+                    ctx,
+                    element_type,
+                    "self.0.get(idx as u32)",
+                    "S::Error"
+                )?
+            ))),
+            indent(line("seq.serialize_element(&element)?;")),
+            line("}"),
+        ],
+    };
+
+    Ok(vec![
+        line("#[cfg(feature = \"serde\")]"),
+        Line(format!("struct {helper_name}<'a>({list_reader_ty});")),
+        BlankLine,
+        line("#[cfg(feature = \"serde\")]"),
+        Line(format!("impl <'a> ::serde::Serialize for {helper_name}<'a> {{")),
+        indent(vec![
+            line("fn serialize<S>(&self, serializer: S) -> ::core::result::Result<S::Ok, S::Error>"),
+            line("where"),
+            indent(line("S: ::serde::Serializer,")),
+            line("{"),
+            indent(vec![
+                line("use ::serde::ser::SerializeSeq;"),
+                line("let mut seq = serializer.serialize_seq(::core::option::Option::Some(self.0.len() as usize))?;"),
+                Branch(loop_lines),
+                line("seq.end()"),
+            ]),
             line("}"),
         ]),
         line("}"),
