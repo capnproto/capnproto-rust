@@ -1,3 +1,6 @@
+## v0.25.1
+- Add version numbers in toplevel comment of generated code.
+
 ## v0.25.0
 - Use new GeneratedCodeArena to avoid need for `unsafe` in generated code.
 
