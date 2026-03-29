@@ -131,6 +131,16 @@ impl CodeGenerationCommand {
             let root_name = path_to_stem_string(&filepath)?.replace('-', "_");
             filepath.set_file_name(format!("{root_name}_capnp.rs"));
 
+            let capnp_version = match ctx.request.get_capnp_version() {
+                Ok(version) => format!(
+                    "{}.{}.{}",
+                    version.get_major(),
+                    version.get_minor(),
+                    version.get_micro()
+                ),
+                Err(_) => "<unknown>".to_owned(),
+            };
+
             let lines =
                 Branch(vec![
                 Line(
@@ -139,6 +149,8 @@ impl CodeGenerationCommand {
                 ),
                 line("// DO NOT EDIT."),
                 Line(format!("// source: {}", requested_file.get_filename()?.to_str()?)),
+                Line(format!("// capnp binary version: {}", capnp_version)),
+                Line(format!("// capnpc crate version: {}", env!("CARGO_PKG_VERSION"))),
                 BlankLine,
                 generate_node(&ctx, id, &root_name)?,
             ]);
