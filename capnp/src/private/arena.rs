@@ -178,7 +178,7 @@ pub unsafe trait BuilderArena: ReaderArena {
 /// A wrapper around a memory segment used in building a message.
 struct BuilderSegment {
     /// Pointer to the start of the segment.
-    ptr: *mut u8,
+    ptr: core::ptr::NonNull<u8>,
 
     /// Total number of words the segment could potentially use. That is, all
     /// bytes from `ptr` to `ptr + (capacity * 8)` may be used in the segment.
@@ -286,7 +286,10 @@ where
             // No such borrow will be possible while `self` is still immutably borrowed from this method,
             // so returning this slice is safe.
             let slice = unsafe {
-                slice::from_raw_parts(seg.ptr as *const _, seg.allocated as usize * BYTES_PER_WORD)
+                slice::from_raw_parts(
+                    seg.ptr.as_ptr() as *const _,
+                    seg.allocated as usize * BYTES_PER_WORD,
+                )
             };
             OutputSegments::SingleSegment([slice])
         } else {
@@ -297,7 +300,7 @@ where
                     // See safety argument in above branch.
                     let slice = unsafe {
                         slice::from_raw_parts(
-                            seg.ptr as *const _,
+                            seg.ptr.as_ptr() as *const _,
                             seg.allocated as usize * BYTES_PER_WORD,
                         )
                     };
@@ -334,7 +337,7 @@ where
 {
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
         let seg = &self.inner.segments[id as usize];
-        Ok((seg.ptr, seg.allocated))
+        Ok((seg.ptr.as_ptr(), seg.allocated))
     }
 
     unsafe fn check_offset(
@@ -442,7 +445,7 @@ where
 
     fn get_segment_mut(&mut self, id: u32) -> (*mut u8, u32) {
         let seg = &self.segments[id as usize];
-        (seg.ptr, seg.capacity)
+        (seg.ptr.as_ptr(), seg.capacity)
     }
 }
 
