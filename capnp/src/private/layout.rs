@@ -1860,8 +1860,13 @@ mod wire_helpers {
         segment_id: u32,
         value: &[u8],
     ) -> SegmentAnd<data::Builder<'a>> {
-        let allocation = init_data_pointer(arena, reff, segment_id, value.len() as u32);
-        copy_nonoverlapping_check_zero(value.as_ptr(), allocation.value.as_mut_ptr(), value.len());
+        let allocation = init_data_pointer(
+            arena,
+            reff,
+            segment_id,
+            value.len().try_into().expect("data too large"),
+        );
+        allocation.value.copy_from_slice(value);
         allocation
     }
 
