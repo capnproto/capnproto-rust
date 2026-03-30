@@ -95,7 +95,8 @@ pub struct StructSize {
 
 impl StructSize {
     pub fn total(&self) -> WordCount32 {
-        u32::from(self.data) + u32::from(self.pointers) * WORDS_PER_POINTER as WordCount32
+        u32::from(self.data)
+            + u32::from(self.pointers) * WordCount32::try_from(WORDS_PER_POINTER).unwrap()
     }
 }
 
@@ -143,7 +144,7 @@ fn wire_pointer_align() {
 impl WirePointer {
     #[inline]
     pub fn kind(&self) -> WirePointerKind {
-        WirePointerKind::from(self.offset_and_kind.get() as u8 & 3)
+        WirePointerKind::from((self.offset_and_kind.get() & 3) as u8)
     }
 
     #[inline]
@@ -195,7 +196,10 @@ impl WirePointer {
         let this_addr: isize = self as *const _ as isize;
         let target_addr: isize = target as *const _ as isize;
         self.offset_and_kind.set(
-            ((((target_addr - this_addr) / BYTES_PER_WORD as isize) as i32 - 1) << 2) as u32
+            ((i32::try_from((target_addr - this_addr) / isize::try_from(BYTES_PER_WORD).unwrap())
+                .unwrap()
+                - 1)
+                << 2) as u32
                 | (kind as u32),
         )
     }
@@ -258,7 +262,7 @@ impl WirePointer {
 
     #[inline]
     pub fn struct_data_size(&self) -> WordCount16 {
-        self.upper32bits.get() as WordCount16
+        (self.upper32bits.get() & 0xFFFF) as WordCount16
     }
 
     #[inline]
@@ -269,7 +273,7 @@ impl WirePointer {
     #[inline]
     pub fn struct_word_size(&self) -> WordCount32 {
         u32::from(self.struct_data_size())
-            + u32::from(self.struct_ptr_count()) * WORDS_PER_POINTER as u32
+            + u32::from(self.struct_ptr_count()) * u32::try_from(WORDS_PER_POINTER).unwrap()
     }
 
     #[inline]
@@ -288,7 +292,7 @@ impl WirePointer {
 
     #[inline]
     pub fn list_element_size(&self) -> ElementSize {
-        ElementSize::from(self.upper32bits.get() as u8 & 7)
+        ElementSize::from((self.upper32bits.get() & 7) as u8)
     }
 
     #[inline]
@@ -369,7 +373,7 @@ mod wire_helpers {
     #[inline]
     pub fn round_bytes_up_to_words(bytes: ByteCount32) -> WordCount32 {
         //# This code assumes 64-bit words.
-        (bytes + 7) / BYTES_PER_WORD as u32
+        (bytes + 7) / u32::try_from(BYTES_PER_WORD).unwrap()
     }
 
     //# The maximum object size is 4GB - 1 byte. If measured in bits,
@@ -379,13 +383,13 @@ mod wire_helpers {
     #[inline]
     pub fn round_bits_up_to_words(bits: BitCount64) -> WordCount32 {
         //# This code assumes 64-bit words.
-        ((bits + 63) / (BITS_PER_WORD as u64)) as WordCount32
+        WordCount32::try_from((bits + 63) / (BITS_PER_WORD as u64)).unwrap()
     }
 
     #[allow(dead_code)]
     #[inline]
     pub fn round_bits_up_to_bytes(bits: BitCount64) -> ByteCount32 {
-        ((bits + 7) / (BITS_PER_BYTE as u64)) as ByteCount32
+        ByteCount32::try_from((bits + 7) / (BITS_PER_BYTE as u64)).unwrap()
     }
 
     #[inline]
@@ -435,7 +439,7 @@ mod wire_helpers {
                 //# allocate an extra pointer worth of space to act as
                 //# the landing pad for a far pointer.
 
-                let amount_plus_ref = amount + POINTER_SIZE_IN_WORDS as u32;
+                let amount_plus_ref = amount + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap();
                 let (segment_id, word_idx) = arena.allocate_anywhere(amount_plus_ref);
                 let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
                 let ptr = seg_start.offset(word_idx as isize * BYTES_PER_WORD as isize);
@@ -1073,7 +1077,8 @@ mod wire_helpers {
 
                     (*landing_pad).set_far(
                         false,
-                        ((src_ptr as usize - src_seg_start as usize) / BYTES_PER_WORD) as u32,
+                        u32::try_from((src_ptr as usize - src_seg_start as usize) / BYTES_PER_WORD)
+                            .unwrap(),
                     );
                     (*landing_pad).set_far_segment_id(src_segment_id);
 
@@ -1132,7 +1137,7 @@ mod wire_helpers {
             cap_table,
             data: ptr as *mut _,
             pointers: ptr.offset((size.data as usize) as isize * BYTES_PER_WORD as isize) as *mut _,
-            data_size: u32::from(size.data) * (BITS_PER_WORD as BitCount32),
+            data_size: u32::from(size.data) * BitCount32::try_from(BITS_PER_WORD).unwrap(),
             pointer_count: size.pointers,
         }
     }
@@ -1197,8 +1202,8 @@ mod wire_helpers {
 
             let new_data_size = ::core::cmp::max(old_data_size, size.data);
             let new_pointer_count = ::core::cmp::max(old_pointer_count, size.pointers);
-            let total_size =
-                u32::from(new_data_size) + u32::from(new_pointer_count) * WORDS_PER_POINTER as u32;
+            let total_size = u32::from(new_data_size)
+                + u32::from(new_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
 
             //# Don't let allocate() zero out the object just yet.
             zero_pointer_and_fars(arena, segment_id, reff)?;
@@ -1236,7 +1241,7 @@ mod wire_helpers {
                 cap_table,
                 data: ptr as *mut _,
                 pointers: new_pointer_section,
-                data_size: u32::from(new_data_size) * BITS_PER_WORD as u32,
+                data_size: u32::from(new_data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
                 pointer_count: new_pointer_count,
             })
         } else {
@@ -1246,7 +1251,7 @@ mod wire_helpers {
                 cap_table,
                 data: old_ptr,
                 pointers: old_pointer_section,
-                data_size: u32::from(old_data_size) * BITS_PER_WORD as u32,
+                data_size: u32::from(old_data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
                 pointer_count: old_pointer_count,
             })
         }
@@ -1268,7 +1273,7 @@ mod wire_helpers {
 
         let data_size = data_bits_per_element(element_size);
         let pointer_count = pointers_per_element(element_size);
-        let step = data_size + pointer_count * BITS_PER_POINTER as u32;
+        let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
         let word_count = round_bits_up_to_words(u64::from(element_count) * u64::from(step));
         let (ptr, reff, segment_id) =
             allocate(arena, reff, segment_id, word_count, WirePointerKind::List);
@@ -1284,7 +1289,7 @@ mod wire_helpers {
             element_count,
             element_size,
             struct_data_size: data_size,
-            struct_pointer_count: pointer_count as u16,
+            struct_pointer_count: u16::try_from(pointer_count).unwrap(),
         }
     }
 
@@ -1305,12 +1310,12 @@ mod wire_helpers {
             word_count_u64 < (1 << 29),
             "Inline composite lists are limited to 2**29 words"
         );
-        let word_count: WordCount32 = word_count_u64 as u32;
+        let word_count: WordCount32 = WordCount32::try_from(word_count_u64).unwrap();
         let (ptr, reff, segment_id) = allocate(
             arena,
             reff,
             segment_id,
-            POINTER_SIZE_IN_WORDS as u32 + word_count,
+            u32::try_from(POINTER_SIZE_IN_WORDS).unwrap() + word_count,
             WirePointerKind::List,
         );
         let ptr = ptr as *mut WirePointer;
@@ -1330,10 +1335,11 @@ mod wire_helpers {
             segment_id,
             cap_table,
             ptr: ptr1 as *mut _,
-            step: words_per_element * BITS_PER_WORD as u32,
+            step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
             element_count,
             element_size: ElementSize::InlineComposite,
-            struct_data_size: u32::from(element_size.data) * (BITS_PER_WORD as u32),
+            struct_data_size: u32::from(element_size.data)
+                * (u32::try_from(BITS_PER_WORD).unwrap()),
             struct_pointer_count: element_size.pointers,
         }
     }
@@ -1441,8 +1447,8 @@ mod wire_helpers {
                 ptr: ptr as *mut _,
                 element_count: (*tag).inline_composite_list_element_count(),
                 element_size: ElementSize::InlineComposite,
-                step: (*tag).struct_word_size() * BITS_PER_WORD as u32,
-                struct_data_size: u32::from(data_size) * BITS_PER_WORD as u32,
+                step: (*tag).struct_word_size() * u32::try_from(BITS_PER_WORD).unwrap(),
+                struct_data_size: u32::from(data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
                 struct_pointer_count: pointer_count,
             })
         } else {
@@ -1457,7 +1463,7 @@ mod wire_helpers {
                 ));
             }
 
-            let step = data_size + pointer_count * BITS_PER_POINTER as u32;
+            let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
 
             Ok(ListBuilder {
                 arena,
@@ -1468,7 +1474,7 @@ mod wire_helpers {
                 element_count: (*reff).list_element_count(),
                 element_size: old_size,
                 struct_data_size: data_size,
-                struct_pointer_count: pointer_count as u16,
+                struct_pointer_count: u16::try_from(pointer_count).unwrap(),
             })
         }
     }
@@ -1524,8 +1530,8 @@ mod wire_helpers {
 
             let old_data_size = (*old_tag).struct_data_size();
             let old_pointer_count = (*old_tag).struct_ptr_count();
-            let old_step =
-                u32::from(old_data_size) + u32::from(old_pointer_count) * WORDS_PER_POINTER as u32;
+            let old_step = u32::from(old_data_size)
+                + u32::from(old_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
             let element_count = (*old_tag).inline_composite_list_element_count();
 
             if old_data_size >= element_size.data && old_pointer_count >= element_size.pointers {
@@ -1537,8 +1543,9 @@ mod wire_helpers {
                     ptr: old_ptr as *mut _,
                     element_count,
                     element_size: ElementSize::InlineComposite,
-                    step: old_step * BITS_PER_WORD as u32,
-                    struct_data_size: u32::from(old_data_size) * BITS_PER_WORD as u32,
+                    step: old_step * u32::try_from(BITS_PER_WORD).unwrap(),
+                    struct_data_size: u32::from(old_data_size)
+                        * u32::try_from(BITS_PER_WORD).unwrap(),
                     struct_pointer_count: old_pointer_count,
                 });
             }
@@ -1548,16 +1555,16 @@ mod wire_helpers {
 
             let new_data_size = ::core::cmp::max(old_data_size, element_size.data);
             let new_pointer_count = ::core::cmp::max(old_pointer_count, element_size.pointers);
-            let new_step =
-                u32::from(new_data_size) + u32::from(new_pointer_count) * WORDS_PER_POINTER as u32;
+            let new_step = u32::from(new_data_size)
+                + u32::from(new_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
 
             let total_size_u64 = u64::from(new_step) * u64::from(element_count);
             if total_size_u64 >= (1 << 29) {
                 return Err(Error::from_kind(ErrorKind::MessageTooLarge(
-                    total_size_u64 as usize,
+                    usize::try_from(total_size_u64).unwrap_or(usize::MAX),
                 )));
             }
-            let total_size = total_size_u64 as u32;
+            let total_size = u32::try_from(total_size_u64).unwrap();
 
             // Don't let allocate() zero out the object just yet.
             zero_pointer_and_fars(arena, orig_segment_id, orig_ref)?;
@@ -1566,7 +1573,7 @@ mod wire_helpers {
                 arena,
                 orig_ref,
                 orig_segment_id,
-                total_size + POINTER_SIZE_IN_WORDS as u32,
+                total_size + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
                 WirePointerKind::List,
             );
             (*new_ref).set_list_inline_composite(total_size);
@@ -1606,7 +1613,8 @@ mod wire_helpers {
             ptr::write_bytes(
                 old_ptr.offset(-(BYTES_PER_WORD as isize)),
                 0,
-                (u64::from(old_step) * u64::from(element_count)) as usize * BYTES_PER_WORD
+                usize::try_from(u64::from(old_step) * u64::from(element_count)).unwrap()
+                    * BYTES_PER_WORD
                     + POINTER_SIZE_IN_WORDS,
             );
 
@@ -1617,8 +1625,8 @@ mod wire_helpers {
                 ptr: new_ptr,
                 element_count,
                 element_size: ElementSize::InlineComposite,
-                step: new_step * BITS_PER_WORD as u32,
-                struct_data_size: u32::from(new_data_size) * BITS_PER_WORD as u32,
+                step: new_step * u32::try_from(BITS_PER_WORD).unwrap(),
+                struct_data_size: u32::from(new_data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
                 struct_pointer_count: new_pointer_count,
             })
         } else {
@@ -1626,7 +1634,8 @@ mod wire_helpers {
 
             let old_data_size = data_bits_per_element(old_size);
             let old_pointer_count = pointers_per_element(old_size);
-            let old_step = old_data_size + old_pointer_count * BITS_PER_POINTER as u32;
+            let old_step =
+                old_data_size + old_pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
             let element_count = (*old_ref).list_element_count();
 
             if old_size == ElementSize::Void {
@@ -1659,15 +1668,15 @@ mod wire_helpers {
                 }
 
                 let new_step = u32::from(new_data_size)
-                    + u32::from(new_pointer_count) * WORDS_PER_POINTER as u32;
+                    + u32::from(new_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
 
                 let total_words_u64 = u64::from(new_step) * u64::from(element_count);
                 if total_words_u64 >= (1 << 29) {
                     return Err(Error::from_kind(ErrorKind::MessageTooLarge(
-                        total_words_u64 as usize,
+                        usize::try_from(total_words_u64).unwrap_or(usize::MAX),
                     )));
                 }
-                let total_words = total_words_u64 as u32;
+                let total_words = u32::try_from(total_words_u64).unwrap();
 
                 // Don't let allocate() zero out the object just yet.
                 zero_pointer_and_fars(arena, orig_segment_id, orig_ref)?;
@@ -1676,7 +1685,7 @@ mod wire_helpers {
                     arena,
                     orig_ref,
                     orig_segment_id,
-                    total_words + POINTER_SIZE_IN_WORDS as u32,
+                    total_words + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
                     WirePointerKind::List,
                 );
                 (*new_ref).set_list_inline_composite(total_words);
@@ -1700,7 +1709,7 @@ mod wire_helpers {
                 } else {
                     let mut dst = new_ptr;
                     let mut src: *mut u8 = old_ptr;
-                    let old_byte_step = old_data_size / BITS_PER_BYTE as u32;
+                    let old_byte_step = old_data_size / u32::try_from(BITS_PER_BYTE).unwrap();
                     for _ in 0..element_count {
                         copy_nonoverlapping_check_zero(src, dst, old_byte_step as usize);
                         src = src.offset(old_byte_step as isize);
@@ -1722,8 +1731,9 @@ mod wire_helpers {
                     ptr: new_ptr,
                     element_count,
                     element_size: ElementSize::InlineComposite,
-                    step: new_step * BITS_PER_WORD as u32,
-                    struct_data_size: u32::from(new_data_size) * BITS_PER_WORD as u32,
+                    step: new_step * u32::try_from(BITS_PER_WORD).unwrap(),
+                    struct_data_size: u32::from(new_data_size)
+                        * u32::try_from(BITS_PER_WORD).unwrap(),
                     struct_pointer_count: new_pointer_count,
                 })
             }
@@ -1769,7 +1779,12 @@ mod wire_helpers {
     ) -> SegmentAnd<text::Builder<'a>> {
         let value_bytes = value.as_bytes();
         // TODO make sure the string is not longer than 2 ** 29.
-        let mut allocation = init_text_pointer(arena, reff, segment_id, value_bytes.len() as u32);
+        let mut allocation = init_text_pointer(
+            arena,
+            reff,
+            segment_id,
+            u32::try_from(value_bytes.len()).expect("Text len does not fit in u32"),
+        );
         allocation
             .value
             .reborrow()
@@ -1927,7 +1942,9 @@ mod wire_helpers {
 
         if canonicalize {
             // StructReaders should not have bitwidths other than 1, but let's be safe
-            if !(value.data_size == 1 || value.data_size % BITS_PER_BYTE as u32 == 0) {
+            if !(value.data_size == 1
+                || value.data_size % u32::try_from(BITS_PER_BYTE).unwrap() == 0)
+            {
                 return Err(Error::from_kind(
                     ErrorKind::StructReaderHadBitwidthOtherThan1,
                 ));
@@ -1940,9 +1957,9 @@ mod wire_helpers {
             } else {
                 'chop: while data_size != 0 {
                     let end = data_size;
-                    let mut window = data_size % BYTES_PER_WORD as u32;
+                    let mut window = data_size % u32::try_from(BYTES_PER_WORD).unwrap();
                     if window == 0 {
-                        window = BYTES_PER_WORD as u32;
+                        window = u32::try_from(BYTES_PER_WORD).unwrap();
                     }
                     let start = end - window;
                     let last_word = &value.get_data_section_as_blob()[start as usize..end as usize];
@@ -1960,11 +1977,12 @@ mod wire_helpers {
         }
 
         let data_words = round_bytes_up_to_words(data_size);
-        let total_size: WordCount32 = data_words + u32::from(ptr_count) * WORDS_PER_POINTER as u32;
+        let total_size: WordCount32 =
+            data_words + u32::from(ptr_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
 
         let (ptr, reff, segment_id) =
             allocate(arena, reff, segment_id, total_size, WirePointerKind::Struct);
-        (*reff).set_struct_size_from_pieces(data_words as u16, ptr_count);
+        (*reff).set_struct_size_from_pieces(u16::try_from(data_words).unwrap(), ptr_count);
 
         if value.data_size == 1 {
             // Data size could be made 0 by truncation
@@ -2007,7 +2025,7 @@ mod wire_helpers {
         cap: alloc::boxed::Box<dyn ClientHook>,
     ) {
         // TODO if ref is not null, zero object.
-        (*reff).set_cap(cap_table.inject_cap(cap) as u32);
+        (*reff).set_cap(u32::try_from(cap_table.inject_cap(cap)).unwrap());
     }
 
     pub unsafe fn set_list_pointer(
@@ -2065,15 +2083,22 @@ mod wire_helpers {
                 // in the canonicalize=true case.
                 let whole_byte_size =
                     u64::from(value.element_count) * u64::from(value.step) / BITS_PER_BYTE as u64;
-                copy_nonoverlapping_check_zero(value.ptr, ptr, whole_byte_size as usize);
+                copy_nonoverlapping_check_zero(
+                    value.ptr,
+                    ptr,
+                    usize::try_from(whole_byte_size).unwrap(),
+                );
 
-                let leftover_bits =
-                    u64::from(value.element_count) * u64::from(value.step) % BITS_PER_BYTE as u64;
+                let leftover_bits = u8::try_from(
+                    u64::from(value.element_count) * u64::from(value.step)
+                        % u64::try_from(BITS_PER_BYTE).unwrap(),
+                )
+                .unwrap();
                 if leftover_bits > 0 {
-                    let mask: u8 = (1 << leftover_bits as u8) - 1;
+                    let mask: u8 = (1 << leftover_bits) - 1;
 
-                    *ptr.offset(whole_byte_size as isize) =
-                        mask & (*value.ptr.offset(whole_byte_size as isize))
+                    *ptr.add(usize::try_from(whole_byte_size).unwrap()) =
+                        mask & (*value.ptr.add(usize::try_from(whole_byte_size).unwrap()))
                 }
             }
 
@@ -2084,7 +2109,7 @@ mod wire_helpers {
         } else {
             //# List of structs.
 
-            let decl_data_size = value.struct_data_size / BITS_PER_WORD as u32;
+            let decl_data_size = value.struct_data_size / u32::try_from(BITS_PER_WORD).unwrap();
             let decl_pointer_count = value.struct_pointer_count;
 
             let mut data_size = 0;
@@ -2096,8 +2121,8 @@ mod wire_helpers {
                     let se = value.get_struct_element(ec);
                     let mut local_data_size = decl_data_size;
                     'data_chop: while local_data_size != 0 {
-                        let end = local_data_size * BYTES_PER_WORD as u32;
-                        let window = BYTES_PER_WORD as u32;
+                        let end = local_data_size * u32::try_from(BYTES_PER_WORD).unwrap();
+                        let window = u32::try_from(BYTES_PER_WORD).unwrap();
                         let start = end - window;
                         let last_word =
                             &se.get_data_section_as_blob()[start as usize..end as usize];
@@ -2130,7 +2155,7 @@ mod wire_helpers {
                 arena,
                 reff,
                 segment_id,
-                total_size + POINTER_SIZE_IN_WORDS as u32,
+                total_size + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
                 WirePointerKind::List,
             );
             (*reff).set_list_inline_composite(total_size);
@@ -2140,7 +2165,7 @@ mod wire_helpers {
                 WirePointerKind::Struct,
                 value.element_count,
             );
-            (*tag).set_struct_size_from_pieces(data_size as u16, ptr_count);
+            (*tag).set_struct_size_from_pieces(u16::try_from(data_size).unwrap(), ptr_count);
             let mut dst = ptr.add(BYTES_PER_WORD);
 
             let mut src: *const u8 = value.ptr;
@@ -2228,7 +2253,8 @@ mod wire_helpers {
                         pointers: ptr
                             .offset((*src).struct_data_size() as isize * BYTES_PER_WORD as isize)
                             as *const _,
-                        data_size: u32::from((*src).struct_data_size()) * BITS_PER_WORD as u32,
+                        data_size: u32::from((*src).struct_data_size())
+                            * u32::try_from(BITS_PER_WORD).unwrap(),
                         pointer_count: (*src).struct_ptr_count(),
                         nesting_limit: nesting_limit - 1,
                     },
@@ -2291,9 +2317,9 @@ mod wire_helpers {
                             ptr: ptr as *const _,
                             element_count,
                             element_size,
-                            step: words_per_element * BITS_PER_WORD as u32,
+                            step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
                             struct_data_size: u32::from((*tag).struct_data_size())
-                                * BITS_PER_WORD as u32,
+                                * u32::try_from(BITS_PER_WORD).unwrap(),
                             struct_pointer_count: (*tag).struct_ptr_count(),
                             nesting_limit: nesting_limit - 1,
                         },
@@ -2302,7 +2328,7 @@ mod wire_helpers {
                 } else {
                     let data_size = data_bits_per_element(element_size);
                     let pointer_count = pointers_per_element(element_size);
-                    let step = data_size + pointer_count * BITS_PER_POINTER as u32;
+                    let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
                     let element_count = (*src).list_element_count();
                     let word_count =
                         round_bits_up_to_words(u64::from(element_count) * u64::from(step));
@@ -2335,7 +2361,7 @@ mod wire_helpers {
                             element_size,
                             step,
                             struct_data_size: data_size,
-                            struct_pointer_count: pointer_count as u16,
+                            struct_pointer_count: u16::try_from(pointer_count).unwrap(),
                             nesting_limit: nesting_limit - 1,
                         },
                         canonicalize,
@@ -2424,7 +2450,7 @@ mod wire_helpers {
             cap_table,
             data: ptr,
             pointers: ptr.offset(data_size_words as isize * BYTES_PER_WORD as isize) as *const _,
-            data_size: u32::from(data_size_words) * BITS_PER_WORD as BitCount32,
+            data_size: u32::from(data_size_words) * u32::try_from(BITS_PER_WORD).unwrap(),
             pointer_count: (*reff).struct_ptr_count(),
             nesting_limit: nesting_limit - 1,
         })
@@ -2564,8 +2590,9 @@ mod wire_helpers {
                     ptr: ptr as *const _,
                     element_count: size,
                     element_size,
-                    step: words_per_element * BITS_PER_WORD as u32,
-                    struct_data_size: u32::from(data_size) * (BITS_PER_WORD as u32),
+                    step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
+                    struct_data_size: u32::from(data_size)
+                        * (u32::try_from(BITS_PER_WORD).unwrap()),
                     struct_pointer_count: ptr_count,
                     nesting_limit: nesting_limit - 1,
                 })
@@ -2577,7 +2604,7 @@ mod wire_helpers {
                 let data_size = data_bits_per_element((*reff).list_element_size());
                 let pointer_count = pointers_per_element((*reff).list_element_size());
                 let element_count = (*reff).list_element_count();
-                let step = data_size + pointer_count * BITS_PER_POINTER as u32;
+                let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
 
                 let word_count = round_bits_up_to_words(u64::from(element_count) * u64::from(step));
                 bounds_check(
@@ -2629,7 +2656,7 @@ mod wire_helpers {
                     element_size,
                     step,
                     struct_data_size: data_size,
-                    struct_pointer_count: pointer_count as u16,
+                    struct_pointer_count: u16::try_from(pointer_count).unwrap(),
                     nesting_limit: nesting_limit - 1,
                 })
             }
@@ -3465,7 +3492,7 @@ impl<'a> StructReader<'a> {
             ptr: self.pointers as *const _,
             element_count: u32::from(self.pointer_count),
             element_size: ElementSize::Pointer,
-            step: BITS_PER_WORD as BitCount32,
+            step: BitCount32::try_from(BITS_PER_WORD).unwrap(),
             struct_data_size: 0,
             struct_pointer_count: 0,
             nesting_limit: self.nesting_limit,
@@ -3499,11 +3526,11 @@ impl<'a> StructReader<'a> {
 
     #[inline]
     pub fn get_bool_field(&self, offset: ElementCount) -> bool {
-        let boffset: BitCount32 = offset as BitCount32;
+        let boffset: BitCount32 = BitCount32::try_from(offset).unwrap();
         if boffset < self.data_size {
             unsafe {
-                let b: *const u8 = self.data.add(boffset as usize / BITS_PER_BYTE);
-                ((*b) & (1u8 << (boffset % BITS_PER_BYTE as u32) as usize)) != 0
+                let b: *const u8 = self.data.add(offset / BITS_PER_BYTE);
+                ((*b) & (1u8 << (boffset % u32::try_from(BITS_PER_BYTE).unwrap()) as usize)) != 0
             }
         } else {
             false
@@ -3583,12 +3610,12 @@ impl<'a> StructReader<'a> {
             return Ok(false);
         }
 
-        if self.get_data_section_size() % BITS_PER_WORD as u32 != 0 {
+        if self.get_data_section_size() % u32::try_from(BITS_PER_WORD).unwrap() != 0 {
             // legacy non-word-size struct
             return Ok(false);
         }
 
-        let data_size = self.get_data_section_size() / BITS_PER_WORD as u32;
+        let data_size = self.get_data_section_size() / u32::try_from(BITS_PER_WORD).unwrap();
 
         // mark whether the struct is properly truncated
         if data_size != 0 {
@@ -3776,13 +3803,18 @@ impl<'a> StructBuilder<'a> {
                 if self.data_size == 1 {
                     self.set_bool_field(0, false);
                 } else {
-                    let unshared = self
-                        .data
-                        .offset((shared_data_size / BITS_PER_BYTE as u32) as isize);
+                    let unshared = self.data.add(
+                        usize::try_from(shared_data_size / u32::try_from(BITS_PER_BYTE).unwrap())
+                            .unwrap(),
+                    );
                     ptr::write_bytes(
                         unshared,
                         0,
-                        ((self.data_size - shared_data_size) / BITS_PER_BYTE as u32) as usize,
+                        usize::try_from(
+                            (self.data_size - shared_data_size)
+                                / u32::try_from(BITS_PER_BYTE).unwrap(),
+                        )
+                        .unwrap(),
                     );
                 }
             }
@@ -3794,7 +3826,7 @@ impl<'a> StructBuilder<'a> {
                 wire_helpers::copy_nonoverlapping_check_zero(
                     other.data,
                     self.data,
-                    (shared_data_size / BITS_PER_BYTE as u32) as usize,
+                    (shared_data_size / u32::try_from(BITS_PER_BYTE).unwrap()) as usize,
                 );
             }
 
@@ -3894,10 +3926,12 @@ impl<'a> ListReader<'a> {
 
     #[inline]
     pub fn get_struct_element(&self, index: ElementCount32) -> StructReader<'a> {
-        let index_byte: ByteCount32 =
-            ((u64::from(index) * u64::from(self.step)) / BITS_PER_BYTE as u64) as u32;
+        assert!(index < self.element_count);
+        let index_byte =
+            usize::try_from((u64::from(index) * u64::from(self.step)) / BITS_PER_BYTE as u64)
+                .unwrap();
 
-        let struct_data: *const u8 = unsafe { self.ptr.offset(index_byte as isize) };
+        let struct_data: *const u8 = unsafe { self.ptr.add(index_byte) };
 
         let struct_pointers: *const WirePointer =
             unsafe { struct_data.add(self.struct_data_size as usize / BITS_PER_BYTE) as *const _ };
@@ -3916,14 +3950,17 @@ impl<'a> ListReader<'a> {
 
     #[inline]
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerReader<'a> {
-        let offset = (self.struct_data_size as u64 / BITS_PER_BYTE as u64
-            + u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64)
-            as isize;
+        assert!(index < self.element_count);
+        let offset = usize::try_from(
+            self.struct_data_size as u64 / BITS_PER_BYTE as u64
+                + u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64,
+        )
+        .unwrap();
         PointerReader {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe { self.ptr.offset(offset) } as *const _,
+            pointer: unsafe { self.ptr.add(offset) } as *const _,
             nesting_limit: self.nesting_limit,
         }
     }
@@ -3939,10 +3976,10 @@ impl<'a> ListReader<'a> {
                 if !core::ptr::eq(self.ptr, read_head.get()) {
                     return Ok(false);
                 }
-                if self.struct_data_size % BITS_PER_WORD as u32 != 0 {
+                if self.struct_data_size % u32::try_from(BITS_PER_WORD).unwrap() != 0 {
                     return Ok(false);
                 }
-                let struct_size = (self.struct_data_size / BITS_PER_WORD as u32)
+                let struct_size = (self.struct_data_size / u32::try_from(BITS_PER_WORD).unwrap())
                     + u32::from(self.struct_pointer_count);
                 let word_count = unsafe { (*reff).list_inline_composite_word_count() };
                 if struct_size * self.element_count != word_count {
@@ -4006,16 +4043,16 @@ impl<'a> ListReader<'a> {
 
                 let byte_size = bit_size / BITS_PER_BYTE as u64;
                 let mut byte_read_head: *const u8 = read_head.get();
-                byte_read_head = unsafe { byte_read_head.offset(byte_size as isize) };
+                byte_read_head = unsafe { byte_read_head.add(usize::try_from(byte_size).unwrap()) };
                 let read_head_end = unsafe {
                     read_head
                         .get()
-                        .offset(word_size as isize * BYTES_PER_WORD as isize)
+                        .add(usize::try_from(word_size).unwrap() * BYTES_PER_WORD)
                 };
 
-                let leftover_bits = bit_size % BITS_PER_BYTE as u64;
+                let leftover_bits = u8::try_from(bit_size % BITS_PER_BYTE as u64).unwrap();
                 if leftover_bits > 0 {
-                    let mask: u8 = !((1 << leftover_bits as u8) - 1);
+                    let mask: u8 = !((1 << leftover_bits) - 1);
                     let partial_byte = unsafe { *byte_read_head };
 
                     if partial_byte & mask != 0 {
@@ -4104,8 +4141,11 @@ impl<'a> ListBuilder<'a> {
 
     #[inline]
     pub fn get_struct_element(self, index: ElementCount32) -> StructBuilder<'a> {
-        let index_byte = ((u64::from(index) * u64::from(self.step)) / BITS_PER_BYTE as u64) as u32;
-        let struct_data = unsafe { self.ptr.offset(index_byte as isize) };
+        assert!(index < self.element_count);
+        let index_byte =
+            usize::try_from((u64::from(index) * u64::from(self.step)) / BITS_PER_BYTE as u64)
+                .unwrap();
+        let struct_data = unsafe { self.ptr.add(index_byte) };
         let struct_pointers =
             unsafe { struct_data.add((self.struct_data_size as usize) / BITS_PER_BYTE) as *mut _ };
         StructBuilder {
@@ -4125,12 +4165,15 @@ impl<'a> ListBuilder<'a> {
 
     #[inline]
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerBuilder<'a> {
-        let offset = (u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64) as u32;
+        assert!(index < self.element_count);
+        let offset =
+            usize::try_from(u64::from(index) * u64::from(self.step) / BITS_PER_BYTE as u64)
+                .unwrap();
         PointerBuilder {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe { self.ptr.offset(offset as isize) } as *mut _,
+            pointer: unsafe { self.ptr.add(offset) } as *mut _,
         }
     }
 
@@ -4168,31 +4211,36 @@ pub trait PrimitiveElement {
 impl<T: Primitive> PrimitiveElement for T {
     #[inline]
     fn get(list_reader: &ListReader, index: ElementCount32) -> Self {
-        let offset = (u64::from(index) * u64::from(list_reader.step) / BITS_PER_BYTE as u64) as u32;
+        assert!(index < list_reader.len());
+        let offset =
+            usize::try_from(u64::from(index) * u64::from(list_reader.step) / BITS_PER_BYTE as u64)
+                .unwrap();
         unsafe {
-            let ptr: *const u8 = list_reader.ptr.offset(offset as isize);
+            let ptr: *const u8 = list_reader.ptr.add(offset);
             <Self as Primitive>::get(&*(ptr as *const <Self as Primitive>::Raw))
         }
     }
 
     #[inline]
     fn get_from_builder(list_builder: &ListBuilder, index: ElementCount32) -> Self {
+        assert!(index < list_builder.element_count);
         let offset =
-            (u64::from(index) * u64::from(list_builder.step) / BITS_PER_BYTE as u64) as u32;
+            usize::try_from(u64::from(index) * u64::from(list_builder.step) / BITS_PER_BYTE as u64)
+                .unwrap();
         unsafe {
-            let ptr: *mut <Self as Primitive>::Raw =
-                list_builder.ptr.offset(offset as isize) as *mut _;
+            let ptr: *mut <Self as Primitive>::Raw = list_builder.ptr.add(offset) as *mut _;
             <Self as Primitive>::get(&*ptr)
         }
     }
 
     #[inline]
     fn set(list_builder: &ListBuilder, index: ElementCount32, value: Self) {
+        assert!(index < list_builder.element_count);
         let offset =
-            (u64::from(index) * u64::from(list_builder.step) / BITS_PER_BYTE as u64) as u32;
+            usize::try_from(u64::from(index) * u64::from(list_builder.step) / BITS_PER_BYTE as u64)
+                .unwrap();
         unsafe {
-            let ptr: *mut <Self as Primitive>::Raw =
-                list_builder.ptr.offset(offset as isize) as *mut _;
+            let ptr: *mut <Self as Primitive>::Raw = list_builder.ptr.add(offset) as *mut _;
             <Self as Primitive>::set(&mut *ptr, value);
         }
     }
@@ -4214,20 +4262,28 @@ impl PrimitiveElement for bool {
     fn get(list: &ListReader, index: ElementCount32) -> Self {
         let bindex = u64::from(index) * u64::from(list.step);
         unsafe {
-            let b: *const u8 = list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize);
+            let b: *const u8 = list
+                .ptr
+                .add(usize::try_from(bindex / BITS_PER_BYTE as u64).unwrap());
             ((*b) & (1 << (bindex % BITS_PER_BYTE as u64))) != 0
         }
     }
     #[inline]
     fn get_from_builder(list: &ListBuilder, index: ElementCount32) -> Self {
         let bindex = u64::from(index) * u64::from(list.step);
-        let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
+        let b = unsafe {
+            list.ptr
+                .add(usize::try_from(bindex / BITS_PER_BYTE as u64).unwrap())
+        };
         unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE as u64))) != 0 }
     }
     #[inline]
     fn set(list: &ListBuilder, index: ElementCount32, value: Self) {
         let bindex = u64::from(index) * u64::from(list.step);
-        let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
+        let b = unsafe {
+            list.ptr
+                .add(usize::try_from(bindex / BITS_PER_BYTE as u64).unwrap())
+        };
 
         let bitnum = bindex % BITS_PER_BYTE as u64;
         unsafe { (*b) = ((*b) & !(1 << bitnum)) | (u8::from(value) << bitnum) }

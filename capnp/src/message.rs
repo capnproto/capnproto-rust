@@ -160,9 +160,9 @@ pub trait ReaderSegments {
 
     /// Gets the number of segments.
     fn len(&self) -> usize {
-        for i in 0.. {
-            if self.get_segment(i as u32).is_none() {
-                return i;
+        for i in 0u32.. {
+            if self.get_segment(i).is_none() {
+                return usize::try_from(i).unwrap();
             }
         }
         unreachable!()
@@ -331,7 +331,8 @@ where
     pub fn canonicalize(&self) -> Result<alloc::vec::Vec<crate::Word>> {
         let root = self.get_root_internal()?;
         let size = root.target_size()?.word_count + 1;
-        let mut message = Builder::new(HeapAllocator::new().first_segment_words(size as u32));
+        let mut message =
+            Builder::new(HeapAllocator::new().first_segment_words(u32::try_from(size).unwrap()));
         message.set_root_canonical(root)?;
         let output_segments = message.get_segments_for_output();
         assert_eq!(1, output_segments.len());
@@ -936,7 +937,7 @@ unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
             self.scratch_space_allocated = true;
             (
                 self.scratch_space.as_mut_ptr(),
-                (self.scratch_space.len() / BYTES_PER_WORD) as u32,
+                u32::try_from(self.scratch_space.len() / BYTES_PER_WORD).unwrap(),
             )
         } else {
             self.allocator.allocate_segment(minimum_size)
@@ -1024,7 +1025,7 @@ unsafe impl Allocator for SingleSegmentAllocator<'_> {
             self.segment_allocated = true;
             (
                 self.segment.as_mut_ptr(),
-                (self.segment.len() / BYTES_PER_WORD) as u32,
+                u32::try_from(self.segment.len() / BYTES_PER_WORD).unwrap(),
             )
         }
     }

@@ -164,7 +164,7 @@ pub struct FieldList {
 
 impl FieldList {
     pub fn len(&self) -> u16 {
-        self.fields.len() as u16
+        self.fields.len().try_into().unwrap()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -210,7 +210,7 @@ pub struct FieldSubset {
 
 impl FieldSubset {
     pub fn len(&self) -> u16 {
-        self.indices.len() as u16
+        self.indices.len().try_into().unwrap()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -333,7 +333,7 @@ pub struct EnumerantList {
 
 impl EnumerantList {
     pub fn len(&self) -> u16 {
-        self.enumerants.len() as u16
+        self.enumerants.len().try_into().unwrap()
     }
 
     pub fn is_empty(&self) -> bool {

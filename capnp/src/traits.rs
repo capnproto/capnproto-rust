@@ -156,8 +156,16 @@ impl<U, T: IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
     }
 
     fn nth(&mut self, p: usize) -> Option<U> {
-        if self.index + (p as u32) < self.size {
-            self.index += p as u32;
+        let Some(p) = p.try_into().ok() else {
+            self.index = self.size;
+            return None;
+        };
+        let Some(nth_index) = self.index.checked_add(p) else {
+            self.index = self.size;
+            return None;
+        };
+        if nth_index < self.size {
+            self.index = nth_index;
             let result = self.list.index_move(self.index);
             self.index += 1;
             Some(result)
@@ -221,8 +229,16 @@ impl<U, T: IndexMove<u16, U>> ::core::iter::Iterator for ShortListIter<T, U> {
     }
 
     fn nth(&mut self, p: usize) -> Option<U> {
-        if self.index + (p as u16) < self.size {
-            self.index += p as u16;
+        let Some(p) = p.try_into().ok() else {
+            self.index = self.size;
+            return None;
+        };
+        let Some(nth_index) = self.index.checked_add(p) else {
+            self.index = self.size;
+            return None;
+        };
+        if nth_index < self.size {
+            self.index = nth_index;
             let result = self.list.index_move(self.index);
             self.index += 1;
             Some(result)
