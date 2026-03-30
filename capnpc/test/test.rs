@@ -2132,11 +2132,17 @@ mod tests {
         }
 
         {
+            assert_eq!(structs.len(), 6);
             let mut overflow_iter = structs.iter();
+            assert_eq!(overflow_iter.size_hint(), (6, Some(6)));
             assert!(overflow_iter.nth(4).is_some());
 
-            // The first four elements have been consumed, so going another 4 should overflow.
-            assert!(overflow_iter.nth(4).is_none());
+            // `nth` is zero-indexed, so the first five elements have been consumed.
+            // One element remains.
+            assert_eq!(overflow_iter.size_hint(), (1, Some(1)));
+
+            // Taking the second element now fails. (Zero indexing means "second" = `nth(1)`).
+            assert!(overflow_iter.nth(1).is_none());
 
             // The previous call pushed us to the end, even though it returned None.
             assert!(overflow_iter.next().is_none());
