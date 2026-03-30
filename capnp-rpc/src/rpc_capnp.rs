@@ -2,7 +2,7 @@
 // DO NOT EDIT.
 // source: rpc.capnp
 // capnp binary version: 1.0.1
-// capnpc crate version: 0.25.1
+// capnpc crate version: 0.25.2
 
 pub mod message {
     pub use self::Which::{

@@ -1,3 +1,6 @@
+## v0.25.3
+- Fix iterator size_hint() so that it returns the remaining size, not the initial size.
+
 ## v0.25.2
 - Prevent undefined behavior on zero-sized alloc in HeapAllocator.
 
