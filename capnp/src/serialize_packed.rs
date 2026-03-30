@@ -386,8 +386,9 @@ where
                         in_word = in_word.offset(1);
                     }
 
-                    *buf.get_unchecked_mut(buf_idx) =
-                        ptr_sub(in_word, in_ptr as *const [u8; 8]) as u8;
+                    *buf.get_unchecked_mut(buf_idx) = ptr_sub(in_word, in_ptr as *const [u8; 8])
+                        .try_into()
+                        .unwrap();
                     buf_idx += 1;
                     in_ptr = in_word as *const u8;
                 } else if tag == 0xff {
@@ -422,7 +423,7 @@ where
                     }
 
                     let count: usize = ptr_sub(in_ptr, run_start);
-                    *buf.get_unchecked_mut(buf_idx) = (count / 8) as u8;
+                    *buf.get_unchecked_mut(buf_idx) = (count / 8).try_into().unwrap();
                     buf_idx += 1;
 
                     self.inner.write_all(&buf[..buf_idx])?;

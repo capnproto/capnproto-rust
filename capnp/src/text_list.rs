@@ -209,12 +209,15 @@ impl<'a, T: AsRef<str>> crate::traits::SetterInput<Owned> for &'a [T] {
     ) -> Result<()> {
         let mut builder = pointer.init_list(
             crate::private::layout::ElementSize::Pointer,
-            value.len() as u32,
+            value
+                .len()
+                .try_into()
+                .expect("list size too large to fit in u32"),
         );
         for (idx, v) in value.iter().enumerate() {
             builder
                 .reborrow()
-                .get_pointer_element(idx as u32)
+                .get_pointer_element(idx.try_into().unwrap())
                 .set_text(v.as_ref().into());
         }
         Ok(())

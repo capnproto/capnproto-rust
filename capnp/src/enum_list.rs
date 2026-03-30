@@ -215,10 +215,13 @@ impl<'a, T: Copy + Into<u16>> crate::traits::SetterInput<Owned<T>> for &'a [T] {
     ) -> Result<()> {
         let builder = pointer.init_list(
             crate::private::layout::ElementSize::TwoBytes,
-            value.len() as u32,
+            value
+                .len()
+                .try_into()
+                .expect("list len too big to fit in u32"),
         );
         for (idx, v) in value.iter().enumerate() {
-            <u16 as PrimitiveElement>::set(&builder, idx as u32, (*v).into())
+            <u16 as PrimitiveElement>::set(&builder, idx.try_into().unwrap(), (*v).into())
         }
         Ok(())
     }
