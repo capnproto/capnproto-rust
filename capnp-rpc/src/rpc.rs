@@ -48,17 +48,17 @@ use crate::rpc_capnp::{
 use crate::task_set::TaskSet;
 use crate::{broken, local, queued};
 
-pub type QuestionId = u32;
-pub type AnswerId = QuestionId;
-pub type ExportId = u32;
-pub type ImportId = ExportId;
+pub(crate) type QuestionId = u32;
+pub(crate) type AnswerId = QuestionId;
+pub(crate) type ExportId = u32;
+pub(crate) type ImportId = ExportId;
 
-pub struct ImportTable<T> {
+pub(crate) struct ImportTable<T> {
     slots: HashMap<u32, T>,
 }
 
 impl<T> ImportTable<T> {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             slots: HashMap::new(),
         }
@@ -98,19 +98,19 @@ where
 }
 
 impl<T> ExportTable<T> {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             slots: Vec::new(),
             free_ids: BinaryHeap::new(),
         }
     }
 
-    pub fn erase(&mut self, id: u32) {
+    pub(crate) fn erase(&mut self, id: u32) {
         self.slots[id as usize] = None;
         self.free_ids.push(Reverse(id));
     }
 
-    pub fn push(&mut self, val: T) -> u32 {
+    pub(crate) fn push(&mut self, val: T) -> u32 {
         match self.free_ids.pop() {
             Some(Reverse(id)) => {
                 self.slots[id as usize] = Some(val);
@@ -123,7 +123,7 @@ impl<T> ExportTable<T> {
         }
     }
 
-    pub fn find(&mut self, id: u32) -> Option<&mut T> {
+    pub(crate) fn find(&mut self, id: u32) -> Option<&mut T> {
         let idx = id as usize;
         if idx < self.slots.len() {
             self.slots[idx].as_mut()
@@ -132,7 +132,7 @@ impl<T> ExportTable<T> {
         }
     }
 
-    pub fn iter(&self) -> ExportTableIter<'_, T> {
+    pub(crate) fn iter(&self) -> ExportTableIter<'_, T> {
         ExportTableIter {
             table: self,
             idx: 0,
@@ -276,7 +276,7 @@ impl<VatId> Answer<VatId> {
     }
 }
 
-pub struct Export {
+pub(crate) struct Export {
     refcount: u32,
 
     /// If true, this is the canonical export entry for this clientHook, that is,
@@ -301,7 +301,7 @@ impl Export {
     }
 }
 
-pub struct Import<VatId>
+pub(crate) struct Import<VatId>
 where
     VatId: 'static,
 {
@@ -404,7 +404,7 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
     }
 }
 
-pub struct ConnectionErrorHandler<VatId>
+pub(crate) struct ConnectionErrorHandler<VatId>
 where
     VatId: 'static,
 {
@@ -2249,7 +2249,7 @@ impl<VatId> PipelineHook for Pipeline<VatId> {
     }
 }
 
-pub struct Params {
+pub(crate) struct Params {
     request: Box<dyn crate::IncomingMessage>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
 }
@@ -2333,7 +2333,7 @@ where
 }
 
 // This takes the place of both RpcCallContext and RpcServerResponse in capnproto-c++.
-pub struct Results<VatId>
+pub(crate) struct Results<VatId>
 where
     VatId: 'static,
 {

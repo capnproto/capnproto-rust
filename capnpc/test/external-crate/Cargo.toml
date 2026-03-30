@@ -10,3 +10,6 @@ capnp = { path = "../../../capnp" }
 
 [build-dependencies]
 capnpc = { path = "../.." }
+
+[lints]
+workspace = true

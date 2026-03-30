@@ -22,7 +22,7 @@ use futures::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-pub struct AttachFuture<F, T>
+pub(crate) struct AttachFuture<F, T>
 where
     F: Future + Unpin,
 {
@@ -47,7 +47,7 @@ where
     }
 }
 
-pub trait Attach: Future
+pub(crate) trait Attach: Future
 where
     Self: Unpin,
 {

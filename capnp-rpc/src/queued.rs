@@ -33,7 +33,7 @@ use crate::attach::Attach;
 use crate::sender_queue::SenderQueue;
 use crate::{broken, local};
 
-pub struct PipelineInner {
+pub(crate) struct PipelineInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<dyn PipelineHook>>,
 
@@ -68,7 +68,7 @@ impl PipelineInner {
     }
 }
 
-pub struct PipelineInnerSender {
+pub(crate) struct PipelineInnerSender {
     inner: Option<Weak<RefCell<PipelineInner>>>,
     resolve_on_drop: bool,
 }
@@ -100,7 +100,7 @@ impl Drop for PipelineInnerSender {
 }
 
 impl PipelineInnerSender {
-    pub fn complete(mut self, pipeline: Box<dyn PipelineHook>) {
+    pub(crate) fn complete(mut self, pipeline: Box<dyn PipelineHook>) {
         if let Some(weak_queued) = self.inner.take() {
             if let Some(pipeline_inner) = weak_queued.upgrade() {
                 crate::queued::PipelineInner::resolve(&pipeline_inner, Ok(pipeline));
@@ -109,12 +109,12 @@ impl PipelineInnerSender {
     }
 }
 
-pub struct Pipeline {
+pub(crate) struct Pipeline {
     inner: Rc<RefCell<PipelineInner>>,
 }
 
 impl Pipeline {
-    pub fn new() -> (PipelineInnerSender, Self) {
+    pub(crate) fn new() -> (PipelineInnerSender, Self) {
         let inner = Rc::new(RefCell::new(PipelineInner {
             redirect: None,
             promise_to_drive: Promise::ok(()).shared(),
@@ -130,7 +130,7 @@ impl Pipeline {
         )
     }
 
-    pub fn drive<F>(&mut self, promise: F)
+    pub(crate) fn drive<F>(&mut self, promise: F)
     where
         F: Future<Output = Result<(), Error>> + 'static + Unpin,
     {
@@ -176,7 +176,7 @@ impl PipelineHook for Pipeline {
     }
 }
 
-pub struct ClientInner {
+pub(crate) struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<dyn ClientHook>>,
 
@@ -202,7 +202,7 @@ pub struct ClientInner {
 }
 
 impl ClientInner {
-    pub fn resolve(state: &Rc<RefCell<Self>>, result: Result<Box<dyn ClientHook>, Error>) {
+    pub(crate) fn resolve(state: &Rc<RefCell<Self>>, result: Result<Box<dyn ClientHook>, Error>) {
         assert!(state.borrow().redirect.is_none());
         let client = match result {
             Ok(clienthook) => clienthook,
@@ -223,12 +223,12 @@ impl ClientInner {
     }
 }
 
-pub struct Client {
-    pub inner: Rc<RefCell<ClientInner>>,
+pub(crate) struct Client {
+    pub(crate) inner: Rc<RefCell<ClientInner>>,
 }
 
 impl Client {
-    pub fn new(pipeline_inner: Option<Rc<RefCell<PipelineInner>>>) -> Self {
+    pub(crate) fn new(pipeline_inner: Option<Rc<RefCell<PipelineInner>>>) -> Self {
         let inner = Rc::new(RefCell::new(ClientInner {
             promise_to_drive: None,
             pipeline_inner,
@@ -239,7 +239,7 @@ impl Client {
         Self { inner }
     }
 
-    pub fn drive<F>(&mut self, promise: F)
+    pub(crate) fn drive<F>(&mut self, promise: F)
     where
         F: Future<Output = Result<(), Error>> + 'static,
     {

@@ -360,14 +360,14 @@ mod wire_helpers {
     use crate::text;
     use crate::{Error, ErrorKind, MessageSize, Result};
 
-    pub struct SegmentAnd<T> {
+    pub(crate) struct SegmentAnd<T> {
         #[allow(dead_code)]
         segment_id: u32,
         pub value: T,
     }
 
     #[inline]
-    pub fn round_bytes_up_to_words(bytes: ByteCount32) -> WordCount32 {
+    pub(crate) fn round_bytes_up_to_words(bytes: ByteCount32) -> WordCount32 {
         //# This code assumes 64-bit words.
         (bytes + 7) / BYTES_PER_WORD as u32
     }
@@ -377,19 +377,19 @@ mod wire_helpers {
     //# BitCount64. However, 32 bits is enough for the returned
     //# ByteCounts and WordCounts.
     #[inline]
-    pub fn round_bits_up_to_words(bits: BitCount64) -> WordCount32 {
+    pub(crate) fn round_bits_up_to_words(bits: BitCount64) -> WordCount32 {
         //# This code assumes 64-bit words.
         ((bits + 63) / (BITS_PER_WORD as u64)) as WordCount32
     }
 
     #[allow(dead_code)]
     #[inline]
-    pub fn round_bits_up_to_bytes(bits: BitCount64) -> ByteCount32 {
+    pub(crate) fn round_bits_up_to_bytes(bits: BitCount64) -> ByteCount32 {
         ((bits + 7) / (BITS_PER_BYTE as u64)) as ByteCount32
     }
 
     #[inline]
-    pub fn bounds_check(
+    pub(crate) fn bounds_check(
         arena: &dyn ReaderArena,
         segment_id: u32,
         start: *const u8,
@@ -400,19 +400,23 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub fn amplified_read(arena: &dyn ReaderArena, virtual_amount: u64) -> Result<()> {
+    pub(crate) fn amplified_read(arena: &dyn ReaderArena, virtual_amount: u64) -> Result<()> {
         arena.amplified_read(virtual_amount)
     }
 
     #[inline]
-    pub unsafe fn copy_nonoverlapping_check_zero<T>(src: *const T, dst: *mut T, count: usize) {
+    pub(crate) unsafe fn copy_nonoverlapping_check_zero<T>(
+        src: *const T,
+        dst: *mut T,
+        count: usize,
+    ) {
         if count > 0 {
             ptr::copy_nonoverlapping(src, dst, count);
         }
     }
 
     #[inline]
-    pub unsafe fn allocate(
+    pub(crate) unsafe fn allocate(
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
@@ -463,7 +467,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn follow_builder_fars(
+    pub(crate) unsafe fn follow_builder_fars(
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         ref_target: *mut u8,
@@ -506,7 +510,7 @@ mod wire_helpers {
     ///   - the resolved WirePointer, whose kind is something other than WirePointerKind::Far
     ///   - the segment on which the pointed-to object lives
     #[inline]
-    pub unsafe fn follow_fars(
+    pub(crate) unsafe fn follow_fars(
         arena: &dyn ReaderArena,
         reff: *const WirePointer,
         segment_id: u32,
@@ -549,7 +553,7 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn zero_object(
+    pub(crate) unsafe fn zero_object(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
         reff: *mut WirePointer,
@@ -586,7 +590,7 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn zero_object_helper(
+    pub(crate) unsafe fn zero_object_helper(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
         tag: *mut WirePointer,
@@ -668,7 +672,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn zero_pointer_and_fars(
+    pub(crate) unsafe fn zero_pointer_and_fars(
         arena: &mut dyn BuilderArena,
         _segment_id: u32,
         reff: *mut WirePointer,
@@ -688,7 +692,7 @@ mod wire_helpers {
         Ok(())
     }
 
-    pub unsafe fn total_size(
+    pub(crate) unsafe fn total_size(
         arena: &dyn ReaderArena,
         segment_id: u32,
         reff: *const WirePointer,
@@ -865,7 +869,7 @@ mod wire_helpers {
 
     // Copies from a trusted message.
     // Returns (new_dst_ptr, new_dst, new_segment_id).
-    pub unsafe fn copy_message(
+    pub(crate) unsafe fn copy_message(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1000,7 +1004,7 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn transfer_pointer(
+    pub(crate) unsafe fn transfer_pointer(
         arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
         dst: *mut WirePointer,
@@ -1036,7 +1040,7 @@ mod wire_helpers {
         }
     }
 
-    pub unsafe fn transfer_pointer_split(
+    pub(crate) unsafe fn transfer_pointer_split(
         arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
         dst: *mut WirePointer,
@@ -1110,7 +1114,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_struct_pointer(
+    pub(crate) unsafe fn init_struct_pointer(
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
@@ -1138,7 +1142,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_pointer<'a>(
+    pub(crate) unsafe fn get_writable_struct_pointer<'a>(
         arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
@@ -1253,7 +1257,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_list_pointer(
+    pub(crate) unsafe fn init_list_pointer(
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
@@ -1289,7 +1293,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_struct_list_pointer(
+    pub(crate) unsafe fn init_struct_list_pointer(
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
@@ -1339,7 +1343,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_list_pointer(
+    pub(crate) unsafe fn get_writable_list_pointer(
         arena: &mut dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
@@ -1474,7 +1478,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_list_pointer(
+    pub(crate) unsafe fn get_writable_struct_list_pointer(
         arena: &mut dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
@@ -1731,7 +1735,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_text_pointer(
+    pub(crate) unsafe fn init_text_pointer(
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
@@ -1761,7 +1765,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn set_text_pointer<'a>(
+    pub(crate) unsafe fn set_text_pointer<'a>(
         arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
@@ -1779,7 +1783,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_text_pointer<'a>(
+    pub(crate) unsafe fn get_writable_text_pointer<'a>(
         arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
@@ -1829,7 +1833,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn init_data_pointer(
+    pub(crate) unsafe fn init_data_pointer(
         arena: &mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
@@ -1854,7 +1858,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn set_data_pointer<'a>(
+    pub(crate) unsafe fn set_data_pointer<'a>(
         arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
@@ -1871,7 +1875,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_data_pointer<'a>(
+    pub(crate) unsafe fn get_writable_data_pointer<'a>(
         arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
@@ -1914,7 +1918,7 @@ mod wire_helpers {
         ))
     }
 
-    pub unsafe fn set_struct_pointer(
+    pub(crate) unsafe fn set_struct_pointer(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1999,7 +2003,7 @@ mod wire_helpers {
     }
 
     #[cfg(feature = "alloc")]
-    pub unsafe fn set_capability_pointer(
+    pub(crate) unsafe fn set_capability_pointer(
         _arena: &mut dyn BuilderArena,
         _segment_id: u32,
         mut cap_table: CapTableBuilder,
@@ -2010,7 +2014,7 @@ mod wire_helpers {
         (*reff).set_cap(cap_table.inject_cap(cap) as u32);
     }
 
-    pub unsafe fn set_list_pointer(
+    pub(crate) unsafe fn set_list_pointer(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -2177,7 +2181,7 @@ mod wire_helpers {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub unsafe fn deep_copy_pointee(
+    pub(crate) unsafe fn deep_copy_pointee(
         dst_arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
         dst_cap_table: CapTableBuilder,
@@ -2372,7 +2376,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_struct_pointer<'a>(
+    pub(crate) unsafe fn read_struct_pointer<'a>(
         mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
         cap_table: CapTableReader,
@@ -2432,7 +2436,7 @@ mod wire_helpers {
 
     #[inline]
     #[cfg(feature = "alloc")]
-    pub unsafe fn read_capability_pointer(
+    pub(crate) unsafe fn read_capability_pointer(
         _arena: &dyn ReaderArena,
         _segment_id: u32,
         cap_table: CapTableReader,
@@ -2459,7 +2463,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_list_pointer(
+    pub(crate) unsafe fn read_list_pointer(
         mut arena: &dyn ReaderArena,
         mut segment_id: u32,
         cap_table: CapTableReader,
@@ -2637,7 +2641,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_text_pointer<'a>(
+    pub(crate) unsafe fn read_text_pointer<'a>(
         mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
         mut reff: *const WirePointer,
@@ -2698,7 +2702,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn read_data_pointer<'a>(
+    pub(crate) unsafe fn read_data_pointer<'a>(
         mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
         mut reff: *const WirePointer,

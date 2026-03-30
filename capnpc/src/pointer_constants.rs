@@ -26,8 +26,8 @@ use crate::codegen_types::{Leaf, RustTypeInfo};
 use capnp::schema_capnp::type_;
 
 #[derive(Clone, Copy)]
-pub struct WordArrayDeclarationOptions {
-    pub public: bool,
+pub(crate) struct WordArrayDeclarationOptions {
+    pub(crate) public: bool,
 }
 
 fn word_array_declaration_aux<T: ::capnp::traits::SetterInput<impl ::capnp::traits::Owned>>(
@@ -75,7 +75,7 @@ fn word_array_declaration_aux<T: ::capnp::traits::SetterInput<impl ::capnp::trai
     ]))
 }
 
-pub fn word_array_declaration(
+pub(crate) fn word_array_declaration(
     ctx: &GeneratorContext,
     name: &str,
     value: any_pointer::Reader,
@@ -84,7 +84,7 @@ pub fn word_array_declaration(
     word_array_declaration_aux(ctx, name, value, value.target_size()?, options)
 }
 
-pub fn node_word_array_declaration(
+pub(crate) fn node_word_array_declaration(
     ctx: &GeneratorContext,
     name: &str,
     value: capnp::schema_capnp::node::Reader,
@@ -93,7 +93,7 @@ pub fn node_word_array_declaration(
     word_array_declaration_aux(ctx, name, value, value.total_size()?, options)
 }
 
-pub fn generate_pointer_constant(
+pub(crate) fn generate_pointer_constant(
     ctx: &GeneratorContext,
     styled_name: &str,
     typ: type_::Reader,

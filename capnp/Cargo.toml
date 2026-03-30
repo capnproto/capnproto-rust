@@ -41,9 +41,5 @@ std = ["embedded-io?/std"]
 # rustc targets.
 sync_reader = []
 
-#[lints]
-#workspace = true
-
-[lints.clippy]
-type_complexity = "allow"  # this should be removed in future
-missing_safety_doc = "allow"  # this should be removed in future
+[lints]
+workspace = true

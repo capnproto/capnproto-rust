@@ -21,3 +21,6 @@ path = "../"
 capnp = { path = "../../capnp" }
 futures = "0.3.0"
 async-byte-channel = {path = "./../../async-byte-channel"}
+
+[lints]
+workspace = true

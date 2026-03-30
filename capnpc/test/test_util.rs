@@ -21,7 +21,7 @@
 
 use crate::test_capnp::{test_all_types, test_defaults, TestEnum};
 
-pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
+pub(crate) fn init_test_message(mut builder: test_all_types::Builder<'_>) {
     builder.set_void_field(());
     builder.set_bool_field(true);
     builder.set_int8_field(-123);
@@ -150,7 +150,7 @@ pub fn init_test_message(mut builder: test_all_types::Builder<'_>) {
     // ...
 }
 
-pub trait CheckTestMessage {
+pub(crate) trait CheckTestMessage {
     fn check_test_message(_: Self);
 }
 
@@ -372,7 +372,7 @@ check_test_message_impl!(test_all_types::Builder);
 check_test_message_impl!(test_defaults::Reader);
 check_test_message_impl!(test_defaults::Builder);
 
-pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'_>) {
+pub(crate) fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'_>) {
     builder.set_named("voidField", ().into()).unwrap();
     builder.set_named("boolField", true.into()).unwrap();
     builder.set_named("int8Field", (-123i8).into()).unwrap();
@@ -655,7 +655,7 @@ pub fn dynamic_init_test_message(mut builder: ::capnp::dynamic_struct::Builder<'
     }
 }
 
-pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
+pub(crate) fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
     reader.get_named("voidField").unwrap().downcast::<()>();
     assert_eq!(
         true,
@@ -956,7 +956,7 @@ pub fn dynamic_check_test_message(reader: capnp::dynamic_struct::Reader<'_>) {
     }
 }
 
-pub fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Builder<'_>) {
+pub(crate) fn dynamic_check_test_message_builder(mut builder: capnp::dynamic_struct::Builder<'_>) {
     builder
         .reborrow()
         .get_named("voidField")

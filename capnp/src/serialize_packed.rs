@@ -465,7 +465,7 @@ mod tests {
     use crate::ErrorKind;
 
     #[test]
-    pub fn premature_eof() {
+    pub(crate) fn premature_eof() {
         let input_bytes: &[u8] = &[];
         let mut packed_read = PackedRead { inner: input_bytes };
 
@@ -473,7 +473,7 @@ mod tests {
         assert!(packed_read.read_exact(&mut output_bytes[..]).is_err());
     }
 
-    pub fn check_unpacks_to(packed: &[u8], unpacked: &[u8]) {
+    pub(crate) fn check_unpacks_to(packed: &[u8], unpacked: &[u8]) {
         let mut packed_read = PackedRead { inner: packed };
 
         let mut bytes: alloc::vec::Vec<u8> = vec![0; unpacked.len()];
@@ -483,7 +483,7 @@ mod tests {
         assert_eq!(bytes, unpacked);
     }
 
-    pub fn check_packing(unpacked: &[u8], packed: &[u8]) {
+    pub(crate) fn check_packing(unpacked: &[u8], packed: &[u8]) {
         // --------
         // write
 
@@ -503,7 +503,7 @@ mod tests {
     }
 
     #[test]
-    pub fn simple_packing() {
+    pub(crate) fn simple_packing() {
         check_packing(&[], &[]);
         check_packing(&[0; 8], &[0, 0]);
         check_packing(&[0, 0, 12, 0, 0, 34, 0, 0], &[0x24, 12, 34]);

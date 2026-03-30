@@ -32,7 +32,7 @@ struct FooImpl {
     disconnect: RefCell<Option<oneshot::Sender<()>>>,
 }
 impl FooImpl {
-    pub fn new() -> (Self, oneshot::Receiver<()>) {
+    pub(crate) fn new() -> (Self, oneshot::Receiver<()>) {
         let (sender, receiver) = oneshot::channel();
         (
             FooImpl {

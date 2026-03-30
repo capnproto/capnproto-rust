@@ -23,3 +23,6 @@ async-byte-channel = {path = "./../../async-byte-channel"}
 [[test]]
 name = "overflow_test"
 path = "overflow_test.rs"
+
+[lints]
+workspace = true

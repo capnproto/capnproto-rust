@@ -37,7 +37,7 @@ struct IncomingMessage {
 }
 
 impl IncomingMessage {
-    pub fn new(message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>) -> Self {
+    pub(crate) fn new(message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>) -> Self {
         Self { message }
     }
 }

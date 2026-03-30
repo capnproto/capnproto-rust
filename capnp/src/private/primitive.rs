@@ -94,7 +94,7 @@ impl Primitive for f64 {
 /// A value casted directly from a little-endian byte buffer. On big-endian
 /// processors, the bytes of the value need to be swapped upon reading and writing.
 #[repr(C)]
-pub struct WireValue<T>
+pub(crate) struct WireValue<T>
 where
     T: Primitive,
 {
@@ -107,13 +107,13 @@ where
 {
     /// Reads the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn get(&self) -> T {
+    pub(crate) fn get(&self) -> T {
         <T as Primitive>::get(&self.value)
     }
 
     /// Writes the value, swapping bytes on big-endian processors.
     #[inline]
-    pub fn set(&mut self, value: T) {
+    pub(crate) fn set(&mut self, value: T) {
         <T as Primitive>::set(&mut self.value, value)
     }
 }

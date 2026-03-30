@@ -24,7 +24,7 @@ use futures::{Future, FutureExt};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub fn split<F, T1, T2, E>(
+pub(crate) fn split<F, T1, T2, E>(
     f: F,
 ) -> (
     impl Future<Output = Result<T1, E>>,

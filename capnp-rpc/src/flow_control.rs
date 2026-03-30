@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use crate::task_set::{TaskReaper, TaskSet, TaskSetHandle};
 
-pub const DEFAULT_WINDOW_SIZE: usize = 65536;
+pub(crate) const DEFAULT_WINDOW_SIZE: usize = 65536;
 
 enum State {
     Running(Vec<oneshot::Sender<Result<(), Error>>>),
@@ -34,7 +34,7 @@ impl FixedWindowFlowControllerInner {
     }
 }
 
-pub struct FixedWindowFlowController {
+pub(crate) struct FixedWindowFlowController {
     inner: Rc<RefCell<FixedWindowFlowControllerInner>>,
     tasks: TaskSetHandle<Error>,
 }
@@ -56,7 +56,7 @@ impl TaskReaper<Error> for Reaper {
 }
 
 impl FixedWindowFlowController {
-    pub fn new(window_size: usize) -> (Self, Promise<(), Error>) {
+    pub(crate) fn new(window_size: usize) -> (Self, Promise<(), Error>) {
         let inner = FixedWindowFlowControllerInner {
             window_size,
             in_flight: 0,
