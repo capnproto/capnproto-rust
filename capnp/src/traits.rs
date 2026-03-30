@@ -152,7 +152,8 @@ impl<U, T: IndexMove<u32, U>> ::core::iter::Iterator for ListIter<T, U> {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.size as usize, Some(self.size as usize))
+        let remaining = self.size as usize - self.index as usize;
+        (remaining, Some(remaining))
     }
 
     fn nth(&mut self, p: usize) -> Option<U> {
@@ -217,7 +218,8 @@ impl<U, T: IndexMove<u16, U>> ::core::iter::Iterator for ShortListIter<T, U> {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.size as usize, Some(self.size as usize))
+        let remaining = self.size as usize - self.index as usize;
+        (remaining, Some(remaining))
     }
 
     fn nth(&mut self, p: usize) -> Option<U> {
