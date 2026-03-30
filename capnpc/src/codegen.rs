@@ -823,10 +823,10 @@ pub fn getter_text(
                 }
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
-                        format!("::core::convert::TryInto::try_into(self.{member}.get_data_field::<u16>({offset}))")
+                        format!("::core::convert::TryFrom::try_from(self.{member}.get_data_field::<u16>({offset}))")
                     } else {
                         format!(
-                                "::core::convert::TryInto::try_into(self.{member}.get_data_field_mask::<u16>({offset}, {d}))")
+                                "::core::convert::TryFrom::try_from(self.{member}.get_data_field_mask::<u16>({offset}, {d}))")
                     }
                 }
 

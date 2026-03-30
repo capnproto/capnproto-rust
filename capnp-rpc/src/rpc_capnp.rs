@@ -8220,7 +8220,7 @@ pub mod exception {
             self,
         ) -> ::core::result::Result<crate::rpc_capnp::exception::Type, ::capnp::NotInSchema>
         {
-            ::core::convert::TryInto::try_into(self.reader.get_data_field::<u16>(2))
+            ::core::convert::TryFrom::try_from(self.reader.get_data_field::<u16>(2))
         }
         #[inline]
         pub fn get_trace(self) -> ::capnp::Result<::capnp::text::Reader<'a>> {
@@ -8369,7 +8369,7 @@ pub mod exception {
             self,
         ) -> ::core::result::Result<crate::rpc_capnp::exception::Type, ::capnp::NotInSchema>
         {
-            ::core::convert::TryInto::try_into(self.builder.get_data_field::<u16>(2))
+            ::core::convert::TryFrom::try_from(self.builder.get_data_field::<u16>(2))
         }
         #[inline]
         pub fn set_type(&mut self, value: crate::rpc_capnp::exception::Type) {

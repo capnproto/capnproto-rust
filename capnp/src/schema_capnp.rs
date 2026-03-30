@@ -2270,7 +2270,7 @@ pub mod node {
                 self,
             ) -> ::core::result::Result<crate::schema_capnp::ElementSize, crate::NotInSchema>
             {
-                ::core::convert::TryInto::try_into(self.reader.get_data_field::<u16>(13))
+                ::core::convert::TryFrom::try_from(self.reader.get_data_field::<u16>(13))
             }
             #[inline]
             pub fn get_is_group(self) -> bool {
@@ -2407,7 +2407,7 @@ pub mod node {
                 self,
             ) -> ::core::result::Result<crate::schema_capnp::ElementSize, crate::NotInSchema>
             {
-                ::core::convert::TryInto::try_into(self.builder.get_data_field::<u16>(13))
+                ::core::convert::TryFrom::try_from(self.builder.get_data_field::<u16>(13))
             }
             #[inline]
             pub fn set_preferred_list_encoding(&mut self, value: crate::schema_capnp::ElementSize) {
