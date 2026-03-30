@@ -177,7 +177,7 @@ pub mod node {
             self.reader.get_bool_field(288)
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::Error> {
             match self.reader.get_data_field::<u16>(6) {
                 0 => ::core::result::Result::Ok(File(())),
                 1 => ::core::result::Result::Ok(Struct(self.reader.into())),
@@ -185,7 +185,7 @@ pub mod node {
                 3 => ::core::result::Result::Ok(Interface(self.reader.into())),
                 4 => ::core::result::Result::Ok(Const(self.reader.into())),
                 5 => ::core::result::Result::Ok(Annotation(self.reader.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
             }
         }
     }
@@ -486,7 +486,7 @@ pub mod node {
             self.builder.set_bool_field(288, value);
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::Error> {
             match self.builder.get_data_field::<u16>(6) {
                 0 => ::core::result::Result::Ok(File(())),
                 1 => ::core::result::Result::Ok(Struct(self.builder.into())),
@@ -494,7 +494,7 @@ pub mod node {
                 3 => ::core::result::Result::Ok(Interface(self.builder.into())),
                 4 => ::core::result::Result::Ok(Const(self.builder.into())),
                 5 => ::core::result::Result::Ok(Annotation(self.builder.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
             }
         }
     }
@@ -4524,11 +4524,11 @@ pub mod field {
             self.reader.into()
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::Error> {
             match self.reader.get_data_field::<u16>(4) {
                 0 => ::core::result::Result::Ok(Slot(self.reader.into())),
                 1 => ::core::result::Result::Ok(Group(self.reader.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
             }
         }
     }
@@ -4714,11 +4714,11 @@ pub mod field {
             self.builder.into()
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::Error> {
             match self.builder.get_data_field::<u16>(4) {
                 0 => ::core::result::Result::Ok(Slot(self.builder.into())),
                 1 => ::core::result::Result::Ok(Group(self.builder.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
             }
         }
     }
@@ -5705,11 +5705,11 @@ pub mod field {
                 self.reader.total_size()
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichReader, crate::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichReader, crate::Error> {
                 match self.reader.get_data_field::<u16>(5) {
                     0 => ::core::result::Result::Ok(Implicit(())),
                     1 => ::core::result::Result::Ok(Explicit(self.reader.get_data_field::<u16>(6))),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                 }
             }
         }
@@ -5810,13 +5810,13 @@ pub mod field {
                 self.builder.set_data_field::<u16>(6, value);
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichBuilder, crate::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichBuilder, crate::Error> {
                 match self.builder.get_data_field::<u16>(5) {
                     0 => ::core::result::Result::Ok(Implicit(())),
                     1 => {
                         ::core::result::Result::Ok(Explicit(self.builder.get_data_field::<u16>(6)))
                     }
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                 }
             }
         }
@@ -7383,7 +7383,7 @@ pub mod type_ {
             self.reader.total_size()
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::Error> {
             match self.reader.get_data_field::<u16>(0) {
                 0 => ::core::result::Result::Ok(Void(())),
                 1 => ::core::result::Result::Ok(Bool(())),
@@ -7404,7 +7404,7 @@ pub mod type_ {
                 16 => ::core::result::Result::Ok(Struct(self.reader.into())),
                 17 => ::core::result::Result::Ok(Interface(self.reader.into())),
                 18 => ::core::result::Result::Ok(AnyPointer(self.reader.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
             }
         }
     }
@@ -7586,7 +7586,7 @@ pub mod type_ {
             self.builder.into()
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::Error> {
             match self.builder.get_data_field::<u16>(0) {
                 0 => ::core::result::Result::Ok(Void(())),
                 1 => ::core::result::Result::Ok(Bool(())),
@@ -7607,7 +7607,7 @@ pub mod type_ {
                 16 => ::core::result::Result::Ok(Struct(self.builder.into())),
                 17 => ::core::result::Result::Ok(Interface(self.builder.into())),
                 18 => ::core::result::Result::Ok(AnyPointer(self.builder.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
             }
         }
     }
@@ -9394,12 +9394,12 @@ pub mod type_ {
                 self.reader.total_size()
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::Error> {
                 match self.reader.get_data_field::<u16>(4) {
                     0 => ::core::result::Result::Ok(Unconstrained(self.reader.into())),
                     1 => ::core::result::Result::Ok(Parameter(self.reader.into())),
                     2 => ::core::result::Result::Ok(ImplicitMethodParameter(self.reader.into())),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                 }
             }
         }
@@ -9517,12 +9517,12 @@ pub mod type_ {
                 self.builder.into()
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::Error> {
                 match self.builder.get_data_field::<u16>(4) {
                     0 => ::core::result::Result::Ok(Unconstrained(self.builder.into())),
                     1 => ::core::result::Result::Ok(Parameter(self.builder.into())),
                     2 => ::core::result::Result::Ok(ImplicitMethodParameter(self.builder.into())),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                 }
             }
         }
@@ -9736,13 +9736,13 @@ pub mod type_ {
                     self.reader.total_size()
                 }
                 #[inline]
-                pub fn which(self) -> ::core::result::Result<WhichReader, crate::NotInSchema> {
+                pub fn which(self) -> ::core::result::Result<WhichReader, crate::Error> {
                     match self.reader.get_data_field::<u16>(5) {
                         0 => ::core::result::Result::Ok(AnyKind(())),
                         1 => ::core::result::Result::Ok(Struct(())),
                         2 => ::core::result::Result::Ok(List(())),
                         3 => ::core::result::Result::Ok(Capability(())),
-                        x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                        x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                     }
                 }
             }
@@ -9855,13 +9855,13 @@ pub mod type_ {
                     self.builder.set_data_field::<u16>(5, 3);
                 }
                 #[inline]
-                pub fn which(self) -> ::core::result::Result<WhichBuilder, crate::NotInSchema> {
+                pub fn which(self) -> ::core::result::Result<WhichBuilder, crate::Error> {
                     match self.builder.get_data_field::<u16>(5) {
                         0 => ::core::result::Result::Ok(AnyKind(())),
                         1 => ::core::result::Result::Ok(Struct(())),
                         2 => ::core::result::Result::Ok(List(())),
                         3 => ::core::result::Result::Ok(Capability(())),
-                        x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                        x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                     }
                 }
             }
@@ -11031,16 +11031,16 @@ pub mod brand {
                 !self.reader.get_pointer_field(0).is_null()
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::Error> {
                 match self.reader.get_data_field::<u16>(4) {
                     0 => ::core::result::Result::Ok(Bind(
                         crate::traits::FromPointerReader::get_from_pointer(
                             &self.reader.get_pointer_field(0),
                             ::core::option::Option::None,
-                        ),
+                        )?,
                     )),
                     1 => ::core::result::Result::Ok(Inherit(())),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                 }
             }
         }
@@ -11175,16 +11175,16 @@ pub mod brand {
                 self.builder.set_data_field::<u16>(4, 1);
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::Error> {
                 match self.builder.get_data_field::<u16>(4) {
                     0 => ::core::result::Result::Ok(Bind(
                         crate::traits::FromPointerBuilder::get_from_pointer(
                             self.builder.get_pointer_field(0),
                             ::core::option::Option::None,
-                        ),
+                        )?,
                     )),
                     1 => ::core::result::Result::Ok(Inherit(())),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                 }
             }
         }
@@ -11302,16 +11302,10 @@ pub mod brand {
             Bind(A0),
             Inherit(()),
         }
-        pub type WhichReader<'a> = Which<
-            crate::Result<
-                crate::struct_list::Reader<'a, crate::schema_capnp::brand::binding::Owned>,
-            >,
-        >;
-        pub type WhichBuilder<'a> = Which<
-            crate::Result<
-                crate::struct_list::Builder<'a, crate::schema_capnp::brand::binding::Owned>,
-            >,
-        >;
+        pub type WhichReader<'a> =
+            Which<crate::struct_list::Reader<'a, crate::schema_capnp::brand::binding::Owned>>;
+        pub type WhichBuilder<'a> =
+            Which<crate::struct_list::Builder<'a, crate::schema_capnp::brand::binding::Owned>>;
     }
 
     pub mod binding {
@@ -11423,16 +11417,16 @@ pub mod brand {
                 !self.reader.get_pointer_field(0).is_null()
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::Error> {
                 match self.reader.get_data_field::<u16>(0) {
                     0 => ::core::result::Result::Ok(Unbound(())),
                     1 => ::core::result::Result::Ok(Type(
                         crate::traits::FromPointerReader::get_from_pointer(
                             &self.reader.get_pointer_field(0),
                             ::core::option::Option::None,
-                        ),
+                        )?,
                     )),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                 }
             }
         }
@@ -11555,16 +11549,16 @@ pub mod brand {
                 !self.builder.is_pointer_field_null(0)
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::Error> {
                 match self.builder.get_data_field::<u16>(0) {
                     0 => ::core::result::Result::Ok(Unbound(())),
                     1 => ::core::result::Result::Ok(Type(
                         crate::traits::FromPointerBuilder::get_from_pointer(
                             self.builder.get_pointer_field(0),
                             ::core::option::Option::None,
-                        ),
+                        )?,
                     )),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
                 }
             }
         }
@@ -11662,8 +11656,8 @@ pub mod brand {
             Unbound(()),
             Type(A0),
         }
-        pub type WhichReader<'a> = Which<crate::Result<crate::schema_capnp::type_::Reader<'a>>>;
-        pub type WhichBuilder<'a> = Which<crate::Result<crate::schema_capnp::type_::Builder<'a>>>;
+        pub type WhichReader<'a> = Which<crate::schema_capnp::type_::Reader<'a>>;
+        pub type WhichBuilder<'a> = Which<crate::schema_capnp::type_::Builder<'a>>;
     }
 }
 
@@ -11807,7 +11801,7 @@ pub mod value {
             !self.reader.get_pointer_field(0).is_null()
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, crate::Error> {
             match self.reader.get_data_field::<u16>(0) {
                 0 => ::core::result::Result::Ok(Void(())),
                 1 => ::core::result::Result::Ok(Bool(self.reader.get_bool_field(16))),
@@ -11825,13 +11819,13 @@ pub mod value {
                     crate::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 13 => ::core::result::Result::Ok(Data(
                     crate::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 14 => ::core::result::Result::Ok(List(crate::any_pointer::Reader::new(
                     self.reader.get_pointer_field(0),
@@ -11844,7 +11838,7 @@ pub mod value {
                 18 => ::core::result::Result::Ok(AnyPointer(crate::any_pointer::Reader::new(
                     self.reader.get_pointer_field(0),
                 ))),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
             }
         }
     }
@@ -12082,7 +12076,7 @@ pub mod value {
             !self.builder.is_pointer_field_null(0)
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, crate::Error> {
             match self.builder.get_data_field::<u16>(0) {
                 0 => ::core::result::Result::Ok(Void(())),
                 1 => ::core::result::Result::Ok(Bool(self.builder.get_bool_field(16))),
@@ -12100,13 +12094,13 @@ pub mod value {
                     crate::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 13 => ::core::result::Result::Ok(Data(
                     crate::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 14 => ::core::result::Result::Ok(List(crate::any_pointer::Builder::new(
                     self.builder.get_pointer_field(0),
@@ -12119,7 +12113,7 @@ pub mod value {
                 18 => ::core::result::Result::Ok(AnyPointer(crate::any_pointer::Builder::new(
                     self.builder.get_pointer_field(0),
                 ))),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::Error::from(crate::NotInSchema(x))),
             }
         }
     }
@@ -12512,15 +12506,15 @@ pub mod value {
         AnyPointer(A4),
     }
     pub type WhichReader<'a> = Which<
-        crate::Result<crate::text::Reader<'a>>,
-        crate::Result<crate::data::Reader<'a>>,
+        crate::text::Reader<'a>,
+        crate::data::Reader<'a>,
         crate::any_pointer::Reader<'a>,
         crate::any_pointer::Reader<'a>,
         crate::any_pointer::Reader<'a>,
     >;
     pub type WhichBuilder<'a> = Which<
-        crate::Result<crate::text::Builder<'a>>,
-        crate::Result<crate::data::Builder<'a>>,
+        crate::text::Builder<'a>,
+        crate::data::Builder<'a>,
         crate::any_pointer::Builder<'a>,
         crate::any_pointer::Builder<'a>,
         crate::any_pointer::Builder<'a>,

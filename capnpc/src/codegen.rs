@@ -537,7 +537,7 @@ const STREAM_RESULT_ID: u64 = 0x995f9a3377c0b16e;
 
 fn name_annotation_value(annotation: schema_capnp::annotation::Reader<'_>) -> capnp::Result<&str> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
-        let name = t?.to_str()?;
+        let name = t.to_str()?;
         for c in name.chars() {
             if !(c == '_' || c.is_alphanumeric()) {
                 return Err(capnp::Error::failed(
@@ -574,7 +574,7 @@ fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader<'_>) -> capnp::
 
 fn get_parent_module(annotation: schema_capnp::annotation::Reader) -> capnp::Result<Vec<String>> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
-        let module = t?.to_str()?;
+        let module = t.to_str()?;
         Ok(module.split("::").map(|x| x.to_string()).collect())
     } else {
         Err(capnp::Error::failed(
@@ -687,7 +687,7 @@ pub fn getter_text(
     field: &schema_capnp::field::Reader,
     is_reader: bool,
     is_fn: bool,
-) -> ::capnp::Result<(String, FormattedText, Option<FormattedText>)> {
+) -> ::capnp::Result<(String, String, FormattedText, Option<FormattedText>)> {
     use capnp::schema_capnp::*;
 
     match field.which()? {
@@ -717,7 +717,8 @@ pub fn getter_text(
                 line("self.builder.into()")
             };
 
-            Ok((result_type, getter_code, None))
+            // For groups, inner type is same as result_type (no Result wrapper)
+            Ok((result_type.clone(), result_type, getter_code, None))
         }
         field::Slot(reg_field) => {
             let mut default_decl = None;
@@ -745,7 +746,11 @@ pub fn getter_text(
             }
 
             let raw_type = reg_field.get_type()?;
-            let inner_type = raw_type.type_string(ctx, module)?;
+            let inner_type = if matches!(raw_type.which()?, type_::Interface(_)) {
+                raw_type.type_string(ctx, Leaf::Client)?
+            } else {
+                raw_type.type_string(ctx, module)?
+            };
             let default_value = reg_field.get_default_value()?;
             let default = default_value.which()?;
             let default_name = format!(
@@ -894,7 +899,8 @@ pub fn getter_text(
                 Line(getter_fragment)
             };
 
-            Ok((result_type, getter_code, default_decl))
+            // typ is the inner type (without Result wrapper, may include Option)
+            Ok((result_type, typ, getter_code, default_decl))
         }
     }
 }
@@ -1353,14 +1359,13 @@ fn used_params_of_brand(
                         used_params.insert(param.get_name()?.to_string()?);
                     }
                 }
-                brand::scope::Bind(bindings_list_opt) => {
-                    let bindings_list = bindings_list_opt?;
+                brand::scope::Bind(bindings_list) => {
                     assert_eq!(bindings_list.len(), params.len());
                     for binding in bindings_list {
                         match binding.which()? {
                             brand::binding::Unbound(()) => (),
                             brand::binding::Type(t) => {
-                                used_params_of_type(ctx, t?, used_params)?;
+                                used_params_of_type(ctx, t, used_params)?;
                             }
                         }
                     }
@@ -1411,18 +1416,25 @@ fn generate_union(
         let field_name = get_field_name(*field)?;
         let enumerant_name = capitalize_first_letter(field_name);
 
-        let (ty, get, maybe_default_decl) = getter_text(ctx, field, is_reader, false)?;
+        let (ty, inner_ty, get, maybe_default_decl) = getter_text(ctx, field, is_reader, false)?;
         if let Some(default_decl) = maybe_default_decl {
             default_decls.push(default_decl)
         }
 
+        let is_fallible = inner_ty != ty;
+
+        let get_expr: FormattedText = if is_fallible {
+            Branch(vec![get, line("?")])
+        } else {
+            get
+        };
         getter_interior.push(Branch(vec![
             Line(format!("{dvalue} => {{")),
             indent(Line(format!(
                 "::core::result::Result::Ok({}(",
                 enumerant_name.clone()
             ))),
-            indent(indent(get)),
+            indent(indent(get_expr)),
             indent(line("))")),
             line("}"),
         ]));
@@ -1430,7 +1442,7 @@ fn generate_union(
         let ty1 = match field.which() {
             Ok(field::Group(group)) => {
                 used_params_of_group(ctx, group.get_type_id(), &mut used_params)?;
-                ty_args.push(ty);
+                ty_args.push(inner_ty.clone());
                 new_ty_param(&mut ty_params)
             }
             Ok(field::Slot(reg_field)) => {
@@ -1442,16 +1454,16 @@ fn generate_union(
                         | type_::Data(())
                         | type_::List(_)
                         | type_::Struct(_)
-                        | type_::AnyPointer(_),
+                        | type_::AnyPointer(_)
+                        | type_::Interface(_),
                     ) => {
-                        ty_args.push(ty);
+                        ty_args.push(inner_ty.clone());
                         new_ty_param(&mut ty_params)
                     }
-                    Ok(type_::Interface(_)) => ty,
-                    _ => ty,
+                    _ => inner_ty.clone(),
                 }
             }
-            _ => ty,
+            _ => inner_ty.clone(),
         };
 
         enum_interior.push(Line(format!("{enumerant_name}({ty1}),")));
@@ -1468,7 +1480,7 @@ fn generate_union(
 
     getter_interior.push(Line(fmt!(
         ctx,
-        "x => ::core::result::Result::Err({capnp}::NotInSchema(x))"
+        "x => ::core::result::Result::Err({capnp}::Error::from({capnp}::NotInSchema(x)))"
     )));
 
     interior.push(Branch(vec![
@@ -1511,8 +1523,9 @@ fn generate_union(
 
     let getter_result = Branch(vec![
         line("#[inline]"),
-        Line(fmt!(ctx,
-            "pub fn which(self) -> ::core::result::Result<{concrete_type}, {capnp}::NotInSchema> {{"
+        Line(fmt!(
+            ctx,
+            "pub fn which(self) -> ::core::result::Result<{concrete_type}, {capnp}::Error> {{"
         )),
         indent(vec![
             Line(format!(
@@ -1972,11 +1985,11 @@ fn get_ty_params_of_brand_helper(
         let scope_id = scope.get_scope_id();
         match scope.which()? {
             schema_capnp::brand::scope::Bind(bind) => {
-                for binding in bind? {
+                for binding in bind {
                     match binding.which()? {
                         schema_capnp::brand::binding::Unbound(()) => {}
                         schema_capnp::brand::binding::Type(t) => {
-                            get_ty_params_of_type_helper(ctx, accumulator, t?)?
+                            get_ty_params_of_type_helper(ctx, accumulator, t)?
                         }
                     }
                 }
@@ -2097,7 +2110,7 @@ fn generate_node(
 
                 if !is_union_field {
                     pipeline_impl_interior.push(generate_pipeline_getter(ctx, field)?);
-                    let (ty, get, default_decl) = getter_text(ctx, &field, true, true)?;
+                    let (ty, _inner_ty, get, default_decl) = getter_text(ctx, &field, true, true)?;
                     if let Some(default) = default_decl {
                         private_mod_interior.push(default.clone());
                     }
@@ -2108,7 +2121,7 @@ fn generate_node(
                         line("}"),
                     ]));
 
-                    let (ty_b, get_b, _) = getter_text(ctx, &field, false, true)?;
+                    let (ty_b, _inner_ty_b, get_b, _) = getter_text(ctx, &field, false, true)?;
                     builder_members.push(Branch(vec![
                         line("#[inline]"),
                         Line(format!("pub fn get_{styled_name}(self) {ty_b} {{")),
@@ -3067,10 +3080,10 @@ fn generate_node(
 
                 (type_::Text(()), value::Text(t)) => Line(format!(
                     "pub const {styled_name}: &str = {:?};",
-                    t?.to_str()?
+                    t.to_str()?
                 )),
                 (type_::Data(()), value::Data(d)) => {
-                    Line(format!("pub const {styled_name}: &[u8] = &{:?};", d?))
+                    Line(format!("pub const {styled_name}: &[u8] = &{:?};", d))
                 }
 
                 (type_::List(_), value::List(v)) => {
