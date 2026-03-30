@@ -497,7 +497,7 @@ fn to_lines(ft: &FormattedText, indent: usize) -> Vec<String> {
         Indent(ft) => to_lines(ft, indent + 1),
         Branch(fts) => fts.iter().flat_map(|ft| to_lines(ft, indent)).collect(),
         Line(s) => {
-            let mut s1: String = " ".repeat(indent * 2);
+            let mut s1: String = " ".repeat(indent * 4);
             s1.push_str(s);
             vec![s1.to_string()]
         }

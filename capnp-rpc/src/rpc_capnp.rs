@@ -1028,22 +1028,22 @@ pub mod message {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <crate::rpc_capnp::message::Owned as ::capnp::introspect::Introspect>::introspect(),
-        1 => <crate::rpc_capnp::exception::Owned as ::capnp::introspect::Introspect>::introspect(),
-        2 => <crate::rpc_capnp::call::Owned as ::capnp::introspect::Introspect>::introspect(),
-        3 => <crate::rpc_capnp::return_::Owned as ::capnp::introspect::Introspect>::introspect(),
-        4 => <crate::rpc_capnp::finish::Owned as ::capnp::introspect::Introspect>::introspect(),
-        5 => <crate::rpc_capnp::resolve::Owned as ::capnp::introspect::Introspect>::introspect(),
-        6 => <crate::rpc_capnp::release::Owned as ::capnp::introspect::Introspect>::introspect(),
-        7 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
-        8 => <crate::rpc_capnp::bootstrap::Owned as ::capnp::introspect::Introspect>::introspect(),
-        9 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
-        10 => <crate::rpc_capnp::provide::Owned as ::capnp::introspect::Introspect>::introspect(),
-        11 => <crate::rpc_capnp::accept::Owned as ::capnp::introspect::Introspect>::introspect(),
-        12 => <crate::rpc_capnp::join::Owned as ::capnp::introspect::Introspect>::introspect(),
-        13 => <crate::rpc_capnp::disembargo::Owned as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <crate::rpc_capnp::message::Owned as ::capnp::introspect::Introspect>::introspect(),
+                1 => <crate::rpc_capnp::exception::Owned as ::capnp::introspect::Introspect>::introspect(),
+                2 => <crate::rpc_capnp::call::Owned as ::capnp::introspect::Introspect>::introspect(),
+                3 => <crate::rpc_capnp::return_::Owned as ::capnp::introspect::Introspect>::introspect(),
+                4 => <crate::rpc_capnp::finish::Owned as ::capnp::introspect::Introspect>::introspect(),
+                5 => <crate::rpc_capnp::resolve::Owned as ::capnp::introspect::Introspect>::introspect(),
+                6 => <crate::rpc_capnp::release::Owned as ::capnp::introspect::Introspect>::introspect(),
+                7 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
+                8 => <crate::rpc_capnp::bootstrap::Owned as ::capnp::introspect::Introspect>::introspect(),
+                9 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
+                10 => <crate::rpc_capnp::provide::Owned as ::capnp::introspect::Introspect>::introspect(),
+                11 => <crate::rpc_capnp::accept::Owned as ::capnp::introspect::Introspect>::introspect(),
+                12 => <crate::rpc_capnp::join::Owned as ::capnp::introspect::Introspect>::introspect(),
+                13 => <crate::rpc_capnp::disembargo::Owned as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -1967,17 +1967,17 @@ pub mod call {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        1 => <crate::rpc_capnp::message_target::Owned as ::capnp::introspect::Introspect>::introspect(),
-        2 => <u64 as ::capnp::introspect::Introspect>::introspect(),
-        3 => <u16 as ::capnp::introspect::Introspect>::introspect(),
-        4 => <crate::rpc_capnp::payload::Owned as ::capnp::introspect::Introspect>::introspect(),
-        5 => <crate::rpc_capnp::call::send_results_to::Owned as ::capnp::introspect::Introspect>::introspect(),
-        6 => <bool as ::capnp::introspect::Introspect>::introspect(),
-        7 => <bool as ::capnp::introspect::Introspect>::introspect(),
-        8 => <bool as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                1 => <crate::rpc_capnp::message_target::Owned as ::capnp::introspect::Introspect>::introspect(),
+                2 => <u64 as ::capnp::introspect::Introspect>::introspect(),
+                3 => <u16 as ::capnp::introspect::Introspect>::introspect(),
+                4 => <crate::rpc_capnp::payload::Owned as ::capnp::introspect::Introspect>::introspect(),
+                5 => <crate::rpc_capnp::call::send_results_to::Owned as ::capnp::introspect::Introspect>::introspect(),
+                6 => <bool as ::capnp::introspect::Introspect>::introspect(),
+                7 => <bool as ::capnp::introspect::Introspect>::introspect(),
+                8 => <bool as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -2929,17 +2929,17 @@ pub mod return_ {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        1 => <bool as ::capnp::introspect::Introspect>::introspect(),
-        2 => <crate::rpc_capnp::payload::Owned as ::capnp::introspect::Introspect>::introspect(),
-        3 => <crate::rpc_capnp::exception::Owned as ::capnp::introspect::Introspect>::introspect(),
-        4 => <() as ::capnp::introspect::Introspect>::introspect(),
-        5 => <() as ::capnp::introspect::Introspect>::introspect(),
-        6 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        7 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
-        8 => <bool as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                1 => <bool as ::capnp::introspect::Introspect>::introspect(),
+                2 => <crate::rpc_capnp::payload::Owned as ::capnp::introspect::Introspect>::introspect(),
+                3 => <crate::rpc_capnp::exception::Owned as ::capnp::introspect::Introspect>::introspect(),
+                4 => <() as ::capnp::introspect::Introspect>::introspect(),
+                5 => <() as ::capnp::introspect::Introspect>::introspect(),
+                6 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                7 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
+                8 => <bool as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -3700,11 +3700,11 @@ pub mod resolve {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        1 => <crate::rpc_capnp::cap_descriptor::Owned as ::capnp::introspect::Introspect>::introspect(),
-        2 => <crate::rpc_capnp::exception::Owned as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                1 => <crate::rpc_capnp::cap_descriptor::Owned as ::capnp::introspect::Introspect>::introspect(),
+                2 => <crate::rpc_capnp::exception::Owned as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -4347,10 +4347,10 @@ pub mod disembargo {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <crate::rpc_capnp::message_target::Owned as ::capnp::introspect::Introspect>::introspect(),
-        1 => <crate::rpc_capnp::disembargo::context::Owned as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <crate::rpc_capnp::message_target::Owned as ::capnp::introspect::Introspect>::introspect(),
+                1 => <crate::rpc_capnp::disembargo::context::Owned as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -5101,11 +5101,11 @@ pub mod provide {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        1 => <crate::rpc_capnp::message_target::Owned as ::capnp::introspect::Introspect>::introspect(),
-        2 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                1 => <crate::rpc_capnp::message_target::Owned as ::capnp::introspect::Introspect>::introspect(),
+                2 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -5821,11 +5821,11 @@ pub mod join {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        1 => <crate::rpc_capnp::message_target::Owned as ::capnp::introspect::Introspect>::introspect(),
-        2 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                1 => <crate::rpc_capnp::message_target::Owned as ::capnp::introspect::Introspect>::introspect(),
+                2 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -6167,10 +6167,10 @@ pub mod message_target {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        1 => <crate::rpc_capnp::promised_answer::Owned as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                1 => <crate::rpc_capnp::promised_answer::Owned as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -6536,10 +6536,10 @@ pub mod payload {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
-        1 => <::capnp::struct_list::Owned<crate::rpc_capnp::cap_descriptor::Owned> as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <::capnp::any_pointer::Owned as ::capnp::introspect::Introspect>::introspect(),
+                1 => <::capnp::struct_list::Owned<crate::rpc_capnp::cap_descriptor::Owned> as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -7050,15 +7050,15 @@ pub mod cap_descriptor {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <() as ::capnp::introspect::Introspect>::introspect(),
-        1 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        2 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        3 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        4 => <crate::rpc_capnp::promised_answer::Owned as ::capnp::introspect::Introspect>::introspect(),
-        5 => <crate::rpc_capnp::third_party_cap_descriptor::Owned as ::capnp::introspect::Introspect>::introspect(),
-        6 => <u8 as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <() as ::capnp::introspect::Introspect>::introspect(),
+                1 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                2 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                3 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                4 => <crate::rpc_capnp::promised_answer::Owned as ::capnp::introspect::Introspect>::introspect(),
+                5 => <crate::rpc_capnp::third_party_cap_descriptor::Owned as ::capnp::introspect::Introspect>::introspect(),
+                6 => <u8 as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -7424,10 +7424,10 @@ pub mod promised_answer {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
-        1 => <::capnp::struct_list::Owned<crate::rpc_capnp::promised_answer::op::Owned> as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <u32 as ::capnp::introspect::Introspect>::introspect(),
+                1 => <::capnp::struct_list::Owned<crate::rpc_capnp::promised_answer::op::Owned> as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
@@ -8519,13 +8519,13 @@ pub mod exception {
         ];
         pub fn get_field_types(index: u16) -> ::capnp::introspect::Type {
             match index {
-        0 => <::capnp::text::Owned as ::capnp::introspect::Introspect>::introspect(),
-        1 => <bool as ::capnp::introspect::Introspect>::introspect(),
-        2 => <u16 as ::capnp::introspect::Introspect>::introspect(),
-        3 => <crate::rpc_capnp::exception::Type as ::capnp::introspect::Introspect>::introspect(),
-        4 => <::capnp::text::Owned as ::capnp::introspect::Introspect>::introspect(),
-        _ => ::capnp::introspect::panic_invalid_field_index(index),
-      }
+                0 => <::capnp::text::Owned as ::capnp::introspect::Introspect>::introspect(),
+                1 => <bool as ::capnp::introspect::Introspect>::introspect(),
+                2 => <u16 as ::capnp::introspect::Introspect>::introspect(),
+                3 => <crate::rpc_capnp::exception::Type as ::capnp::introspect::Introspect>::introspect(),
+                4 => <::capnp::text::Owned as ::capnp::introspect::Introspect>::introspect(),
+                _ => ::capnp::introspect::panic_invalid_field_index(index),
+            }
         }
         pub fn get_annotation_types(
             child_index: Option<u16>,
