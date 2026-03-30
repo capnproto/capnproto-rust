@@ -89,7 +89,7 @@ mod side {
 
 pub mod vat_id {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -372,7 +372,7 @@ pub mod vat_id {
 
 pub mod provision_id {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -648,7 +648,7 @@ pub mod provision_id {
 
 pub mod recipient_id {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -893,7 +893,7 @@ pub mod recipient_id {
 
 pub mod third_party_cap_id {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -1139,7 +1139,7 @@ pub mod third_party_cap_id {
 
 pub mod join_key_part {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -1472,7 +1472,7 @@ pub mod join_key_part {
 
 pub mod join_result {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
