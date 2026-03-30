@@ -326,9 +326,6 @@ impl<'a, T: crate::traits::OwnedStruct> crate::dynamic_value::DowncastBuilder<'a
 
 impl<T: crate::traits::OwnedStruct> core::fmt::Debug for Reader<'_, T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        core::fmt::Debug::fmt(
-            &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(*self),
-            f,
-        )
+        core::fmt::Debug::fmt(&crate::dynamic_value::Reader::from(*self), f)
     }
 }

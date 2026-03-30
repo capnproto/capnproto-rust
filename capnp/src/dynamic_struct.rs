@@ -243,10 +243,8 @@ impl<'a> Reader<'a> {
     /// expected type does not match the value.
     pub fn downcast<T: crate::traits::OwnedStruct>(self) -> T::Reader<'a> {
         assert!(
-            Into::<crate::introspect::Type>::into(crate::introspect::TypeVariant::Struct(
-                self.schema.raw
-            ))
-            .loose_equals(T::introspect())
+            crate::introspect::Type::from(crate::introspect::TypeVariant::Struct(self.schema.raw))
+                .loose_equals(T::introspect())
         );
         self.reader.into()
     }
@@ -811,10 +809,8 @@ impl<'a> Builder<'a> {
     /// expected type does not match the value.
     pub fn downcast<T: crate::traits::OwnedStruct>(self) -> T::Builder<'a> {
         assert!(
-            Into::<crate::introspect::Type>::into(crate::introspect::TypeVariant::Struct(
-                self.schema.raw
-            ))
-            .loose_equals(T::introspect())
+            crate::introspect::Type::from(crate::introspect::TypeVariant::Struct(self.schema.raw))
+                .loose_equals(T::introspect())
         );
         self.builder.into()
     }
@@ -832,9 +828,6 @@ impl<'a> crate::traits::SetterInput<crate::any_pointer::Owned> for Reader<'a> {
 
 impl core::fmt::Debug for Reader<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        core::fmt::Debug::fmt(
-            &::core::convert::Into::<crate::dynamic_value::Reader<'_>>::into(*self),
-            f,
-        )
+        core::fmt::Debug::fmt(&crate::dynamic_value::Reader::from(*self), f)
     }
 }
