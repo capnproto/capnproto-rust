@@ -1978,7 +1978,7 @@ mod wire_helpers {
         let pointer_section: *mut WirePointer =
             ptr.offset(data_words as isize * BYTES_PER_WORD as isize) as *mut _;
         for i in 0..ptr_count as isize {
-            copy_pointer(
+            deep_copy_pointee(
                 arena,
                 segment_id,
                 cap_table,
@@ -2030,7 +2030,7 @@ mod wire_helpers {
                 //# List of pointers.
                 (*reff).set_list_size_and_count(Pointer, value.element_count);
                 for i in 0..value.element_count as isize {
-                    copy_pointer(
+                    deep_copy_pointee(
                         arena,
                         segment_id,
                         cap_table,
@@ -2150,7 +2150,7 @@ mod wire_helpers {
                 src = src.offset(decl_data_size as isize * BYTES_PER_WORD as isize);
 
                 for _ in 0..ptr_count {
-                    copy_pointer(
+                    deep_copy_pointee(
                         arena,
                         segment_id,
                         cap_table,
@@ -2177,7 +2177,7 @@ mod wire_helpers {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub unsafe fn copy_pointer(
+    pub unsafe fn deep_copy_pointee(
         dst_arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
         dst_cap_table: CapTableBuilder,
@@ -3374,7 +3374,7 @@ impl<'a> PointerBuilder<'a> {
             }
         } else {
             unsafe {
-                wire_helpers::copy_pointer(
+                wire_helpers::deep_copy_pointee(
                     self.arena,
                     self.segment_id,
                     self.cap_table,
@@ -3809,7 +3809,7 @@ impl<'a> StructBuilder<'a> {
             ptr::write_bytes(self.pointers, 0u8, self.pointer_count as usize);
 
             for i in 0..shared_pointer_count as isize {
-                wire_helpers::copy_pointer(
+                wire_helpers::deep_copy_pointee(
                     self.arena,
                     self.segment_id,
                     self.cap_table,
