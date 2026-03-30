@@ -190,7 +190,7 @@ pub mod vat_id {
         pub fn get_side(
             self,
         ) -> ::core::result::Result<crate::rpc_twoparty_capnp::Side, ::capnp::NotInSchema> {
-            ::core::convert::TryInto::try_into(self.reader.get_data_field::<u16>(0))
+            ::core::convert::TryFrom::try_from(self.reader.get_data_field::<u16>(0))
         }
     }
 
@@ -284,7 +284,7 @@ pub mod vat_id {
         pub fn get_side(
             self,
         ) -> ::core::result::Result<crate::rpc_twoparty_capnp::Side, ::capnp::NotInSchema> {
-            ::core::convert::TryInto::try_into(self.builder.get_data_field::<u16>(0))
+            ::core::convert::TryFrom::try_from(self.builder.get_data_field::<u16>(0))
         }
         #[inline]
         pub fn set_side(&mut self, value: crate::rpc_twoparty_capnp::Side) {
