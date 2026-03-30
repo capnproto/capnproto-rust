@@ -88,6 +88,10 @@ mod side {
 }
 
 pub mod vat_id {
+    // struct VatId: size in words: 1 data, 0 pointers
+    //   NAME  OFFSET  TYPE
+    // Data:
+    //   side       0  Enum
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -371,6 +375,10 @@ pub mod vat_id {
 }
 
 pub mod provision_id {
+    // struct ProvisionId: size in words: 1 data, 0 pointers
+    //   NAME    OFFSET  TYPE
+    // Data:
+    //   joinId       0  Uint32
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -647,6 +655,7 @@ pub mod provision_id {
 }
 
 pub mod recipient_id {
+    // struct RecipientId: size in words: 0 data, 0 pointers
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -892,6 +901,7 @@ pub mod recipient_id {
 }
 
 pub mod third_party_cap_id {
+    // struct ThirdPartyCapId: size in words: 0 data, 0 pointers
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -1138,6 +1148,12 @@ pub mod third_party_cap_id {
 }
 
 pub mod join_key_part {
+    // struct JoinKeyPart: size in words: 1 data, 0 pointers
+    //   NAME       OFFSET  TYPE
+    // Data:
+    //   joinId          0  Uint32
+    //   partCount       4  Uint16
+    //   partNum         6  Uint16
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -1471,6 +1487,13 @@ pub mod join_key_part {
 }
 
 pub mod join_result {
+    // struct JoinResult: size in words: 1 data, 1 pointers
+    //   NAME       OFFSET  TYPE
+    // Data:
+    //   joinId          0  Uint32
+    //   succeeded     4:0  Bool
+    // Pointers:
+    //   cap             0  AnyPointer
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {

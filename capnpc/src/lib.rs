@@ -64,6 +64,7 @@
 
 pub mod codegen;
 pub mod codegen_types;
+pub(crate) mod format_layout;
 mod pointer_constants;
 
 use std::{

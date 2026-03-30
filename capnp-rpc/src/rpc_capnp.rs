@@ -5,6 +5,25 @@
 // capnpc crate version: 0.25.1
 
 pub mod message {
+    // struct Message: size in words: 1 data, 1 pointers
+    //   NAME            OFFSET  TYPE
+    // Discriminants:
+    //   (unnamed)            0  UInt16
+    // Pointers:
+    //   unimplemented        0  Message
+    //   abort                0  Exception
+    //   call                 0  Call
+    //   return               0  Return
+    //   finish               0  Finish
+    //   resolve              0  Resolve
+    //   release              0  Release
+    //   obsoleteSave         0  AnyPointer
+    //   bootstrap            0  Bootstrap
+    //   obsoleteDelete       0  AnyPointer
+    //   provide              0  Provide
+    //   accept               0  Accept
+    //   join                 0  Join
+    //   disembargo           0  Disembargo
     pub use self::Which::{
         Abort, Accept, Bootstrap, Call, Disembargo, Finish, Join, ObsoleteDelete, ObsoleteSave,
         Provide, Release, Resolve, Return, Unimplemented,
@@ -1117,6 +1136,12 @@ pub mod message {
 }
 
 pub mod bootstrap {
+    // struct Bootstrap: size in words: 1 data, 1 pointers
+    //   NAME                OFFSET  TYPE
+    // Data:
+    //   questionId               0  Uint32
+    // Pointers:
+    //   deprecatedObjectId       0  AnyPointer
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -1437,6 +1462,23 @@ pub mod bootstrap {
 }
 
 pub mod call {
+    // struct Call: size in words: 3 data, 3 pointers
+    //   NAME                     OFFSET  TYPE
+    // Data:
+    //   questionId                    0  Uint32
+    //   interfaceId                   8  Uint64
+    //   methodId                      4  Uint16
+    //   caller                        0  Void
+    //   yourself                      0  Void
+    //   allowThirdPartyTailCall    16:0  Bool
+    //   noPromisePipelining        16:1  Bool
+    //   onlyPromisePipeline        16:2  Bool
+    // Discriminants:
+    //   sendResultsTo                 6  UInt16
+    // Pointers:
+    //   target                        0  MessageTarget
+    //   params                        8  Payload
+    //   thirdParty                   16  AnyPointer
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -2001,6 +2043,15 @@ pub mod call {
     }
 
     pub mod send_results_to {
+        // union Call.sendResultsTo: size in words: 3 data, 3 pointers
+        //   NAME        OFFSET  TYPE
+        // Data:
+        //   caller           0  Void
+        //   yourself         0  Void
+        // Discriminants:
+        //   (unnamed)        6  UInt16
+        // Pointers:
+        //   thirdParty      16  AnyPointer
         pub use self::Which::{Caller, ThirdParty, Yourself};
 
         #[derive(Copy, Clone)]
@@ -2372,6 +2423,21 @@ pub mod call {
 }
 
 pub mod return_ {
+    // struct Return: size in words: 2 data, 1 pointers
+    //   NAME                   OFFSET  TYPE
+    // Data:
+    //   answerId                    0  Uint32
+    //   releaseParamCaps          4:0  Bool
+    //   canceled                    0  Void
+    //   resultsSentElsewhere        0  Void
+    //   takeFromOtherQuestion       8  Uint32
+    //   noFinishNeeded            4:1  Bool
+    // Discriminants:
+    //   (unnamed)                   6  UInt16
+    // Pointers:
+    //   results                     0  Payload
+    //   exception                   0  Exception
+    //   acceptFromThirdParty        0  AnyPointer
     pub use self::Which::{
         AcceptFromThirdParty, Canceled, Exception, Results, ResultsSentElsewhere,
         TakeFromOtherQuestion,
@@ -2982,6 +3048,12 @@ pub mod return_ {
 }
 
 pub mod finish {
+    // struct Finish: size in words: 1 data, 0 pointers
+    //   NAME                                OFFSET  TYPE
+    // Data:
+    //   questionId                               0  Uint32
+    //   releaseResultCaps                      4:0  Bool
+    //   requireEarlyCancellationWorkaround     4:1  Bool
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -3320,6 +3392,15 @@ pub mod finish {
 }
 
 pub mod resolve {
+    // struct Resolve: size in words: 1 data, 1 pointers
+    //   NAME       OFFSET  TYPE
+    // Data:
+    //   promiseId       0  Uint32
+    // Discriminants:
+    //   (unnamed)       4  UInt16
+    // Pointers:
+    //   cap             0  CapDescriptor
+    //   exception       0  Exception
     pub use self::Which::{Cap, Exception};
 
     #[derive(Copy, Clone)]
@@ -3741,6 +3822,11 @@ pub mod resolve {
 }
 
 pub mod release {
+    // struct Release: size in words: 1 data, 0 pointers
+    //   NAME            OFFSET  TYPE
+    // Data:
+    //   id                   0  Uint32
+    //   referenceCount       4  Uint32
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -4045,6 +4131,17 @@ pub mod release {
 }
 
 pub mod disembargo {
+    // struct Disembargo: size in words: 1 data, 1 pointers
+    //   NAME              OFFSET  TYPE
+    // Data:
+    //   senderLoopback         0  Uint32
+    //   receiverLoopback       0  Uint32
+    //   accept                 0  Void
+    //   provide                0  Uint32
+    // Discriminants:
+    //   context                4  UInt16
+    // Pointers:
+    //   target                 0  MessageTarget
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -4374,6 +4471,15 @@ pub mod disembargo {
     }
 
     pub mod context {
+        // union Disembargo.context: size in words: 1 data, 1 pointers
+        //   NAME              OFFSET  TYPE
+        // Data:
+        //   senderLoopback         0  Uint32
+        //   receiverLoopback       0  Uint32
+        //   accept                 0  Void
+        //   provide                0  Uint32
+        // Discriminants:
+        //   (unnamed)              4  UInt16
         pub use self::Which::{Accept, Provide, ReceiverLoopback, SenderLoopback};
 
         #[derive(Copy, Clone)]
@@ -4755,6 +4861,13 @@ pub mod disembargo {
 }
 
 pub mod provide {
+    // struct Provide: size in words: 1 data, 2 pointers
+    //   NAME        OFFSET  TYPE
+    // Data:
+    //   questionId       0  Uint32
+    // Pointers:
+    //   target           0  MessageTarget
+    //   recipient        8  AnyPointer
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -5130,6 +5243,13 @@ pub mod provide {
 }
 
 pub mod accept {
+    // struct Accept: size in words: 1 data, 1 pointers
+    //   NAME        OFFSET  TYPE
+    // Data:
+    //   questionId       0  Uint32
+    //   embargo        4:0  Bool
+    // Pointers:
+    //   provision        0  AnyPointer
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -5477,6 +5597,13 @@ pub mod accept {
 }
 
 pub mod join {
+    // struct Join: size in words: 1 data, 2 pointers
+    //   NAME        OFFSET  TYPE
+    // Data:
+    //   questionId       0  Uint32
+    // Pointers:
+    //   target           0  MessageTarget
+    //   keyPart          8  AnyPointer
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -5850,6 +5977,14 @@ pub mod join {
 }
 
 pub mod message_target {
+    // struct MessageTarget: size in words: 1 data, 1 pointers
+    //   NAME            OFFSET  TYPE
+    // Data:
+    //   importedCap          0  Uint32
+    // Discriminants:
+    //   (unnamed)            4  UInt16
+    // Pointers:
+    //   promisedAnswer       0  PromisedAnswer
     pub use self::Which::{ImportedCap, PromisedAnswer};
 
     #[derive(Copy, Clone)]
@@ -6203,6 +6338,11 @@ pub mod message_target {
 }
 
 pub mod payload {
+    // struct Payload: size in words: 0 data, 2 pointers
+    //   NAME      OFFSET  TYPE
+    // Pointers:
+    //   content        0  AnyPointer
+    //   capTable       8  List(CapDescriptor)
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -6564,6 +6704,19 @@ pub mod payload {
 }
 
 pub mod cap_descriptor {
+    // struct CapDescriptor: size in words: 1 data, 1 pointers
+    //   NAME              OFFSET  TYPE
+    // Data:
+    //   none                   0  Void
+    //   senderHosted           4  Uint32
+    //   senderPromise          4  Uint32
+    //   receiverHosted         4  Uint32
+    //   attachedFd             2  Uint8
+    // Discriminants:
+    //   (unnamed)              0  UInt16
+    // Pointers:
+    //   receiverAnswer         0  PromisedAnswer
+    //   thirdPartyHosted       0  ThirdPartyCapDescriptor
     pub use self::Which::{
         None, ReceiverAnswer, ReceiverHosted, SenderHosted, SenderPromise, ThirdPartyHosted,
     };
@@ -7099,6 +7252,12 @@ pub mod cap_descriptor {
 }
 
 pub mod promised_answer {
+    // struct PromisedAnswer: size in words: 1 data, 1 pointers
+    //   NAME        OFFSET  TYPE
+    // Data:
+    //   questionId       0  Uint32
+    // Pointers:
+    //   transform        0  List(PromisedAnswer.Op)
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -7451,6 +7610,13 @@ pub mod promised_answer {
     }
 
     pub mod op {
+        // struct PromisedAnswer.Op: size in words: 1 data, 0 pointers
+        //   NAME             OFFSET  TYPE
+        // Data:
+        //   noop                  0  Void
+        //   getPointerField       2  Uint16
+        // Discriminants:
+        //   (unnamed)             0  UInt16
         pub use self::Which::{GetPointerField, Noop};
 
         #[derive(Copy, Clone)]
@@ -7779,6 +7945,12 @@ pub mod promised_answer {
 }
 
 pub mod third_party_cap_descriptor {
+    // struct ThirdPartyCapDescriptor: size in words: 1 data, 1 pointers
+    //   NAME    OFFSET  TYPE
+    // Data:
+    //   vineId       0  Uint32
+    // Pointers:
+    //   id           0  AnyPointer
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {
@@ -8098,6 +8270,15 @@ pub mod third_party_cap_descriptor {
 }
 
 pub mod exception {
+    // struct Exception: size in words: 1 data, 2 pointers
+    //   NAME                    OFFSET  TYPE
+    // Data:
+    //   obsoleteIsCallersFault     0:0  Bool
+    //   obsoleteDurability           2  Uint16
+    //   type                         4  Enum
+    // Pointers:
+    //   reason                       0  Text
+    //   trace                        8  Text
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl ::capnp::introspect::Introspect for Owned {

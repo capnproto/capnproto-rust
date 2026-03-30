@@ -5,6 +5,46 @@
 // capnpc crate version: 0.25.1
 
 pub mod node {
+    // struct Node: size in words: 5 data, 6 pointers
+    //   NAME                     OFFSET  TYPE
+    // Data:
+    //   id                            0  Uint64
+    //   displayNamePrefixLength       8  Uint32
+    //   scopeId                      16  Uint64
+    //   file                          0  Void
+    //   dataWordCount                14  Uint16
+    //   pointerCount                 24  Uint16
+    //   preferredListEncoding        26  Enum
+    //   isGroup                    28:0  Bool
+    //   discriminantCount            30  Uint16
+    //   discriminantOffset           32  Uint32
+    //   targetsFile                14:0  Bool
+    //   targetsConst               14:1  Bool
+    //   targetsEnum                14:2  Bool
+    //   targetsEnumerant           14:3  Bool
+    //   targetsStruct              14:4  Bool
+    //   targetsField               14:5  Bool
+    //   targetsUnion               14:6  Bool
+    //   targetsGroup               14:7  Bool
+    //   targetsInterface           15:0  Bool
+    //   targetsMethod              15:1  Bool
+    //   targetsParam               15:2  Bool
+    //   targetsAnnotation          15:3  Bool
+    //   isGeneric                  36:0  Bool
+    // Discriminants:
+    //   (unnamed)                    12  UInt16
+    // Pointers:
+    //   displayName                   0  Text
+    //   nestedNodes                   8  List(Node.NestedNode)
+    //   annotations                  16  List(Annotation)
+    //   fields                       24  List(Field)
+    //   enumerants                   24  List(Enumerant)
+    //   methods                      24  List(Method)
+    //   superclasses                 32  List(Superclass)
+    //   type                         24  Type
+    //   value                        32  Value
+    //   type                         24  Type
+    //   parameters                   40  List(Node.Parameter)
     pub use self::Which::{Annotation, Const, Enum, File, Interface, Struct};
 
     #[derive(Copy, Clone)]
@@ -801,6 +841,10 @@ pub mod node {
     >;
 
     pub mod parameter {
+        // struct Node.Parameter: size in words: 0 data, 1 pointers
+        //   NAME  OFFSET  TYPE
+        // Pointers:
+        //   name       0  Text
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -1100,6 +1144,12 @@ pub mod node {
     }
 
     pub mod nested_node {
+        // struct Node.NestedNode: size in words: 1 data, 1 pointers
+        //   NAME  OFFSET  TYPE
+        // Data:
+        //   id         0  Uint64
+        // Pointers:
+        //   name       0  Text
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -1427,6 +1477,13 @@ pub mod node {
     }
 
     pub mod source_info {
+        // struct Node.SourceInfo: size in words: 1 data, 2 pointers
+        //   NAME        OFFSET  TYPE
+        // Data:
+        //   id               0  Uint64
+        // Pointers:
+        //   docComment       0  Text
+        //   members          8  List(Node.SourceInfo.Member)
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -1845,6 +1902,10 @@ pub mod node {
         }
 
         pub mod member {
+            // struct Node.SourceInfo.Member: size in words: 0 data, 1 pointers
+            //   NAME        OFFSET  TYPE
+            // Pointers:
+            //   docComment       0  Text
             #[derive(Copy, Clone)]
             pub struct Owned(());
             impl crate::introspect::Introspect for Owned {
@@ -2159,6 +2220,17 @@ pub mod node {
     }
 
     pub mod struct_ {
+        // union Node.struct: size in words: 5 data, 6 pointers
+        //   NAME                   OFFSET  TYPE
+        // Data:
+        //   dataWordCount              14  Uint16
+        //   pointerCount               24  Uint16
+        //   preferredListEncoding      26  Enum
+        //   isGroup                  28:0  Bool
+        //   discriminantCount          30  Uint16
+        //   discriminantOffset         32  Uint32
+        // Pointers:
+        //   fields                     24  List(Field)
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -2657,6 +2729,10 @@ pub mod node {
     }
 
     pub mod enum_ {
+        // union Node.enum: size in words: 5 data, 6 pointers
+        //   NAME        OFFSET  TYPE
+        // Pointers:
+        //   enumerants      24  List(Enumerant)
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -2974,6 +3050,11 @@ pub mod node {
     }
 
     pub mod interface {
+        // union Node.interface: size in words: 5 data, 6 pointers
+        //   NAME          OFFSET  TYPE
+        // Pointers:
+        //   methods           24  List(Method)
+        //   superclasses      32  List(Superclass)
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -3362,6 +3443,11 @@ pub mod node {
     }
 
     pub mod const_ {
+        // union Node.const: size in words: 5 data, 6 pointers
+        //   NAME   OFFSET  TYPE
+        // Pointers:
+        //   type       24  Type
+        //   value      32  Value
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -3727,6 +3813,23 @@ pub mod node {
     }
 
     pub mod annotation {
+        // union Node.annotation: size in words: 5 data, 6 pointers
+        //   NAME               OFFSET  TYPE
+        // Data:
+        //   targetsFile          14:0  Bool
+        //   targetsConst         14:1  Bool
+        //   targetsEnum          14:2  Bool
+        //   targetsEnumerant     14:3  Bool
+        //   targetsStruct        14:4  Bool
+        //   targetsField         14:5  Bool
+        //   targetsUnion         14:6  Bool
+        //   targetsGroup         14:7  Bool
+        //   targetsInterface     15:0  Bool
+        //   targetsMethod        15:1  Bool
+        //   targetsParam         15:2  Bool
+        //   targetsAnnotation    15:3  Bool
+        // Pointers:
+        //   type                   24  Type
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -4386,6 +4489,24 @@ pub mod node {
 }
 
 pub mod field {
+    // struct Field: size in words: 3 data, 4 pointers
+    //   NAME                OFFSET  TYPE
+    // Data:
+    //   codeOrder                0  Uint16
+    //   discriminantValue        2  Uint16
+    //   offset                   4  Uint32
+    //   hadExplicitDefault    16:0  Bool
+    //   typeId                  16  Uint64
+    //   implicit                 0  Void
+    //   explicit                12  Uint16
+    // Discriminants:
+    //   (unnamed)                8  UInt16
+    //   ordinal                 10  UInt16
+    // Pointers:
+    //   name                     0  Text
+    //   annotations              8  List(Annotation)
+    //   type                    16  Type
+    //   defaultValue            24  Value
     pub use self::Which::{Group, Slot};
 
     #[derive(Copy, Clone)]
@@ -4901,6 +5022,14 @@ pub mod field {
     pub const NO_DISCRIMINANT: u16 = 65535;
 
     pub mod slot {
+        // union Field.slot: size in words: 3 data, 4 pointers
+        //   NAME                OFFSET  TYPE
+        // Data:
+        //   offset                   4  Uint32
+        //   hadExplicitDefault    16:0  Bool
+        // Pointers:
+        //   type                    16  Type
+        //   defaultValue            24  Value
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -5329,6 +5458,10 @@ pub mod field {
     }
 
     pub mod group {
+        // union Field.group: size in words: 3 data, 4 pointers
+        //   NAME    OFFSET  TYPE
+        // Data:
+        //   typeId      16  Uint64
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -5604,6 +5737,13 @@ pub mod field {
     }
 
     pub mod ordinal {
+        // union Field.ordinal: size in words: 3 data, 4 pointers
+        //   NAME       OFFSET  TYPE
+        // Data:
+        //   implicit        0  Void
+        //   explicit       12  Uint16
+        // Discriminants:
+        //   (unnamed)      10  UInt16
         pub use self::Which::{Explicit, Implicit};
 
         #[derive(Copy, Clone)]
@@ -5921,6 +6061,13 @@ pub mod field {
 }
 
 pub mod enumerant {
+    // struct Enumerant: size in words: 1 data, 2 pointers
+    //   NAME         OFFSET  TYPE
+    // Data:
+    //   codeOrder         0  Uint16
+    // Pointers:
+    //   name              0  Text
+    //   annotations       8  List(Annotation)
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl crate::introspect::Introspect for Owned {
@@ -6312,6 +6459,12 @@ pub mod enumerant {
 }
 
 pub mod superclass {
+    // struct Superclass: size in words: 1 data, 1 pointers
+    //   NAME   OFFSET  TYPE
+    // Data:
+    //   id          0  Uint64
+    // Pointers:
+    //   brand       0  Brand
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl crate::introspect::Introspect for Owned {
@@ -6644,6 +6797,18 @@ pub mod superclass {
 }
 
 pub mod method {
+    // struct Method: size in words: 3 data, 5 pointers
+    //   NAME                OFFSET  TYPE
+    // Data:
+    //   codeOrder                0  Uint16
+    //   paramStructType          8  Uint64
+    //   resultStructType        16  Uint64
+    // Pointers:
+    //   name                     0  Text
+    //   annotations              8  List(Annotation)
+    //   paramBrand              16  Brand
+    //   resultBrand             24  Brand
+    //   implicitParameters      32  List(Node.Parameter)
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl crate::introspect::Introspect for Owned {
@@ -7279,6 +7444,34 @@ pub mod method {
 }
 
 pub mod type_ {
+    // struct Type: size in words: 3 data, 1 pointers
+    //   NAME         OFFSET  TYPE
+    // Data:
+    //   void              0  Void
+    //   bool              0  Void
+    //   int8              0  Void
+    //   int16             0  Void
+    //   int32             0  Void
+    //   int64             0  Void
+    //   uint8             0  Void
+    //   uint16            0  Void
+    //   uint32            0  Void
+    //   uint64            0  Void
+    //   float32           0  Void
+    //   float64           0  Void
+    //   text              0  Void
+    //   data              0  Void
+    //   typeId            8  Uint64
+    //   typeId            8  Uint64
+    //   typeId            8  Uint64
+    // Discriminants:
+    //   (unnamed)         0  UInt16
+    //   anyPointer        8  UInt16
+    // Pointers:
+    //   elementType       0  Type
+    //   brand             0  Brand
+    //   brand             0  Brand
+    //   brand             0  Brand
     pub use self::Which::{
         AnyPointer, Bool, Data, Enum, Float32, Float64, Int16, Int32, Int64, Int8, Interface, List,
         Struct, Text, Uint16, Uint32, Uint64, Uint8, Void,
@@ -7980,6 +8173,10 @@ pub mod type_ {
     >;
 
     pub mod list {
+        // union Type.list: size in words: 3 data, 1 pointers
+        //   NAME         OFFSET  TYPE
+        // Pointers:
+        //   elementType       0  Type
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -8289,6 +8486,12 @@ pub mod type_ {
     }
 
     pub mod enum_ {
+        // union Type.enum: size in words: 3 data, 1 pointers
+        //   NAME    OFFSET  TYPE
+        // Data:
+        //   typeId       8  Uint64
+        // Pointers:
+        //   brand        0  Brand
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -8623,6 +8826,12 @@ pub mod type_ {
     }
 
     pub mod struct_ {
+        // union Type.struct: size in words: 3 data, 1 pointers
+        //   NAME    OFFSET  TYPE
+        // Data:
+        //   typeId       8  Uint64
+        // Pointers:
+        //   brand        0  Brand
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -8958,6 +9167,12 @@ pub mod type_ {
     }
 
     pub mod interface {
+        // union Type.interface: size in words: 3 data, 1 pointers
+        //   NAME    OFFSET  TYPE
+        // Data:
+        //   typeId       8  Uint64
+        // Pointers:
+        //   brand        0  Brand
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -9293,6 +9508,19 @@ pub mod type_ {
     }
 
     pub mod any_pointer {
+        // union Type.anyPointer: size in words: 3 data, 1 pointers
+        //   NAME            OFFSET  TYPE
+        // Data:
+        //   anyKind              0  Void
+        //   struct               0  Void
+        //   list                 0  Void
+        //   capability           0  Void
+        //   scopeId             16  Uint64
+        //   parameterIndex      10  Uint16
+        //   parameterIndex      10  Uint16
+        // Discriminants:
+        //   (unnamed)            8  UInt16
+        //   unconstrained       10  UInt16
         pub use self::Which::{ImplicitMethodParameter, Parameter, Unconstrained};
 
         #[derive(Copy, Clone)]
@@ -9631,6 +9859,15 @@ pub mod type_ {
         >;
 
         pub mod unconstrained {
+            // union Type.anyPointer.unconstrained: size in words: 3 data, 1 pointers
+            //   NAME        OFFSET  TYPE
+            // Data:
+            //   anyKind          0  Void
+            //   struct           0  Void
+            //   list             0  Void
+            //   capability       0  Void
+            // Discriminants:
+            //   (unnamed)       10  UInt16
             pub use self::Which::{AnyKind, Capability, List, Struct};
 
             #[derive(Copy, Clone)]
@@ -10000,6 +10237,11 @@ pub mod type_ {
         }
 
         pub mod parameter {
+            // union Type.anyPointer.parameter: size in words: 3 data, 1 pointers
+            //   NAME            OFFSET  TYPE
+            // Data:
+            //   scopeId             16  Uint64
+            //   parameterIndex      10  Uint16
             #[derive(Copy, Clone)]
             pub struct Owned(());
             impl crate::introspect::Introspect for Owned {
@@ -10314,6 +10556,10 @@ pub mod type_ {
         }
 
         pub mod implicit_method_parameter {
+            // union Type.anyPointer.implicitMethodParameter: size in words: 3 data, 1 pointers
+            //   NAME            OFFSET  TYPE
+            // Data:
+            //   parameterIndex      10  Uint16
             #[derive(Copy, Clone)]
             pub struct Owned(());
             impl crate::introspect::Introspect for Owned {
@@ -10604,6 +10850,10 @@ pub mod type_ {
 }
 
 pub mod brand {
+    // struct Brand: size in words: 0 data, 1 pointers
+    //   NAME    OFFSET  TYPE
+    // Pointers:
+    //   scopes       0  List(Brand.Scope)
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl crate::introspect::Introspect for Owned {
@@ -10919,6 +11169,15 @@ pub mod brand {
     }
 
     pub mod scope {
+        // struct Brand.Scope: size in words: 2 data, 1 pointers
+        //   NAME       OFFSET  TYPE
+        // Data:
+        //   scopeId         0  Uint64
+        //   inherit         0  Void
+        // Discriminants:
+        //   (unnamed)       8  UInt16
+        // Pointers:
+        //   bind            0  List(Brand.Binding)
         pub use self::Which::{Bind, Inherit};
 
         #[derive(Copy, Clone)]
@@ -11315,6 +11574,14 @@ pub mod brand {
     }
 
     pub mod binding {
+        // struct Brand.Binding: size in words: 1 data, 1 pointers
+        //   NAME       OFFSET  TYPE
+        // Data:
+        //   unbound         0  Void
+        // Discriminants:
+        //   (unnamed)       0  UInt16
+        // Pointers:
+        //   type            0  Type
         pub use self::Which::{Type, Unbound};
 
         #[derive(Copy, Clone)]
@@ -11668,6 +11935,31 @@ pub mod brand {
 }
 
 pub mod value {
+    // struct Value: size in words: 2 data, 1 pointers
+    //   NAME        OFFSET  TYPE
+    // Data:
+    //   void             0  Void
+    //   bool           2:0  Bool
+    //   int8             2  Int8
+    //   int16            2  Int16
+    //   int32            4  Int32
+    //   int64            8  Int64
+    //   uint8            2  Uint8
+    //   uint16           2  Uint16
+    //   uint32           4  Uint32
+    //   uint64           8  Uint64
+    //   float32          4  Float32
+    //   float64          8  Float64
+    //   enum             2  Uint16
+    //   interface        0  Void
+    // Discriminants:
+    //   (unnamed)        0  UInt16
+    // Pointers:
+    //   text             0  Text
+    //   data             0  Data
+    //   list             0  AnyPointer
+    //   struct           0  AnyPointer
+    //   anyPointer       0  AnyPointer
     pub use self::Which::{
         AnyPointer, Bool, Data, Enum, Float32, Float64, Int16, Int32, Int64, Int8, Interface, List,
         Struct, Text, Uint16, Uint32, Uint64, Uint8, Void,
@@ -12528,6 +12820,13 @@ pub mod value {
 }
 
 pub mod annotation {
+    // struct Annotation: size in words: 1 data, 2 pointers
+    //   NAME   OFFSET  TYPE
+    // Data:
+    //   id          0  Uint64
+    // Pointers:
+    //   value       0  Value
+    //   brand       8  Brand
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl crate::introspect::Introspect for Owned {
@@ -13043,6 +13342,12 @@ mod element_size {
 }
 
 pub mod capnp_version {
+    // struct CapnpVersion: size in words: 1 data, 0 pointers
+    //   NAME   OFFSET  TYPE
+    // Data:
+    //   major       0  Uint16
+    //   minor       2  Uint8
+    //   micro       3  Uint8
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl crate::introspect::Introspect for Owned {
@@ -13372,6 +13677,13 @@ pub mod capnp_version {
 }
 
 pub mod code_generator_request {
+    // struct CodeGeneratorRequest: size in words: 0 data, 4 pointers
+    //   NAME            OFFSET  TYPE
+    // Pointers:
+    //   nodes                0  List(Node)
+    //   requestedFiles       8  List(CodeGeneratorRequest.RequestedFile)
+    //   capnpVersion        16  CapnpVersion
+    //   sourceInfo          24  List(Node.SourceInfo)
     #[derive(Copy, Clone)]
     pub struct Owned(());
     impl crate::introspect::Introspect for Owned {
@@ -13900,6 +14212,13 @@ pub mod code_generator_request {
     }
 
     pub mod requested_file {
+        // struct CodeGeneratorRequest.RequestedFile: size in words: 1 data, 2 pointers
+        //   NAME      OFFSET  TYPE
+        // Data:
+        //   id             0  Uint64
+        // Pointers:
+        //   filename       0  Text
+        //   imports        8  List(CodeGeneratorRequest.RequestedFile.Import)
         #[derive(Copy, Clone)]
         pub struct Owned(());
         impl crate::introspect::Introspect for Owned {
@@ -14320,6 +14639,12 @@ pub mod code_generator_request {
         }
 
         pub mod import {
+            // struct CodeGeneratorRequest.RequestedFile.Import: size in words: 1 data, 1 pointers
+            //   NAME  OFFSET  TYPE
+            // Data:
+            //   id         0  Uint64
+            // Pointers:
+            //   name       0  Text
             #[derive(Copy, Clone)]
             pub struct Owned(());
             impl crate::introspect::Introspect for Owned {

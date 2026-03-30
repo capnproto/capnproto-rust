@@ -29,6 +29,7 @@ use capnp::Error;
 use self::FormattedText::{BlankLine, Branch, Indent, Line};
 use crate::codegen_types::{do_branding, Leaf, RustNodeInfo, RustTypeInfo, TypeParameterTexts};
 use crate::convert_io_err;
+use crate::format_layout::format_struct_layout;
 use crate::pointer_constants::generate_pointer_constant;
 
 /// An invocation of the capnpc-rust code generation plugin.
@@ -378,6 +379,16 @@ impl<'a> GeneratorContext<'a> {
     pub fn get_qualified_module(&self, type_id: u64) -> String {
         self.scope_map[&type_id].join("::")
     }
+
+    pub(crate) fn get_capnp_name(&self, type_id: u64) -> capnp::Result<&str> {
+        if let Some(&node_reader) = self.node_map.get(&type_id) {
+            let name = node_reader.get_display_name()?;
+            let s = name.to_str()?;
+            // Strip file prefix like "schema.capnp:" or "rpc.capnp:"
+            return Ok(s.rsplit_once(':').map(|(_, rest)| rest).unwrap_or(s));
+        }
+        self.get_last_name(type_id)
+    }
 }
 
 /// Like `format!(...)`, but adds a `capnp=ctx.capnp_root` argument.
@@ -554,7 +565,7 @@ fn name_annotation_value(annotation: schema_capnp::annotation::Reader<'_>) -> ca
     }
 }
 
-fn get_field_name(field: schema_capnp::field::Reader<'_>) -> capnp::Result<&str> {
+pub(crate) fn get_field_name(field: schema_capnp::field::Reader<'_>) -> capnp::Result<&str> {
     for annotation in field.get_annotations()? {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             return name_annotation_value(annotation);
@@ -2200,6 +2211,7 @@ fn generate_node(
                     BlankLine]);
 
             let accessors = vec![
+                format_struct_layout(node_id, struct_reader, ctx)?,
                 Branch(preamble),
                 (if !is_generic {
                     Branch(vec![
