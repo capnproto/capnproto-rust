@@ -36,4 +36,9 @@ default-members = [
     "capnpc",
 ]
 
-[workspace.lints]
+[workspace.lints.rust]
+unreachable_pub = "deny"
+
+[workspace.lints.clippy]
+type_complexity = "allow"
+missing_safety_doc = "allow"

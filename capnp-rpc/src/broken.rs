@@ -30,12 +30,12 @@ use capnp::traits::ImbueMut;
 
 use std::rc::Rc;
 
-pub struct Pipeline {
+pub(crate) struct Pipeline {
     error: Error,
 }
 
 impl Pipeline {
-    pub fn new(error: Error) -> Self {
+    pub(crate) fn new(error: Error) -> Self {
         Self { error }
     }
 }
@@ -49,14 +49,14 @@ impl PipelineHook for Pipeline {
     }
 }
 
-pub struct Request {
+pub(crate) struct Request {
     error: Error,
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
 }
 
 impl Request {
-    pub fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> Self {
+    pub(crate) fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> Self {
         Self {
             error,
             message: ::capnp::message::Builder::new_default(),
@@ -95,12 +95,12 @@ struct ClientInner {
     brand: usize,
 }
 
-pub struct Client {
+pub(crate) struct Client {
     inner: Rc<ClientInner>,
 }
 
 impl Client {
-    pub fn new(error: Error, resolved: bool, brand: usize) -> Self {
+    pub(crate) fn new(error: Error, resolved: bool, brand: usize) -> Self {
         Self {
             inner: Rc::new(ClientInner {
                 error,
@@ -160,6 +160,6 @@ impl ClientHook for Client {
     }
 }
 
-pub fn new_cap(exception: Error) -> Box<dyn ClientHook> {
+pub(crate) fn new_cap(exception: Error) -> Box<dyn ClientHook> {
     Box::new(Client::new(exception, false, 0))
 }

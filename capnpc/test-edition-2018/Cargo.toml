@@ -17,3 +17,6 @@ capnpc = { path = "../" }
 capnp = { path = "../../capnp" }
 capnpc = { path = "../" }
 external-crate = { path = "../test/external-crate" }
+
+[lints]
+workspace = true

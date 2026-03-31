@@ -93,7 +93,7 @@ where
     C: FromClientHook,
     C: 'static,
 {
-    pub fn new(connect: F) -> Client<F, C> {
+    pub(crate) fn new(connect: F) -> Client<F, C> {
         Client {
             inner: Rc::new(RefCell::new(ClientInner {
                 connect,
@@ -104,7 +104,7 @@ where
         }
     }
 
-    pub fn get_current(&self) -> Box<dyn ClientHook> {
+    pub(crate) fn get_current(&self) -> Box<dyn ClientHook> {
         self.inner.borrow_mut().get_current()
     }
 

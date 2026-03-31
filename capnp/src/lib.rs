@@ -35,6 +35,7 @@ extern crate alloc;
 
 /// Code generated from
 /// [schema.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
+#[allow(unreachable_pub)]
 pub mod schema_capnp;
 
 pub mod any_pointer;
@@ -85,6 +86,7 @@ macro_rules! generated_code {
     ($vis:vis mod $mod_name:ident, $file_name:expr) => {
         $vis mod $mod_name {
             #![allow(clippy::all)]
+            #![allow(unreachable_pub)]
             include!(concat!(env!("OUT_DIR"), "/", $file_name));
         }
     };

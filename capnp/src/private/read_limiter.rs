@@ -20,20 +20,20 @@
 // THE SOFTWARE.
 
 #[cfg(feature = "sync_reader")]
-pub use sync::ReadLimiter;
+pub(crate) use sync::ReadLimiter;
 
 #[cfg(feature = "sync_reader")]
 mod sync {
     use crate::{Error, ErrorKind, Result};
     use core::sync::atomic::{AtomicUsize, Ordering};
 
-    pub struct ReadLimiter {
+    pub(crate) struct ReadLimiter {
         limit: AtomicUsize,
         error_on_limit_exceeded: bool,
     }
 
     impl ReadLimiter {
-        pub fn new(limit: Option<usize>) -> Self {
+        pub(crate) fn new(limit: Option<usize>) -> Self {
             match limit {
                 Some(value) => Self {
                     limit: AtomicUsize::new(value),
@@ -47,7 +47,7 @@ mod sync {
         }
 
         #[inline]
-        pub fn can_read(&self, amount: usize) -> Result<()> {
+        pub(crate) fn can_read(&self, amount: usize) -> Result<()> {
             // We use separate AtomicUsize::load() and AtomicUsize::store() steps, which may
             // result in undercounting reads if multiple threads are reading at the same time.
             // That's okay -- a denial of service attack will eventually hit the limit anyway.
@@ -70,20 +70,20 @@ mod sync {
 }
 
 #[cfg(not(feature = "sync_reader"))]
-pub use unsync::ReadLimiter;
+pub(crate) use unsync::ReadLimiter;
 
 #[cfg(not(feature = "sync_reader"))]
 mod unsync {
     use crate::{Error, ErrorKind, Result};
     use core::cell::Cell;
 
-    pub struct ReadLimiter {
+    pub(crate) struct ReadLimiter {
         limit: Cell<usize>,
         error_on_limit_exceeded: bool,
     }
 
     impl ReadLimiter {
-        pub fn new(limit: Option<usize>) -> Self {
+        pub(crate) fn new(limit: Option<usize>) -> Self {
             match limit {
                 Some(value) => Self {
                     limit: Cell::new(value),
@@ -97,7 +97,7 @@ mod unsync {
         }
 
         #[inline]
-        pub fn can_read(&self, amount: usize) -> Result<()> {
+        pub(crate) fn can_read(&self, amount: usize) -> Result<()> {
             let current = self.limit.get();
             if amount > current && self.error_on_limit_exceeded {
                 Err(Error::from_kind(ErrorKind::ReadLimitExceeded))

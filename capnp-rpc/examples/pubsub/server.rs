@@ -71,7 +71,7 @@ struct PublisherImpl {
 }
 
 impl PublisherImpl {
-    pub fn new() -> (Self, Rc<RefCell<SubscriberMap>>) {
+    pub(crate) fn new() -> (Self, Rc<RefCell<SubscriberMap>>) {
         let subscribers = Rc::new(RefCell::new(SubscriberMap::new()));
         (
             Self {

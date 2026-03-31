@@ -43,7 +43,7 @@ impl Clone for Box<dyn ResultsDoneHook> {
     }
 }
 
-pub struct Response {
+pub(crate) struct Response {
     results: Box<dyn ResultsDoneHook>,
 }
 
@@ -199,7 +199,7 @@ impl ResultsDoneHook for ResultsDone {
     }
 }
 
-pub struct Request {
+pub(crate) struct Request {
     message: message::Builder<::capnp::message::HeapAllocator>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
     interface_id: u64,
@@ -210,7 +210,7 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(
+    pub(crate) fn new(
         interface_id: u64,
         method_id: u16,
         _size_hint: Option<::capnp::MessageSize>,
@@ -296,12 +296,12 @@ struct PipelineInner {
     results: Box<dyn ResultsDoneHook>,
 }
 
-pub struct Pipeline {
+pub(crate) struct Pipeline {
     inner: Rc<RefCell<PipelineInner>>,
 }
 
 impl Pipeline {
-    pub fn new(results: Box<dyn ResultsDoneHook>) -> Self {
+    pub(crate) fn new(results: Box<dyn ResultsDoneHook>) -> Self {
         Self {
             inner: Rc::new(RefCell::new(PipelineInner { results })),
         }
@@ -335,7 +335,7 @@ impl PipelineHook for Pipeline {
     }
 }
 
-pub struct Client<S>
+pub(crate) struct Client<S>
 where
     S: capability::Server + Clone,
 {
@@ -350,7 +350,7 @@ impl<S> Client<S>
 where
     S: capability::Server + Clone,
 {
-    pub fn new(server: S) -> Self {
+    pub(crate) fn new(server: S) -> Self {
         Self {
             inner: server,
             broken_error: Rc::new(RefCell::new(None)),
