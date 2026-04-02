@@ -27,7 +27,7 @@ use capnp::schema_capnp::type_;
 
 #[derive(Clone, Copy)]
 pub(crate) struct WordArrayDeclarationOptions {
-    pub(crate) public: bool,
+    pub(crate) pub_crate: bool,
 }
 
 fn word_array_declaration_aux<T: ::capnp::traits::SetterInput<impl ::capnp::traits::Owned>>(
@@ -61,7 +61,7 @@ fn word_array_declaration_aux<T: ::capnp::traits::SetterInput<impl ::capnp::trai
 
     // `static` instead of `const` because these arrays can be large
     // and consts get inlined at each usage.
-    let vis = if options.public { "pub " } else { "" };
+    let vis = if options.pub_crate { "pub(crate) " } else { "" };
     Ok(Branch(vec![
         Line(fmt!(
             ctx,
@@ -111,7 +111,7 @@ pub(crate) fn generate_pointer_constant(
                 ctx,
                 "WORDS",
                 value,
-                WordArrayDeclarationOptions { public: false },
+                WordArrayDeclarationOptions { pub_crate: false },
             )?,
             Line(fmt!(
                 ctx,
