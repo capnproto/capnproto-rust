@@ -1,3 +1,6 @@
+## v0.25.3
+- Avoid unreachable_pub warnings in generated code.
+
 ## v0.25.2
 - Use 4-space indents in generated code.
 - Prefer TryFrom over TryInto in generated code.
