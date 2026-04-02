@@ -85,7 +85,6 @@ macro_rules! generated_code {
     ($vis:vis mod $mod_name:ident, $file_name:expr) => {
         $vis mod $mod_name {
             #![allow(clippy::all)]
-            #![allow(unreachable_pub)]
             include!(concat!(env!("OUT_DIR"), "/", $file_name));
         }
     };
