@@ -446,7 +446,7 @@ pub unsafe trait Allocator {
     /// commonly allocate much more than the minimum, to reduce the total number of segments needed.
     /// A reasonable strategy is to allocate the maximum of `minimum_size` and twice the size of the
     /// previous segment.
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32);
+    fn allocate_segment(&mut self, minimum_size: u32) -> (core::ptr::NonNull<u8>, u32);
 
     /// Indicates that a segment, previously allocated via allocate_segment(), is no longer in use.
     /// `word_size` is the length of the segment in words, as returned from `allocate_segment()`.
@@ -458,7 +458,12 @@ pub unsafe trait Allocator {
     /// from `allocate_segment()`, and only once on each such segment. `word_size` must
     /// equal the word size returned from `allocate_segment()`, and `words_used` must be at
     /// most `word_size`.
-    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32);
+    unsafe fn deallocate_segment(
+        &mut self,
+        ptr: core::ptr::NonNull<u8>,
+        word_size: u32,
+        words_used: u32,
+    );
 }
 
 /// A container used to build a message.
@@ -783,18 +788,18 @@ impl HeapAllocator {
 
 #[cfg(feature = "alloc")]
 unsafe impl Allocator for HeapAllocator {
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (core::ptr::NonNull<u8>, u32) {
         let size = core::cmp::max(minimum_size, self.next_size);
         if size == 0 {
             // passing a zero-sized layout to alloc_zeroed() leads to undefined behavior
-            return (core::ptr::NonNull::dangling().as_ptr(), 0);
+            return (core::ptr::NonNull::dangling(), 0);
         }
         let layout =
             alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD, 8).unwrap();
         let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
-        if ptr.is_null() {
+        let Some(ptr) = core::ptr::NonNull::new(ptr) else {
             alloc::alloc::handle_alloc_error(layout);
-        }
+        };
         match self.allocation_strategy {
             AllocationStrategy::GrowHeuristically => {
                 if size < self.max_segment_words - self.next_size {
@@ -808,10 +813,15 @@ unsafe impl Allocator for HeapAllocator {
         (ptr, size)
     }
 
-    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, _words_used: u32) {
+    unsafe fn deallocate_segment(
+        &mut self,
+        ptr: core::ptr::NonNull<u8>,
+        word_size: u32,
+        _words_used: u32,
+    ) {
         unsafe {
             alloc::alloc::dealloc(
-                ptr,
+                ptr.as_ptr(),
                 alloc::alloc::Layout::from_size_align(word_size as usize * BYTES_PER_WORD, 8)
                     .unwrap(),
             );
@@ -929,13 +939,13 @@ impl<'a> ScratchSpaceHeapAllocator<'a> {
 
 #[cfg(feature = "alloc")]
 unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (core::ptr::NonNull<u8>, u32) {
         if (minimum_size as usize) < (self.scratch_space.len() / BYTES_PER_WORD)
             && !self.scratch_space_allocated
         {
             self.scratch_space_allocated = true;
             (
-                self.scratch_space.as_mut_ptr(),
+                core::ptr::NonNull::new(self.scratch_space.as_mut_ptr()).unwrap(),
                 (self.scratch_space.len() / BYTES_PER_WORD) as u32,
             )
         } else {
@@ -943,9 +953,14 @@ unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
         }
     }
 
-    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32) {
+    unsafe fn deallocate_segment(
+        &mut self,
+        ptr: core::ptr::NonNull<u8>,
+        word_size: u32,
+        words_used: u32,
+    ) {
         let seg_ptr = self.scratch_space.as_mut_ptr();
-        if ptr == seg_ptr {
+        if ptr.as_ptr() == seg_ptr {
             // Rezero the slice to allow reuse of the allocator. We only need to write
             // words that we know might contain nonzero values.
             unsafe {
@@ -1011,7 +1026,7 @@ impl<'a> SingleSegmentAllocator<'a> {
 }
 
 unsafe impl Allocator for SingleSegmentAllocator<'_> {
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (core::ptr::NonNull<u8>, u32) {
         let available_word_count = self.segment.len() / BYTES_PER_WORD;
         if (minimum_size as usize) > available_word_count {
             panic!(
@@ -1023,15 +1038,20 @@ unsafe impl Allocator for SingleSegmentAllocator<'_> {
         } else {
             self.segment_allocated = true;
             (
-                self.segment.as_mut_ptr(),
+                core::ptr::NonNull::new(self.segment.as_mut_ptr()).unwrap(),
                 (self.segment.len() / BYTES_PER_WORD) as u32,
             )
         }
     }
 
-    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, _word_size: u32, words_used: u32) {
+    unsafe fn deallocate_segment(
+        &mut self,
+        ptr: core::ptr::NonNull<u8>,
+        _word_size: u32,
+        words_used: u32,
+    ) {
         let seg_ptr = self.segment.as_mut_ptr();
-        if ptr == seg_ptr {
+        if ptr.as_ptr() == seg_ptr {
             // Rezero the slice to allow reuse of the allocator. We only need to write
             // words that we know might contain nonzero values.
             unsafe {
@@ -1050,11 +1070,16 @@ unsafe impl<A> Allocator for &'_ mut A
 where
     A: Allocator,
 {
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (core::ptr::NonNull<u8>, u32) {
         (*self).allocate_segment(minimum_size)
     }
 
-    unsafe fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32) {
+    unsafe fn deallocate_segment(
+        &mut self,
+        ptr: core::ptr::NonNull<u8>,
+        word_size: u32,
+        words_used: u32,
+    ) {
         (*self).deallocate_segment(ptr, word_size, words_used)
     }
 }
