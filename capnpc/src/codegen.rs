@@ -415,11 +415,12 @@ fn supports_serde_struct_inner(
     let node::Struct(st) = node_reader.which()? else {
         return Ok(false);
     };
-    if node_reader.get_is_generic() || st.get_discriminant_count() > 0 {
+    if node_reader.get_is_generic() {
         return Ok(false);
     }
     if !seen.insert(node_reader.get_id()) {
-        return Ok(false);
+        // Recursive type — assume serializable (serde handles recursion).
+        return Ok(true);
     }
 
     for field in st.get_fields()? {
@@ -579,16 +580,24 @@ fn generate_serde_struct(
         return Ok(None);
     };
 
+    let has_union = st.get_discriminant_count() > 0;
+
     let mut map_match_arms = Vec::new();
     let mut helper_lines = Vec::new();
-    let mut serialize_lines = Vec::new();
+    let mut non_union_serialize_lines = Vec::new();
+    let mut union_serialize_arms = Vec::new();
+    let mut non_union_field_count: usize = 0;
 
-    for field in st.get_fields()? {
-        let field::Slot(slot) = field.which()? else {
+    for field_reader in st.get_fields()? {
+        let field::Slot(slot) = field_reader.which()? else {
             return Ok(None);
         };
-        let field_name = get_field_name(field)?;
+        let field_name = get_field_name(field_reader)?;
         let styled_name = camel_to_snake_case(field_name);
+        let is_union_field =
+            field_reader.get_discriminant_value() != field::NO_DISCRIMINANT;
+
+        // Deserialization: all fields (union and non-union) handled the same way
         map_match_arms.push(generate_serde_map_match_arm(
             ctx,
             field_name,
@@ -596,14 +605,56 @@ fn generate_serde_struct(
             slot.get_type()?,
             &mut helper_lines,
         )?);
-        serialize_lines.push(generate_serde_serialize_entry(
-            ctx,
-            field_name,
-            &styled_name,
-            slot.get_type()?,
-            &mut helper_lines,
-        )?);
+
+        // Serialization: separate union vs non-union
+        if is_union_field {
+            union_serialize_arms.push(generate_serde_union_serialize_arm(
+                ctx,
+                field_name,
+                &styled_name,
+                slot.get_type()?,
+                &mut helper_lines,
+            )?);
+        } else {
+            non_union_field_count += 1;
+            non_union_serialize_lines.push(generate_serde_serialize_entry(
+                ctx,
+                field_name,
+                &styled_name,
+                slot.get_type()?,
+                &mut helper_lines,
+            )?);
+        }
     }
+
+    // Build serialization body
+    let serialize_body = if has_union {
+        // Estimate map size: non-union fields + 1 for the active union variant
+        let map_size = non_union_field_count + 1;
+        let mut body = vec![
+            line("use ::serde::ser::SerializeMap;"),
+            Line(format!(
+                "let mut map = serializer.serialize_map(::core::option::Option::Some({map_size}))?;"
+            )),
+            Branch(non_union_serialize_lines),
+            line("match self.which() {"),
+        ];
+        let mut arms = union_serialize_arms;
+        arms.push(line("_ => {}"));
+        body.push(indent(arms));
+        body.push(line("}"));
+        body.push(line("map.end()"));
+        body
+    } else {
+        vec![
+            line("use ::serde::ser::SerializeMap;"),
+            Line(format!(
+                "let mut map = serializer.serialize_map(::core::option::Option::Some({non_union_field_count}))?;"
+            )),
+            Branch(non_union_serialize_lines),
+            line("map.end()"),
+        ]
+    };
 
     Ok(Some(Branch(vec![
         line("#[cfg(feature = \"serde\")]"),
@@ -676,15 +727,7 @@ fn generate_serde_struct(
             line("where"),
             indent(line("S: ::serde::Serializer,")),
             line("{"),
-            indent(vec![
-                line("use ::serde::ser::SerializeMap;"),
-                Line(format!(
-                    "let mut map = serializer.serialize_map(::core::option::Option::Some({}))?;",
-                    st.get_fields()?.len()
-                )),
-                Branch(serialize_lines),
-                line("map.end()"),
-            ]),
+            indent(serialize_body),
             line("}"),
         ]),
         line("}"),
@@ -718,6 +761,92 @@ fn generate_serde_serialize_entry(
             "map.serialize_entry(\"{field_name}\", &{})?;",
             serde_scalar_serialize_expr(ctx, ty, &format!("self.get_{styled_name}()"), "S::Error")?
         ))),
+    }
+}
+
+fn generate_serde_union_serialize_arm(
+    ctx: &GeneratorContext<'_>,
+    field_name: &str,
+    _styled_name: &str,
+    ty: schema_capnp::type_::Reader,
+    helper_lines: &mut Vec<FormattedText>,
+) -> capnp::Result<FormattedText> {
+    use capnp::schema_capnp::type_;
+    let variant_name = capitalize_first_letter(field_name);
+    match ty.which()? {
+        type_::Void(()) => Ok(Branch(vec![
+            Line(format!("::core::result::Result::Ok(Which::{variant_name}(())) => {{")),
+            indent(Line(format!(
+                "map.serialize_entry(\"{field_name}\", &())?;"
+            ))),
+            line("}"),
+        ])),
+        type_::Struct(_) => Ok(Branch(vec![
+            Line(format!(
+                "::core::result::Result::Ok(Which::{variant_name}(::core::result::Result::Ok(val))) => {{"
+            )),
+            indent(Line(format!(
+                "map.serialize_entry(\"{field_name}\", &val)?;"
+            ))),
+            line("}"),
+        ])),
+        type_::List(list) => {
+            let helper_name = format!("{}SerdeSerialize", capitalize_first_letter(field_name));
+            helper_lines.extend(generate_serde_list_serializer(
+                ctx,
+                &helper_name,
+                ty.type_string(ctx, Leaf::Reader("'a"))?,
+                list.get_element_type()?,
+            )?);
+            Ok(Branch(vec![
+                Line(format!(
+                    "::core::result::Result::Ok(Which::{variant_name}(::core::result::Result::Ok(val))) => {{"
+                )),
+                indent(Line(format!(
+                    "map.serialize_entry(\"{field_name}\", &{helper_name}(val))?;"
+                ))),
+                line("}"),
+            ]))
+        }
+        type_::Text(()) => Ok(Branch(vec![
+            Line(format!(
+                "::core::result::Result::Ok(Which::{variant_name}(::core::result::Result::Ok(val))) => {{"
+            )),
+            indent(Line(format!(
+                "map.serialize_entry(\"{field_name}\", &val.to_str().map_err(<S::Error as ::serde::ser::Error>::custom)?)?;"
+            ))),
+            line("}"),
+        ])),
+        type_::Data(()) => Ok(Branch(vec![
+            Line(format!(
+                "::core::result::Result::Ok(Which::{variant_name}(::core::result::Result::Ok(val))) => {{"
+            )),
+            indent(Line(format!(
+                "map.serialize_entry(\"{field_name}\", &::serde::Serialize::serialize(&val, serializer))?;"
+            ))),
+            line("}"),
+        ])),
+        type_::Enum(_) => Ok(Branch(vec![
+            Line(format!(
+                "::core::result::Result::Ok(Which::{variant_name}(::core::result::Result::Ok(val))) => {{"
+            )),
+            indent(Line(format!(
+                "map.serialize_entry(\"{field_name}\", &(val as u16))?;"
+            ))),
+            line("}"),
+        ])),
+        _ => {
+            // For simple scalar types (bool, int, float), the value is directly in the enum
+            Ok(Branch(vec![
+                Line(format!(
+                    "::core::result::Result::Ok(Which::{variant_name}(val)) => {{"
+                )),
+                indent(Line(format!(
+                    "map.serialize_entry(\"{field_name}\", &val)?;"
+                ))),
+                line("}"),
+            ]))
+        }
     }
 }
 
@@ -767,7 +896,7 @@ fn generate_serde_list_seed(
     let mut visit_seq_lines = vec![
         line("let len = seq.size_hint().ok_or_else(|| <A::Error as ::serde::de::Error>::custom(\"sequence length required for Cap'n Proto list allocation\"))?;"),
         Line(format!(
-            "let mut value = self.builder.init_{styled_name}(len as u32);"
+            "let mut value = self.builder.reborrow().init_{styled_name}(len as u32);"
         )),
         line("let mut index = 0usize;"),
     ];
@@ -852,7 +981,7 @@ fn generate_serde_list_seed(
             line("fn expecting(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {"),
             indent(line("formatter.write_str(\"a sequence matching the Cap'n Proto list shape\")")),
             line("}"),
-            line("fn visit_seq<A>(self, mut seq: A) -> ::core::result::Result<Self::Value, A::Error>"),
+            line("fn visit_seq<A>(mut self, mut seq: A) -> ::core::result::Result<Self::Value, A::Error>"),
             line("where"),
             indent(line("A: ::serde::de::SeqAccess<'de>,")),
             line("{"),
@@ -2932,7 +3061,7 @@ fn generate_node(
                         Line(fmt!(ctx,"pub fn total_size(&self) -> {capnp}::Result<{capnp}::MessageSize> {{")),
                         indent(line("self.builder.as_reader().total_size()")),
                         line("}"),
-                        (if ctx.serde_derive && !is_generic {
+                        (if ctx.serde_derive && !is_generic && supports_serde_struct(ctx, *node_reader).unwrap_or(false) {
                             Branch(vec![
                                 line("#[cfg(feature = \"serde\")]"),
                                 line("pub fn deserialize_serde<'de, D>(&mut self, deserializer: D) -> ::core::result::Result<(), D::Error>"),
