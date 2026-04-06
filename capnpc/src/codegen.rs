@@ -594,8 +594,7 @@ fn generate_serde_struct(
         };
         let field_name = get_field_name(field_reader)?;
         let styled_name = camel_to_snake_case(field_name);
-        let is_union_field =
-            field_reader.get_discriminant_value() != field::NO_DISCRIMINANT;
+        let is_union_field = field_reader.get_discriminant_value() != field::NO_DISCRIMINANT;
 
         // Deserialization: all fields (union and non-union) handled the same way
         map_match_arms.push(generate_serde_map_match_arm(
