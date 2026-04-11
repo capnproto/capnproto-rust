@@ -45,10 +45,13 @@ pub unsafe trait ReaderArena {
         let this_size: usize = usize::try_from(segment_len).unwrap() * BYTES_PER_WORD;
         let offset: i64 = i64::from(offset_in_words) * i64::try_from(BYTES_PER_WORD).unwrap();
         let start_idx = start as usize;
-        if start_idx < this_start
-            || usize::try_from(i64::try_from(start_idx - this_start).unwrap() + offset).unwrap()
-                > this_size
-        {
+        if start_idx < this_start {
+            return Err(Error::from_kind(
+                ErrorKind::MessageContainsOutOfBoundsPointer,
+            ));
+        }
+        let target_idx = i64::try_from(start_idx - this_start).unwrap() + offset;
+        if target_idx < 0 || usize::try_from(target_idx).unwrap() > this_size {
             Err(Error::from_kind(
                 ErrorKind::MessageContainsOutOfBoundsPointer,
             ))
