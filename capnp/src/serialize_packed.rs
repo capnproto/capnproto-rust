@@ -116,7 +116,7 @@ where
                     //# slowly, doing a bounds check on each byte.
 
                     tag = *in_ptr;
-                    in_ptr = in_ptr.offset(1);
+                    in_ptr = in_ptr.add(1);
 
                     for i in 0..8 {
                         if (tag & (1u8 << i)) != 0 {
@@ -132,11 +132,11 @@ where
                                 );
                             }
                             *out = *in_ptr;
-                            out = out.offset(1);
-                            in_ptr = in_ptr.offset(1);
+                            out = out.add(1);
+                            in_ptr = in_ptr.add(1);
                         } else {
                             *out = 0;
-                            out = out.offset(1);
+                            out = out.add(1);
                         }
                     }
 
@@ -145,13 +145,13 @@ where
                     }
                 } else {
                     tag = *in_ptr;
-                    in_ptr = in_ptr.offset(1);
+                    in_ptr = in_ptr.add(1);
 
                     for n in 0..8 {
                         let is_nonzero = (tag & (1u8 << n)) != 0;
                         *out = (*in_ptr) & ((-i8::from(is_nonzero)) as u8);
-                        out = out.offset(1);
-                        in_ptr = in_ptr.offset(isize::from(is_nonzero));
+                        out = out.add(1);
+                        in_ptr = in_ptr.add(is_nonzero as usize);
                     }
                 }
                 if tag == 0 {
@@ -161,7 +161,7 @@ where
                     );
 
                     let run_length: usize = (*in_ptr) as usize * 8;
-                    in_ptr = in_ptr.offset(1);
+                    in_ptr = in_ptr.add(1);
 
                     if run_length > ptr_sub(out_end, out) {
                         return Err(Error::from_kind(
@@ -178,7 +178,7 @@ where
                     );
 
                     let mut run_length: usize = (*in_ptr) as usize * 8;
-                    in_ptr = in_ptr.offset(1);
+                    in_ptr = in_ptr.add(1);
 
                     if run_length > ptr_sub(out_end, out) {
                         return Err(Error::from_kind(
@@ -324,42 +324,42 @@ where
                 let bit0 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit0 as usize;
-                in_ptr = in_ptr.offset(1);
+                in_ptr = in_ptr.add(1);
 
                 let bit1 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit1 as usize;
-                in_ptr = in_ptr.offset(1);
+                in_ptr = in_ptr.add(1);
 
                 let bit2 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit2 as usize;
-                in_ptr = in_ptr.offset(1);
+                in_ptr = in_ptr.add(1);
 
                 let bit3 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit3 as usize;
-                in_ptr = in_ptr.offset(1);
+                in_ptr = in_ptr.add(1);
 
                 let bit4 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit4 as usize;
-                in_ptr = in_ptr.offset(1);
+                in_ptr = in_ptr.add(1);
 
                 let bit5 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit5 as usize;
-                in_ptr = in_ptr.offset(1);
+                in_ptr = in_ptr.add(1);
 
                 let bit6 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit6 as usize;
-                in_ptr = in_ptr.offset(1);
+                in_ptr = in_ptr.add(1);
 
                 let bit7 = u8::from(*in_ptr != 0);
                 *buf.get_unchecked_mut(buf_idx) = *in_ptr;
                 buf_idx += bit7 as usize;
-                in_ptr = in_ptr.offset(1);
+                in_ptr = in_ptr.add(1);
 
                 let tag: u8 = bit0
                     | (bit1 << 1)
@@ -380,10 +380,10 @@ where
                     let mut in_word: *const [u8; 8] = in_ptr as *const [u8; 8];
                     let mut limit: *const [u8; 8] = in_end as *const [u8; 8];
                     if ptr_sub(limit, in_word) > 255 {
-                        limit = in_word.offset(255);
+                        limit = in_word.add(255);
                     }
                     while in_word < limit && *in_word == [0; 8] {
-                        in_word = in_word.offset(1);
+                        in_word = in_word.add(1);
                     }
 
                     *buf.get_unchecked_mut(buf_idx) = ptr_sub(in_word, in_ptr as *const [u8; 8])
@@ -403,7 +403,7 @@ where
                     let run_start = in_ptr;
                     let mut limit = in_end;
                     if ptr_sub(limit, in_ptr) > 255 * 8 {
-                        limit = in_ptr.offset(255 * 8);
+                        limit = in_ptr.add(255 * 8);
                     }
 
                     while in_ptr < limit {
@@ -411,13 +411,13 @@ where
 
                         for _ in 0..8 {
                             c += u8::from(*in_ptr == 0);
-                            in_ptr = in_ptr.offset(1);
+                            in_ptr = in_ptr.add(1);
                         }
 
                         if c >= 2 {
                             //# Un-read the word with multiple zeros, since
                             //# we'll want to compress that one.
-                            in_ptr = in_ptr.offset(-8);
+                            in_ptr = in_ptr.sub(8);
                             break;
                         }
                     }
