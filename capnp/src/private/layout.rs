@@ -158,9 +158,14 @@ impl WirePointer {
     }
 
     #[inline]
+    fn offset_in_words(&self) -> i32 {
+        1 + ((self.offset_and_kind.get() as i32) >> 2)
+    }
+
+    #[inline]
     pub unsafe fn target(ptr: *const Self) -> *const u8 {
         let this_addr: *const u8 = ptr as *const _;
-        unsafe { this_addr.offset(8 * (1 + (((*ptr).offset_and_kind.get() as i32) >> 2)) as isize) }
+        unsafe { this_addr.offset(8 * (*ptr).offset_in_words() as isize) }
     }
 
     // At one point, we had `&self` here instead of `ptr: *const Self`, but miri
@@ -172,10 +177,7 @@ impl WirePointer {
         segment_id: u32,
     ) -> Result<*const u8> {
         let this_addr: *const u8 = ptr as *const _;
-        unsafe {
-            let offset = 1 + (((*ptr).offset_and_kind.get() as i32) >> 2);
-            arena.check_offset(segment_id, this_addr, offset)
-        }
+        unsafe { arena.check_offset(segment_id, this_addr, (*ptr).offset_in_words()) }
     }
 
     // At one point, we had `&mut self` here instead of `ptr: *mut Self`, but miri
@@ -184,10 +186,7 @@ impl WirePointer {
     fn mut_target(ptr: *mut Self) -> *mut u8 {
         let this_addr: *mut u8 = ptr as *mut _;
         unsafe {
-            this_addr.wrapping_offset(
-                BYTES_PER_WORD as isize
-                    * (1 + (((*ptr).offset_and_kind.get() as i32) >> 2)) as isize,
-            )
+            this_addr.wrapping_offset(BYTES_PER_WORD as isize * (*ptr).offset_in_words() as isize)
         }
     }
 
