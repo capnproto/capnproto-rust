@@ -1,3 +1,6 @@
+## v0.25.4
+- Fix clippy::cast_possible_truncation warnings.
+
 ## v0.25.3
 - Fix iterator size_hint() so that it returns the remaining size, not the initial size.
 
