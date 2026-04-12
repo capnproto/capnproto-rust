@@ -32,6 +32,7 @@ pub use no_alloc_buffer_segments::{
 use crate::io::{Read, Write};
 
 use crate::message;
+use crate::private::u32_ext::U32Ext;
 use crate::private::units::BYTES_PER_WORD;
 use crate::Result;
 use crate::{Error, ErrorKind};
@@ -144,7 +145,7 @@ impl<T: core::ops::Deref<Target = [u8]>> BufferSegments<T> {
 #[cfg(feature = "alloc")]
 impl<T: core::ops::Deref<Target = [u8]>> message::ReaderSegments for BufferSegments<T> {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
-        let id_usize = usize::try_from(id).unwrap();
+        let id_usize = id.to_usize();
         if id_usize < self.segment_indices.len() {
             let (a, b) = self.segment_indices[id_usize];
             Some(
@@ -190,7 +191,7 @@ impl core::ops::DerefMut for OwnedSegments {
 #[cfg(feature = "alloc")]
 impl crate::message::ReaderSegments for OwnedSegments {
     fn get_segment(&self, id: u32) -> Option<&[u8]> {
-        let id_usize = usize::try_from(id).unwrap();
+        let id_usize = id.to_usize();
         if id_usize < self.segment_indices.len() {
             let (a, b) = self.segment_indices[id_usize];
             Some(&self[(a * BYTES_PER_WORD)..(b * BYTES_PER_WORD)])
@@ -542,7 +543,7 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> alloc:
     let segment_count: u32 = segments.len().try_into().unwrap();
     let table_size = segment_count / 2 + 1;
     let mut result = alloc::vec::Vec::with_capacity(word_count);
-    result.resize(usize::try_from(table_size).unwrap() * BYTES_PER_WORD, 0);
+    result.resize(table_size.to_usize() * BYTES_PER_WORD, 0);
     {
         let mut bytes = &mut result[..];
         write_segment_table_internal(&mut bytes, segments).expect("Failed to write segment table.");
@@ -616,12 +617,11 @@ where
     if segment_count > 1 {
         if segment_count < 4 {
             for idx in 1..segment_count {
-                buf[usize::try_from((idx - 1) * 4).unwrap()..usize::try_from(idx * 4).unwrap()]
-                    .copy_from_slice(
-                        &u32::try_from(segments.get_segment(idx).unwrap().len() / BYTES_PER_WORD)
-                            .unwrap()
-                            .to_le_bytes(),
-                    );
+                buf[((idx - 1) * 4).to_usize()..(idx * 4).to_usize()].copy_from_slice(
+                    &u32::try_from(segments.get_segment(idx).unwrap().len() / BYTES_PER_WORD)
+                        .unwrap()
+                        .to_le_bytes(),
+                );
             }
             if segment_count == 2 {
                 for b in &mut buf[4..8] {
@@ -632,16 +632,13 @@ where
         } else {
             #[cfg(feature = "alloc")]
             {
-                let mut buf = vec![0; (usize::try_from(segment_count).unwrap() & !1) * 4];
+                let mut buf = vec![0; (segment_count.to_usize() & !1) * 4];
                 for idx in 1..segment_count {
-                    buf[usize::try_from((idx - 1) * 4).unwrap()..usize::try_from(idx * 4).unwrap()]
-                        .copy_from_slice(
-                            &u32::try_from(
-                                segments.get_segment(idx).unwrap().len() / BYTES_PER_WORD,
-                            )
+                    buf[((idx - 1) * 4).to_usize()..(idx * 4).to_usize()].copy_from_slice(
+                        &u32::try_from(segments.get_segment(idx).unwrap().len() / BYTES_PER_WORD)
                             .unwrap()
                             .to_le_bytes(),
-                        );
+                    );
                 }
                 if segment_count % 2 == 0 {
                     let start_idx = buf.len() - 4;

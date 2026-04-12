@@ -74,6 +74,7 @@ use crate::any_pointer;
 use crate::private::arena::{BuilderArena, BuilderArenaImpl};
 use crate::private::arena::{ReaderArena, ReaderArenaImpl};
 use crate::private::layout;
+use crate::private::u32_ext::U32Ext;
 use crate::private::units::BYTES_PER_WORD;
 use crate::traits::{FromPointerBuilder, SetterInput};
 use crate::traits::{FromPointerReader, Owned};
@@ -162,7 +163,7 @@ pub trait ReaderSegments {
     fn len(&self) -> usize {
         for i in 0u32.. {
             if self.get_segment(i).is_none() {
-                return usize::try_from(i).unwrap();
+                return i.to_usize();
             }
         }
         unreachable!()

@@ -29,6 +29,7 @@ pub mod layout;
 mod mask;
 mod primitive;
 mod read_limiter;
+pub(crate) mod u32_ext;
 pub mod units;
 mod zero;
 
