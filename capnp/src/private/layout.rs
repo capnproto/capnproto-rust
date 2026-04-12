@@ -2182,8 +2182,9 @@ mod wire_helpers {
                     src = src.add(BYTES_PER_WORD);
                 }
 
-                src =
-                    src.offset((decl_pointer_count - ptr_count) as isize * BYTES_PER_WORD as isize);
+                src = src.add(
+                    decl_pointer_count.checked_sub(ptr_count).unwrap() as usize * BYTES_PER_WORD,
+                );
             }
             Ok(SegmentAnd {
                 segment_id,
