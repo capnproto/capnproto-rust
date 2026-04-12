@@ -42,7 +42,7 @@ pub unsafe trait ReaderArena {
     ) -> Result<*const u8> {
         let (segment_start, segment_len) = self.get_segment(segment_id)?;
         let this_start: usize = segment_start as usize;
-        let this_size: usize = usize::try_from(segment_len).unwrap() * BYTES_PER_WORD;
+        let this_size: usize = segment_len as usize * BYTES_PER_WORD;
         let offset: i64 = i64::from(offset_in_words) * i64::try_from(BYTES_PER_WORD).unwrap();
         let start_idx = start as usize;
         if start_idx < this_start {

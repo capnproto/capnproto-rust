@@ -162,7 +162,7 @@ pub trait ReaderSegments {
     fn len(&self) -> usize {
         for i in 0u32.. {
             if self.get_segment(i).is_none() {
-                return usize::try_from(i).unwrap();
+                return i as usize;
             }
         }
         unreachable!()
