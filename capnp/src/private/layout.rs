@@ -130,7 +130,19 @@ impl WirePointerKind {
 
 #[repr(C)]
 pub struct WirePointer {
+    /// Lower 32 bits of the wire pointer:
+    /// - bits 0-1: [`WirePointerKind`] (0=struct, 1=list, 2=far, 3=other).
+    /// - bits 2-31:
+    ///   - Struct/list: signed offset in words (from after this pointer).
+    ///   - Far: bit 2 = double-far flag, bits 3-31 = unsigned word offset in target segment.
+    ///   - Other: 0.
     offset_and_kind: WireValue<u32>,
+
+    /// Upper 32 bits of the wire pointer. Interpretation depends on kind:
+    /// - Struct: bits 0-15 = data section size (words), bits 16-31 = pointer count.
+    /// - List: bits 0-2 = element size, bits 3-31 = element count (word count if composite).
+    /// - Far: bits 0-31 = target segment ID.
+    /// - Other (capability): bits 0-31 = capability index in the message.
     upper32bits: WireValue<u32>,
 }
 
