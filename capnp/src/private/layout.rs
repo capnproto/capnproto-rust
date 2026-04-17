@@ -170,7 +170,9 @@ impl WirePointer {
     }
 
     #[inline]
+    #[allow(clippy::cast_possible_wrap)]
     fn offset_in_words(&self) -> i32 {
+        // Use `.cast_signed()` when MSRV >= 1.87.
         1 + ((self.offset_and_kind.get() as i32) >> 2)
     }
 
@@ -198,7 +200,9 @@ impl WirePointer {
     fn mut_target(ptr: *mut Self) -> *mut u8 {
         let this_addr: *mut u8 = ptr as *mut _;
         unsafe {
-            this_addr.wrapping_offset(BYTES_PER_WORD as isize * (*ptr).offset_in_words() as isize)
+            this_addr.wrapping_offset(
+                isize::try_from(BYTES_PER_WORD).unwrap() * (*ptr).offset_in_words() as isize,
+            )
         }
     }
 
