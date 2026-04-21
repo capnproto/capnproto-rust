@@ -372,8 +372,8 @@ mod wire_helpers {
     use crate::private::layout::{data_bits_per_element, pointers_per_element};
     use crate::private::layout::{CapTableBuilder, CapTableReader};
     use crate::private::layout::{
-        ElementSize, ListBuilder, ListReader, StructBuilder, StructReader, StructSize, WirePointer,
-        WirePointerKind,
+        ElementSize, ListBuilder, ListReader, PointerReader, StructBuilder, StructReader,
+        StructSize, WirePointer, WirePointerKind,
     };
     use crate::private::units::*;
     use crate::text;
@@ -2008,11 +2008,7 @@ mod wire_helpers {
                 segment_id,
                 cap_table,
                 pointer_section.add(i),
-                value.arena,
-                value.segment_id,
-                value.cap_table,
-                value.pointers.add(i),
-                value.nesting_limit,
+                value.get_pointer_field(i),
                 canonicalize,
             )?;
         }
@@ -2054,17 +2050,13 @@ mod wire_helpers {
             if value.struct_pointer_count == 1 {
                 //# List of pointers.
                 (*reff).set_list_size_and_count(Pointer, value.element_count);
-                for i in 0..value.element_count as usize {
+                for i in 0..value.element_count {
                     deep_copy_pointee(
                         arena,
                         segment_id,
                         cap_table,
-                        (ptr as *mut WirePointer).add(i),
-                        value.arena,
-                        value.segment_id,
-                        value.cap_table,
-                        (value.ptr as *const WirePointer).add(i),
-                        value.nesting_limit,
+                        (ptr as *mut WirePointer).add(i as usize),
+                        value.get_pointer_element(i),
                         canonicalize,
                     )?;
                 }
@@ -2182,16 +2174,19 @@ mod wire_helpers {
                 src = src.add(decl_data_size as usize * BYTES_PER_WORD);
 
                 for _ in 0..ptr_count {
+                    let src_pr = PointerReader {
+                        arena: value.arena,
+                        segment_id: value.segment_id,
+                        cap_table: value.cap_table,
+                        pointer: src as *const WirePointer,
+                        nesting_limit: value.nesting_limit,
+                    };
                     deep_copy_pointee(
                         arena,
                         segment_id,
                         cap_table,
                         dst as *mut _,
-                        value.arena,
-                        value.segment_id,
-                        value.cap_table,
-                        src as *const WirePointer,
-                        value.nesting_limit,
+                        src_pr,
                         canonicalize,
                     )?;
                     dst = dst.add(BYTES_PER_WORD);
@@ -2209,20 +2204,15 @@ mod wire_helpers {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) unsafe fn deep_copy_pointee(
         dst_arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
         dst_cap_table: CapTableBuilder,
         dst: *mut WirePointer,
-        src_arena: &dyn ReaderArena,
-        src_segment_id: u32,
-        src_cap_table: CapTableReader,
-        src: *const WirePointer,
-        nesting_limit: i32,
+        src: PointerReader,
         canonicalize: bool,
     ) -> Result<SegmentAnd<*mut u8>> {
-        if (*src).is_null() {
+        if (*src.pointer).is_null() {
             ptr::write_bytes(dst, 0, 1);
             return Ok(SegmentAnd {
                 segment_id: dst_segment_id,
@@ -2230,21 +2220,22 @@ mod wire_helpers {
             });
         }
 
-        let (mut ptr, src, src_segment_id) = follow_fars(src_arena, src, src_segment_id)?;
+        let (mut ptr, src_ptr, src_segment_id) =
+            follow_fars(src.arena, src.pointer, src.segment_id)?;
 
-        match (*src).kind() {
+        match (*src_ptr).kind() {
             WirePointerKind::Struct => {
-                if nesting_limit <= 0 {
+                if src.nesting_limit <= 0 {
                     return Err(Error::from_kind(
                         ErrorKind::MessageIsTooDeeplyNestedOrContainsCycles,
                     ));
                 }
 
                 bounds_check(
-                    src_arena,
+                    src.arena,
                     src_segment_id,
                     ptr,
-                    (*src).struct_word_size() as usize,
+                    (*src_ptr).struct_word_size() as usize,
                     WirePointerKind::Struct,
                 )?;
 
@@ -2254,35 +2245,35 @@ mod wire_helpers {
                     dst_cap_table,
                     dst,
                     StructReader {
-                        arena: src_arena,
+                        arena: src.arena,
                         segment_id: src_segment_id,
-                        cap_table: src_cap_table,
+                        cap_table: src.cap_table,
                         data: ptr,
-                        pointers: ptr.add((*src).struct_data_size() as usize * BYTES_PER_WORD)
+                        pointers: ptr.add((*src_ptr).struct_data_size() as usize * BYTES_PER_WORD)
                             as *const _,
-                        data_size: u32::from((*src).struct_data_size())
+                        data_size: u32::from((*src_ptr).struct_data_size())
                             * u32::try_from(BITS_PER_WORD).unwrap(),
-                        pointer_count: (*src).struct_ptr_count(),
-                        nesting_limit: nesting_limit - 1,
+                        pointer_count: (*src_ptr).struct_ptr_count(),
+                        nesting_limit: src.nesting_limit - 1,
                     },
                     canonicalize,
                 )
             }
             WirePointerKind::List => {
-                let element_size = (*src).list_element_size();
-                if nesting_limit <= 0 {
+                let element_size = (*src_ptr).list_element_size();
+                if src.nesting_limit <= 0 {
                     return Err(Error::from_kind(
                         ErrorKind::MessageIsTooDeeplyNestedOrContainsCycles,
                     ));
                 }
 
                 if element_size == InlineComposite {
-                    let word_count = (*src).list_inline_composite_word_count();
+                    let word_count = (*src_ptr).list_inline_composite_word_count();
                     let tag: *const WirePointer = ptr as *const _;
                     ptr = ptr.add(BYTES_PER_WORD);
 
                     bounds_check(
-                        src_arena,
+                        src.arena,
                         src_segment_id,
                         ptr.sub(BYTES_PER_WORD),
                         word_count as usize + 1,
@@ -2309,7 +2300,7 @@ mod wire_helpers {
                     if words_per_element == 0 {
                         // Watch out for lists of zero-sized structs, which can claim to be
                         // arbitrarily large without having sent actual data.
-                        amplified_read(src_arena, u64::from(element_count))?;
+                        amplified_read(src.arena, u64::from(element_count))?;
                     }
 
                     set_list_pointer(
@@ -2318,9 +2309,9 @@ mod wire_helpers {
                         dst_cap_table,
                         dst,
                         ListReader {
-                            arena: src_arena,
+                            arena: src.arena,
                             segment_id: src_segment_id,
-                            cap_table: src_cap_table,
+                            cap_table: src.cap_table,
                             ptr: ptr as *const _,
                             element_count,
                             element_size,
@@ -2328,7 +2319,7 @@ mod wire_helpers {
                             struct_data_size: u32::from((*tag).struct_data_size())
                                 * u32::try_from(BITS_PER_WORD).unwrap(),
                             struct_pointer_count: (*tag).struct_ptr_count(),
-                            nesting_limit: nesting_limit - 1,
+                            nesting_limit: src.nesting_limit - 1,
                         },
                         canonicalize,
                     )
@@ -2336,12 +2327,12 @@ mod wire_helpers {
                     let data_size = data_bits_per_element(element_size);
                     let pointer_count = pointers_per_element(element_size);
                     let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
-                    let element_count = (*src).list_element_count();
+                    let element_count = (*src_ptr).list_element_count();
                     let word_count =
                         round_bits_up_to_words(u64::from(element_count) * u64::from(step));
 
                     bounds_check(
-                        src_arena,
+                        src.arena,
                         src_segment_id,
                         ptr,
                         word_count as usize,
@@ -2351,7 +2342,7 @@ mod wire_helpers {
                     if element_size == Void {
                         // Watch out for lists of void, which can claim to be arbitrarily large
                         // without having sent actual data.
-                        amplified_read(src_arena, u64::from(element_count))?;
+                        amplified_read(src.arena, u64::from(element_count))?;
                     }
 
                     set_list_pointer(
@@ -2360,16 +2351,16 @@ mod wire_helpers {
                         dst_cap_table,
                         dst,
                         ListReader {
-                            arena: src_arena,
+                            arena: src.arena,
                             segment_id: src_segment_id,
-                            cap_table: src_cap_table,
+                            cap_table: src.cap_table,
                             ptr: ptr as *const _,
                             element_count,
                             element_size,
                             step,
                             struct_data_size: data_size,
                             struct_pointer_count: u16::try_from(pointer_count).unwrap(),
-                            nesting_limit: nesting_limit - 1,
+                            nesting_limit: src.nesting_limit - 1,
                         },
                         canonicalize,
                     )
@@ -2377,7 +2368,7 @@ mod wire_helpers {
             }
             WirePointerKind::Far => Err(Error::from_kind(ErrorKind::MalformedDoubleFarPointer)),
             WirePointerKind::Other => {
-                if !(*src).is_capability() {
+                if !(*src_ptr).is_capability() {
                     return Err(Error::from_kind(ErrorKind::UnknownPointerType));
                 }
                 if canonicalize {
@@ -2386,7 +2377,7 @@ mod wire_helpers {
                     ));
                 }
                 #[cfg(feature = "alloc")]
-                match src_cap_table.extract_cap((*src).cap_index() as usize) {
+                match src.cap_table.extract_cap((*src_ptr).cap_index() as usize) {
                     Some(cap) => {
                         set_capability_pointer(dst_arena, dst_segment_id, dst_cap_table, dst, cap);
                         Ok(SegmentAnd {
@@ -3413,11 +3404,7 @@ impl<'a> PointerBuilder<'a> {
                     self.segment_id,
                     self.cap_table,
                     self.pointer,
-                    other.arena,
-                    other.segment_id,
-                    other.cap_table,
-                    other.pointer,
-                    other.nesting_limit,
+                    other,
                     canonicalize,
                 )?;
             }
@@ -3853,11 +3840,7 @@ impl<'a> StructBuilder<'a> {
                     self.segment_id,
                     self.cap_table,
                     self.pointers.add(i),
-                    other.arena,
-                    other.segment_id,
-                    other.cap_table,
-                    other.pointers.add(i),
-                    other.nesting_limit,
+                    other.get_pointer_field(i),
                     false,
                 )?;
             }
