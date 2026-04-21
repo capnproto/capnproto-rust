@@ -1,0 +1,5 @@
+{
+  "appName": "hive-worker",
+  "port": 7000,
+  "verbose": true
+}
