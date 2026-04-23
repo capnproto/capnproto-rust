@@ -709,27 +709,24 @@ impl<VatId> ConnectionState<VatId> {
         message: message::Reader,
     ) -> capnp::Result<()> {
         match message.which()? {
-            message::Resolve(resolve) => {
-                let resolve = resolve?;
-                match resolve.which()? {
-                    resolve::Cap(c) => match c?.which()? {
-                        cap_descriptor::None(()) => (),
-                        cap_descriptor::SenderHosted(export_id) => {
-                            connection_state.release_export(export_id, 1)?;
-                        }
-                        cap_descriptor::SenderPromise(export_id) => {
-                            connection_state.release_export(export_id, 1)?;
-                        }
-                        cap_descriptor::ReceiverAnswer(_) | cap_descriptor::ReceiverHosted(_) => (),
-                        cap_descriptor::ThirdPartyHosted(_) => {
-                            return Err(Error::failed(
-                                "Peer claims we resolved a ThirdPartyHosted cap.".to_string(),
-                            ));
-                        }
-                    },
-                    resolve::Exception(_) => (),
-                }
-            }
+            message::Resolve(resolve) => match resolve.which()? {
+                resolve::Cap(c) => match c.which()? {
+                    cap_descriptor::None(()) => (),
+                    cap_descriptor::SenderHosted(export_id) => {
+                        connection_state.release_export(export_id, 1)?;
+                    }
+                    cap_descriptor::SenderPromise(export_id) => {
+                        connection_state.release_export(export_id, 1)?;
+                    }
+                    cap_descriptor::ReceiverAnswer(_) | cap_descriptor::ReceiverHosted(_) => (),
+                    cap_descriptor::ThirdPartyHosted(_) => {
+                        return Err(Error::failed(
+                            "Peer claims we resolved a ThirdPartyHosted cap.".to_string(),
+                        ));
+                    }
+                },
+                resolve::Exception(_) => (),
+            },
             _ => {
                 return Err(Error::failed(
                     "Peer did not implement required RPC message type.".to_string(),
@@ -826,7 +823,7 @@ impl<VatId> ConnectionState<VatId> {
 
     fn handle_resolve(connection_state: &Rc<Self>, resolve: resolve::Reader) -> capnp::Result<()> {
         let replacement_or_error = match resolve.which()? {
-            resolve::Cap(c) => match Self::receive_cap(connection_state, c?)? {
+            resolve::Cap(c) => match Self::receive_cap(connection_state, c)? {
                 Some(cap) => Ok(cap),
                 None => {
                     return Err(Error::failed(
@@ -839,7 +836,7 @@ impl<VatId> ConnectionState<VatId> {
                 // confuse PromiseClient::Resolve() into thinking that the remote
                 // promise resolved to a local capability and therefore a Disembargo is
                 // needed. We must actually reject the promise.
-                Err(remote_exception_to_error(e?))
+                Err(remote_exception_to_error(e))
             }
         };
 
@@ -946,14 +943,13 @@ impl<VatId> ConnectionState<VatId> {
         let reader = message.get_body()?.get_as::<message::Reader>()?;
         match reader.which() {
             Ok(message::Unimplemented(message)) => {
-                Self::handle_unimplemented(&connection_state, message?)?
+                Self::handle_unimplemented(&connection_state, message)?
             }
-            Ok(message::Abort(abort)) => return Err(remote_exception_to_error(abort?)),
+            Ok(message::Abort(abort)) => return Err(remote_exception_to_error(abort)),
             Ok(message::Bootstrap(bootstrap)) => {
-                Self::handle_bootstrap(&connection_state, bootstrap?)?
+                Self::handle_bootstrap(&connection_state, bootstrap)?
             }
             Ok(message::Call(call)) => {
-                let call = call?;
                 let capability = connection_state.get_message_target(call.get_target()?)?;
                 let (interface_id, method_id, question_id, cap_table_array, redirect_results) = {
                     let redirect_results = match call.get_send_results_to().which()? {
@@ -1063,7 +1059,7 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
             Ok(message::Return(oret)) => {
-                let ret = oret?;
+                let ret = oret;
                 let question_id = ret.get_answer_id();
 
                 let mut questions = connection_state.questions.borrow_mut();
@@ -1078,7 +1074,7 @@ impl<VatId> ConnectionState<VatId> {
                                 return_::Results(results) => {
                                     let cap_table = Self::receive_caps(
                                         &connection_state,
-                                        results?.get_cap_table()?,
+                                        results.get_cap_table()?,
                                     )?;
 
                                     let question_ref =
@@ -1094,7 +1090,7 @@ impl<VatId> ConnectionState<VatId> {
                                 return_::Exception(e) => {
                                     let tmp =
                                         question_ref.upgrade().expect("dangling question ref?");
-                                    tmp.borrow_mut().reject(remote_exception_to_error(e?));
+                                    tmp.borrow_mut().reject(remote_exception_to_error(e));
                                 }
                                 return_::Canceled(_) => {
                                     Self::send_unimplemented(&connection_state, message.as_ref())?;
@@ -1149,14 +1145,13 @@ impl<VatId> ConnectionState<VatId> {
                     }
                 }
             }
-            Ok(message::Finish(finish)) => Self::handle_finish(&connection_state, finish?)?,
-            Ok(message::Resolve(resolve)) => Self::handle_resolve(&connection_state, resolve?)?,
+            Ok(message::Finish(finish)) => Self::handle_finish(&connection_state, finish)?,
+            Ok(message::Resolve(resolve)) => Self::handle_resolve(&connection_state, resolve)?,
             Ok(message::Release(release)) => {
-                let release = release?;
                 connection_state.release_export(release.get_id(), release.get_reference_count())?;
             }
             Ok(message::Disembargo(disembargo)) => {
-                Self::handle_disembargo(&connection_state, disembargo?)?
+                Self::handle_disembargo(&connection_state, disembargo)?
             }
             Ok(
                 message::Provide(_)
@@ -1165,7 +1160,7 @@ impl<VatId> ConnectionState<VatId> {
                 | message::ObsoleteSave(_)
                 | message::ObsoleteDelete(_),
             )
-            | Err(::capnp::NotInSchema(_)) => {
+            | Err(_) => {
                 Self::send_unimplemented(&connection_state, message.as_ref())?;
             }
         }
@@ -1234,7 +1229,6 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
             message_target::PromisedAnswer(promised_answer) => {
-                let promised_answer = promised_answer?;
                 let question_id = promised_answer.get_question_id();
 
                 let pipeline = match self.answers.borrow().slots.get(&question_id) {
@@ -1578,7 +1572,7 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
             cap_descriptor::ReceiverAnswer(receiver_answer) => {
-                let promised_answer = receiver_answer?;
+                let promised_answer = receiver_answer;
                 let question_id = promised_answer.get_question_id();
                 if let Some(answer) = state.answers.borrow().slots.get(&question_id) {
                     if let Some(ref pipeline) = answer.pipeline {
@@ -1737,8 +1731,8 @@ impl<VatId> ResponseHook for Response<VatId> {
                     .get_as::<message::Reader>()?
                     .which()?
                 {
-                    message::Return(Ok(ret)) => match ret.which()? {
-                        return_::Results(Ok(mut payload)) => {
+                    message::Return(ret) => match ret.which()? {
+                        return_::Results(mut payload) => {
                             use ::capnp::traits::Imbue;
                             payload.imbue(&state.cap_table);
                             Ok(payload.get_content())
@@ -1766,7 +1760,7 @@ where
 fn get_call(message: &mut Box<dyn crate::OutgoingMessage>) -> ::capnp::Result<call::Builder<'_>> {
     let message_root: message::Builder = message.get_body()?.get_as()?;
     match message_root.which()? {
-        message::Call(call) => call,
+        message::Call(call) => Ok(call),
         _ => {
             unimplemented!()
         }
@@ -2270,7 +2264,7 @@ impl ParamsHook for Params {
             unreachable!()
         };
         use ::capnp::traits::Imbue;
-        let mut content = call?.get_params()?.get_content();
+        let mut content = call.get_params()?.get_content();
         content.imbue(&self.cap_table);
         Ok(content)
     }
@@ -2393,10 +2387,10 @@ impl<VatId> ResultsHook for Results<VatId> {
                 let message::Return(ret) = root.which()? else {
                     unreachable!();
                 };
-                let return_::Results(payload) = ret?.which()? else {
+                let return_::Results(payload) = ret.which()? else {
                     unreachable!()
                 };
-                let mut content = payload?.get_content();
+                let mut content = payload.get_content();
                 content.imbue_mut(cap_table);
                 Ok(content)
             }
@@ -2547,14 +2541,14 @@ impl ResultsDone {
                             (false, Ok(())) => {
                                 let exports = {
                                     let root: message::Builder = message.get_body()?.get_as()?;
-                                    let message::Return(Ok(mut ret)) = root.which()? else {
+                                    let message::Return(mut ret) = root.which()? else {
                                         unreachable!()
                                     };
                                     if cap_table.is_empty() {
                                         ret.set_no_finish_needed(true);
                                         finish_received.set(true);
                                     }
-                                    let crate::rpc_capnp::return_::Results(Ok(payload)) =
+                                    let crate::rpc_capnp::return_::Results(payload) =
                                         ret.which()?
                                     else {
                                         unreachable!()
@@ -2645,10 +2639,10 @@ impl ResultsDoneHook for ResultsDone {
                 let message::Return(ret) = root.which()? else {
                     unreachable!();
                 };
-                let crate::rpc_capnp::return_::Results(payload) = ret?.which()? else {
+                let crate::rpc_capnp::return_::Results(payload) = ret.which()? else {
                     unreachable!();
                 };
-                let mut content = payload?.get_content();
+                let mut content = payload.get_content();
                 content.imbue(cap_table);
                 Ok(content)
             }
