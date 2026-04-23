@@ -23,6 +23,7 @@
 
 #[cfg(feature = "alloc")]
 use crate::capability::FromClientHook;
+use crate::introspect::{Type, TypeVariant};
 #[cfg(feature = "alloc")]
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
 use crate::private::layout::{PointerBuilder, PointerReader};
@@ -70,6 +71,21 @@ impl<'a> Reader<'a> {
     #[inline]
     pub fn get_as<T: FromPointerReader<'a>>(&self) -> Result<T> {
         FromPointerReader::get_from_pointer(&self.reader, None)
+    }
+
+    #[inline]
+    pub fn get_as_dynamic(&self, ty: Type) -> Result<crate::dynamic_value::Reader<'a>> {
+        match ty.which() {
+            TypeVariant::List(element_type) => Ok(crate::dynamic_value::Reader::List(
+                crate::dynamic_list::Reader {
+                    reader: self
+                        .reader
+                        .get_list(element_type.expected_element_size(), None)?,
+                    element_type,
+                },
+            )),
+            _ => todo!(),
+        }
     }
 
     #[cfg(feature = "alloc")]
