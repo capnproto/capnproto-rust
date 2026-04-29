@@ -30,7 +30,11 @@ use futures::channel::oneshot;
 use futures::TryFutureExt;
 
 use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::future::Future;
+use std::pin::Pin;
 use std::rc::Rc;
+use std::task::{Context, Poll};
 
 pub trait ResultsDoneHook {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook>;
@@ -339,11 +343,186 @@ pub(crate) struct Client<S>
 where
     S: capability::Server + Clone,
 {
+    state: Rc<RefCell<ClientState<S>>>,
+}
+
+struct ClientState<S>
+where
+    S: capability::Server + Clone,
+{
     inner: S,
 
     /// If a streaming call on this capability has returned an error,
     /// this contains a copy of that error.
-    broken_error: Rc<RefCell<Option<Error>>>,
+    broken_error: Option<Error>,
+
+    /// True while a streaming call is in flight. Later calls must wait here so
+    /// non-streaming calls, like EOF methods, cannot overtake streaming writes.
+    blocked: bool,
+    blocked_calls: VecDeque<BlockedCall>,
+}
+
+struct BlockedCall {
+    interface_id: u64,
+    method_id: u16,
+    params: Box<dyn ParamsHook>,
+    results: Box<dyn ResultsHook>,
+    fulfiller: oneshot::Sender<Promise<(), Error>>,
+}
+
+struct StreamingCall<S>
+where
+    S: capability::Server + Clone + 'static,
+{
+    state: Rc<RefCell<ClientState<S>>>,
+    promise: Promise<(), Error>,
+    completed: bool,
+}
+
+impl<S> Unpin for StreamingCall<S> where S: capability::Server + Clone + 'static {}
+
+impl<S> Future for StreamingCall<S>
+where
+    S: capability::Server + Clone + 'static,
+{
+    type Output = Result<(), Error>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.get_mut();
+        match Pin::new(&mut this.promise).poll(cx) {
+            Poll::Ready(result) => {
+                if let Err(e) = &result {
+                    this.state.borrow_mut().broken_error = Some(e.clone());
+                }
+                this.completed = true;
+                ClientState::unblock(this.state.clone());
+                Poll::Ready(result)
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+impl<S> Drop for StreamingCall<S>
+where
+    S: capability::Server + Clone + 'static,
+{
+    fn drop(&mut self) {
+        if !self.completed {
+            ClientState::unblock(self.state.clone());
+        }
+    }
+}
+
+impl<S> ClientState<S>
+where
+    S: capability::Server + Clone + 'static,
+{
+    fn dispatch_or_queue(
+        state: Rc<RefCell<Self>>,
+        interface_id: u64,
+        method_id: u16,
+        params: Box<dyn ParamsHook>,
+        results: Box<dyn ResultsHook>,
+    ) -> Promise<(), Error> {
+        {
+            let mut state_ref = state.borrow_mut();
+            if let Some(e) = &state_ref.broken_error {
+                return Promise::err(e.clone());
+            }
+
+            if state_ref.blocked {
+                let (fulfiller, promise) = oneshot::channel();
+                state_ref.blocked_calls.push_back(BlockedCall {
+                    interface_id,
+                    method_id,
+                    params,
+                    results,
+                    fulfiller,
+                });
+
+                // The queued call has not started yet. Resolve this promise
+                // with the call's real promise once it reaches the front.
+                return Promise::from_future(async move {
+                    match promise.await {
+                        Ok(p) => p.await,
+                        Err(e) => Err(crate::canceled_to_error(e)),
+                    }
+                });
+            }
+        }
+
+        Self::dispatch_call(state, interface_id, method_id, params, results)
+    }
+
+    fn dispatch_call(
+        state: Rc<RefCell<Self>>,
+        interface_id: u64,
+        method_id: u16,
+        params: Box<dyn ParamsHook>,
+        results: Box<dyn ResultsHook>,
+    ) -> Promise<(), Error> {
+        let inner = {
+            let state_ref = state.borrow();
+            if let Some(e) = &state_ref.broken_error {
+                return Promise::err(e.clone());
+            }
+            state_ref.inner.clone()
+        };
+
+        let f = inner.dispatch_call(
+            interface_id,
+            method_id,
+            ::capnp::capability::Params::new(params),
+            ::capnp::capability::Results::new(results),
+        );
+
+        if f.is_streaming {
+            // A streaming call serializes later calls on the same local
+            // capability until its server-side promise completes.
+            state.borrow_mut().blocked = true;
+            Promise::from_future(StreamingCall {
+                state,
+                promise: f.promise,
+                completed: false,
+            })
+        } else {
+            f.promise
+        }
+    }
+
+    fn unblock(state: Rc<RefCell<Self>>) {
+        loop {
+            let blocked_call = {
+                let mut state_ref = state.borrow_mut();
+                state_ref.blocked = false;
+                state_ref.blocked_calls.pop_front()
+            };
+
+            let Some(blocked_call) = blocked_call else {
+                return;
+            };
+
+            if blocked_call.fulfiller.is_canceled() {
+                continue;
+            }
+
+            let promise = Self::dispatch_call(
+                state.clone(),
+                blocked_call.interface_id,
+                blocked_call.method_id,
+                blocked_call.params,
+                blocked_call.results,
+            );
+            let _ = blocked_call.fulfiller.send(promise);
+
+            // If the unblocked call was itself streaming, dispatch_call() set
+            // blocked again; leave remaining calls queued behind it.
+            if state.borrow().blocked {
+                return;
+            }
+        }
+    }
 }
 
 impl<S> Client<S>
@@ -352,8 +531,12 @@ where
 {
     pub(crate) fn new(server: S) -> Self {
         Self {
-            inner: server,
-            broken_error: Rc::new(RefCell::new(None)),
+            state: Rc::new(RefCell::new(ClientState {
+                inner: server,
+                broken_error: None,
+                blocked: false,
+                blocked_calls: VecDeque::new(),
+            })),
         }
     }
 }
@@ -364,8 +547,7 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            inner: self.inner.clone(),
-            broken_error: self.broken_error.clone(),
+            state: self.state.clone(),
         }
     }
 }
@@ -398,36 +580,17 @@ where
         params: Box<dyn ParamsHook>,
         results: Box<dyn ResultsHook>,
     ) -> Promise<(), Error> {
-        let streaming_error = self.broken_error.clone();
-        if let Some(e) = &*streaming_error.borrow() {
-            // Previous streaming call threw, so everything fails from now on.
-            return Promise::err(e.clone());
-        }
-
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
-        //
-        // TODO: actually use some kind of queue here to guarantee that call order is maintained.
-        // This currently relies on the task scheduler being first-in-first-out.
-        let inner = self.inner.clone();
+        let state = self.state.clone();
         Promise::from_future(async move {
-            let f = inner.dispatch_call(
-                interface_id,
-                method_id,
-                ::capnp::capability::Params::new(params),
-                ::capnp::capability::Results::new(results),
-            );
-            let result = f.promise.await;
-            if let (true, Err(e)) = (f.is_streaming, &result) {
-                *streaming_error.borrow_mut() = Some(e.clone());
-            }
-            result
+            ClientState::dispatch_or_queue(state, interface_id, method_id, params, results).await
         })
     }
 
     fn get_ptr(&self) -> usize {
-        self.inner.as_ptr()
+        self.state.borrow().inner.as_ptr()
     }
 
     fn get_brand(&self) -> usize {
