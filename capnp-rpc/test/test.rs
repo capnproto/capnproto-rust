@@ -1183,6 +1183,41 @@ fn basic_streaming() {
 }
 
 #[test]
+fn finish_stream_observes_all_streaming_writes() {
+    rpc_top_level(|_spawner, client| async move {
+        let response = client.test_more_stuff_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+        let response = client
+            .get_delaying_test_streaming_request()
+            .send()
+            .promise
+            .await?;
+        let client = response.get()?.get_cap()?;
+
+        const EACH: u32 = 10;
+        const ITERS: u32 = 4;
+
+        let writes = (0..ITERS).map(|_| {
+            let mut req = client.do_stream_i_request();
+            req.get().set_i(EACH);
+            req.send()
+        });
+        let writes = futures::future::try_join_all(writes);
+        let finish = client.finish_stream_request().send().promise;
+
+        let (_, response) = futures::future::try_join(writes, finish).await?;
+        let total = response.get()?.get_total_i();
+        assert_eq!(
+            total,
+            ITERS * EACH,
+            "finish_stream observed {total}, expected {}",
+            ITERS * EACH
+        );
+        Ok(())
+    });
+}
+
+#[test]
 fn basic_streaming_on_pipeline() {
     rpc_and_local_top_level(|_spawner, client| async move {
         let response = client.test_more_stuff_request().send().pipeline;

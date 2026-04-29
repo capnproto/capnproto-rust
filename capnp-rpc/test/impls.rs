@@ -546,6 +546,17 @@ impl test_more_stuff::Server for TestMoreStuff {
         Ok(())
     }
 
+    async fn get_delaying_test_streaming(
+        self: Rc<Self>,
+        _params: test_more_stuff::GetDelayingTestStreamingParams,
+        mut results: test_more_stuff::GetDelayingTestStreamingResults,
+    ) -> Result<(), Error> {
+        results
+            .get()
+            .set_cap(capnp_rpc::new_client(DelayingTestStreamingImpl::new()));
+        Ok(())
+    }
+
     async fn get_test_self(
         self: Rc<Self>,
         _params: test_more_stuff::GetTestSelfParams,
@@ -671,6 +682,60 @@ impl test_streaming::Server for TestStreamingImpl {
         let mut results = results.get();
         results.set_total_i(self.i_sum.get());
         results.set_total_j(self.j_sum.get());
+        Ok(())
+    }
+}
+
+/// Like `TestStreamingImpl`, but `do_stream_i()` waits 10ms before recording
+/// its argument. Used to exercise the runtime's ordering of streaming and
+/// non-streaming calls: a `finish_stream()` issued concurrently with pending
+/// `do_stream_i()` calls must not observe the partial sum.
+#[derive(Default)]
+pub struct DelayingTestStreamingImpl {
+    i_sum: Cell<u32>,
+}
+
+impl DelayingTestStreamingImpl {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+fn async_sleep(d: std::time::Duration) -> impl std::future::Future<Output = ()> {
+    let (tx, rx) = oneshot::channel();
+    std::thread::spawn(move || {
+        std::thread::sleep(d);
+        let _ = tx.send(());
+    });
+    async move {
+        let _ = rx.await;
+    }
+}
+
+impl test_streaming::Server for DelayingTestStreamingImpl {
+    async fn do_stream_i(
+        self: Rc<Self>,
+        params: test_streaming::DoStreamIParams,
+    ) -> Result<(), Error> {
+        let i = params.get()?.get_i();
+        async_sleep(std::time::Duration::from_millis(10)).await;
+        self.i_sum.set(self.i_sum.get() + i);
+        Ok(())
+    }
+
+    async fn do_stream_j(
+        self: Rc<Self>,
+        _params: test_streaming::DoStreamJParams,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    async fn finish_stream(
+        self: Rc<Self>,
+        _params: test_streaming::FinishStreamParams,
+        mut results: test_streaming::FinishStreamResults,
+    ) -> Result<(), Error> {
+        results.get().set_total_i(self.i_sum.get());
         Ok(())
     }
 }

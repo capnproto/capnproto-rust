@@ -190,6 +190,11 @@ interface TestMoreStuff extends(TestCallOrder) {
   getTestStreaming @14 () -> (cap :TestStreaming);
 
   getTestSelf @15 () -> (cap :TestSelf);
+
+  getDelayingTestStreaming @16 () -> (cap :TestStreaming);
+  # Like getTestStreaming(), but the returned cap's doStreamI() waits before
+  # recording its argument, so a following non-streaming call can race ahead
+  # of pending streaming calls if the runtime fails to order them.
 }
 
 interface TestCapabilityServerSet {
