@@ -29,12 +29,6 @@ use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 use futures::channel::oneshot;
 use futures::{Future, FutureExt, TryFutureExt};
 
-use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::task::{Context, Poll, Waker};
-use std::time::Duration;
-
 capnp::generated_code!(pub mod test_capnp);
 
 pub mod impls;
@@ -310,137 +304,6 @@ where
 {
     rpc_top_level(main.clone());
     local_top_level(main);
-}
-
-#[derive(Clone, Default)]
-struct SharedGate {
-    inner: Arc<SharedGateInner>,
-}
-
-#[derive(Default)]
-struct SharedGateInner {
-    open: AtomicBool,
-    wakers: Mutex<Vec<Waker>>,
-}
-
-impl SharedGate {
-    fn wait(&self) -> SharedGateWait {
-        SharedGateWait { gate: self.clone() }
-    }
-
-    fn open(&self) {
-        self.inner.open.store(true, Ordering::SeqCst);
-        for waker in std::mem::take(&mut *self.inner.wakers.lock().unwrap()) {
-            waker.wake();
-        }
-    }
-}
-
-struct SharedGateWait {
-    gate: SharedGate,
-}
-
-impl Future for SharedGateWait {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.gate.inner.open.load(Ordering::SeqCst) {
-            Poll::Ready(())
-        } else {
-            let mut wakers = self.gate.inner.wakers.lock().unwrap();
-            if self.gate.inner.open.load(Ordering::SeqCst) {
-                Poll::Ready(())
-            } else {
-                wakers.push(cx.waker().clone());
-                Poll::Pending
-            }
-        }
-    }
-}
-
-struct GatedTestStreamingImpl {
-    i_sum: std::cell::Cell<u32>,
-    gate: SharedGate,
-}
-
-impl GatedTestStreamingImpl {
-    fn new(gate: SharedGate) -> Self {
-        Self {
-            i_sum: std::cell::Cell::new(0),
-            gate,
-        }
-    }
-}
-
-impl test_capnp::test_streaming::Server for GatedTestStreamingImpl {
-    async fn do_stream_i(
-        self: std::rc::Rc<Self>,
-        params: test_capnp::test_streaming::DoStreamIParams,
-    ) -> Result<(), Error> {
-        let i = params.get()?.get_i();
-        self.gate.wait().await;
-        self.i_sum.set(self.i_sum.get() + i);
-        Ok(())
-    }
-
-    async fn finish_stream(
-        self: std::rc::Rc<Self>,
-        _params: test_capnp::test_streaming::FinishStreamParams,
-        mut results: test_capnp::test_streaming::FinishStreamResults,
-    ) -> Result<(), Error> {
-        let total_i = self.i_sum.get();
-        self.gate.open();
-        results.get().set_total_i(total_i);
-        Ok(())
-    }
-}
-
-fn rpc_streaming_top_level<F, G>(gate: SharedGate, main: F)
-where
-    F: FnOnce(futures::executor::LocalSpawner, test_capnp::test_streaming::Client, SharedGate) -> G,
-    F: Send + 'static,
-    G: Future<Output = Result<(), Error>> + 'static,
-{
-    let mut pool = futures::executor::LocalPool::new();
-    let mut spawner = pool.spawner();
-    let (client_writer, server_reader) = async_byte_channel::channel();
-    let (server_writer, client_reader) = async_byte_channel::channel();
-    let server_gate = gate.clone();
-
-    let join_handle = std::thread::spawn(move || {
-        let mut network = twoparty::VatNetwork::new(
-            server_reader,
-            server_writer,
-            rpc_twoparty_capnp::Side::Server,
-            Default::default(),
-        );
-        network.set_window_size(256 * 1024);
-
-        let bootstrap: test_capnp::test_streaming::Client =
-            capnp_rpc::new_client(GatedTestStreamingImpl::new(server_gate));
-        let rpc_system = RpcSystem::new(Box::new(network), Some(bootstrap.client));
-        futures::executor::block_on(rpc_system).unwrap();
-    });
-
-    let mut network = twoparty::VatNetwork::new(
-        client_reader,
-        client_writer,
-        rpc_twoparty_capnp::Side::Client,
-        Default::default(),
-    );
-    network.set_window_size(256 * 1024);
-
-    let mut rpc_system = RpcSystem::new(Box::new(network), None);
-    let client: test_capnp::test_streaming::Client =
-        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-
-    let disconnector = rpc_system.get_disconnector();
-    spawn(&mut spawner, rpc_system);
-    let result = pool.run_until(main(spawner, client, gate));
-
-    pool.run_until(disconnector).unwrap();
-    join_handle.join().unwrap();
-    result.unwrap();
 }
 
 #[test]
@@ -1320,34 +1183,36 @@ fn basic_streaming() {
 }
 
 #[test]
-fn streaming_calls_complete_before_following_call() {
-    const EACH: u32 = 10;
-    const ITERS: u32 = 8;
-    const EXPECTED: u32 = EACH * ITERS;
+fn finish_stream_observes_all_streaming_writes() {
+    rpc_top_level(|_spawner, client| async move {
+        let response = client.test_more_stuff_request().send().promise.await?;
+        let client = response.get()?.get_cap()?;
+        let response = client
+            .get_delaying_test_streaming_request()
+            .send()
+            .promise
+            .await?;
+        let client = response.get()?.get_cap()?;
 
-    let gate = SharedGate::default();
-    rpc_streaming_top_level(gate, |_spawner, client, gate| async move {
-        for _ in 0..ITERS {
-            let mut request = client.do_stream_i_request();
-            request.get().set_i(EACH);
-            request.send().await?;
-        }
+        const EACH: u32 = 10;
+        const ITERS: u32 = 4;
 
-        let release_gate = gate.clone();
-        let release_thread = std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(50));
-            release_gate.open();
+        let writes = (0..ITERS).map(|_| {
+            let mut req = client.do_stream_i_request();
+            req.get().set_i(EACH);
+            req.send()
         });
+        let writes = futures::future::try_join_all(writes);
+        let finish = client.finish_stream_request().send().promise;
 
-        let r = client.finish_stream_request().send().promise.await?;
-        release_thread.join().unwrap();
-
-        let total_i = r.get()?.get_total_i();
-        if total_i != EXPECTED {
-            return Err(Error::failed(format!(
-                "finishStream observed {total_i} streamed items, expected {EXPECTED}"
-            )));
-        }
+        let (_, response) = futures::future::try_join(writes, finish).await?;
+        let total = response.get()?.get_total_i();
+        assert_eq!(
+            total,
+            ITERS * EACH,
+            "finish_stream observed {total}, expected {}",
+            ITERS * EACH
+        );
         Ok(())
     });
 }
