@@ -185,7 +185,7 @@ pub mod node {
                 3 => ::core::result::Result::Ok(Interface(self.reader.into())),
                 4 => ::core::result::Result::Ok(Const(self.reader.into())),
                 5 => ::core::result::Result::Ok(Annotation(self.reader.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -494,7 +494,7 @@ pub mod node {
                 3 => ::core::result::Result::Ok(Interface(self.builder.into())),
                 4 => ::core::result::Result::Ok(Const(self.builder.into())),
                 5 => ::core::result::Result::Ok(Annotation(self.builder.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -4529,7 +4529,7 @@ pub mod field {
             match self.reader.get_data_field::<u16>(4) {
                 0 => ::core::result::Result::Ok(Slot(self.reader.into())),
                 1 => ::core::result::Result::Ok(Group(self.reader.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -4719,7 +4719,7 @@ pub mod field {
             match self.builder.get_data_field::<u16>(4) {
                 0 => ::core::result::Result::Ok(Slot(self.builder.into())),
                 1 => ::core::result::Result::Ok(Group(self.builder.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -5710,7 +5710,7 @@ pub mod field {
                 match self.reader.get_data_field::<u16>(5) {
                     0 => ::core::result::Result::Ok(Implicit(())),
                     1 => ::core::result::Result::Ok(Explicit(self.reader.get_data_field::<u16>(6))),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -5817,7 +5817,7 @@ pub mod field {
                     1 => {
                         ::core::result::Result::Ok(Explicit(self.builder.get_data_field::<u16>(6)))
                     }
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -7405,7 +7405,7 @@ pub mod type_ {
                 16 => ::core::result::Result::Ok(Struct(self.reader.into())),
                 17 => ::core::result::Result::Ok(Interface(self.reader.into())),
                 18 => ::core::result::Result::Ok(AnyPointer(self.reader.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -7608,7 +7608,7 @@ pub mod type_ {
                 16 => ::core::result::Result::Ok(Struct(self.builder.into())),
                 17 => ::core::result::Result::Ok(Interface(self.builder.into())),
                 18 => ::core::result::Result::Ok(AnyPointer(self.builder.into())),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -9400,7 +9400,7 @@ pub mod type_ {
                     0 => ::core::result::Result::Ok(Unconstrained(self.reader.into())),
                     1 => ::core::result::Result::Ok(Parameter(self.reader.into())),
                     2 => ::core::result::Result::Ok(ImplicitMethodParameter(self.reader.into())),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -9523,7 +9523,7 @@ pub mod type_ {
                     0 => ::core::result::Result::Ok(Unconstrained(self.builder.into())),
                     1 => ::core::result::Result::Ok(Parameter(self.builder.into())),
                     2 => ::core::result::Result::Ok(ImplicitMethodParameter(self.builder.into())),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -9743,7 +9743,7 @@ pub mod type_ {
                         1 => ::core::result::Result::Ok(Struct(())),
                         2 => ::core::result::Result::Ok(List(())),
                         3 => ::core::result::Result::Ok(Capability(())),
-                        x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                        x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                     }
                 }
             }
@@ -9862,7 +9862,7 @@ pub mod type_ {
                         1 => ::core::result::Result::Ok(Struct(())),
                         2 => ::core::result::Result::Ok(List(())),
                         3 => ::core::result::Result::Ok(Capability(())),
-                        x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                        x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                     }
                 }
             }
@@ -11041,7 +11041,7 @@ pub mod brand {
                         ),
                     )),
                     1 => ::core::result::Result::Ok(Inherit(())),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -11185,7 +11185,7 @@ pub mod brand {
                         ),
                     )),
                     1 => ::core::result::Result::Ok(Inherit(())),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -11433,7 +11433,7 @@ pub mod brand {
                             ::core::option::Option::None,
                         ),
                     )),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -11565,7 +11565,7 @@ pub mod brand {
                             ::core::option::Option::None,
                         ),
                     )),
-                    x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                    x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -11845,7 +11845,7 @@ pub mod value {
                 18 => ::core::result::Result::Ok(AnyPointer(crate::any_pointer::Reader::new(
                     self.reader.get_pointer_field(0),
                 ))),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -12120,7 +12120,7 @@ pub mod value {
                 18 => ::core::result::Result::Ok(AnyPointer(crate::any_pointer::Builder::new(
                     self.builder.get_pointer_field(0),
                 ))),
-                x => ::core::result::Result::Err(crate::NotInSchema(x)),
+                x => ::core::result::Result::Err(crate::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -12968,7 +12968,7 @@ impl ::core::convert::TryFrom<u16> for ElementSize {
             5 => ::core::result::Result::Ok(Self::EightBytes),
             6 => ::core::result::Result::Ok(Self::Pointer),
             7 => ::core::result::Result::Ok(Self::InlineComposite),
-            n => ::core::result::Result::Err(crate::NotInSchema(n)),
+            n => ::core::result::Result::Err(crate::NotInSchema::hidden_new(n)),
         }
     }
 }
