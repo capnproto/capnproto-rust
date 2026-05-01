@@ -8,7 +8,7 @@ pub mod node {
     pub use self::Which::{Annotation, Const, Enum, File, Interface, Struct};
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -802,7 +802,7 @@ pub mod node {
 
     pub mod parameter {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -1101,7 +1101,7 @@ pub mod node {
 
     pub mod nested_node {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -1428,7 +1428,7 @@ pub mod node {
 
     pub mod source_info {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -1846,7 +1846,7 @@ pub mod node {
 
         pub mod member {
             #[derive(Copy, Clone)]
-            pub struct Owned(());
+            pub enum Owned {}
             impl crate::introspect::Introspect for Owned {
                 fn introspect() -> crate::introspect::Type {
                     crate::introspect::TypeVariant::Struct(
@@ -2160,7 +2160,7 @@ pub mod node {
 
     pub mod struct_ {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -2658,7 +2658,7 @@ pub mod node {
 
     pub mod enum_ {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -2975,7 +2975,7 @@ pub mod node {
 
     pub mod interface {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -3363,7 +3363,7 @@ pub mod node {
 
     pub mod const_ {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -3728,7 +3728,7 @@ pub mod node {
 
     pub mod annotation {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -4390,7 +4390,7 @@ pub mod field {
     pub use self::Which::{Group, Slot};
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -4903,7 +4903,7 @@ pub mod field {
 
     pub mod slot {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -5331,7 +5331,7 @@ pub mod field {
 
     pub mod group {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -5608,7 +5608,7 @@ pub mod field {
         pub use self::Which::{Explicit, Implicit};
 
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -5923,7 +5923,7 @@ pub mod field {
 
 pub mod enumerant {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -6314,7 +6314,7 @@ pub mod enumerant {
 
 pub mod superclass {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -6646,7 +6646,7 @@ pub mod superclass {
 
 pub mod method {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -7286,7 +7286,7 @@ pub mod type_ {
     };
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -7982,7 +7982,7 @@ pub mod type_ {
 
     pub mod list {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -8291,7 +8291,7 @@ pub mod type_ {
 
     pub mod enum_ {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -8625,7 +8625,7 @@ pub mod type_ {
 
     pub mod struct_ {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -8960,7 +8960,7 @@ pub mod type_ {
 
     pub mod interface {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -9297,7 +9297,7 @@ pub mod type_ {
         pub use self::Which::{ImplicitMethodParameter, Parameter, Unconstrained};
 
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -9635,7 +9635,7 @@ pub mod type_ {
             pub use self::Which::{AnyKind, Capability, List, Struct};
 
             #[derive(Copy, Clone)]
-            pub struct Owned(());
+            pub enum Owned {}
             impl crate::introspect::Introspect for Owned {
                 fn introspect() -> crate::introspect::Type {
                     crate::introspect::TypeVariant::Struct(
@@ -10002,7 +10002,7 @@ pub mod type_ {
 
         pub mod parameter {
             #[derive(Copy, Clone)]
-            pub struct Owned(());
+            pub enum Owned {}
             impl crate::introspect::Introspect for Owned {
                 fn introspect() -> crate::introspect::Type {
                     crate::introspect::TypeVariant::Struct(
@@ -10316,7 +10316,7 @@ pub mod type_ {
 
         pub mod implicit_method_parameter {
             #[derive(Copy, Clone)]
-            pub struct Owned(());
+            pub enum Owned {}
             impl crate::introspect::Introspect for Owned {
                 fn introspect() -> crate::introspect::Type {
                     crate::introspect::TypeVariant::Struct(
@@ -10606,7 +10606,7 @@ pub mod type_ {
 
 pub mod brand {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -10923,7 +10923,7 @@ pub mod brand {
         pub use self::Which::{Bind, Inherit};
 
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -11319,7 +11319,7 @@ pub mod brand {
         pub use self::Which::{Type, Unbound};
 
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -11675,7 +11675,7 @@ pub mod value {
     };
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -12530,7 +12530,7 @@ pub mod value {
 
 pub mod annotation {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -13048,7 +13048,7 @@ mod element_size {
 
 pub mod capnp_version {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -13377,7 +13377,7 @@ pub mod capnp_version {
 
 pub mod code_generator_request {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl crate::introspect::Introspect for Owned {
         fn introspect() -> crate::introspect::Type {
             crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -13905,7 +13905,7 @@ pub mod code_generator_request {
 
     pub mod requested_file {
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl crate::introspect::Introspect for Owned {
             fn introspect() -> crate::introspect::Type {
                 crate::introspect::TypeVariant::Struct(crate::introspect::RawBrandedStructSchema {
@@ -14325,7 +14325,7 @@ pub mod code_generator_request {
 
         pub mod import {
             #[derive(Copy, Clone)]
-            pub struct Owned(());
+            pub enum Owned {}
             impl crate::introspect::Introspect for Owned {
                 fn introspect() -> crate::introspect::Type {
                     crate::introspect::TypeVariant::Struct(
