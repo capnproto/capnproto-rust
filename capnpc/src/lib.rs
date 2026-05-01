@@ -376,7 +376,8 @@ impl CompilerCommand {
         code_generation_command
             .output_directory(output_path)
             .default_parent_module(self.default_parent_module.clone())
-            .crates_provide_map(self.crate_provides_map.clone());
+            .crates_provide_map(self.crate_provides_map.clone())
+            .serde_derive(cfg!(feature = "serde"));
         if let Some(raw_code_generator_request_path) = &self.raw_code_generator_request_path {
             code_generation_command
                 .raw_code_generator_request_path(raw_code_generator_request_path.clone());
