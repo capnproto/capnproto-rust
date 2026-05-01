@@ -62,8 +62,7 @@ fn evaluate_impl(
     match pry!(expression.which()) {
         calculator::expression::Literal(v) => Promise::ok(v),
         calculator::expression::PreviousResult(p) => Promise::from_future(
-            pry!(p)
-                .read_request()
+            p.read_request()
                 .send()
                 .promise
                 .map(|v| Ok(v?.get()?.get_value())),

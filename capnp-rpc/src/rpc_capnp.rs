@@ -207,49 +207,49 @@ pub mod message {
             !self.reader.get_pointer_field(0).is_null()
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::Error> {
             match self.reader.get_data_field::<u16>(0) {
                 0 => ::core::result::Result::Ok(Unimplemented(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 1 => ::core::result::Result::Ok(Abort(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 2 => ::core::result::Result::Ok(Call(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 3 => ::core::result::Result::Ok(Return(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 4 => ::core::result::Result::Ok(Finish(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 5 => ::core::result::Result::Ok(Resolve(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 6 => ::core::result::Result::Ok(Release(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 7 => ::core::result::Result::Ok(ObsoleteSave(::capnp::any_pointer::Reader::new(
                     self.reader.get_pointer_field(0),
@@ -258,7 +258,7 @@ pub mod message {
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 9 => ::core::result::Result::Ok(ObsoleteDelete(::capnp::any_pointer::Reader::new(
                     self.reader.get_pointer_field(0),
@@ -267,27 +267,27 @@ pub mod message {
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 11 => ::core::result::Result::Ok(Accept(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 12 => ::core::result::Result::Ok(Join(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 13 => ::core::result::Result::Ok(Disembargo(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -695,49 +695,49 @@ pub mod message {
             !self.builder.is_pointer_field_null(0)
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::Error> {
             match self.builder.get_data_field::<u16>(0) {
                 0 => ::core::result::Result::Ok(Unimplemented(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 1 => ::core::result::Result::Ok(Abort(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 2 => ::core::result::Result::Ok(Call(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 3 => ::core::result::Result::Ok(Return(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 4 => ::core::result::Result::Ok(Finish(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 5 => ::core::result::Result::Ok(Resolve(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 6 => ::core::result::Result::Ok(Release(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 7 => ::core::result::Result::Ok(ObsoleteSave(::capnp::any_pointer::Builder::new(
                     self.builder.get_pointer_field(0),
@@ -746,7 +746,7 @@ pub mod message {
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 9 => ::core::result::Result::Ok(ObsoleteDelete(
                     ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0)),
@@ -755,27 +755,27 @@ pub mod message {
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 11 => ::core::result::Result::Ok(Accept(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 12 => ::core::result::Result::Ok(Join(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 13 => ::core::result::Result::Ok(Disembargo(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -1083,36 +1083,36 @@ pub mod message {
         Disembargo(A13),
     }
     pub type WhichReader<'a> = Which<
-        ::capnp::Result<crate::rpc_capnp::message::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::exception::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::call::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::return_::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::finish::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::resolve::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::release::Reader<'a>>,
+        crate::rpc_capnp::message::Reader<'a>,
+        crate::rpc_capnp::exception::Reader<'a>,
+        crate::rpc_capnp::call::Reader<'a>,
+        crate::rpc_capnp::return_::Reader<'a>,
+        crate::rpc_capnp::finish::Reader<'a>,
+        crate::rpc_capnp::resolve::Reader<'a>,
+        crate::rpc_capnp::release::Reader<'a>,
         ::capnp::any_pointer::Reader<'a>,
-        ::capnp::Result<crate::rpc_capnp::bootstrap::Reader<'a>>,
+        crate::rpc_capnp::bootstrap::Reader<'a>,
         ::capnp::any_pointer::Reader<'a>,
-        ::capnp::Result<crate::rpc_capnp::provide::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::accept::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::join::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::disembargo::Reader<'a>>,
+        crate::rpc_capnp::provide::Reader<'a>,
+        crate::rpc_capnp::accept::Reader<'a>,
+        crate::rpc_capnp::join::Reader<'a>,
+        crate::rpc_capnp::disembargo::Reader<'a>,
     >;
     pub type WhichBuilder<'a> = Which<
-        ::capnp::Result<crate::rpc_capnp::message::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::exception::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::call::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::return_::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::finish::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::resolve::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::release::Builder<'a>>,
+        crate::rpc_capnp::message::Builder<'a>,
+        crate::rpc_capnp::exception::Builder<'a>,
+        crate::rpc_capnp::call::Builder<'a>,
+        crate::rpc_capnp::return_::Builder<'a>,
+        crate::rpc_capnp::finish::Builder<'a>,
+        crate::rpc_capnp::resolve::Builder<'a>,
+        crate::rpc_capnp::release::Builder<'a>,
         ::capnp::any_pointer::Builder<'a>,
-        ::capnp::Result<crate::rpc_capnp::bootstrap::Builder<'a>>,
+        crate::rpc_capnp::bootstrap::Builder<'a>,
         ::capnp::any_pointer::Builder<'a>,
-        ::capnp::Result<crate::rpc_capnp::provide::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::accept::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::join::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::disembargo::Builder<'a>>,
+        crate::rpc_capnp::provide::Builder<'a>,
+        crate::rpc_capnp::accept::Builder<'a>,
+        crate::rpc_capnp::join::Builder<'a>,
+        crate::rpc_capnp::disembargo::Builder<'a>,
     >;
 }
 
@@ -2113,14 +2113,14 @@ pub mod call {
                 !self.reader.get_pointer_field(2).is_null()
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::Error> {
                 match self.reader.get_data_field::<u16>(3) {
                     0 => ::core::result::Result::Ok(Caller(())),
                     1 => ::core::result::Result::Ok(Yourself(())),
                     2 => ::core::result::Result::Ok(ThirdParty(::capnp::any_pointer::Reader::new(
                         self.reader.get_pointer_field(2),
                     ))),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
                 }
             }
         }
@@ -2240,14 +2240,14 @@ pub mod call {
                 !self.builder.is_pointer_field_null(2)
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::Error> {
                 match self.builder.get_data_field::<u16>(3) {
                     0 => ::core::result::Result::Ok(Caller(())),
                     1 => ::core::result::Result::Ok(Yourself(())),
                     2 => ::core::result::Result::Ok(ThirdParty(
                         ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(2)),
                     )),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
                 }
             }
         }
@@ -2509,19 +2509,19 @@ pub mod return_ {
             self.reader.get_bool_field(33)
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::Error> {
             match self.reader.get_data_field::<u16>(3) {
                 0 => ::core::result::Result::Ok(Results(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 1 => ::core::result::Result::Ok(Exception(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 2 => ::core::result::Result::Ok(Canceled(())),
                 3 => ::core::result::Result::Ok(ResultsSentElsewhere(())),
@@ -2531,7 +2531,7 @@ pub mod return_ {
                 5 => ::core::result::Result::Ok(AcceptFromThirdParty(
                     ::capnp::any_pointer::Reader::new(self.reader.get_pointer_field(0)),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -2722,19 +2722,19 @@ pub mod return_ {
             self.builder.set_bool_field(33, value);
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::Error> {
             match self.builder.get_data_field::<u16>(3) {
                 0 => ::core::result::Result::Ok(Results(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 1 => ::core::result::Result::Ok(Exception(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 2 => ::core::result::Result::Ok(Canceled(())),
                 3 => ::core::result::Result::Ok(ResultsSentElsewhere(())),
@@ -2744,7 +2744,7 @@ pub mod return_ {
                 5 => ::core::result::Result::Ok(AcceptFromThirdParty(
                     ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0)),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -2970,13 +2970,13 @@ pub mod return_ {
         AcceptFromThirdParty(A2),
     }
     pub type WhichReader<'a> = Which<
-        ::capnp::Result<crate::rpc_capnp::payload::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::exception::Reader<'a>>,
+        crate::rpc_capnp::payload::Reader<'a>,
+        crate::rpc_capnp::exception::Reader<'a>,
         ::capnp::any_pointer::Reader<'a>,
     >;
     pub type WhichBuilder<'a> = Which<
-        ::capnp::Result<crate::rpc_capnp::payload::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::exception::Builder<'a>>,
+        crate::rpc_capnp::payload::Builder<'a>,
+        crate::rpc_capnp::exception::Builder<'a>,
         ::capnp::any_pointer::Builder<'a>,
     >;
 }
@@ -3439,21 +3439,21 @@ pub mod resolve {
             !self.reader.get_pointer_field(0).is_null()
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::Error> {
             match self.reader.get_data_field::<u16>(2) {
                 0 => ::core::result::Result::Ok(Cap(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 1 => ::core::result::Result::Ok(Exception(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -3601,21 +3601,21 @@ pub mod resolve {
             !self.builder.is_pointer_field_null(0)
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::Error> {
             match self.builder.get_data_field::<u16>(2) {
                 0 => ::core::result::Result::Ok(Cap(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 1 => ::core::result::Result::Ok(Exception(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -3731,12 +3731,12 @@ pub mod resolve {
         Exception(A1),
     }
     pub type WhichReader<'a> = Which<
-        ::capnp::Result<crate::rpc_capnp::cap_descriptor::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::exception::Reader<'a>>,
+        crate::rpc_capnp::cap_descriptor::Reader<'a>,
+        crate::rpc_capnp::exception::Reader<'a>,
     >;
     pub type WhichBuilder<'a> = Which<
-        ::capnp::Result<crate::rpc_capnp::cap_descriptor::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::exception::Builder<'a>>,
+        crate::rpc_capnp::cap_descriptor::Builder<'a>,
+        crate::rpc_capnp::exception::Builder<'a>,
     >;
 }
 
@@ -4479,7 +4479,7 @@ pub mod disembargo {
                 self.reader.total_size()
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichReader, ::capnp::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichReader, ::capnp::Error> {
                 match self.reader.get_data_field::<u16>(2) {
                     0 => ::core::result::Result::Ok(SenderLoopback(
                         self.reader.get_data_field::<u32>(0),
@@ -4489,7 +4489,7 @@ pub mod disembargo {
                     )),
                     2 => ::core::result::Result::Ok(Accept(())),
                     3 => ::core::result::Result::Ok(Provide(self.reader.get_data_field::<u32>(0))),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
                 }
             }
         }
@@ -4605,7 +4605,7 @@ pub mod disembargo {
                 self.builder.set_data_field::<u32>(0, value);
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichBuilder, ::capnp::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichBuilder, ::capnp::Error> {
                 match self.builder.get_data_field::<u16>(2) {
                     0 => ::core::result::Result::Ok(SenderLoopback(
                         self.builder.get_data_field::<u32>(0),
@@ -4615,7 +4615,7 @@ pub mod disembargo {
                     )),
                     2 => ::core::result::Result::Ok(Accept(())),
                     3 => ::core::result::Result::Ok(Provide(self.builder.get_data_field::<u32>(0))),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
                 }
             }
         }
@@ -5958,16 +5958,16 @@ pub mod message_target {
             !self.reader.get_pointer_field(0).is_null()
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::Error> {
             match self.reader.get_data_field::<u16>(2) {
                 0 => ::core::result::Result::Ok(ImportedCap(self.reader.get_data_field::<u32>(0))),
                 1 => ::core::result::Result::Ok(PromisedAnswer(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -6088,16 +6088,16 @@ pub mod message_target {
             !self.builder.is_pointer_field_null(0)
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::Error> {
             match self.builder.get_data_field::<u16>(2) {
                 0 => ::core::result::Result::Ok(ImportedCap(self.builder.get_data_field::<u32>(0))),
                 1 => ::core::result::Result::Ok(PromisedAnswer(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -6196,10 +6196,8 @@ pub mod message_target {
         ImportedCap(u32),
         PromisedAnswer(A0),
     }
-    pub type WhichReader<'a> =
-        Which<::capnp::Result<crate::rpc_capnp::promised_answer::Reader<'a>>>;
-    pub type WhichBuilder<'a> =
-        Which<::capnp::Result<crate::rpc_capnp::promised_answer::Builder<'a>>>;
+    pub type WhichReader<'a> = Which<crate::rpc_capnp::promised_answer::Reader<'a>>;
+    pub type WhichBuilder<'a> = Which<crate::rpc_capnp::promised_answer::Builder<'a>>;
 }
 
 pub mod payload {
@@ -6685,7 +6683,7 @@ pub mod cap_descriptor {
             self.reader.get_data_field_mask::<u8>(2, 255)
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichReader<'a>, ::capnp::Error> {
             match self.reader.get_data_field::<u16>(0) {
                 0 => ::core::result::Result::Ok(None(())),
                 1 => ::core::result::Result::Ok(SenderHosted(self.reader.get_data_field::<u32>(1))),
@@ -6699,15 +6697,15 @@ pub mod cap_descriptor {
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 5 => ::core::result::Result::Ok(ThirdPartyHosted(
                     ::capnp::traits::FromPointerReader::get_from_pointer(
                         &self.reader.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -6876,7 +6874,7 @@ pub mod cap_descriptor {
             self.builder.set_data_field_mask::<u8>(2, value, 255);
         }
         #[inline]
-        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
+        pub fn which(self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::Error> {
             match self.builder.get_data_field::<u16>(0) {
                 0 => ::core::result::Result::Ok(None(())),
                 1 => {
@@ -6892,15 +6890,15 @@ pub mod cap_descriptor {
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
                 5 => ::core::result::Result::Ok(ThirdPartyHosted(
                     ::capnp::traits::FromPointerBuilder::get_from_pointer(
                         self.builder.get_pointer_field(0),
                         ::core::option::Option::None,
-                    ),
+                    )?,
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
             }
         }
     }
@@ -7089,12 +7087,12 @@ pub mod cap_descriptor {
         ThirdPartyHosted(A1),
     }
     pub type WhichReader<'a> = Which<
-        ::capnp::Result<crate::rpc_capnp::promised_answer::Reader<'a>>,
-        ::capnp::Result<crate::rpc_capnp::third_party_cap_descriptor::Reader<'a>>,
+        crate::rpc_capnp::promised_answer::Reader<'a>,
+        crate::rpc_capnp::third_party_cap_descriptor::Reader<'a>,
     >;
     pub type WhichBuilder<'a> = Which<
-        ::capnp::Result<crate::rpc_capnp::promised_answer::Builder<'a>>,
-        ::capnp::Result<crate::rpc_capnp::third_party_cap_descriptor::Builder<'a>>,
+        crate::rpc_capnp::promised_answer::Builder<'a>,
+        crate::rpc_capnp::third_party_cap_descriptor::Builder<'a>,
     >;
 }
 
@@ -7556,13 +7554,13 @@ pub mod promised_answer {
                 self.reader.total_size()
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichReader, ::capnp::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichReader, ::capnp::Error> {
                 match self.reader.get_data_field::<u16>(0) {
                     0 => ::core::result::Result::Ok(Noop(())),
                     1 => ::core::result::Result::Ok(GetPointerField(
                         self.reader.get_data_field::<u16>(1),
                     )),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
                 }
             }
         }
@@ -7668,13 +7666,13 @@ pub mod promised_answer {
                 self.builder.set_data_field::<u16>(1, value);
             }
             #[inline]
-            pub fn which(self) -> ::core::result::Result<WhichBuilder, ::capnp::NotInSchema> {
+            pub fn which(self) -> ::core::result::Result<WhichBuilder, ::capnp::Error> {
                 match self.builder.get_data_field::<u16>(0) {
                     0 => ::core::result::Result::Ok(Noop(())),
                     1 => ::core::result::Result::Ok(GetPointerField(
                         self.builder.get_data_field::<u16>(1),
                     )),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::Error::from(::capnp::NotInSchema(x))),
                 }
             }
         }

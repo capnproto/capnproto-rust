@@ -45,8 +45,8 @@ impl<'a> Reader<'a> {
             (value::Float32(x), _) => Ok(Reader::Float32(x)),
             (value::Float64(x), _) => Ok(Reader::Float64(x)),
             (value::Enum(d), TypeVariant::Enum(e)) => Ok(Reader::Enum(Enum::new(d, e.into()))),
-            (value::Text(t), _) => Ok(Reader::Text(t?)),
-            (value::Data(d), _) => Ok(Reader::Data(d?)),
+            (value::Text(t), _) => Ok(Reader::Text(t)),
+            (value::Data(d), _) => Ok(Reader::Data(d)),
             (value::Struct(d), TypeVariant::Struct(schema)) => Ok(Reader::Struct(
                 dynamic_struct::Reader::new(d.reader.get_struct(None)?, schema.into()),
             )),
