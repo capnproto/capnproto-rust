@@ -7,5 +7,6 @@ coverage:
       default:
         informational: true
 ignore:
+  - "**/*_capnp.rs"
   - "benchmark"
   - "example"
