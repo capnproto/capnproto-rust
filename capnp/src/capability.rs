@@ -312,6 +312,12 @@ pub trait FromTypelessPipeline {
     fn new(typeless: any_pointer::Pipeline) -> Self;
 }
 
+impl<T: FromClientHook> FromTypelessPipeline for T {
+    fn new(typeless: any_pointer::Pipeline) -> Self {
+        Self::new(typeless.as_cap())
+    }
+}
+
 /// Trait implemented (via codegen) by all user-defined capability client types.
 #[cfg(feature = "alloc")]
 pub trait FromClientHook {

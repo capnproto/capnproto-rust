@@ -63,8 +63,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tokio::task::spawn_local(rpc_system);
             let mut request = shared_secret_client.authenticate_request();
             request.get().set_shared_secret(secret);
-            let resp = request.send().promise.await?;
-            let authed_echo = resp.get()?.get_authenticated()?;
+            let authed_echo = request.send().pipeline.get_authenticated();
             let mut echo_request = authed_echo.echo_request();
             echo_request.get().set_message(message);
             let resp = echo_request.send().promise.await?;
