@@ -24,6 +24,7 @@ members = [
     "capnp-rpc/examples/hello-world",
     "capnp-rpc/examples/calculator",
     "capnp-rpc/examples/pubsub",
+    "capnp-rpc/examples/shared-secret-capability",
     "capnp-rpc/examples/streaming",
     "capnp-rpc/examples/reconnect",
     "capnp-rpc/test",
