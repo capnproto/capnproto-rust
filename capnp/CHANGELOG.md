@@ -1,3 +1,7 @@
+## v0.25.5
+- Add `impl<T: FromClientHook> FromTypelessPipeline for T`, to support pipelining
+  on generic capabilities.
+
 ## v0.25.4
 - Fix clippy::cast_possible_truncation warnings.
 
