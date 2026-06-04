@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use std::collections;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use capnp::schema_capnp;
@@ -1906,7 +1906,7 @@ fn get_ty_params_of_brand(
     ctx: &GeneratorContext,
     brand: schema_capnp::brand::Reader,
 ) -> ::capnp::Result<String> {
-    let mut acc = HashSet::new();
+    let mut acc = BTreeSet::new();
     get_ty_params_of_brand_helper(ctx, &mut acc, brand)?;
     let mut result = String::new();
     for (scope_id, parameter_index) in acc.into_iter() {
@@ -1921,7 +1921,7 @@ fn get_ty_params_of_brand(
 
 fn get_ty_params_of_type_helper(
     ctx: &GeneratorContext,
-    accumulator: &mut HashSet<(u64, u16)>,
+    accumulator: &mut BTreeSet<(u64, u16)>,
     typ: schema_capnp::type_::Reader,
 ) -> ::capnp::Result<()> {
     use capnp::schema_capnp::type_;
@@ -1969,7 +1969,7 @@ fn get_ty_params_of_type_helper(
 
 fn get_ty_params_of_brand_helper(
     ctx: &GeneratorContext,
-    accumulator: &mut HashSet<(u64, u16)>,
+    accumulator: &mut BTreeSet<(u64, u16)>,
     brand: schema_capnp::brand::Reader,
 ) -> ::capnp::Result<()> {
     for scope in brand.get_scopes()? {
