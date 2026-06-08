@@ -2666,7 +2666,7 @@ where
     VatId: 'static,
 {
     Import(Rc<RefCell<ImportClient<VatId>>>),
-    Pipeline(Rc<RefCell<PipelineClient<VatId>>>),
+    Pipeline(Rc<PipelineClient<VatId>>),
     Promise(Rc<RefCell<PromiseClient<VatId>>>),
 }
 
@@ -2684,7 +2684,7 @@ where
     VatId: 'static,
 {
     Import(Weak<RefCell<ImportClient<VatId>>>),
-    Pipeline(Weak<RefCell<PipelineClient<VatId>>>),
+    Pipeline(Weak<PipelineClient<VatId>>),
     Promise(Weak<RefCell<PromiseClient<VatId>>>),
 }
 
@@ -2808,18 +2808,18 @@ where
         connection_state: &Rc<ConnectionState<VatId>>,
         question_ref: Rc<RefCell<QuestionRef<VatId>>>,
         ops: Vec<PipelineOp>,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+    ) -> Rc<Self> {
+        Rc::new(Self {
             connection_state: connection_state.clone(),
             question_ref,
             ops,
-        }))
+        })
     }
 }
 
-impl<VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<PipelineClient<VatId>>>) -> Self {
-        let connection_state = client.borrow().connection_state.clone();
+impl<VatId> From<Rc<PipelineClient<VatId>>> for Client<VatId> {
+    fn from(client: Rc<PipelineClient<VatId>>) -> Self {
+        let connection_state = client.connection_state.clone();
         Self::new(&connection_state, ClientVariant::Pipeline(client))
     }
 }
@@ -3031,13 +3031,12 @@ impl<VatId> Client<VatId> {
             }
             ClientVariant::Pipeline(pipeline_client) => {
                 let mut builder = target.init_promised_answer();
-                let question_ref = &pipeline_client.borrow().question_ref;
+                let question_ref = &pipeline_client.question_ref;
                 builder.set_question_id(question_ref.borrow().id);
-                let mut transform =
-                    builder.init_transform(pipeline_client.borrow().ops.len() as u32);
-                for idx in 0..pipeline_client.borrow().ops.len() {
+                let mut transform = builder.init_transform(pipeline_client.ops.len() as u32);
+                for idx in 0..pipeline_client.ops.len() {
                     if let ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) =
-                        pipeline_client.borrow().ops[idx]
+                        pipeline_client.ops[idx]
                     {
                         transform
                             .reborrow()
@@ -3063,13 +3062,13 @@ impl<VatId> Client<VatId> {
             }
             ClientVariant::Pipeline(pipeline_client) => {
                 let mut promised_answer = descriptor.init_receiver_answer();
-                let question_ref = &pipeline_client.borrow().question_ref;
+                let question_ref = &pipeline_client.question_ref;
                 promised_answer.set_question_id(question_ref.borrow().id);
                 let mut transform =
-                    promised_answer.init_transform(pipeline_client.borrow().ops.len() as u32);
-                for idx in 0..pipeline_client.borrow().ops.len() {
+                    promised_answer.init_transform(pipeline_client.ops.len() as u32);
+                for idx in 0..pipeline_client.ops.len() {
                     if let ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) =
-                        pipeline_client.borrow().ops[idx]
+                        pipeline_client.ops[idx]
                     {
                         transform
                             .reborrow()
@@ -3179,9 +3178,7 @@ impl<VatId> ClientHook for Client<VatId> {
     fn get_ptr(&self) -> usize {
         match &self.variant {
             ClientVariant::Import(import_client) => (&*import_client.borrow()) as *const _ as usize,
-            ClientVariant::Pipeline(pipeline_client) => {
-                (&*pipeline_client.borrow()) as *const _ as usize
-            }
+            ClientVariant::Pipeline(pipeline_client) => &**pipeline_client as *const _ as usize,
             ClientVariant::Promise(promise_client) => {
                 (&*promise_client.borrow()) as *const _ as usize
             }
