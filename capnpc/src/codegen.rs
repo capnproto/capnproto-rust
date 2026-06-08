@@ -2082,7 +2082,7 @@ fn generate_node(
             let file_doc_lines = get_node_doc_comment(ctx, node_id);
             if let Some(comment_str) = file_doc_lines {
                 for line_str in comment_str.lines() {
-                    output.push(Line(format!("//! {}", line_str)));
+                    output.push(Line(format!("// {}", line_str)));
                 }
             }
             output.push(Branch(nested_output));
