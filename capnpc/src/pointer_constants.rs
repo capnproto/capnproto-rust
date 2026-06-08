@@ -45,18 +45,14 @@ fn word_array_declaration_aux<T: ::capnp::traits::SetterInput<impl ::capnp::trai
     let mut words_lines = Vec::new();
     for index in 0..(words.len() / 8) {
         let bytes = &words[(index * 8)..(index + 1) * 8];
-        words_lines.push(Line(fmt!(
-            ctx,
-            "{capnp}::word({}, {}, {}, {}, {}, {}, {}, {}),",
-            bytes[0],
-            bytes[1],
-            bytes[2],
-            bytes[3],
-            bytes[4],
-            bytes[5],
-            bytes[6],
-            bytes[7]
-        )));
+        let byte_str: String = bytes
+            .iter()
+            .map(|&b| match b {
+                b' '..=b'!' | b'#'..=b'[' | b']'..=b'~' => (b as char).to_string(),
+                _ => format!("\\x{b:02x}"),
+            })
+            .collect();
+        words_lines.push(Line(format!("*b\"{byte_str}\",")));
     }
 
     // `static` instead of `const` because these arrays can be large
@@ -65,13 +61,13 @@ fn word_array_declaration_aux<T: ::capnp::traits::SetterInput<impl ::capnp::trai
     Ok(Branch(vec![
         Line(fmt!(
             ctx,
-            "{}static {}: [{capnp}::Word; {}] = [",
+            "{}static {}: [{capnp}::Word; {}] = {capnp}::word_array([",
             vis,
             name,
             words.len() / 8
         )),
         indent(Branch(words_lines)),
-        line("];"),
+        line("]);"),
     ]))
 }
 
