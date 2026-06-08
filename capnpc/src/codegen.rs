@@ -2079,6 +2079,12 @@ fn generate_node(
 
     match node_reader.which()? {
         node::File(()) => {
+            let file_doc_lines = get_node_doc_comment(ctx, node_id);
+            if let Some(comment_str) = file_doc_lines {
+                for line_str in comment_str.lines() {
+                    output.push(Line(format!("//! {}", line_str)));
+                }
+            }
             output.push(Branch(nested_output));
         }
         node::Struct(struct_reader) => {
@@ -2550,10 +2556,17 @@ fn generate_node(
             let name_as_mod = module_name(last_name);
             output.push(BlankLine);
 
+            let enum_doc_lines = generate_doc_comment(get_node_doc_comment(ctx, node_id));
+
             let mut members = Vec::new();
             let mut match_branches = Vec::new();
             let enumerants = enum_reader.get_enumerants()?;
             for (ii, enumerant) in enumerants.into_iter().enumerate() {
+                let enumerant_doc_lines = generate_doc_comment(get_member_doc_comment(ctx, node_id, ii as u32));
+                if !enumerant_doc_lines.is_empty() {
+                    members.push(Branch(enumerant_doc_lines));
+                }
+
                 let enumerant = capitalize_first_letter(get_enumerant_name(enumerant)?);
                 members.push(Line(format!("{enumerant} = {ii},")));
                 match_branches.push(Line(format!(
@@ -2565,13 +2578,17 @@ fn generate_node(
                 "n => ::core::result::Result::Err({capnp}::NotInSchema(n)),"
             )));
 
-            output.push(Branch(vec![
-                line("#[repr(u16)]"),
-                line("#[derive(Clone, Copy, Debug, PartialEq, Eq)]"),
-                Line(format!("pub enum {last_name} {{")),
-                indent(members),
-                line("}"),
-            ]));
+            let mut enum_declaration = vec![];
+            if !enum_doc_lines.is_empty() {
+                enum_declaration.push(Branch(enum_doc_lines));
+            }
+            enum_declaration.push(line("#[repr(u16)]"));
+            enum_declaration.push(line("#[derive(Clone, Copy, Debug, PartialEq, Eq)]"));
+            enum_declaration.push(Line(format!("pub enum {last_name} {{")));
+            enum_declaration.push(indent(members));
+            enum_declaration.push(line("}"));
+
+            output.push(Branch(enum_declaration));
 
             output.push(BlankLine);
             output.push(Branch(vec![
@@ -2648,6 +2665,8 @@ fn generate_node(
             let params = node_reader.parameters_texts(ctx);
             output.push(BlankLine);
 
+            let interface_doc_lines = generate_doc_comment(get_node_doc_comment(ctx, node_id));
+
             let is_generic = node_reader.get_is_generic();
 
             let names = &ctx.scope_map[&node_id];
@@ -2704,6 +2723,8 @@ fn generate_node(
                     param_type
                 )));
 
+                let method_doc_lines = generate_doc_comment(get_member_doc_comment(ctx, node_id, ordinal as u32));
+
                 let result_id = method.get_result_struct_type();
                 if result_id != STREAM_RESULT_ID {
                     dispatch_arms.push(
@@ -2738,6 +2759,10 @@ fn generate_node(
                         results_ty_params,
                         result_type
                     )));
+
+                    if !method_doc_lines.is_empty() {
+                        server_interior.push(Branch(method_doc_lines.clone()));
+                    }
                     server_interior.push(
                         Line(fmt!(ctx,
                                   "fn {}(self: {capnp}::capability::Rc<Self>, _: {}Params<{}>, _: {}Results<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + 'static {{ ::core::future::ready(Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string()))) }}",
@@ -2747,6 +2772,9 @@ fn generate_node(
                                   node_name, module_name(name)
                         )));
 
+                    if !method_doc_lines.is_empty() {
+                        client_impl_interior.push(Branch(method_doc_lines.clone()));
+                    }
                     client_impl_interior.push(Line(fmt!(
                         ctx,
                         "pub fn {}_request(&self) -> {capnp}::capability::Request<{},{}> {{",
@@ -2767,6 +2795,9 @@ fn generate_node(
 
                                   module_name(name))));
 
+                    if !method_doc_lines.is_empty() {
+                        server_interior.push(Branch(method_doc_lines.clone()));
+                    }
                     server_interior.push(
                         Line(fmt!(ctx,
                                   "fn {}(self: {capnp}::capability::Rc<Self>, _: {}Params<{}>) -> impl ::core::future::Future<Output = Result<(), {capnp}::Error>> + 'static {{ ::core::future::ready(Err({capnp}::Error::unimplemented(\"method {}::Server::{} not implemented\".to_string()))) }}",
@@ -2774,6 +2805,10 @@ fn generate_node(
                                   capitalize_first_letter(name), params_ty_params,
                                   node_name, module_name(name)
                         )));
+                    
+                    if !method_doc_lines.is_empty() {
+                        client_impl_interior.push(Branch(method_doc_lines.clone()));
+                    }
                     client_impl_interior.push(Line(fmt!(
                         ctx,
                         "pub fn {}_request(&self) -> {capnp}::capability::StreamingRequest<{}> {{",
@@ -2838,6 +2873,9 @@ fn generate_node(
             };
 
             mod_interior.push(BlankLine);
+            if !interface_doc_lines.is_empty() {
+                mod_interior.push(Branch(interface_doc_lines.clone()));
+            }
             mod_interior.push(Line(format!("pub struct Client{bracketed_params} {{")));
             mod_interior.push(indent(Line(fmt!(
                 ctx,
@@ -2951,6 +2989,9 @@ fn generate_node(
                 line("}"),
             ]));
 
+            if !interface_doc_lines.is_empty() {
+                mod_interior.push(Branch(interface_doc_lines.clone()));
+            }
             mod_interior.push(Branch(vec![
                 Line(format!(
                     "pub trait Server<{}> {} {} {{",
@@ -3070,6 +3111,8 @@ fn generate_node(
 
         node::Const(c) => {
             let styled_name = snake_to_upper_case(ctx.get_last_name(node_id)?);
+
+            let const_doc_lines = generate_doc_comment(get_node_doc_comment(ctx, node_id));
 
             let typ = c.get_type()?;
             let formatted_text = match (typ.which()?, c.get_value()?.which()?) {
@@ -3195,10 +3238,15 @@ fn generate_node(
                 }
             };
 
+            if !const_doc_lines.is_empty() {
+                output.push(Branch(const_doc_lines));
+            }
             output.push(formatted_text);
         }
 
         node::Annotation(annotation_reader) => {
+            let annotation_doc_lines = generate_doc_comment(get_node_doc_comment(ctx, node_id));
+
             let is_generic = node_reader.get_is_generic();
             let params = node_reader.parameters_texts(ctx);
             let last_name = ctx.get_last_name(node_id)?;
@@ -3212,11 +3260,16 @@ fn generate_node(
             } else {
                 interior.push(Line(fmt!(ctx,"pub fn get_type<{0}>() -> {capnp}::introspect::Type {1} {{ <{2} as {capnp}::introspect::Introspect>::introspect() }}", params.params, params.where_clause, ty.type_string(ctx, Leaf::Owned)?)));
             }
-            output.push(Branch(vec![
-                Line(format!("pub mod {last_name} {{")),
-                indent(interior),
-                Line("}".into()),
-            ]));
+            
+            let mut annotation_module = vec![];
+            if !annotation_doc_lines.is_empty() {
+                annotation_module.push(Branch(annotation_doc_lines));
+            }
+            annotation_module.push(Line(format!("pub mod {last_name} {{")));
+            annotation_module.push(indent(interior));
+            annotation_module.push(Line("}".into()));
+
+            output.push(Branch(annotation_module));
         }
     }
 
