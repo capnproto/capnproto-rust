@@ -32,7 +32,7 @@ use capnp::Error;
 use futures_channel::oneshot;
 use futures_util::{future, Future, FutureExt, TryFutureExt};
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::cmp::Reverse;
 use std::collections::binary_heap::BinaryHeap;
 use std::collections::hash_map::{self, HashMap};
@@ -313,7 +313,7 @@ where
     app_client: Option<WeakClient<VatId>>,
 
     // If non-null, the import is a promise.
-    promise_client_to_resolve: Option<Weak<RefCell<PromiseClient<VatId>>>>,
+    promise_client_to_resolve: Option<Weak<PromiseClient<VatId>>>,
 }
 
 impl<VatId> Import<VatId> {
@@ -532,7 +532,7 @@ impl<VatId> ConnectionState<VatId> {
             for (_, ref mut import) in import_slots.iter_mut() {
                 if let Some(f) = import.promise_client_to_resolve.take() {
                     if let Some(promise_client) = f.upgrade() {
-                        promise_client.borrow_mut().resolve(Err(error.clone()));
+                        promise_client.resolve(Err(error.clone()));
                     }
                 }
             }
@@ -849,7 +849,7 @@ impl<VatId> ConnectionState<VatId> {
             match import.promise_client_to_resolve.take() {
                 Some(weak_promise_client) => {
                     if let Some(promise_client) = weak_promise_client.upgrade() {
-                        promise_client.borrow_mut().resolve(replacement_or_error);
+                        promise_client.resolve(replacement_or_error);
                     }
                 }
                 None => {
@@ -2093,10 +2093,7 @@ where
     resolve_self_promise: Promise<(), Error>,
 
     promise_clients_to_resolve: RefCell<
-        crate::sender_queue::SenderQueue<
-            (Weak<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>),
-            (),
-        >,
+        crate::sender_queue::SenderQueue<(Weak<PromiseClient<VatId>>, Vec<PipelineOp>), ()>,
     >,
     resolution_waiters: crate::sender_queue::SenderQueue<(), ()>,
 }
@@ -2120,7 +2117,7 @@ where
                 Err(e) => Err(e),
             };
             if let Some(c) = c.upgrade() {
-                c.borrow_mut().resolve(resolved);
+                c.resolve(resolved);
             }
         }
 
@@ -2667,7 +2664,7 @@ where
 {
     Import(Rc<ImportClient<VatId>>),
     Pipeline(Rc<PipelineClient<VatId>>),
-    Promise(Rc<RefCell<PromiseClient<VatId>>>),
+    Promise(Rc<PromiseClient<VatId>>),
 }
 
 struct Client<VatId>
@@ -2685,7 +2682,7 @@ where
 {
     Import(Weak<ImportClient<VatId>>),
     Pipeline(Weak<PipelineClient<VatId>>),
-    Promise(Weak<RefCell<PromiseClient<VatId>>>),
+    Promise(Weak<PromiseClient<VatId>>),
 }
 
 struct WeakClient<VatId>
@@ -2839,9 +2836,13 @@ where
     VatId: 'static,
 {
     connection_state: Rc<ConnectionState<VatId>>,
-    is_resolved: bool,
-    cap: Box<dyn ClientHook>,
+    unresolved: RefCell<Option<PromiseClientUnresolved>>,
+    resolved: OnceCell<Box<dyn ClientHook>>,
     import_id: Option<ImportId>,
+}
+
+struct PromiseClientUnresolved {
+    initial: Box<dyn ClientHook>,
     received_call: bool,
     resolution_waiters: crate::sender_queue::SenderQueue<(), Box<dyn ClientHook>>,
 }
@@ -2851,18 +2852,24 @@ impl<VatId> PromiseClient<VatId> {
         connection_state: &Rc<ConnectionState<VatId>>,
         initial: Box<dyn ClientHook>,
         import_id: Option<ImportId>,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+    ) -> Rc<Self> {
+        Rc::new(Self {
             connection_state: connection_state.clone(),
-            is_resolved: false,
-            cap: initial,
+            unresolved: RefCell::new(Some(PromiseClientUnresolved {
+                initial,
+                received_call: false,
+                resolution_waiters: crate::sender_queue::SenderQueue::new(),
+            })),
+            resolved: OnceCell::new(),
             import_id,
-            received_call: false,
-            resolution_waiters: crate::sender_queue::SenderQueue::new(),
-        }))
+        })
     }
 
-    fn resolve(&mut self, replacement: Result<Box<dyn ClientHook>, Error>) {
+    fn resolve(&self, replacement: Result<Box<dyn ClientHook>, Error>) {
+        let Some(mut unresolved) = self.unresolved.borrow_mut().take() else {
+            // TODO: I *believe* this should never happen – should this panic?
+            return;
+        };
         let (mut replacement, is_error) = match replacement {
             Ok(v) => (v, false),
             Err(e) => (broken::new_cap(e), true),
@@ -2871,7 +2878,7 @@ impl<VatId> PromiseClient<VatId> {
         let is_connected = connection_state.connection.borrow().is_ok();
         let replacement_brand = replacement.get_brand();
         if replacement_brand != connection_state.get_brand()
-            && self.received_call
+            && unresolved.received_call
             && !is_error
             && is_connected
         {
@@ -2898,7 +2905,7 @@ impl<VatId> PromiseClient<VatId> {
                     .set_sender_loopback(embargo_id);
                 let target = disembargo.init_target();
 
-                let redirect = connection_state.write_target(&*self.cap, target);
+                let redirect = connection_state.write_target(&*unresolved.initial, target);
                 if redirect.is_some() {
                     panic!("Original promise target should always be from this RPC connection.")
                 }
@@ -2924,17 +2931,15 @@ impl<VatId> PromiseClient<VatId> {
             let _ = message.send();
         }
 
-        for ((), waiter) in self.resolution_waiters.drain() {
+        for ((), waiter) in unresolved.resolution_waiters.drain() {
             let _ = waiter.send(replacement.clone());
         }
 
-        let old_cap = mem::replace(&mut self.cap, replacement);
+        assert!(self.resolved.set(replacement).is_ok());
         connection_state.add_task(async move {
-            drop(old_cap);
+            drop(unresolved.initial);
             Ok(())
         });
-
-        self.is_resolved = true;
     }
 }
 
@@ -2968,9 +2973,9 @@ impl<VatId> Drop for PromiseClient<VatId> {
     }
 }
 
-impl<VatId> From<Rc<RefCell<PromiseClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<PromiseClient<VatId>>>) -> Self {
-        let connection_state = client.borrow().connection_state.clone();
+impl<VatId> From<Rc<PromiseClient<VatId>>> for Client<VatId> {
+    fn from(client: Rc<PromiseClient<VatId>>) -> Self {
+        let connection_state = client.connection_state.clone();
         Self::new(&connection_state, ClientVariant::Promise(client))
     }
 }
@@ -3044,9 +3049,16 @@ impl<VatId> Client<VatId> {
                 None
             }
             ClientVariant::Promise(promise_client) => {
-                promise_client.borrow_mut().received_call = true;
-                self.connection_state
-                    .write_target(&*promise_client.borrow().cap, target)
+                // TODO: Is this ever `Some`?
+                if let Some(resolved) = promise_client.resolved.get() {
+                    self.connection_state.write_target(&**resolved, target)
+                } else if let Some(unresolved) = promise_client.unresolved.borrow_mut().as_mut() {
+                    unresolved.received_call = true;
+                    self.connection_state
+                        .write_target(&*unresolved.initial, target)
+                } else {
+                    panic!("promise was neither resolved nor unresolved");
+                }
             }
         }
     }
@@ -3077,14 +3089,17 @@ impl<VatId> Client<VatId> {
                 None
             }
             ClientVariant::Promise(promise_client) => {
-                promise_client.borrow_mut().received_call = true;
-
-                ConnectionState::write_descriptor(
-                    &self.connection_state.clone(),
-                    promise_client.borrow().cap.clone(),
-                    descriptor,
-                )
-                .unwrap()
+                // TODO: Is this ever `Some`?
+                let cap = if let Some(resolved) = promise_client.resolved.get() {
+                    resolved.clone()
+                } else if let Some(unresolved) = promise_client.unresolved.borrow_mut().as_mut() {
+                    unresolved.received_call = true;
+                    unresolved.initial.clone()
+                } else {
+                    panic!("promise was neither resolved nor unresolved");
+                };
+                ConnectionState::write_descriptor(&self.connection_state.clone(), cap, descriptor)
+                    .unwrap()
             }
         }
     }
@@ -3176,9 +3191,7 @@ impl<VatId> ClientHook for Client<VatId> {
         match &self.variant {
             ClientVariant::Import(import_client) => &**import_client as *const _ as usize,
             ClientVariant::Pipeline(pipeline_client) => &**pipeline_client as *const _ as usize,
-            ClientVariant::Promise(promise_client) => {
-                (&*promise_client.borrow()) as *const _ as usize
-            }
+            ClientVariant::Promise(promise_client) => &**promise_client as *const _ as usize,
         }
     }
 
@@ -3190,13 +3203,7 @@ impl<VatId> ClientHook for Client<VatId> {
         match &self.variant {
             ClientVariant::Import(_import_client) => None,
             ClientVariant::Pipeline(_pipeline_client) => None,
-            ClientVariant::Promise(promise_client) => {
-                if promise_client.borrow().is_resolved {
-                    Some(promise_client.borrow().cap.clone())
-                } else {
-                    None
-                }
-            }
+            ClientVariant::Promise(promise_client) => promise_client.resolved.get().cloned(),
         }
     }
 
@@ -3205,7 +3212,14 @@ impl<VatId> ClientHook for Client<VatId> {
             ClientVariant::Import(_import_client) => None,
             ClientVariant::Pipeline(_pipeline_client) => None,
             ClientVariant::Promise(promise_client) => {
-                Some(promise_client.borrow_mut().resolution_waiters.push(()))
+                // TODO: Is this ever `Some`?
+                if let Some(resolved) = promise_client.resolved.get() {
+                    Some(Promise::ok(resolved.add_ref()))
+                } else if let Some(unresolved) = promise_client.unresolved.borrow_mut().as_mut() {
+                    Some(unresolved.resolution_waiters.push(()))
+                } else {
+                    panic!("promise was neither resolved nor unresolved");
+                }
             }
         }
     }
