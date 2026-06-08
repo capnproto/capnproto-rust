@@ -305,7 +305,7 @@ pub(crate) struct Import<VatId>
 where
     VatId: 'static,
 {
-    import_client: Weak<RefCell<ImportClient<VatId>>>,
+    import_client: Weak<ImportClient<VatId>>,
 
     // Either a copy of importClient, or, in the case of promises, the wrapping PromiseClient.
     // Becomes null when it is discarded *or* when the import is destroyed (e.g. the promise is
@@ -317,7 +317,7 @@ where
 }
 
 impl<VatId> Import<VatId> {
-    fn new(import_client: &Rc<RefCell<ImportClient<VatId>>>) -> Self {
+    fn new(import_client: &Rc<ImportClient<VatId>>) -> Self {
         Self {
             import_client: Rc::downgrade(import_client),
             app_client: None,
@@ -1512,7 +1512,7 @@ impl<VatId> ConnectionState<VatId> {
         };
 
         // We just received a copy of this import ID, so the remote refcount has gone up.
-        import_client.borrow_mut().add_remote_ref();
+        import_client.add_remote_ref();
 
         let mut tmp = state.imports.borrow_mut();
         let Some(import) = tmp.slots.get_mut(&import_id) else {
@@ -2665,7 +2665,7 @@ enum ClientVariant<VatId>
 where
     VatId: 'static,
 {
-    Import(Rc<RefCell<ImportClient<VatId>>>),
+    Import(Rc<ImportClient<VatId>>),
     Pipeline(Rc<PipelineClient<VatId>>),
     Promise(Rc<RefCell<PromiseClient<VatId>>>),
 }
@@ -2683,7 +2683,7 @@ enum WeakClientVariant<VatId>
 where
     VatId: 'static,
 {
-    Import(Weak<RefCell<ImportClient<VatId>>>),
+    Import(Weak<ImportClient<VatId>>),
     Pipeline(Weak<PipelineClient<VatId>>),
     Promise(Weak<RefCell<PromiseClient<VatId>>>),
 }
@@ -2725,7 +2725,7 @@ where
     import_id: ImportId,
 
     /// Number of times we've received this import from the peer.
-    remote_ref_count: u32,
+    remote_ref_count: Cell<u32>,
 }
 
 impl<VatId> Drop for ImportClient<VatId> {
@@ -2750,13 +2750,13 @@ impl<VatId> Drop for ImportClient<VatId> {
 
         // Send a message releasing our remote references.
         let mut tmp = connection_state.connection.borrow_mut();
-        if let (true, Ok(c)) = (self.remote_ref_count > 0, tmp.as_mut()) {
+        if let (true, Ok(c)) = (self.remote_ref_count.get() > 0, tmp.as_mut()) {
             let mut message = c.new_outgoing_message(10);
             {
                 let root: message::Builder = message.get_body().unwrap().init_as();
                 let mut release = root.init_release();
                 release.set_id(self.import_id);
-                release.set_reference_count(self.remote_ref_count);
+                release.set_reference_count(self.remote_ref_count.get());
             }
             let _ = message.send();
         }
@@ -2767,25 +2767,22 @@ impl<VatId> ImportClient<VatId>
 where
     VatId: 'static,
 {
-    fn new(
-        connection_state: &Rc<ConnectionState<VatId>>,
-        import_id: ImportId,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+    fn new(connection_state: &Rc<ConnectionState<VatId>>, import_id: ImportId) -> Rc<Self> {
+        Rc::new(Self {
             connection_state: connection_state.clone(),
             import_id,
-            remote_ref_count: 0,
-        }))
+            remote_ref_count: Cell::new(0),
+        })
     }
 
-    fn add_remote_ref(&mut self) {
-        self.remote_ref_count += 1;
+    fn add_remote_ref(&self) {
+        self.remote_ref_count.update(|count| count + 1);
     }
 }
 
-impl<VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<ImportClient<VatId>>>) -> Self {
-        let connection_state = client.borrow().connection_state.clone();
+impl<VatId> From<Rc<ImportClient<VatId>>> for Client<VatId> {
+    fn from(client: Rc<ImportClient<VatId>>) -> Self {
+        let connection_state = client.connection_state.clone();
         Self::new(&connection_state, ClientVariant::Import(client))
     }
 }
@@ -3026,7 +3023,7 @@ impl<VatId> Client<VatId> {
     ) -> Option<Box<dyn ClientHook>> {
         match &self.variant {
             ClientVariant::Import(import_client) => {
-                target.set_imported_cap(import_client.borrow().import_id);
+                target.set_imported_cap(import_client.import_id);
                 None
             }
             ClientVariant::Pipeline(pipeline_client) => {
@@ -3057,7 +3054,7 @@ impl<VatId> Client<VatId> {
     fn write_descriptor(&self, mut descriptor: cap_descriptor::Builder) -> Option<u32> {
         match &self.variant {
             ClientVariant::Import(import_client) => {
-                descriptor.set_receiver_hosted(import_client.borrow().import_id);
+                descriptor.set_receiver_hosted(import_client.import_id);
                 None
             }
             ClientVariant::Pipeline(pipeline_client) => {
@@ -3177,7 +3174,7 @@ impl<VatId> ClientHook for Client<VatId> {
 
     fn get_ptr(&self) -> usize {
         match &self.variant {
-            ClientVariant::Import(import_client) => (&*import_client.borrow()) as *const _ as usize,
+            ClientVariant::Import(import_client) => &**import_client as *const _ as usize,
             ClientVariant::Pipeline(pipeline_client) => &**pipeline_client as *const _ as usize,
             ClientVariant::Promise(promise_client) => {
                 (&*promise_client.borrow()) as *const _ as usize
