@@ -28,10 +28,11 @@ use crate::test_capnp::{
 use capnp::capability::FromClientHook;
 use capnp::Error;
 
-use futures::channel::oneshot;
-use futures::TryFutureExt;
+use futures_channel::oneshot;
+use futures_util::TryFutureExt as _;
 
 use std::cell::{Cell, RefCell};
+use std::future;
 use std::rc::Rc;
 
 pub struct Bootstrap;
@@ -292,7 +293,7 @@ impl test_pipeline::Server for TestPipeline {
             .init_out_box()
             .set_cap(capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).cast_to());
         results.set_pipeline()?;
-        ::futures::future::pending().await
+        future::pending().await
     }
 }
 
@@ -399,7 +400,7 @@ impl test_more_stuff::Server for TestMoreStuff {
         // Also attach `cap` to the result struct so we can make sure that the results are released.
         results.get().set_cap_copy(cap);
 
-        ::futures::future::pending().await
+        future::pending().await
     }
 
     async fn hold(
@@ -531,7 +532,7 @@ impl test_more_stuff::Server for TestMoreStuff {
             results.push(request.send().promise);
         }
 
-        ::futures::future::try_join_all(results).await?;
+        futures_util::future::try_join_all(results).await?;
         Ok(())
     }
 

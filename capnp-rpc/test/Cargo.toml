@@ -19,8 +19,10 @@ path = "../"
 
 [dependencies]
 capnp = { path = "../../capnp" }
-futures = "0.3.0"
+futures-channel = { version = "0.3.0" }
+futures-util = { version = "0.3.0" }
 async-byte-channel = {path = "./../../async-byte-channel"}
+tokio = { version = "1.52.3", features = ["macros", "rt"] }
 
 [lints]
 workspace = true
