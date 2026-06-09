@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use capnp::capability::{FromClientHook, Promise};
 use capnp::private::capability::{ClientHook, RequestHook};
-use futures::TryFutureExt;
+use futures_util::TryFutureExt as _;
 
 /// Trait implemented by the reconnecting client to set new connection out-of-band.
 ///

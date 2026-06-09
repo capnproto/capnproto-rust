@@ -23,10 +23,10 @@ use capnp::any_pointer;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp, ResultsHook};
 use capnp::Error;
-
-use futures::{Future, FutureExt, TryFutureExt};
+use futures_util::{FutureExt as _, TryFutureExt as _};
 
 use std::cell::RefCell;
+use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use crate::attach::Attach;
@@ -37,7 +37,7 @@ pub(crate) struct PipelineInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<dyn PipelineHook>>,
 
-    promise_to_drive: futures::future::Shared<Promise<(), Error>>,
+    promise_to_drive: futures_util::future::Shared<Promise<(), Error>>,
 
     clients_to_resolve: SenderQueue<(Weak<RefCell<ClientInner>>, Vec<PipelineOp>), ()>,
 }
@@ -135,8 +135,11 @@ impl Pipeline {
         F: Future<Output = Result<(), Error>> + 'static + Unpin,
     {
         let new = Promise::from_future(
-            futures::future::try_join(self.inner.borrow_mut().promise_to_drive.clone(), promise)
-                .map_ok(|_| ()),
+            futures_util::future::try_join(
+                self.inner.borrow_mut().promise_to_drive.clone(),
+                promise,
+            )
+            .map_ok(|_| ()),
         )
         .shared();
         self.inner.borrow_mut().promise_to_drive = new;
@@ -184,7 +187,7 @@ pub(crate) struct ClientInner {
     // to a reference to it so that it doesn't get canceled before the client is resolved.
     pipeline_inner: Option<Rc<RefCell<PipelineInner>>>,
 
-    promise_to_drive: Option<futures::future::Shared<Promise<(), Error>>>,
+    promise_to_drive: Option<futures_util::future::Shared<Promise<(), Error>>>,
 
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
@@ -293,10 +296,10 @@ impl ClientHook for Client {
             Some(ref p) => {
                 let p1 = p.clone();
                 Promise::from_future(async move {
-                    match futures::future::select(p1, promise).await {
-                        futures::future::Either::Left((Ok(()), promise)) => promise.await,
-                        futures::future::Either::Left((Err(e), _)) => Err(e),
-                        futures::future::Either::Right((r, _)) => {
+                    match futures_util::future::select(p1, promise).await {
+                        futures_util::future::Either::Left((Ok(()), promise)) => promise.await,
+                        futures_util::future::Either::Left((Err(e), _)) => Err(e),
+                        futures_util::future::Either::Right((r, _)) => {
                             // Don't bother waiting for `promise_to_drive` to resolve.
                             // If we're here because set_pipeline() was called, then
                             // `promise_to_drive` might in fact never resolve.
@@ -332,7 +335,7 @@ impl ClientHook for Client {
         let promise = self.inner.borrow_mut().client_resolution_queue.push(());
         match &self.inner.borrow().promise_to_drive {
             Some(p) => Some(Promise::from_future(
-                futures::future::try_join(p.clone(), promise).map_ok(|v| v.1),
+                futures_util::future::try_join(p.clone(), promise).map_ok(|v| v.1),
             )),
             None => Some(Promise::from_future(promise)),
         }
