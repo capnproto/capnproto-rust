@@ -941,7 +941,7 @@ mod tests {
             assert!(!root.has_foo2());
 
             match root.reborrow().which().unwrap() {
-                test_generics_union::Bar1(Ok(bar)) => {
+                test_generics_union::Bar1(bar) => {
                     assert_eq!(bar.len(), 10);
                     assert_eq!(bar.get(0), 0);
                     assert_eq!(bar.get(5), 100);
@@ -960,7 +960,7 @@ mod tests {
             assert!(root.has_foo2());
 
             match root.reborrow().which().unwrap() {
-                test_generics_union::Foo2(Ok(foo)) => {
+                test_generics_union::Foo2(foo) => {
                     assert_eq!(foo.get_int32_field(), 37);
                 }
                 _ => panic!("expected Foo2"),
@@ -1079,7 +1079,7 @@ mod tests {
                 panic!("")
             };
 
-            let test_union_defaults::inner2::C(Ok(capnp::text::Reader(b"grault"))) =
+            let test_union_defaults::inner2::C(capnp::text::Reader(b"grault")) =
                 reader.get_inner2().which().unwrap()
             else {
                 panic!("")

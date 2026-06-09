@@ -377,8 +377,7 @@ pub fn do_branding(
                         arguments.push(param.get_name()?.to_string()?);
                     }
                 }
-                brand::scope::Bind(bindings_list_opt) => {
-                    let bindings_list = bindings_list_opt?;
+                brand::scope::Bind(bindings_list) => {
                     assert_eq!(bindings_list.len(), params.len());
                     for binding in bindings_list {
                         match binding.which()? {
@@ -386,7 +385,7 @@ pub fn do_branding(
                                 arguments.push(fmt!(ctx, "{capnp}::any_pointer::Owned"));
                             }
                             brand::binding::Type(t) => {
-                                arguments.push(t?.type_string(ctx, Leaf::Owned)?);
+                                arguments.push(t.type_string(ctx, Leaf::Owned)?);
                             }
                         }
                     }

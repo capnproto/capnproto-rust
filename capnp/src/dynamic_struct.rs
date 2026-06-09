@@ -110,7 +110,7 @@ impl<'a> Reader<'a> {
                         // If the type is a generic, then the default value
                         // is always an empty AnyPointer. Ignore that case.
                         let t1 = if let (true, value::Text(t)) = (p.is_null(), dval) {
-                            t?
+                            t
                         } else {
                             p.get_text(None)?
                         };
@@ -121,7 +121,7 @@ impl<'a> Reader<'a> {
                         // If the type is a generic, then the default value
                         // is always an empty AnyPointer. Ignore that case.
                         let d1 = if let (true, value::Data(d)) = (p.is_null(), dval) {
-                            d?
+                            d
                         } else {
                             p.get_data(None)?
                         };
@@ -355,7 +355,7 @@ impl<'a> Builder<'a> {
                             // If the type is a generic, then the default value
                             // is always an empty AnyPointer. Ignore that case.
                             if let value::Text(t) = dval {
-                                p.set_text(t?);
+                                p.set_text(t);
                             }
                         }
                         Ok(dynamic_value::Builder::Text(p.get_text(None)?))
@@ -366,7 +366,7 @@ impl<'a> Builder<'a> {
                             // If the type is a generic, then the default value
                             // is always an empty AnyPointer. Ignore that case.
                             if let value::Data(d) = dval {
-                                p.set_data(d?);
+                                p.set_data(d);
                             }
                         }
                         Ok(dynamic_value::Builder::Data(p.get_data(None)?))

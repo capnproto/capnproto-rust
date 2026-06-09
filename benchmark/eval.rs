@@ -57,11 +57,11 @@ fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth: u32)
 fn evaluate_expression(exp: expression::Reader) -> ::capnp::Result<i32> {
     let left = match exp.get_left().which()? {
         expression::left::Value(v) => v,
-        expression::left::Expression(e) => evaluate_expression(e?)?,
+        expression::left::Expression(e) => evaluate_expression(e)?,
     };
     let right = match exp.get_right().which()? {
         expression::right::Value(v) => v,
-        expression::right::Expression(e) => evaluate_expression(e?)?,
+        expression::right::Expression(e) => evaluate_expression(e)?,
     };
 
     match exp.get_op()? {

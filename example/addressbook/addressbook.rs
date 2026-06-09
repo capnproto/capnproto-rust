@@ -95,15 +95,15 @@ pub mod addressbook {
                     println!("  unemployed");
                 }
                 Ok(person::employment::Employer(employer)) => {
-                    println!("  employer: {}", employer?.to_str()?);
+                    println!("  employer: {}", employer.to_str()?);
                 }
                 Ok(person::employment::School(school)) => {
-                    println!("  student at: {}", school?.to_str()?);
+                    println!("  student at: {}", school.to_str()?);
                 }
                 Ok(person::employment::SelfEmployed(())) => {
                     println!("  self-employed");
                 }
-                Err(::capnp::NotInSchema(_)) => {}
+                Err(_) => {}
             }
         }
         Ok(())
