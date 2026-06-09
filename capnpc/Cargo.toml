@@ -13,6 +13,9 @@ readme = "README.md"
 
 keywords = ["encoding", "protocol", "serialization"]
 
+[features]
+serde = []
+
 [[bin]]
 
 name = "capnpc-rust"

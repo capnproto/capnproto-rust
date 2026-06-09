@@ -77,6 +77,7 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 ## Examples
 
 [addressbook serialization](/example/addressbook),
+[JSON config with a Cap'n Proto schema](/example/json_config),
 [RPC](/capnp-rpc/examples)
 
 ## Who is using capnproto-rust?
