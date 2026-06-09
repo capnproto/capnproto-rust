@@ -29,8 +29,8 @@ use capnp::private::capability::{
 };
 use capnp::Error;
 
-use futures::channel::oneshot;
-use futures::{future, Future, FutureExt, TryFutureExt};
+use futures_channel::oneshot;
+use futures_util::{future, Future, FutureExt, TryFutureExt};
 
 use std::cell::{Cell, RefCell};
 use std::cmp::Reverse;
@@ -2086,7 +2086,7 @@ where
     VatId: 'static,
 {
     variant: PipelineVariant<VatId>,
-    redirect_later: Option<RefCell<futures::future::Shared<Promise<Response<VatId>, Error>>>>,
+    redirect_later: Option<RefCell<futures_util::future::Shared<Promise<Response<VatId>, Error>>>>,
     connection_state: Rc<ConnectionState<VatId>>,
 
     #[allow(dead_code)]

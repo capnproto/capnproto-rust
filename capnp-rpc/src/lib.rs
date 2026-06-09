@@ -61,9 +61,10 @@
 use capnp::capability::Promise;
 use capnp::private::capability::ClientHook;
 use capnp::Error;
-use futures::channel::oneshot;
-use futures::{Future, FutureExt, TryFutureExt};
+use futures_channel::oneshot;
+use futures_util::{FutureExt as _, TryFutureExt as _};
 use std::cell::RefCell;
+use std::future::Future;
 use std::pin::Pin;
 use std::rc::{Rc, Weak};
 use std::task::{Context, Poll};
@@ -479,9 +480,7 @@ where
 /// Creates a `Client` from a future that resolves to a `Client`.
 ///
 /// Any calls that arrive before the resolution are accumulated in a queue.
-pub fn new_future_client<T>(
-    client_future: impl ::futures::Future<Output = Result<T, Error>> + 'static,
-) -> T
+pub fn new_future_client<T>(client_future: impl Future<Output = Result<T, Error>> + 'static) -> T
 where
     T: ::capnp::capability::FromClientHook,
 {
@@ -545,6 +544,6 @@ where
     }
 }
 
-fn canceled_to_error(_e: futures::channel::oneshot::Canceled) -> Error {
+fn canceled_to_error(_e: oneshot::Canceled) -> Error {
     Error::failed("oneshot was canceled".to_string())
 }

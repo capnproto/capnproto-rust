@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::channel::{mpsc, oneshot};
-use futures::stream::FuturesUnordered;
-use futures::{Future, FutureExt, Stream};
+use futures_channel::{mpsc, oneshot};
+use futures_util::stream::FuturesUnordered;
+use futures_util::{FutureExt as _, Stream};
+use std::future::{self, Future};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -88,7 +89,7 @@ where
         // If the FuturesUnordered ever gets empty, its stream will terminate, which
         // is not what we want. So we make sure there is always at least one future in it.
         set.in_progress
-            .push(TaskInProgress::Task(Box::pin(::futures::future::pending())));
+            .push(TaskInProgress::Task(Box::pin(future::pending())));
 
         let handle = TaskSetHandle { sender };
 

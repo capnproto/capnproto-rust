@@ -1,8 +1,8 @@
 use capnp::capability::Promise;
 use capnp::Error;
 
-use futures::channel::oneshot;
-use futures::TryFutureExt;
+use futures_channel::oneshot;
+use futures_util::TryFutureExt as _;
 use std::cell::RefCell;
 use std::rc::Rc;
 

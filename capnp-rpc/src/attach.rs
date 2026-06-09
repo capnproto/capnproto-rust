@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::Future;
+use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 

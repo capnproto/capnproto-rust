@@ -24,10 +24,12 @@
 
 use capnp::capability::Promise;
 use capnp::message::ReaderOptions;
-use futures::channel::oneshot;
-use futures::{AsyncRead, AsyncWrite, FutureExt, TryFutureExt};
+use futures_channel::oneshot;
+use futures_io::{AsyncRead, AsyncWrite};
+use futures_util::{FutureExt as _, TryFutureExt as _};
 
 use std::cell::RefCell;
+use std::future;
 use std::rc::{Rc, Weak};
 
 pub type VatId = crate::rpc_twoparty_capnp::Side;
@@ -221,7 +223,7 @@ where
     // connection handle that we will return on connect()
     weak_connection_inner: Weak<RefCell<ConnectionInner<T>>>,
 
-    execution_driver: futures::future::Shared<Promise<(), ::capnp::Error>>,
+    execution_driver: futures_util::future::Shared<Promise<(), ::capnp::Error>>,
     side: crate::rpc_twoparty_capnp::Side,
 }
 
@@ -261,7 +263,7 @@ where
             (
                 Promise::from_future(write_queue.then(move |r| {
                     disconnect_promise
-                        .then(move |_| futures::future::ready(r))
+                        .then(move |_| future::ready(r))
                         .map_ok(|_| ())
                 }))
                 .shared(),
@@ -310,7 +312,7 @@ where
     fn accept(&mut self) -> Promise<Box<dyn crate::Connection<VatId>>, ::capnp::Error> {
         match self.connection.take() {
             Some(c) => Promise::ok(Box::new(c) as Box<dyn crate::Connection<VatId>>),
-            None => Promise::from_future(::futures::future::pending()),
+            None => Promise::from_future(future::pending()),
         }
     }
 

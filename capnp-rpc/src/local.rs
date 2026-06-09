@@ -26,8 +26,8 @@ use capnp::traits::{Imbue, ImbueMut};
 use capnp::Error;
 use capnp::{any_pointer, message};
 
-use futures::channel::oneshot;
-use futures::TryFutureExt;
+use futures_channel::oneshot;
+use futures_util::TryFutureExt as _;
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -261,7 +261,7 @@ impl RequestHook for Request {
         let results = Results::new(results_done_fulfiller, pipeline_sender.weak_clone());
         let promise = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
-        let p = futures::future::try_join(promise, results_done_promise).and_then(
+        let p = futures_util::future::try_join(promise, results_done_promise).and_then(
             move |((), results_done_hook)| {
                 pipeline_sender
                     .complete(Box::new(Pipeline::new(results_done_hook.add_ref()))
