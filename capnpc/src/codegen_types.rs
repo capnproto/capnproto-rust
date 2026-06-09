@@ -241,7 +241,17 @@ impl RustTypeInfo for type_::Reader<'_> {
                         ))
                     }
                     type_::AnyPointer(_) => {
-                        Err(Error::failed("List(AnyPointer) is unsupported".to_string()))
+                        // This is actually an AnyList, which means we just return an anypointer and
+                        // let the user cast it appropriately.
+                        match module {
+                            Leaf::Reader(lifetime) => {
+                                Ok(fmt!(ctx, "{capnp}::any_pointer::Reader<{lifetime}>"))
+                            }
+                            Leaf::Builder(lifetime) => {
+                                Ok(fmt!(ctx, "{capnp}::any_pointer::Builder<{lifetime}>"))
+                            }
+                            _ => Ok(fmt!(ctx, "{capnp}::any_pointer::{module}")),
+                        }
                     }
                     _ => {
                         let inner = element_type.type_string(ctx, Leaf::Owned)?;
