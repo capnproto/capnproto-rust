@@ -41,7 +41,7 @@ impl ::core::convert::TryFrom<u16> for Side {
         match value {
             0 => ::core::result::Result::Ok(Self::Server),
             1 => ::core::result::Result::Ok(Self::Client),
-            n => ::core::result::Result::Err(::capnp::NotInSchema(n)),
+            n => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(n)),
         }
     }
 }
