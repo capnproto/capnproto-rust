@@ -50,6 +50,7 @@ pub mod dynamic_list;
 pub mod dynamic_struct;
 pub mod dynamic_value;
 pub mod enum_list;
+pub mod fd;
 pub mod introspect;
 pub mod io;
 pub mod list_list;
