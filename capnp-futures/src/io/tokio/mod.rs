@@ -25,8 +25,22 @@ use std::{
     task::{Context, Poll},
 };
 
+#[cfg(all(
+    feature = "tokio-unix-fd-stream",
+    unix,
+    // Per <https://github.com/bytecodealliance/rustix/blob/v1.1.4/src/net/send_recv/mod.rs>.
+    not(any(target_os = "espidf", target_os = "horizon", target_os = "vita"))
+))]
+mod unix_fd_stream;
+
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
+#[cfg(all(
+    feature = "tokio-unix-fd-stream",
+    unix,
+    not(any(target_os = "espidf", target_os = "horizon", target_os = "vita"))
+))]
+pub use crate::io::tokio::unix_fd_stream::UnixFdStream;
 use crate::io::{AsyncFdRead, AsyncFdWrite, Count, FdReadBuf, FdWriteBuf};
 
 #[derive(Debug)]
