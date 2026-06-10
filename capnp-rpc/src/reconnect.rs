@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use capnp::capability::{FromClientHook, Promise};
+use capnp::fd::BorrowedFd;
 use capnp::private::capability::{ClientHook, RequestHook};
 use futures_util::TryFutureExt as _;
 
@@ -205,6 +206,13 @@ where
 
     fn when_resolved(&self) -> Promise<(), capnp::Error> {
         Promise::ok(())
+    }
+
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        // We can’t return `self.get_current().get_fd()` because it might not
+        // live long enough. This matches the C++ behaviour; see
+        // <https://github.com/capnproto/capnproto/blob/291d8ee870ab394d32fbdd5d2160add84b65e229/c%2B%2B/src/capnp/reconnect.c%2B%2B#L72-L77>.
+        None
     }
 }
 

@@ -26,6 +26,7 @@ use std::future::Future;
 
 use capnp::capability::{FromClientHook, Promise};
 use capnp::Error;
+use capnp_futures::io::{AsyncFdRead, AsyncFdWrite};
 use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use futures_channel::oneshot;
@@ -223,11 +224,36 @@ where
 {
     let (client_writer, server_reader) = async_byte_channel::channel();
     let (server_writer, client_reader) = async_byte_channel::channel();
+    rpc_top_level_with_io(
+        server_reader,
+        server_writer,
+        client_reader,
+        client_writer,
+        0,
+        main,
+    )
+    .await
+}
 
+async fn rpc_top_level_with_io<F, G, T, U>(
+    server_reader: T,
+    server_writer: U,
+    client_reader: T,
+    client_writer: U,
+    max_fds_per_message: u8,
+    main: F,
+) where
+    F: FnOnce(test_capnp::bootstrap::Client) -> G,
+    F: Send + 'static,
+    G: Future<Output = Result<(), Error>> + 'static,
+    T: AsyncFdRead + Send + 'static,
+    U: AsyncFdWrite + Send + 'static,
+{
     let join_handle = std::thread::spawn(move || {
-        let network = Box::new(twoparty::io::VatNetwork::new(
+        let network = Box::new(twoparty::io::VatNetwork::new_with_fds(
             server_reader,
             server_writer,
+            max_fds_per_message,
             rpc_twoparty_capnp::Side::Server,
             Default::default(),
         ));
@@ -240,9 +266,10 @@ where
             .unwrap();
     });
 
-    let network = Box::new(twoparty::io::VatNetwork::new(
+    let network = Box::new(twoparty::io::VatNetwork::new_with_fds(
         client_reader,
         client_writer,
+        max_fds_per_message,
         rpc_twoparty_capnp::Side::Client,
         Default::default(),
     ));
@@ -1303,4 +1330,50 @@ async fn get_self() {
         Ok(())
     })
     .await;
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "local")]
+async fn pass_fd() {
+    use capnp_futures::io::tokio::UnixFdStream;
+    use tokio::io::AsyncReadExt as _;
+    use tokio::net::unix::pipe;
+    use tokio::net::UnixStream;
+
+    let main = |client: test_capnp::bootstrap::Client| async move {
+        let response = client
+            .test_more_stuff_request()
+            .send()
+            .pipeline
+            .get_cap()
+            .pass_fd_request()
+            .send();
+        let fd = response
+            .pipeline
+            .get_fd_cap()
+            .client
+            .get_fd()
+            .await?
+            .unwrap()
+            .try_clone_to_owned()?;
+        let mut rx = pipe::Receiver::from_owned_fd(fd)?;
+        let mut buf = Vec::new();
+        rx.read_to_end(&mut buf).await?;
+        assert_eq!(buf, b"sup");
+        Ok(())
+    };
+
+    let (client_writer, server_reader) = UnixStream::pair().unwrap();
+    let (server_writer, client_reader) = UnixStream::pair().unwrap();
+    rpc_top_level_with_io(
+        UnixFdStream::new(server_reader),
+        UnixFdStream::new(server_writer),
+        UnixFdStream::new(client_reader),
+        UnixFdStream::new(client_writer),
+        1,
+        main,
+    )
+    .await;
+
+    local_top_level(main).await;
 }

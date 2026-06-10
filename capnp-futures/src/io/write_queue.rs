@@ -37,6 +37,7 @@ where
     M: AsOutputSegments,
 {
     Message(M, oneshot::Sender<M>),
+    MessageMove(M, oneshot::Sender<()>),
     Done(Result<(), Error>, oneshot::Sender<()>),
 }
 
@@ -91,6 +92,13 @@ where
                     writer.flush().await?;
                     let _ = returner.send(m);
                 }
+                Item::MessageMove(m, finisher) => {
+                    let result = crate::io::serialize::write_message(&mut writer, m).await;
+                    in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                    result?;
+                    writer.flush().await?;
+                    let _ = finisher.send(());
+                }
                 Item::Done(r, finisher) => {
                     let _ = finisher.send(());
                     return r;
@@ -130,6 +138,21 @@ where
         let (complete, oneshot) = oneshot::channel();
 
         let _ = self.sender.unbounded_send(Item::Message(message, complete));
+
+        MapErr(oneshot)
+    }
+
+    pub fn send_move(
+        &mut self,
+        message: M,
+    ) -> impl Future<Output = Result<(), Error>> + Unpin + 'static {
+        self.in_flight
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let (complete, oneshot) = oneshot::channel();
+
+        let _ = self
+            .sender
+            .unbounded_send(Item::MessageMove(message, complete));
 
         MapErr(oneshot)
     }

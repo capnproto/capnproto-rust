@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 use capnp::capability::{self, Promise};
+use capnp::fd::BorrowedFd;
 use capnp::private::capability::{
     ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResponseHook, ResultsHook,
 };
@@ -611,5 +612,9 @@ where
 
     fn when_resolved(&self) -> Promise<(), Error> {
         crate::rpc::default_when_resolved_impl(self)
+    }
+
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        self.inner.server.get_fd()
     }
 }
