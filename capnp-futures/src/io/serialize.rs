@@ -25,7 +25,15 @@
 
 use capnp::serialize::{OwnedSegments, SegmentLengthsBuilder};
 use capnp::{message, Error, OutputSegments, Result};
-use futures_util::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+
+use crate::io::{
+    AsyncFdRead, AsyncFdReadExt as _, AsyncFdWrite, AsyncFdWriteExt as _, FdReadBuf, FdWriteBuf,
+};
+
+pub struct MessageReaderAndFdCount {
+    pub reader: message::Reader<OwnedSegments>,
+    pub fds: usize,
+}
 
 /// Asynchronously reads a message from `reader`.
 pub async fn read_message<R>(
@@ -33,9 +41,23 @@ pub async fn read_message<R>(
     options: message::ReaderOptions,
 ) -> Result<message::Reader<OwnedSegments>>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
     match try_read_message(reader, options).await? {
+        Some(s) => Ok(s),
+        None => Err(Error::from_kind(capnp::ErrorKind::PrematureEndOfFile)),
+    }
+}
+
+pub async fn read_message_with_fds<R>(
+    reader: R,
+    fd_buf: &mut FdReadBuf,
+    options: message::ReaderOptions,
+) -> Result<MessageReaderAndFdCount>
+where
+    R: AsyncFdRead,
+{
+    match try_read_message_with_fds(reader, fd_buf, options).await? {
         Some(s) => Ok(s),
         None => Err(Error::from_kind(capnp::ErrorKind::PrematureEndOfFile)),
     }
@@ -47,41 +69,59 @@ where
 /// To read a stream containing an unknown number of messages, you could call
 /// this function repeatedly until it returns `None`.
 pub async fn try_read_message<R>(
-    mut reader: R,
+    reader: R,
     options: message::ReaderOptions,
 ) -> Result<Option<message::Reader<OwnedSegments>>>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
-    let Some(segment_lengths_builder) = read_segment_table(&mut reader, options).await? else {
+    Ok(try_read_message_with_fds(reader, &mut [], options)
+        .await?
+        .map(|message| message.reader))
+}
+
+pub async fn try_read_message_with_fds<R>(
+    mut reader: R,
+    fd_buf: &mut FdReadBuf,
+    options: message::ReaderOptions,
+) -> Result<Option<MessageReaderAndFdCount>>
+where
+    R: AsyncFdRead,
+{
+    let Some((segment_lengths_builder, fds)) =
+        read_segment_table(&mut reader, options, fd_buf).await?
+    else {
         return Ok(None);
     };
-    Ok(Some(
-        read_segments(
+    Ok(Some(MessageReaderAndFdCount {
+        reader: read_segments(
             reader,
             segment_lengths_builder.into_owned_segments(),
             options,
         )
         .await?,
-    ))
+        fds,
+    }))
 }
 
 async fn read_segment_table<R>(
     mut reader: R,
     options: message::ReaderOptions,
-) -> Result<Option<SegmentLengthsBuilder>>
+    fd_buf: &mut FdReadBuf,
+) -> Result<Option<(SegmentLengthsBuilder, usize)>>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
     let mut buf: [u8; 8] = [0; 8];
-    {
-        let n = reader.read(&mut buf[..]).await?;
-        if n == 0 {
+    let fds = {
+        let n = reader.read_with_fds(&mut buf[..], fd_buf).await?;
+        if n.bytes == 0 {
             return Ok(None);
-        } else if n < 8 {
-            reader.read_exact(&mut buf[n..]).await?;
+        } else if n.bytes < 8 {
+            reader.read_exact(&mut buf[n.bytes..]).await?;
         }
-    }
+        n.fds
+    };
     let (segment_count, first_segment_length) = parse_segment_table_first(&buf[..])?;
 
     let mut segment_lengths_builder = SegmentLengthsBuilder::with_capacity(segment_count);
@@ -120,7 +160,7 @@ where
         }
     }
 
-    Ok(Some(segment_lengths_builder))
+    Ok(Some((segment_lengths_builder, fds)))
 }
 
 /// Reads segments from `read`.
@@ -130,7 +170,7 @@ async fn read_segments<R>(
     options: message::ReaderOptions,
 ) -> Result<message::Reader<OwnedSegments>>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
     read.read_exact(&mut owned_segments[..]).await?;
     Ok(message::Reader::new(owned_segments, options))
@@ -158,6 +198,10 @@ fn parse_segment_table_first(buf: &[u8]) -> Result<(usize, usize)> {
 /// Something that contains segments ready to be written out.
 pub trait AsOutputSegments {
     fn as_output_segments(&self) -> OutputSegments<'_>;
+
+    fn as_fds(&self) -> &FdWriteBuf<'_> {
+        &[]
+    }
 }
 
 impl<M> AsOutputSegments for &M
@@ -166,6 +210,10 @@ where
 {
     fn as_output_segments(&self) -> OutputSegments<'_> {
         (*self).as_output_segments()
+    }
+
+    fn as_fds(&self) -> &FdWriteBuf<'_> {
+        (*self).as_fds()
     }
 }
 
@@ -199,18 +247,22 @@ where
 /// Writes the provided message to `writer`. Does not call `flush()`.
 pub async fn write_message<W, M>(mut writer: W, message: M) -> Result<()>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
     M: AsOutputSegments,
 {
     let segments = message.as_output_segments();
-    write_segment_table(&mut writer, &segments[..]).await?;
+    write_segment_table(&mut writer, &segments[..], message.as_fds()).await?;
     write_segments(writer, &segments[..]).await?;
     Ok(())
 }
 
-async fn write_segment_table<W>(mut write: W, segments: &[&[u8]]) -> ::std::io::Result<()>
+async fn write_segment_table<W>(
+    mut write: W,
+    segments: &[&[u8]],
+    fd_buf: &FdWriteBuf<'_>,
+) -> ::std::io::Result<()>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
 {
     let mut buf: [u8; 8] = [0; 8];
     let segment_count = segments.len();
@@ -218,7 +270,7 @@ where
     // write the first Word, which contains segment_count and the 1st segment length
     buf[0..4].copy_from_slice(&(segment_count as u32 - 1).to_le_bytes());
     buf[4..8].copy_from_slice(&((segments[0].len() / 8) as u32).to_le_bytes());
-    write.write_all(&buf).await?;
+    write.write_all_with_fds(&buf, fd_buf).await?;
 
     if segment_count > 1 {
         if segment_count < 4 {
@@ -255,7 +307,7 @@ where
 /// Writes segments to `write`.
 async fn write_segments<W>(mut write: W, segments: &[&[u8]]) -> Result<()>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
 {
     for segment in segments {
         write.write_all(segment).await?;
@@ -267,16 +319,14 @@ where
 pub mod test {
     use std::cmp;
     use std::io::{self, Read, Write};
-    use std::pin::Pin;
     use std::task::{Context, Poll};
-
-    use futures::io::Cursor;
-    use futures::{AsyncRead, AsyncWrite};
 
     use quickcheck::{quickcheck, TestResult};
 
     use capnp::message::ReaderSegments;
     use capnp::{message, OutputSegments};
+
+    use crate::io::{AsyncFdRead, AsyncFdWrite, Count, FdReadBuf, FdWriteBuf};
 
     use super::{read_segment_table, try_read_message, write_message, AsOutputSegments};
 
@@ -293,11 +343,13 @@ pub mod test {
         );
         let segment_lengths = exec
             .run_until(read_segment_table(
-                Cursor::new(&buf[..]),
+                &buf[..],
                 message::ReaderOptions::new(),
+                &mut [],
             ))
             .unwrap()
-            .unwrap();
+            .unwrap()
+            .0;
         assert_eq!(0, segment_lengths.total_words());
         assert_eq!(vec![(0, 0)], segment_lengths.to_segment_indices());
         buf.clear();
@@ -311,11 +363,13 @@ pub mod test {
 
         let segment_lengths = exec
             .run_until(read_segment_table(
-                &mut Cursor::new(&buf[..]),
+                &buf[..],
                 message::ReaderOptions::new(),
+                &mut [],
             ))
             .unwrap()
-            .unwrap();
+            .unwrap()
+            .0;
         assert_eq!(1, segment_lengths.total_words());
         assert_eq!(vec![(0, 1)], segment_lengths.to_segment_indices());
         buf.clear();
@@ -330,11 +384,13 @@ pub mod test {
         );
         let segment_lengths = exec
             .run_until(read_segment_table(
-                &mut Cursor::new(&buf[..]),
+                &buf[..],
                 message::ReaderOptions::new(),
+                &mut [],
             ))
             .unwrap()
-            .unwrap();
+            .unwrap()
+            .0;
         assert_eq!(2, segment_lengths.total_words());
         assert_eq!(vec![(0, 1), (1, 2)], segment_lengths.to_segment_indices());
         buf.clear();
@@ -349,11 +405,13 @@ pub mod test {
         );
         let segment_lengths = exec
             .run_until(read_segment_table(
-                &mut Cursor::new(&buf[..]),
+                &buf[..],
                 message::ReaderOptions::new(),
+                &mut [],
             ))
             .unwrap()
-            .unwrap();
+            .unwrap()
+            .0;
         assert_eq!(258, segment_lengths.total_words());
         assert_eq!(
             vec![(0, 1), (1, 2), (2, 258)],
@@ -373,11 +431,13 @@ pub mod test {
         );
         let segment_lengths = exec
             .run_until(read_segment_table(
-                &mut Cursor::new(&buf[..]),
+                &buf[..],
                 message::ReaderOptions::new(),
+                &mut [],
             ))
             .unwrap()
-            .unwrap();
+            .unwrap()
+            .0;
         assert_eq!(200, segment_lengths.total_words());
         assert_eq!(
             vec![(0, 77), (77, 100), (100, 101), (101, 200)],
@@ -395,8 +455,9 @@ pub mod test {
         buf.extend([0; 513 * 4]);
         assert!(exec
             .run_until(read_segment_table(
-                Cursor::new(&buf[..]),
-                message::ReaderOptions::new()
+                &buf[..],
+                message::ReaderOptions::new(),
+                &mut [],
             ))
             .is_err());
         buf.clear();
@@ -404,8 +465,9 @@ pub mod test {
         buf.extend([0, 0, 0, 0]); // 1 segments
         assert!(exec
             .run_until(read_segment_table(
-                Cursor::new(&buf[..]),
-                message::ReaderOptions::new()
+                &buf[..],
+                message::ReaderOptions::new(),
+                &mut [],
             ))
             .is_err());
 
@@ -415,8 +477,9 @@ pub mod test {
         buf.extend([0; 3]);
         assert!(exec
             .run_until(read_segment_table(
-                Cursor::new(&buf[..]),
-                message::ReaderOptions::new()
+                &buf[..],
+                message::ReaderOptions::new(),
+                &mut [],
             ))
             .is_err());
         buf.clear();
@@ -424,8 +487,9 @@ pub mod test {
         buf.extend([255, 255, 255, 255]); // 0 segments
         assert!(exec
             .run_until(read_segment_table(
-                Cursor::new(&buf[..]),
-                message::ReaderOptions::new()
+                &buf[..],
+                message::ReaderOptions::new(),
+                &mut [],
             ))
             .is_err());
         buf.clear();
@@ -434,7 +498,7 @@ pub mod test {
     fn construct_segment_table(segments: &[&[u8]]) -> Vec<u8> {
         let mut exec = futures::executor::LocalPool::new();
         let mut buf = vec![];
-        exec.run_until(super::write_segment_table(&mut buf, segments))
+        exec.run_until(super::write_segment_table(&mut buf, segments, &[]))
             .unwrap();
         buf
     }
@@ -560,15 +624,16 @@ pub mod test {
         }
     }
 
-    impl<R> AsyncRead for BlockingRead<R>
+    impl<R> AsyncFdRead for BlockingRead<R>
     where
-        R: Read + Unpin,
+        R: Read,
     {
-        fn poll_read(
-            mut self: Pin<&mut Self>,
+        fn poll_read_with_fds(
+            &mut self,
             cx: &mut Context,
             buf: &mut [u8],
-        ) -> Poll<io::Result<usize>> {
+            _fd_buf: &mut FdReadBuf,
+        ) -> Poll<io::Result<Count>> {
             if self.idx == 0 {
                 self.idx = self.blocking_period;
                 cx.waker().wake_by_ref();
@@ -580,7 +645,10 @@ pub mod test {
                     Ok(n) => n,
                 };
                 self.idx -= bytes_read;
-                Poll::Ready(Ok(bytes_read))
+                Poll::Ready(Ok(Count {
+                    bytes: bytes_read,
+                    fds: 0,
+                }))
             }
         }
     }
@@ -616,15 +684,16 @@ pub mod test {
         }
     }
 
-    impl<W> AsyncWrite for BlockingWrite<W>
+    impl<W> AsyncFdWrite for BlockingWrite<W>
     where
-        W: Write + Unpin,
+        W: Write,
     {
-        fn poll_write(
-            mut self: Pin<&mut Self>,
+        fn poll_write_with_fds(
+            &mut self,
             cx: &mut Context,
             buf: &[u8],
-        ) -> Poll<io::Result<usize>> {
+            _fd_buf: &FdWriteBuf<'_>,
+        ) -> Poll<io::Result<Count>> {
             if self.idx == 0 {
                 self.idx = self.blocking_period;
                 cx.waker().wake_by_ref();
@@ -636,15 +705,14 @@ pub mod test {
                     Ok(n) => n,
                 };
                 self.idx -= bytes_written;
-                Poll::Ready(Ok(bytes_written))
+                Poll::Ready(Ok(Count {
+                    bytes: bytes_written,
+                    fds: 0,
+                }))
             }
         }
-        fn poll_flush(mut self: Pin<&mut Self>, _cx: &mut Context) -> Poll<io::Result<()>> {
+        fn poll_flush(&mut self, _cx: &mut Context) -> Poll<io::Result<()>> {
             Poll::Ready(self.writer.flush())
-        }
-
-        fn poll_close(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<io::Result<()>> {
-            Poll::Ready(Ok(()))
         }
     }
 

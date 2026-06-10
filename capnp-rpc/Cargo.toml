@@ -14,11 +14,15 @@ edition = "2021"
 readme = "README.md"
 
 [dependencies]
-capnp-futures = { version = "0.25.0", path = "../capnp-futures" }
+capnp-futures = { version = "0.25.0", path = "../capnp-futures", default-features = false }
 capnp = {version = "0.25.0", path = "../capnp"}
 futures-channel = { version = "0.3.0", default-features = false, features = ["std"] }
-futures-io = { version = "0.3.0", default-features = false, features = ["std"] }
+futures-io = { version = "0.3.0", default-features = false, features = ["std"], optional = true }
 futures-util = { version = "0.3.0", default-features = false, features = ["std"] }
+
+[features]
+default = ["futures-io"]
+futures-io = ["dep:futures-io", "capnp-futures/futures-io"]
 
 [lints]
 workspace = true

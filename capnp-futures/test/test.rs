@@ -25,7 +25,7 @@ capnp::generated_code!(pub mod addressbook_capnp);
 mod tests {
     use crate::addressbook_capnp::{address_book, person};
     use capnp::message;
-    use capnp_futures::serialize;
+    use capnp_futures::io::serialize;
     use futures::task::LocalSpawnExt;
 
     fn populate_address_book(address_book: address_book::Builder) {
@@ -95,9 +95,9 @@ mod tests {
         let spawner = pool.spawner();
 
         let (writer, reader) = async_byte_channel::channel();
-        let (mut sender, write_queue) = capnp_futures::write_queue(writer);
+        let (mut sender, write_queue) = capnp_futures::io::write_queue(writer);
 
-        let read_stream = capnp_futures::ReadStream::new(reader, Default::default());
+        let read_stream = capnp_futures::io::ReadStream::new(reader, Default::default());
         let messages_read = Rc::new(Cell::new(0u32));
         let messages_read1 = messages_read.clone();
 
@@ -184,8 +184,9 @@ mod tests {
     #[test]
     fn static_lifetime_not_required_on_highlevel() {
         let (mut write, mut read) = async_byte_channel::channel();
-        let _ = capnp_futures::ReadStream::new(&mut read, message::ReaderOptions::default());
-        let _ =
-            capnp_futures::write_queue::<_, message::Builder<message::HeapAllocator>>(&mut write);
+        let _ = capnp_futures::io::ReadStream::new(&mut read, message::ReaderOptions::default());
+        let _ = capnp_futures::io::write_queue::<_, message::Builder<message::HeapAllocator>>(
+            &mut write,
+        );
     }
 }

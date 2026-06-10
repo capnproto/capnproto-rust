@@ -1,10 +1,10 @@
 // Simple in-memory byte stream.
 
-use std::pin::Pin;
+use std::io;
 use std::sync::{Arc, Mutex};
 
-use futures::{AsyncRead, AsyncWrite};
-use std::task::{Poll, Waker};
+use capnp_futures::io::{AsyncFdRead, AsyncFdWrite, Count, FdReadBuf, FdWriteBuf};
+use std::task::{Context, Poll, Waker};
 
 #[derive(Debug)]
 struct Inner {
@@ -68,16 +68,17 @@ pub fn channel() -> (Sender, Receiver) {
     (sender, receiver)
 }
 
-impl AsyncRead for Receiver {
-    fn poll_read(
-        self: Pin<&mut Self>,
-        cx: &mut futures::task::Context,
+impl AsyncFdRead for Receiver {
+    fn poll_read_with_fds(
+        &mut self,
+        cx: &mut Context<'_>,
         buf: &mut [u8],
-    ) -> futures::task::Poll<Result<usize, futures::io::Error>> {
+        _fd_buf: &mut FdReadBuf,
+    ) -> Poll<io::Result<Count>> {
         let mut inner = self.inner.lock().unwrap();
         if inner.read_cursor == inner.write_cursor {
             if inner.write_end_closed {
-                Poll::Ready(Ok(0))
+                Poll::Ready(Ok(Count { bytes: 0, fds: 0 }))
             } else {
                 inner.read_waker = Some(cx.waker().clone());
                 Poll::Pending
@@ -91,17 +92,21 @@ impl AsyncRead for Receiver {
             if let Some(write_waker) = inner.write_waker.take() {
                 write_waker.wake();
             }
-            Poll::Ready(Ok(copy_len))
+            Poll::Ready(Ok(Count {
+                bytes: copy_len,
+                fds: 0,
+            }))
         }
     }
 }
 
-impl AsyncWrite for Sender {
-    fn poll_write(
-        self: Pin<&mut Self>,
-        cx: &mut futures::task::Context,
+impl AsyncFdWrite for Sender {
+    fn poll_write_with_fds(
+        &mut self,
+        cx: &mut Context<'_>,
         buf: &[u8],
-    ) -> futures::task::Poll<Result<usize, futures::io::Error>> {
+        _fd_buf: &FdWriteBuf<'_>,
+    ) -> Poll<io::Result<Count>> {
         let mut inner = self.inner.lock().unwrap();
         if inner.read_end_closed {
             return Poll::Ready(Err(std::io::Error::new(
@@ -128,33 +133,23 @@ impl AsyncWrite for Sender {
         if let Some(read_waker) = inner.read_waker.take() {
             read_waker.wake();
         }
-        Poll::Ready(Ok(copy_len))
+        Poll::Ready(Ok(Count {
+            bytes: copy_len,
+            fds: 0,
+        }))
     }
 
-    fn poll_flush(
-        self: Pin<&mut Self>,
-        _cx: &mut futures::task::Context,
-    ) -> Poll<Result<(), futures::io::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn poll_close(
-        self: Pin<&mut Self>,
-        _cx: &mut futures::task::Context,
-    ) -> Poll<Result<(), futures::io::Error>> {
-        let mut inner = self.inner.lock().unwrap();
-        inner.write_end_closed = true;
-        if let Some(read_waker) = inner.read_waker.take() {
-            read_waker.wake();
-        }
+    fn poll_flush(&mut self, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         Poll::Ready(Ok(()))
     }
 }
 
 #[cfg(test)]
 pub mod test {
+    use std::io;
+
+    use capnp_futures::io::{AsyncFdReadExt, AsyncFdWriteExt as _};
     use futures::task::LocalSpawnExt;
-    use futures::{AsyncReadExt, AsyncWriteExt};
 
     #[test]
     fn basic() {
@@ -173,10 +168,12 @@ pub mod test {
             })
             .unwrap();
 
-        let mut buf3 = vec![];
-        pool.run_until(receiver.read_to_end(&mut buf3)).unwrap();
-
-        assert_eq!(buf.len(), buf3.len());
+        pool.run_until(async {
+            receiver.read_exact(&mut vec![0; buf.len()]).await?;
+            assert_eq!(receiver.read(&mut [0]).await?, 0);
+            io::Result::Ok(())
+        })
+        .unwrap();
     }
 
     #[test]

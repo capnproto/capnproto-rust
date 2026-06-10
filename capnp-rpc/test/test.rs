@@ -43,7 +43,7 @@ fn canceled_to_error(_e: futures::channel::oneshot::Canceled) -> Error {
 fn drop_rpc_system() {
     let (writer, reader) = async_byte_channel::channel();
 
-    let network = Box::new(twoparty::VatNetwork::new(
+    let network = Box::new(twoparty::io::VatNetwork::new(
         reader,
         writer,
         rpc_twoparty_capnp::Side::Client,
@@ -59,7 +59,7 @@ fn disconnector_setup() -> (
 ) {
     let (client_writer, server_reader) = async_byte_channel::channel();
     let (server_writer, client_reader) = async_byte_channel::channel();
-    let client_network = Box::new(twoparty::VatNetwork::new(
+    let client_network = Box::new(twoparty::io::VatNetwork::new(
         client_reader,
         client_writer,
         rpc_twoparty_capnp::Side::Client,
@@ -68,7 +68,7 @@ fn disconnector_setup() -> (
 
     let client_rpc_system = RpcSystem::new(client_network, None);
 
-    let server_network = Box::new(twoparty::VatNetwork::new(
+    let server_network = Box::new(twoparty::io::VatNetwork::new(
         server_reader,
         server_writer,
         rpc_twoparty_capnp::Side::Server,
@@ -248,7 +248,7 @@ where
     let (server_writer, client_reader) = async_byte_channel::channel();
 
     let join_handle = std::thread::spawn(move || {
-        let network = Box::new(twoparty::VatNetwork::new(
+        let network = Box::new(twoparty::io::VatNetwork::new(
             server_reader,
             server_writer,
             rpc_twoparty_capnp::Side::Server,
@@ -260,7 +260,7 @@ where
         futures::executor::block_on(rpc_system).unwrap();
     });
 
-    let network = Box::new(twoparty::VatNetwork::new(
+    let network = Box::new(twoparty::io::VatNetwork::new(
         client_reader,
         client_writer,
         rpc_twoparty_capnp::Side::Client,
