@@ -35,6 +35,8 @@ pub mod futures_io;
 mod read_stream;
 pub mod serialize;
 pub mod serialize_packed;
+#[cfg(feature = "tokio")]
+pub mod tokio;
 mod write_queue;
 
 pub type FdReadBuf = [Option<OwnedFd>];

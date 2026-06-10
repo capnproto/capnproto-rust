@@ -31,6 +31,12 @@ default-features = false
 features = ["std"]
 optional = true
 
+[dependencies.tokio]
+version = "1.52.3"
+default-features = false
+features = ["net"]
+optional = true
+
 [dev-dependencies.futures]
 version = "0.3.0"
 default-features = false
@@ -43,6 +49,7 @@ quickcheck = "1"
 [features]
 default = ["futures-io"]
 futures-io = ["dep:futures-io"]
+tokio = ["dep:tokio"]
 
 [lints]
 workspace = true
