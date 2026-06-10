@@ -43,7 +43,7 @@ mod tests {
     fn write_async(builder: &message::Builder<HeapAllocator>) -> Vec<u8> {
         futures::executor::block_on(async {
             let mut buf: Vec<u8> = Vec::new();
-            capnp_futures::serialize_packed::write_message(&mut buf, builder)
+            capnp_futures::io::serialize_packed::write_message(&mut buf, builder)
                 .await
                 .unwrap();
             buf
@@ -56,7 +56,7 @@ mod tests {
 
     fn read_async(buf: &[u8]) -> message::Reader<OwnedSegments> {
         futures::executor::block_on(async {
-            capnp_futures::serialize_packed::read_message(buf, message::DEFAULT_READER_OPTIONS)
+            capnp_futures::io::serialize_packed::read_message(buf, message::DEFAULT_READER_OPTIONS)
                 .await
                 .unwrap()
         })

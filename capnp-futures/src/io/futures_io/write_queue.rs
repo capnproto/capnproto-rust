@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2016 Sandstorm Development Group, Inc. and contributors
+// Copyright (c) 2016 Sandstorm Development Group, Inc. and contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,13 +18,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::serialize;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::serialize_packed;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::ReadStream;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::{write_queue, Sender};
+use std::future::Future;
 
-pub mod io;
+use capnp::Error;
+use futures_io::AsyncWrite;
+
+pub use crate::io::Sender;
+use crate::io::{futures_io::Compat, serialize::AsOutputSegments};
+
+/// Creates a new write queue that wraps the given `AsyncWrite`.
+///
+/// Returns `(sender, task)`, where `sender` can be used to push writes onto the
+/// queue, and `task` is a future that performs the work of the writes. The queue
+/// will run as long as `task` is polled, until either `sender.terminate()` is
+/// called or `sender` and all of its clones are dropped.
+pub fn write_queue<W, M>(writer: W) -> (Sender<M>, impl Future<Output = Result<(), Error>>)
+where
+    W: AsyncWrite + Unpin,
+    M: AsOutputSegments,
+{
+    crate::io::write_queue(Compat::new(writer))
+}

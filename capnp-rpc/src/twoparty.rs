@@ -24,13 +24,12 @@
 
 use capnp::capability::Promise;
 use capnp::message::ReaderOptions;
+use capnp_futures::io::AsyncFdRead;
 use futures_channel::oneshot;
-use futures_io::{AsyncRead, AsyncWrite};
-use futures_util::{FutureExt as _, TryFutureExt as _};
+use futures_util::TryFutureExt as _;
 
 use std::cell::RefCell;
-use std::future;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 
 pub type VatId = crate::rpc_twoparty_capnp::Side;
 
@@ -52,7 +51,8 @@ impl crate::IncomingMessage for IncomingMessage {
 
 struct OutgoingMessage {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
+    sender:
+        ::capnp_futures::io::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
 }
 
 impl crate::OutgoingMessage for OutgoingMessage {
@@ -93,10 +93,11 @@ impl crate::OutgoingMessage for OutgoingMessage {
 
 struct ConnectionInner<T>
 where
-    T: AsyncRead + 'static,
+    T: AsyncFdRead + 'static,
 {
     input_stream: Rc<RefCell<Option<T>>>,
-    sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
+    sender:
+        ::capnp_futures::io::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
     side: crate::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
@@ -105,14 +106,14 @@ where
 
 struct Connection<T>
 where
-    T: AsyncRead + 'static,
+    T: AsyncFdRead + 'static,
 {
     inner: Rc<RefCell<ConnectionInner<T>>>,
 }
 
 impl<T> Drop for ConnectionInner<T>
 where
-    T: AsyncRead,
+    T: AsyncFdRead,
 {
     fn drop(&mut self) {
         match self.on_disconnect_fulfiller.take() {
@@ -126,11 +127,11 @@ where
 
 impl<T> Connection<T>
 where
-    T: AsyncRead,
+    T: AsyncFdRead,
 {
     fn new(
         input_stream: T,
-        sender: ::capnp_futures::Sender<
+        sender: ::capnp_futures::io::Sender<
             Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
         >,
         side: crate::rpc_twoparty_capnp::Side,
@@ -152,7 +153,7 @@ where
 
 impl<T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
 where
-    T: AsyncRead + Unpin,
+    T: AsyncFdRead,
 {
     fn get_peer_vat_id(&self) -> crate::rpc_twoparty_capnp::Side {
         self.inner.borrow().side
@@ -183,7 +184,7 @@ where
                 let receive_options = inner.receive_options;
                 Promise::from_future(async move {
                     let maybe_message =
-                        ::capnp_futures::serialize::try_read_message(&mut s, receive_options)
+                        ::capnp_futures::io::serialize::try_read_message(&mut s, receive_options)
                             .await?;
                     *return_it_here.borrow_mut() = Some(s);
                     Ok(maybe_message.map(|message| {
@@ -212,111 +213,204 @@ where
     }
 }
 
-/// A vat network with two parties, the client and the server.
-pub struct VatNetwork<T>
-where
-    T: AsyncRead + 'static + Unpin,
-{
-    // connection handle that we will return on accept()
-    connection: Option<Connection<T>>,
+pub mod io {
+    use std::{
+        cell::RefCell,
+        future,
+        rc::{Rc, Weak},
+    };
 
-    // connection handle that we will return on connect()
-    weak_connection_inner: Weak<RefCell<ConnectionInner<T>>>,
+    use capnp::{capability::Promise, message::ReaderOptions};
+    use capnp_futures::io::{AsyncFdRead, AsyncFdWrite};
+    use futures_channel::oneshot;
+    use futures_util::{FutureExt as _, TryFutureExt as _};
 
-    execution_driver: futures_util::future::Shared<Promise<(), ::capnp::Error>>,
-    side: crate::rpc_twoparty_capnp::Side,
-}
+    use crate::twoparty::{Connection, ConnectionInner, VatId};
 
-/// A two-party vat `VatNetwork` implementation.
-impl<T> VatNetwork<T>
-where
-    T: AsyncRead + Unpin,
-{
-    /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
-    /// `output_stream`. (Typically, performance is best if these streams are buffered, possibly via
-    /// `futures::io::BufReader` and `futures::io::BufWriter`.)
-    ///
-    /// `side` indicates whether this is the client or the server side of the connection. This has no
-    /// effect on the data sent over the connection; it merely exists so that `RpcNetwork::bootstrap` knows
-    /// whether to return the local or the remote bootstrap capability. `VatId` parameters like this one
-    /// will make more sense once we have vat networks with more than two parties.
-    ///
-    /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
-    pub fn new<U>(
-        input_stream: T,
-        output_stream: U,
-        side: crate::rpc_twoparty_capnp::Side,
-        receive_options: ReaderOptions,
-    ) -> Self
+    /// A two-party vat `VatNetwork` implementation.
+    pub struct VatNetwork<T>
     where
-        U: AsyncWrite + 'static + Unpin,
+        T: AsyncFdRead + 'static,
     {
-        let (fulfiller, disconnect_promise) = oneshot::channel();
-        let disconnect_promise =
-            disconnect_promise.map_err(|_| ::capnp::Error::disconnected("disconnected".into()));
+        // connection handle that we will return on accept()
+        connection: Option<Connection<T>>,
 
-        let (execution_driver, sender) = {
-            let (tx, write_queue) = ::capnp_futures::write_queue(output_stream);
+        // connection handle that we will return on connect()
+        weak_connection_inner: Weak<RefCell<ConnectionInner<T>>>,
 
-            // Don't use `.join()` here because we need to make sure to wait for `disconnect_promise` to
-            // resolve even if `write_queue` resolves to an error.
-            (
-                Promise::from_future(write_queue.then(move |r| {
-                    disconnect_promise
-                        .then(move |_| future::ready(r))
-                        .map_ok(|_| ())
-                }))
-                .shared(),
-                tx,
-            )
-        };
-
-        let connection = Connection::new(input_stream, sender, side, receive_options, fulfiller);
-        let weak_inner = Rc::downgrade(&connection.inner);
-        Self {
-            connection: Some(connection),
-            weak_connection_inner: weak_inner,
-            execution_driver,
-            side,
-        }
+        execution_driver: futures_util::future::Shared<Promise<(), ::capnp::Error>>,
+        side: crate::rpc_twoparty_capnp::Side,
     }
 
-    /// Set the number of bytes in the flow control window for each stream created
-    /// on this connection.
-    pub fn set_window_size(&mut self, window_size: usize) {
-        if let Some(ref mut conn) = self.connection {
-            conn.inner.borrow_mut().window_size_in_bytes = window_size;
-        }
-    }
-}
+    /// A two-party vat `VatNetwork` implementation.
+    impl<T> VatNetwork<T>
+    where
+        T: AsyncFdRead,
+    {
+        /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
+        /// `output_stream`. (Typically, performance is best if these streams are buffered, possibly via
+        /// `futures::io::BufReader` and `futures::io::BufWriter`.)
+        ///
+        /// `side` indicates whether this is the client or the server side of the connection. This has no
+        /// effect on the data sent over the connection; it merely exists so that `RpcNetwork::bootstrap` knows
+        /// whether to return the local or the remote bootstrap capability. `VatId` parameters like this one
+        /// will make more sense once we have vat networks with more than two parties.
+        ///
+        /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
+        pub fn new<U>(
+            input_stream: T,
+            output_stream: U,
+            side: crate::rpc_twoparty_capnp::Side,
+            receive_options: ReaderOptions,
+        ) -> Self
+        where
+            U: AsyncFdWrite + 'static,
+        {
+            let (fulfiller, disconnect_promise) = oneshot::channel();
+            let disconnect_promise =
+                disconnect_promise.map_err(|_| ::capnp::Error::disconnected("disconnected".into()));
 
-impl<T> crate::VatNetwork<VatId> for VatNetwork<T>
-where
-    T: AsyncRead + Unpin,
-{
-    fn connect(&mut self, host_id: VatId) -> Option<Box<dyn crate::Connection<VatId>>> {
-        if host_id == self.side {
-            None
-        } else {
-            match self.weak_connection_inner.upgrade() {
-                Some(connection_inner) => Some(Box::new(Connection {
-                    inner: connection_inner,
-                })),
-                None => {
-                    panic!("tried to reconnect a disconnected twoparty vat network.")
-                }
+            let (execution_driver, sender) = {
+                let (tx, write_queue) = ::capnp_futures::io::write_queue(output_stream);
+
+                // Don't use `.join()` here because we need to make sure to wait for `disconnect_promise` to
+                // resolve even if `write_queue` resolves to an error.
+                (
+                    Promise::from_future(write_queue.then(move |r| {
+                        disconnect_promise
+                            .then(move |_| future::ready(r))
+                            .map_ok(|_| ())
+                    }))
+                    .shared(),
+                    tx,
+                )
+            };
+
+            let connection =
+                Connection::new(input_stream, sender, side, receive_options, fulfiller);
+            let weak_inner = Rc::downgrade(&connection.inner);
+            Self {
+                connection: Some(connection),
+                weak_connection_inner: weak_inner,
+                execution_driver,
+                side,
+            }
+        }
+
+        /// Set the number of bytes in the flow control window for each stream created
+        /// on this connection.
+        pub fn set_window_size(&mut self, window_size: usize) {
+            if let Some(ref mut conn) = self.connection {
+                conn.inner.borrow_mut().window_size_in_bytes = window_size;
             }
         }
     }
 
-    fn accept(&mut self) -> Promise<Box<dyn crate::Connection<VatId>>, ::capnp::Error> {
-        match self.connection.take() {
-            Some(c) => Promise::ok(Box::new(c) as Box<dyn crate::Connection<VatId>>),
-            None => Promise::from_future(future::pending()),
+    impl<T> crate::VatNetwork<VatId> for VatNetwork<T>
+    where
+        T: AsyncFdRead,
+    {
+        fn connect(&mut self, host_id: VatId) -> Option<Box<dyn crate::Connection<VatId>>> {
+            if host_id == self.side {
+                None
+            } else {
+                match self.weak_connection_inner.upgrade() {
+                    Some(connection_inner) => Some(Box::new(Connection {
+                        inner: connection_inner,
+                    })),
+                    None => {
+                        panic!("tried to reconnect a disconnected twoparty vat network.")
+                    }
+                }
+            }
+        }
+
+        fn accept(&mut self) -> Promise<Box<dyn crate::Connection<VatId>>, ::capnp::Error> {
+            match self.connection.take() {
+                Some(c) => Promise::ok(Box::new(c) as Box<dyn crate::Connection<VatId>>),
+                None => Promise::from_future(future::pending()),
+            }
+        }
+
+        fn drive_until_shutdown(&mut self) -> Promise<(), ::capnp::Error> {
+            Promise::from_future(self.execution_driver.clone())
+        }
+    }
+}
+
+#[cfg(feature = "futures-io")]
+mod futures_io {
+    use capnp::{capability::Promise, message::ReaderOptions};
+    use capnp_futures::io::futures_io::Compat;
+    use futures_io::{AsyncRead, AsyncWrite};
+
+    use crate::twoparty::VatId;
+
+    /// A two-party vat `VatNetwork` implementation.
+    pub struct VatNetwork<T>
+    where
+        T: AsyncRead + Unpin + 'static,
+    {
+        inner: crate::twoparty::io::VatNetwork<Compat<T>>,
+    }
+
+    impl<T> VatNetwork<T>
+    where
+        T: AsyncRead + Unpin,
+    {
+        /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
+        /// `output_stream`. (Typically, performance is best if these streams are buffered, possibly via
+        /// `futures::io::BufReader` and `futures::io::BufWriter`.)
+        ///
+        /// `side` indicates whether this is the client or the server side of the connection. This has no
+        /// effect on the data sent over the connection; it merely exists so that `RpcNetwork::bootstrap` knows
+        /// whether to return the local or the remote bootstrap capability. `VatId` parameters like this one
+        /// will make more sense once we have vat networks with more than two parties.
+        ///
+        /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
+        pub fn new<U>(
+            input_stream: T,
+            output_stream: U,
+            side: crate::rpc_twoparty_capnp::Side,
+            receive_options: ReaderOptions,
+        ) -> Self
+        where
+            U: AsyncWrite + Unpin + 'static,
+        {
+            VatNetwork {
+                inner: crate::twoparty::io::VatNetwork::new(
+                    Compat::new(input_stream),
+                    Compat::new(output_stream),
+                    side,
+                    receive_options,
+                ),
+            }
+        }
+
+        /// Set the number of bytes in the flow control window for each stream created
+        /// on this connection.
+        pub fn set_window_size(&mut self, window_size: usize) {
+            self.inner.set_window_size(window_size)
         }
     }
 
-    fn drive_until_shutdown(&mut self) -> Promise<(), ::capnp::Error> {
-        Promise::from_future(self.execution_driver.clone())
+    impl<T> crate::VatNetwork<VatId> for VatNetwork<T>
+    where
+        T: AsyncRead + Unpin,
+    {
+        fn connect(&mut self, host_id: VatId) -> Option<Box<dyn crate::Connection<VatId>>> {
+            self.inner.connect(host_id)
+        }
+
+        fn accept(&mut self) -> Promise<Box<dyn crate::Connection<VatId>>, capnp::Error> {
+            self.inner.accept()
+        }
+
+        fn drive_until_shutdown(&mut self) -> Promise<(), capnp::Error> {
+            self.inner.drive_until_shutdown()
+        }
     }
 }
+
+#[cfg(feature = "futures-io")]
+pub use futures_io::VatNetwork;
