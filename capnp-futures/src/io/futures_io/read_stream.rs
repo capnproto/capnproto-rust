@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2017 Sandstorm Development Group, Inc. and contributors
+// Copyright (c) 2016 Sandstorm Development Group, Inc. and contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,48 +18,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-pub(crate) struct AttachFuture<F, T>
+use capnp::{message, Error};
+use futures_core::stream::Stream;
+use futures_io::AsyncRead;
+
+use crate::io::futures_io::Compat;
+
+/// An incoming sequence of messages.
+#[must_use = "streams do nothing unless polled"]
+pub struct ReadStream<'a, R>
 where
-    F: Future + Unpin,
+    R: AsyncRead + Unpin,
 {
-    original_future: F,
-    value: Option<T>,
+    inner: crate::io::read_stream::ReadStream<'a, Compat<R>>,
 }
 
-impl<F, T> Unpin for AttachFuture<F, T> where F: Future + Unpin {}
+impl<R> Unpin for ReadStream<'_, R> where R: AsyncRead + Unpin {}
 
-impl<F, T> Future for AttachFuture<F, T>
+impl<'a, R> ReadStream<'a, R>
 where
-    F: Future + Unpin,
+    R: AsyncRead + Unpin + 'a,
 {
-    type Output = F::Output;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        let result = Pin::new(&mut self.original_future).poll(cx);
-        if result.is_ready() {
-            self.value.take();
-        }
-        result
-    }
-}
-
-pub(crate) trait Attach: Future
-where
-    Self: Unpin,
-{
-    fn attach<T>(self, value: T) -> AttachFuture<Self, T>
-    where
-        Self: Sized,
-    {
-        AttachFuture {
-            original_future: self,
-            value: Some(value),
+    pub fn new(reader: R, options: message::ReaderOptions) -> Self {
+        ReadStream {
+            inner: crate::io::read_stream::ReadStream::new(Compat::new(reader), options),
         }
     }
 }
 
-impl<F> Attach for F where F: Future + Unpin {}
+impl<'a, R> Stream for ReadStream<'a, R>
+where
+    R: AsyncRead + Unpin + 'a,
+{
+    type Item = Result<message::Reader<capnp::serialize::OwnedSegments>, Error>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.inner).poll_next(cx)
+    }
+}

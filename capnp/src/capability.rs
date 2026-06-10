@@ -36,6 +36,8 @@ use core::task::Poll;
 
 use crate::any_pointer;
 #[cfg(feature = "alloc")]
+use crate::fd::BorrowedFd;
+#[cfg(feature = "alloc")]
 use crate::private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
 #[cfg(feature = "alloc")]
 use crate::traits::{Owned, Pipelined};
@@ -403,6 +405,25 @@ impl Client {
     pub fn when_resolved(&self) -> Promise<(), Error> {
         self.hook.when_resolved()
     }
+
+    pub async fn get_fd(&self) -> Result<Option<BorrowedFd<'_>>, Error> {
+        let mut hook_ref = &self.hook;
+        let mut hook;
+        loop {
+            // TODO: The C++ implementation chases the promises when calling
+            // `get_fd()`, but we can’t do that for lifetime reasons. This may
+            // be less efficient, although it seems like it should only yield
+            // different results in the presence of dodgy implementations.
+            if let Some(fd) = self.hook.get_fd() {
+                return Ok(Some(fd));
+            }
+            let Some(promise) = hook_ref.when_more_resolved() else {
+                break Ok(None);
+            };
+            hook = promise.await?;
+            hook_ref = &hook;
+        }
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -468,6 +489,10 @@ pub trait Server {
     ) -> DispatchCallResult;
 
     fn as_ptr(&self) -> usize;
+
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        None
+    }
 }
 
 /// Trait to track the relationship between generated Server traits and Client structs.

@@ -18,20 +18,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::future::Future;
-
-use futures_channel::oneshot;
-use futures_util::{AsyncWrite, AsyncWriteExt, StreamExt, TryFutureExt};
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use capnp::Error;
+use futures_channel::oneshot;
 
-use crate::serialize::AsOutputSegments;
+use crate::{
+    io::serialize::AsOutputSegments,
+    io::{AsyncFdWrite, AsyncFdWriteExt as _},
+};
 
 enum Item<M>
 where
     M: AsOutputSegments,
 {
     Message(M, oneshot::Sender<M>),
+    MessageMove(M, oneshot::Sender<()>),
     Done(Result<(), Error>, oneshot::Sender<()>),
 }
 
@@ -64,7 +70,7 @@ where
 /// called or `sender` and all of its clones are dropped.
 pub fn write_queue<W, M>(mut writer: W) -> (Sender<M>, impl Future<Output = Result<(), Error>>)
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
     M: AsOutputSegments,
 {
     let (tx, mut rx) = futures_channel::mpsc::unbounded::<Item<M>>();
@@ -77,14 +83,21 @@ where
     };
 
     let queue = async move {
-        while let Some(item) = rx.next().await {
+        while let Ok(item) = rx.recv().await {
             match item {
                 Item::Message(m, returner) => {
-                    let result = crate::serialize::write_message(&mut writer, &m).await;
+                    let result = crate::io::serialize::write_message(&mut writer, &m).await;
                     in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
                     result?;
                     writer.flush().await?;
                     let _ = returner.send(m);
+                }
+                Item::MessageMove(m, finisher) => {
+                    let result = crate::io::serialize::write_message(&mut writer, m).await;
+                    in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                    result?;
+                    writer.flush().await?;
+                    let _ = finisher.send(());
                 }
                 Item::Done(r, finisher) => {
                     let _ = finisher.send(());
@@ -101,14 +114,12 @@ where
 fn _assert_kinds() {
     fn _assert_send<T: Send>(_x: T) {}
     fn _assert_sync<T: Sync>() {}
-    fn _assert_write_queue_send<W: AsyncWrite + Unpin + Send, M: AsOutputSegments + Sync + Send>(
-        w: W,
-    ) {
+    fn _assert_write_queue_send<W: AsyncFdWrite + Send, M: AsOutputSegments + Sync + Send>(w: W) {
         let (s, f) = write_queue::<W, M>(w);
         _assert_send(s);
         _assert_send(f);
     }
-    fn _assert_write_queue_send_2<W: AsyncWrite + Unpin + Send>(w: W) {
+    fn _assert_write_queue_send_2<W: AsyncFdWrite + Send>(w: W) {
         let (s, f) = write_queue::<W, capnp::message::Builder<capnp::message::HeapAllocator>>(w);
         _assert_send(s);
         _assert_send(f);
@@ -128,7 +139,22 @@ where
 
         let _ = self.sender.unbounded_send(Item::Message(message, complete));
 
-        oneshot.map_err(|oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into()))
+        MapErr(oneshot)
+    }
+
+    pub fn send_move(
+        &mut self,
+        message: M,
+    ) -> impl Future<Output = Result<(), Error>> + Unpin + 'static {
+        self.in_flight
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let (complete, oneshot) = oneshot::channel();
+
+        let _ = self
+            .sender
+            .unbounded_send(Item::MessageMove(message, complete));
+
+        MapErr(oneshot)
     }
 
     /// Returns the number of messages queued to be written.
@@ -153,7 +179,18 @@ where
 
         let _ = self.sender.unbounded_send(Item::Done(result, complete));
 
-        receiver
+        MapErr(receiver)
+    }
+}
+
+struct MapErr<T>(oneshot::Receiver<T>);
+
+impl<T> Future for MapErr<T> {
+    type Output = Result<T, Error>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut self.0)
+            .poll(cx)
             .map_err(|oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into()))
     }
 }

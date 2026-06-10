@@ -23,17 +23,18 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use capnp::{message, Error};
-use futures_util::stream::Stream;
-use futures_util::AsyncRead;
+use futures_core::stream::Stream;
+
+use crate::io::AsyncFdRead;
 
 async fn read_next_message<R>(
     mut reader: R,
     options: message::ReaderOptions,
 ) -> Result<(R, Option<message::Reader<capnp::serialize::OwnedSegments>>), Error>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
-    let m = crate::serialize::try_read_message(&mut reader, options).await?;
+    let m = crate::io::serialize::try_read_message(&mut reader, options).await?;
     Ok((reader, m))
 }
 
@@ -44,17 +45,17 @@ type ReadStreamResult<R> =
 #[must_use = "streams do nothing unless polled"]
 pub struct ReadStream<'a, R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
     options: message::ReaderOptions,
     read: Pin<Box<dyn Future<Output = ReadStreamResult<R>> + 'a>>,
 }
 
-impl<R> Unpin for ReadStream<'_, R> where R: AsyncRead + Unpin {}
+impl<R> Unpin for ReadStream<'_, R> where R: AsyncFdRead {}
 
 impl<'a, R> ReadStream<'a, R>
 where
-    R: AsyncRead + Unpin + 'a,
+    R: AsyncFdRead + 'a,
 {
     pub fn new(reader: R, options: message::ReaderOptions) -> Self {
         ReadStream {
@@ -66,7 +67,7 @@ where
 
 impl<'a, R> Stream for ReadStream<'a, R>
 where
-    R: AsyncRead + Unpin + 'a,
+    R: AsyncFdRead + 'a,
 {
     type Item = Result<message::Reader<capnp::serialize::OwnedSegments>, Error>;
 

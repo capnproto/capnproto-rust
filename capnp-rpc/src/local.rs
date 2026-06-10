@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 use capnp::capability::{self, Promise};
+use capnp::fd::BorrowedFd;
 use capnp::private::capability::{
     ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResponseHook, ResultsHook,
 };
@@ -26,8 +27,8 @@ use capnp::traits::{Imbue, ImbueMut};
 use capnp::Error;
 use capnp::{any_pointer, message};
 
-use futures::channel::oneshot;
-use futures::TryFutureExt;
+use futures_channel::oneshot;
+use futures_util::TryFutureExt as _;
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -261,7 +262,7 @@ impl RequestHook for Request {
         let results = Results::new(results_done_fulfiller, pipeline_sender.weak_clone());
         let promise = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
-        let p = futures::future::try_join(promise, results_done_promise).and_then(
+        let p = futures_util::future::try_join(promise, results_done_promise).and_then(
             move |((), results_done_hook)| {
                 pipeline_sender
                     .complete(Box::new(Pipeline::new(results_done_hook.add_ref()))
@@ -343,15 +344,18 @@ pub(crate) struct Client<S>
 where
     S: capability::Server + Clone,
 {
-    state: Rc<RefCell<ClientState<S>>>,
+    inner: Rc<ClientInner<S>>,
 }
 
-struct ClientState<S>
+pub(crate) struct ClientInner<S>
 where
     S: capability::Server + Clone,
 {
-    inner: S,
+    server: S,
+    state: RefCell<ClientState>,
+}
 
+struct ClientState {
     /// If a streaming call on this capability has returned an error,
     /// this contains a copy of that error.
     broken_error: Option<Error>,
@@ -374,7 +378,7 @@ struct StreamingCall<S>
 where
     S: capability::Server + Clone + 'static,
 {
-    state: Rc<RefCell<ClientState<S>>>,
+    inner: Rc<ClientInner<S>>,
     promise: Promise<(), Error>,
     completed: bool,
 }
@@ -392,10 +396,10 @@ where
         match Pin::new(&mut this.promise).poll(cx) {
             Poll::Ready(result) => {
                 if let Err(e) = &result {
-                    this.state.borrow_mut().broken_error = Some(e.clone());
+                    this.inner.state.borrow_mut().broken_error = Some(e.clone());
                 }
                 this.completed = true;
-                ClientState::unblock(this.state.clone());
+                ClientInner::unblock(this.inner.clone());
                 Poll::Ready(result)
             }
             Poll::Pending => Poll::Pending,
@@ -409,24 +413,24 @@ where
 {
     fn drop(&mut self) {
         if !self.completed {
-            ClientState::unblock(self.state.clone());
+            ClientInner::unblock(self.inner.clone());
         }
     }
 }
 
-impl<S> ClientState<S>
+impl<S> ClientInner<S>
 where
     S: capability::Server + Clone + 'static,
 {
     fn dispatch_or_queue(
-        state: Rc<RefCell<Self>>,
+        inner: Rc<Self>,
         interface_id: u64,
         method_id: u16,
         params: Box<dyn ParamsHook>,
         results: Box<dyn ResultsHook>,
     ) -> Promise<(), Error> {
         {
-            let mut state_ref = state.borrow_mut();
+            let mut state_ref = inner.state.borrow_mut();
             if let Some(e) = &state_ref.broken_error {
                 return Promise::err(e.clone());
             }
@@ -452,25 +456,24 @@ where
             }
         }
 
-        Self::dispatch_call(state, interface_id, method_id, params, results)
+        Self::dispatch_call(inner, interface_id, method_id, params, results)
     }
 
     fn dispatch_call(
-        state: Rc<RefCell<Self>>,
+        inner: Rc<Self>,
         interface_id: u64,
         method_id: u16,
         params: Box<dyn ParamsHook>,
         results: Box<dyn ResultsHook>,
     ) -> Promise<(), Error> {
-        let inner = {
-            let state_ref = state.borrow();
-            if let Some(e) = &state_ref.broken_error {
+        let server = {
+            if let Some(e) = &inner.state.borrow().broken_error {
                 return Promise::err(e.clone());
             }
-            state_ref.inner.clone()
+            inner.server.clone()
         };
 
-        let f = inner.dispatch_call(
+        let f = server.dispatch_call(
             interface_id,
             method_id,
             ::capnp::capability::Params::new(params),
@@ -480,9 +483,9 @@ where
         if f.is_streaming {
             // A streaming call serializes later calls on the same local
             // capability until its server-side promise completes.
-            state.borrow_mut().blocked = true;
+            inner.state.borrow_mut().blocked = true;
             Promise::from_future(StreamingCall {
-                state,
+                inner: inner.clone(),
                 promise: f.promise,
                 completed: false,
             })
@@ -491,10 +494,10 @@ where
         }
     }
 
-    fn unblock(state: Rc<RefCell<Self>>) {
+    fn unblock(inner: Rc<Self>) {
         loop {
             let blocked_call = {
-                let mut state_ref = state.borrow_mut();
+                let mut state_ref = inner.state.borrow_mut();
                 state_ref.blocked = false;
                 state_ref.blocked_calls.pop_front()
             };
@@ -508,7 +511,7 @@ where
             }
 
             let promise = Self::dispatch_call(
-                state.clone(),
+                inner.clone(),
                 blocked_call.interface_id,
                 blocked_call.method_id,
                 blocked_call.params,
@@ -518,7 +521,7 @@ where
 
             // If the unblocked call was itself streaming, dispatch_call() set
             // blocked again; leave remaining calls queued behind it.
-            if state.borrow().blocked {
+            if inner.state.borrow().blocked {
                 return;
             }
         }
@@ -531,12 +534,14 @@ where
 {
     pub(crate) fn new(server: S) -> Self {
         Self {
-            state: Rc::new(RefCell::new(ClientState {
-                inner: server,
-                broken_error: None,
-                blocked: false,
-                blocked_calls: VecDeque::new(),
-            })),
+            inner: Rc::new(ClientInner {
+                server,
+                state: RefCell::new(ClientState {
+                    broken_error: None,
+                    blocked: false,
+                    blocked_calls: VecDeque::new(),
+                }),
+            }),
         }
     }
 }
@@ -547,7 +552,7 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            state: self.state.clone(),
+            inner: self.inner.clone(),
         }
     }
 }
@@ -583,14 +588,14 @@ where
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
-        let state = self.state.clone();
+        let inner = self.inner.clone();
         Promise::from_future(async move {
-            ClientState::dispatch_or_queue(state, interface_id, method_id, params, results).await
+            ClientInner::dispatch_or_queue(inner, interface_id, method_id, params, results).await
         })
     }
 
     fn get_ptr(&self) -> usize {
-        self.state.borrow().inner.as_ptr()
+        self.inner.server.as_ptr()
     }
 
     fn get_brand(&self) -> usize {
@@ -607,5 +612,9 @@ where
 
     fn when_resolved(&self) -> Promise<(), Error> {
         crate::rpc::default_when_resolved_impl(self)
+    }
+
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        self.inner.server.get_fd()
     }
 }

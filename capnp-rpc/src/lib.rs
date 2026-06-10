@@ -59,11 +59,14 @@
 //! For a more complete example, see <https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator>
 
 use capnp::capability::Promise;
+use capnp::fd::FdHooks;
 use capnp::private::capability::ClientHook;
 use capnp::Error;
-use futures::channel::oneshot;
-use futures::{Future, FutureExt, TryFutureExt};
+use capnp_futures::io::FdReadBuf;
+use futures_channel::oneshot;
+use futures_util::{FutureExt as _, TryFutureExt as _};
 use std::cell::RefCell;
+use std::future::Future;
 use std::pin::Pin;
 use std::rc::{Rc, Weak};
 use std::task::{Context, Poll};
@@ -122,6 +125,10 @@ pub trait OutgoingMessage {
     /// Same as `get_body()`, but returns the corresponding reader type.
     fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader<'_>>;
 
+    fn set_fds(&mut self, fds: FdHooks) {
+        let _ = fds;
+    }
+
     /// Sends the message. Returns a promise that resolves once the send has completed.
     /// Dropping the returned promise does *not* cancel the send.
     fn send(
@@ -148,6 +155,15 @@ pub trait IncomingMessage {
     /// The standard RPC implementation interprets it as a Message as defined
     /// in `schema/rpc.capnp`.
     fn get_body(&self) -> ::capnp::Result<::capnp::any_pointer::Reader<'_>>;
+
+    fn get_body_and_attached_fds(
+        &mut self,
+    ) -> (
+        ::capnp::Result<::capnp::any_pointer::Reader<'_>>,
+        &mut FdReadBuf,
+    ) {
+        (self.get_body(), &mut [])
+    }
 }
 
 /// A two-way RPC connection.
@@ -479,9 +495,7 @@ where
 /// Creates a `Client` from a future that resolves to a `Client`.
 ///
 /// Any calls that arrive before the resolution are accumulated in a queue.
-pub fn new_future_client<T>(
-    client_future: impl ::futures::Future<Output = Result<T, Error>> + 'static,
-) -> T
+pub fn new_future_client<T>(client_future: impl Future<Output = Result<T, Error>> + 'static) -> T
 where
     T: ::capnp::capability::FromClientHook,
 {
@@ -545,6 +559,6 @@ where
     }
 }
 
-fn canceled_to_error(_e: futures::channel::oneshot::Canceled) -> Error {
+fn canceled_to_error(_e: oneshot::Canceled) -> Error {
     Error::failed("oneshot was canceled".to_string())
 }

@@ -195,6 +195,8 @@ interface TestMoreStuff extends(TestCallOrder) {
   # Like getTestStreaming(), but the returned cap's doStreamI() waits before
   # recording its argument, so a following non-streaming call can race ahead
   # of pending streaming calls if the runtime fails to order them.
+
+  passFd @17 () -> (fdCap :TestInterface);
 }
 
 interface TestCapabilityServerSet {

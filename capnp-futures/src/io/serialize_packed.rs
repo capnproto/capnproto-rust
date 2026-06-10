@@ -22,14 +22,15 @@
 //! Asynchronous reading and writing of messages using the
 //! [packed stream encoding](https://capnproto.org/encoding.html#packing).
 
+use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use capnp::serialize::OwnedSegments;
 use capnp::{message, Result};
-use futures_util::{AsyncRead, AsyncWrite};
 
-use crate::serialize::AsOutputSegments;
+use crate::io::serialize::AsOutputSegments;
+use crate::io::{AsyncFdRead, AsyncFdWrite, Count, FdReadBuf, FdWriteBuf};
 
 enum PackedReadStage {
     Start,
@@ -39,10 +40,10 @@ enum PackedReadStage {
     WritingPassthrough,
 }
 
-/// An `AsyncRead` wrapper that unpacks packed data.
+/// An `AsyncFdRead` wrapper that unpacks packed data.
 pub struct PackedRead<R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
     inner: R,
     stage: PackedReadStage,
@@ -60,10 +61,10 @@ where
 
 impl<R> PackedRead<R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
-    /// Creates a new `PackedRead` from a `AsyncRead`. For optimal performance,
-    /// `inner` should be a buffered `AsyncRead`.
+    /// Creates a new `PackedRead` from a `AsyncFdRead`. For optimal performance,
+    /// `inner` should be a buffered `AsyncFdRead`.
     pub fn new(inner: R) -> Self {
         Self {
             inner,
@@ -76,15 +77,17 @@ where
     }
 }
 
-impl<R> AsyncRead for PackedRead<R>
+impl<R> AsyncFdRead for PackedRead<R>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
+    fn poll_read_with_fds(
+        &mut self,
         cx: &mut std::task::Context<'_>,
         outbuf: &mut [u8],
-    ) -> Poll<std::result::Result<usize, std::io::Error>> {
+        // TODO: Perhaps this should work with FDs.
+        _fd_buf: &mut FdReadBuf,
+    ) -> Poll<io::Result<Count>> {
         let Self {
             stage,
             inner,
@@ -97,13 +100,13 @@ where
         loop {
             match *stage {
                 PackedReadStage::Start => {
-                    match Pin::new(&mut *inner).poll_read(cx, &mut buf[*buf_pos..2])? {
+                    match inner.poll_read_with_fds(cx, &mut buf[*buf_pos..2], &mut [])? {
                         Poll::Pending => return Poll::Pending,
                         Poll::Ready(n) => {
-                            if n == 0 {
-                                return Poll::Ready(Ok(0));
+                            if n.bytes == 0 {
+                                return Poll::Ready(Ok(n));
                             }
-                            *buf_pos += n;
+                            *buf_pos += n.bytes;
                             if *buf_pos >= 2 {
                                 let tag = buf[0];
                                 let count = buf[1];
@@ -140,18 +143,21 @@ where
                     } else {
                         *num_run_bytes_remaining -= num_zeroes;
                     }
-                    return Poll::Ready(Ok(num_zeroes));
+                    return Poll::Ready(Ok(Count {
+                        bytes: num_zeroes,
+                        fds: 0,
+                    }));
                 }
                 PackedReadStage::BufferingWord => {
-                    match Pin::new(&mut *inner).poll_read(cx, &mut buf[*buf_pos..*buf_size])? {
+                    match inner.poll_read_with_fds(cx, &mut buf[*buf_pos..*buf_size], &mut [])? {
                         Poll::Pending => return Poll::Pending,
-                        Poll::Ready(0) => {
+                        Poll::Ready(Count { bytes: 0, .. }) => {
                             return Poll::Ready(Err(std::io::Error::from(
                                 std::io::ErrorKind::UnexpectedEof,
                             )))
                         }
                         Poll::Ready(n) => {
-                            *buf_pos += n;
+                            *buf_pos += n.bytes;
                             if *buf_pos >= *buf_size {
                                 *stage = PackedReadStage::DrainingBuffer;
                                 *buf_pos = 1;
@@ -183,23 +189,23 @@ where
                     } else {
                         // We did not finish the word.
                     }
-                    return Poll::Ready(Ok(ii));
+                    return Poll::Ready(Ok(Count { bytes: ii, fds: 0 }));
                 }
                 PackedReadStage::WritingPassthrough => {
                     let upper_bound = std::cmp::min(*num_run_bytes_remaining, outbuf.len());
                     if upper_bound == 0 {
                         *stage = PackedReadStage::Start;
                     } else {
-                        match Pin::new(&mut *inner).poll_read(cx, &mut outbuf[0..upper_bound])? {
+                        match inner.poll_read_with_fds(cx, &mut outbuf[0..upper_bound], &mut [])? {
                             Poll::Pending => return Poll::Pending,
                             Poll::Ready(n) => {
-                                if n == 0 {
-                                    return Poll::Ready(Ok(0));
+                                if n.bytes == 0 {
+                                    return Poll::Ready(Ok(n));
                                 }
-                                if n >= *num_run_bytes_remaining {
+                                if n.bytes >= *num_run_bytes_remaining {
                                     *stage = PackedReadStage::Start;
                                 }
-                                *num_run_bytes_remaining -= n;
+                                *num_run_bytes_remaining -= n.bytes;
                                 return Poll::Ready(Ok(n));
                             }
                         }
@@ -220,10 +226,10 @@ pub async fn try_read_message<R>(
     options: message::ReaderOptions,
 ) -> Result<Option<message::Reader<OwnedSegments>>>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
     let packed_read = PackedRead::new(read);
-    crate::serialize::try_read_message(packed_read, options).await
+    crate::io::serialize::try_read_message(packed_read, options).await
 }
 
 /// Asynchronously reads a message from `reader`.
@@ -232,7 +238,7 @@ pub async fn read_message<R>(
     options: message::ReaderOptions,
 ) -> Result<message::Reader<OwnedSegments>>
 where
-    R: AsyncRead + Unpin,
+    R: AsyncFdRead,
 {
     match try_read_message(reader, options).await? {
         Some(s) => Ok(s),
@@ -253,9 +259,9 @@ enum PackedWriteStage {
 /// An `AsyncWrite` wrapper that packs any data passed into it.
 pub struct PackedWrite<W>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
 {
-    inner: W,
+    pub(crate) inner: W,
     stage: PackedWriteStage,
     buf: [u8; 8],
     buf_pos: usize,
@@ -267,16 +273,18 @@ where
     run_bytes_remaining: usize,
 }
 
+impl<W> Unpin for PackedWrite<W> where W: AsyncFdWrite {}
+
 struct FinishPendingWrites<W>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
 {
     inner: PackedWrite<W>,
 }
 
 impl<W> FinishPendingWrites<W>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
 {
     fn new(inner: PackedWrite<W>) -> Self {
         Self { inner }
@@ -285,7 +293,7 @@ where
 
 impl<W> std::future::Future for FinishPendingWrites<W>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
 {
     type Output = std::result::Result<(), capnp::Error>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
@@ -301,11 +309,11 @@ where
 /// buffered.
 pub async fn write_message<W, M>(writer: W, message: M) -> Result<()>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
     M: AsOutputSegments,
 {
     let mut packed_write = PackedWrite::new(writer);
-    crate::serialize::write_message(&mut packed_write, message).await?;
+    crate::io::serialize::write_message(&mut packed_write, message).await?;
 
     // Finish any pending work, so that nothing gets lost when we drop
     // the `PackedWrite`.
@@ -314,7 +322,7 @@ where
 
 impl<W> PackedWrite<W>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
 {
     /// Creates a new `PackedWrite` from a `AsyncWrite`. For optimal performance,
     /// `inner` should be a buffered `AsyncWrite`.
@@ -378,9 +386,11 @@ where
                     }
                 }
                 PackedWriteStage::WriteWord => {
-                    match Pin::new(&mut *inner)
-                        .poll_write(cx, &packed_buf[*buf_pos..*packed_buf_size])?
-                    {
+                    match inner.poll_write_with_fds(
+                        cx,
+                        &packed_buf[*buf_pos..*packed_buf_size],
+                        &[],
+                    )? {
                         Poll::Pending => {
                             if inbuf_bytes_consumed == 0 {
                                 return Poll::Pending;
@@ -389,7 +399,7 @@ where
                             }
                         }
                         Poll::Ready(n) => {
-                            *buf_pos += n;
+                            *buf_pos += n.bytes;
                         }
                     }
                     if *buf_pos == *packed_buf_size {
@@ -431,11 +441,12 @@ where
                     }
                 }
                 PackedWriteStage::WriteRunWordCount => {
-                    match Pin::new(&mut *inner).poll_write(
+                    match inner.poll_write_with_fds(
                         cx,
                         &[(*run_bytes_remaining / 8)
                             .try_into()
                             .expect("overflow writing run word count")],
+                        &[],
                     )? {
                         Poll::Pending => {
                             if inbuf_bytes_consumed == 0 {
@@ -444,7 +455,7 @@ where
                                 return Poll::Ready(Ok(inbuf_bytes_consumed));
                             }
                         }
-                        Poll::Ready(1) => {
+                        Poll::Ready(Count { bytes: 1, .. }) => {
                             if packed_buf[0] == 0 {
                                 // we're done here
                                 inbuf = &inbuf[(*run_bytes_remaining)..];
@@ -456,7 +467,7 @@ where
                                 *stage = PackedWriteStage::WriteUncompressedRun;
                             }
                         }
-                        Poll::Ready(0) => {
+                        Poll::Ready(Count { bytes: 0, .. }) => {
                             // just loop around and try again
                         }
                         Poll::Ready(_) => panic!("should not be possible"),
@@ -464,7 +475,7 @@ where
                 }
 
                 PackedWriteStage::WriteUncompressedRun => {
-                    match Pin::new(&mut *inner).poll_write(cx, &inbuf[..*run_bytes_remaining])? {
+                    match inner.poll_write_with_fds(cx, &inbuf[..*run_bytes_remaining], &[])? {
                         Poll::Pending => {
                             if inbuf_bytes_consumed == 0 {
                                 return Poll::Pending;
@@ -473,10 +484,10 @@ where
                             }
                         }
                         Poll::Ready(n) => {
-                            inbuf_bytes_consumed += n;
-                            inbuf = &inbuf[n..];
-                            if n < *run_bytes_remaining {
-                                *run_bytes_remaining -= n;
+                            inbuf_bytes_consumed += n.bytes;
+                            inbuf = &inbuf[n.bytes..];
+                            if n.bytes < *run_bytes_remaining {
+                                *run_bytes_remaining -= n.bytes;
                             } else {
                                 *buf_pos = 0;
                                 *stage = PackedWriteStage::Start;
@@ -505,48 +516,42 @@ where
     }
 }
 
-impl<W> AsyncWrite for PackedWrite<W>
+impl<W> AsyncFdWrite for PackedWrite<W>
 where
-    W: AsyncWrite + Unpin,
+    W: AsyncFdWrite,
 {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
+    fn poll_write_with_fds(
+        &mut self,
         cx: &mut Context<'_>,
         inbuf: &[u8],
-    ) -> Poll<std::result::Result<usize, std::io::Error>> {
-        (*self).poll_write_aux(cx, inbuf)
+        // TODO: Perhaps this should work with FDs.
+        _fd_buf: &FdWriteBuf<'_>,
+    ) -> Poll<io::Result<Count>> {
+        (*self)
+            .poll_write_aux(cx, inbuf)
+            .map_ok(|bytes| Count { bytes, fds: 0 })
     }
 
-    fn poll_flush(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<std::result::Result<(), std::io::Error>> {
+    fn poll_flush(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         match (*self).finish_pending_writes(cx)? {
             Poll::Pending => return Poll::Pending,
             Poll::Ready(_) => (),
         }
 
-        Pin::new(&mut self.inner).poll_flush(cx)
-    }
-
-    fn poll_close(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<std::result::Result<(), std::io::Error>> {
-        Pin::new(&mut self.inner).poll_close(cx)
+        self.inner.poll_flush(cx)
     }
 }
 
 #[cfg(test)]
 pub mod test {
-    use crate::serialize::test::{BlockingRead, BlockingWrite};
-    use crate::serialize_packed::{try_read_message, PackedRead, PackedWrite};
+    use crate::io::serialize::test::{BlockingRead, BlockingWrite};
+    use crate::io::serialize_packed::{try_read_message, PackedRead, PackedWrite};
+    use crate::io::{AsyncFdReadExt as _, AsyncFdWriteExt as _};
     use capnp::message::ReaderSegments;
-    use futures::{AsyncReadExt, AsyncWriteExt};
     use quickcheck::{quickcheck, TestResult};
 
     pub fn check_unpacks_to(blocking_period: usize, packed: &[u8], unpacked: &[u8]) {
-        let mut packed_read = PackedRead::new(crate::serialize::test::BlockingRead::new(
+        let mut packed_read = PackedRead::new(crate::io::serialize::test::BlockingRead::new(
             packed,
             blocking_period,
         ));
@@ -569,10 +574,11 @@ pub mod test {
 
         let mut bytes: Vec<u8> = vec![0; packed.len()];
         {
-            let mut packed_write = PackedWrite::new(crate::serialize::test::BlockingWrite::new(
-                &mut bytes[..],
-                write_blocking_period,
-            ));
+            let mut packed_write =
+                PackedWrite::new(crate::io::serialize::test::BlockingWrite::new(
+                    &mut bytes[..],
+                    write_blocking_period,
+                ));
             futures::executor::block_on(Box::pin(packed_write.write_all(unpacked)))
                 .expect("writing");
             futures::executor::block_on(Box::pin(packed_write.flush())).expect("flushing");
@@ -666,7 +672,7 @@ pub mod test {
         let (mut read, segments) = {
             let cursor = std::io::Cursor::new(Vec::new());
             let mut writer = BlockingWrite::new(cursor, write_blocking_period);
-            futures::executor::block_on(Box::pin(crate::serialize_packed::write_message(
+            futures::executor::block_on(Box::pin(crate::io::serialize_packed::write_message(
                 &mut writer,
                 &segments,
             )))
@@ -679,7 +685,7 @@ pub mod test {
         };
 
         let message = futures::executor::block_on(Box::pin(
-            crate::serialize_packed::try_read_message(&mut read, Default::default()),
+            crate::io::serialize_packed::try_read_message(&mut read, Default::default()),
         ))
         .expect("reading")
         .unwrap();

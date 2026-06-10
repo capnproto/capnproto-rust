@@ -7,7 +7,12 @@ description = "Helper library for writing async tests"
 repository = "https://github.com/dwrensha/capnproto-rust"
 edition = "2021"
 
-[dependencies.futures]
+[dependencies.capnp-futures]
+version = "0.25.0"
+path = "../capnp-futures"
+default-features = false
+
+[dev-dependencies.futures]
 version = "0.3.0"
 default-features = false
 features = ["std", "executor"]
