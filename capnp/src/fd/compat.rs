@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use crate::private::capability::ClientHook;
+
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy)]
 pub enum BorrowedFd<'_> {}
@@ -40,5 +42,26 @@ impl AsFd for BorrowedFd<'_> {
 impl AsFd for OwnedFd {
     fn as_fd(&self) -> BorrowedFd<'_> {
         match self {}
+    }
+}
+
+#[derive(Default)]
+#[non_exhaustive]
+pub struct FdHooks {}
+
+impl FdHooks {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn try_push(
+        &mut self,
+        hook: Box<dyn ClientHook>,
+    ) -> Result<(u8, &dyn ClientHook), Box<dyn ClientHook>> {
+        Err(hook)
+    }
+
+    pub fn as_fds(&self) -> &[BorrowedFd<'_>] {
+        &[]
     }
 }

@@ -19,10 +19,11 @@ path = "../"
 
 [dependencies]
 capnp = { path = "../../capnp" }
+capnp-futures = { path = "../../capnp-futures", default-features = false, features = ["tokio-unix-fd-stream"] }
 futures-channel = { version = "0.3.0" }
 futures-util = { version = "0.3.0" }
 async-byte-channel = {path = "./../../async-byte-channel"}
-tokio = { version = "1.52.3", features = ["macros", "rt"] }
+tokio = { version = "1.52.3", features = ["macros", "rt", "io-util"] }
 
 [lints]
 workspace = true

@@ -33,6 +33,8 @@ use futures_util::TryFutureExt as _;
 
 use std::cell::{Cell, RefCell};
 use std::future;
+#[cfg(unix)]
+use std::os::fd::{AsFd as _, BorrowedFd, OwnedFd};
 use std::rc::Rc;
 
 pub struct Bootstrap;
@@ -568,6 +570,23 @@ impl test_more_stuff::Server for TestMoreStuff {
             .set_cap(capnp_rpc::new_client(TestSelfImpl::new()));
         Ok(())
     }
+
+    #[cfg(unix)]
+    async fn pass_fd(
+        self: Rc<Self>,
+        _params: test_more_stuff::PassFdParams,
+        mut results: test_more_stuff::PassFdResults,
+    ) -> Result<(), Error> {
+        use tokio::io::AsyncWriteExt as _;
+
+        let (mut tx, rx) = tokio::net::unix::pipe::pipe()?;
+        let fd = rx.into_nonblocking_fd()?;
+        let fd_cap: test_interface::Client = capnp_rpc::new_client(TestFd { fd });
+        results.get().set_fd_cap(fd_cap);
+        results.set_pipeline()?;
+        tx.write_all(b"sup").await?;
+        Ok(())
+    }
 }
 
 struct Handle {
@@ -635,6 +654,18 @@ impl test_interface::Server for TestCapDestructor {
         _results: test_interface::BazResults,
     ) -> Result<(), Error> {
         Err(Error::unimplemented("bar is not implemented".to_string()))
+    }
+}
+
+#[cfg(unix)]
+struct TestFd {
+    fd: OwnedFd,
+}
+
+#[cfg(unix)]
+impl test_interface::Server for TestFd {
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        Some(self.fd.as_fd())
     }
 }
 

@@ -2691,6 +2691,14 @@ fn generate_node(
                 method.get_annotations()?;
             }
 
+            // TODO: This will break if an interface defines a method named
+            // `getFd`. I’m not sure if the C++ implementation handles this
+            // either, though.
+            server_interior.push(Line(fmt!(
+                ctx,
+                "fn get_fd(&self) -> Option<{capnp}::fd::BorrowedFd<'_>> {{ None }}"
+            )));
+
             let mut base_dispatch_arms = Vec::new();
 
             let server_base = {
@@ -2929,6 +2937,7 @@ fn generate_node(
 
                     indent(Line(fmt!(ctx, "fn as_ptr(&self) -> usize {{ {capnp}::capability::Rc::as_ptr(&self.server) as usize }}"))),
 
+                    indent(Line(fmt!(ctx, "fn get_fd(&self) -> Option<{capnp}::fd::BorrowedFd<'_>> {{ <_T as Server{}>::get_fd(&self.server) }}", bracketed_params))),
                     line("}")]));
 
             mod_interior.push(

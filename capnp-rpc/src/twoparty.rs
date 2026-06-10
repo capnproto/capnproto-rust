@@ -23,10 +23,11 @@
 //! of a client-server connection.
 
 use capnp::capability::Promise;
+use capnp::fd::{FdHooks, OwnedFd};
 use capnp::message::ReaderOptions;
-use capnp_futures::io::AsyncFdRead;
+use capnp_futures::io::serialize::AsOutputSegments;
+use capnp_futures::io::{AsyncFdRead, FdReadBuf, FdWriteBuf};
 use futures_channel::oneshot;
-use futures_util::TryFutureExt as _;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -35,11 +36,15 @@ pub type VatId = crate::rpc_twoparty_capnp::Side;
 
 struct IncomingMessage {
     message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>,
+    fds: Vec<Option<OwnedFd>>,
 }
 
 impl IncomingMessage {
-    pub(crate) fn new(message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>) -> Self {
-        Self { message }
+    pub(crate) fn new(
+        message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>,
+        fds: Vec<Option<OwnedFd>>,
+    ) -> Self {
+        Self { message, fds }
     }
 }
 
@@ -47,12 +52,38 @@ impl crate::IncomingMessage for IncomingMessage {
     fn get_body(&self) -> ::capnp::Result<::capnp::any_pointer::Reader<'_>> {
         self.message.get_root()
     }
+
+    fn get_body_and_attached_fds(
+        &mut self,
+    ) -> (
+        capnp::Result<capnp::any_pointer::Reader<'_>>,
+        &mut FdReadBuf,
+    ) {
+        (self.message.get_root(), &mut self.fds)
+    }
+}
+
+struct MessageAndFds {
+    // TODO: This `Rc` is unnecessarily wasteful due to the return value of
+    // `OutgoingMessage::send()`, which nothing seems to use.
+    message: Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
+    fds: FdHooks,
+}
+
+impl AsOutputSegments for MessageAndFds {
+    fn as_output_segments(&self) -> capnp::OutputSegments<'_> {
+        self.message.as_output_segments()
+    }
+
+    fn as_fds(&self) -> &FdWriteBuf<'_> {
+        self.fds.as_fds()
+    }
 }
 
 struct OutgoingMessage {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    sender:
-        ::capnp_futures::io::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
+    sender: ::capnp_futures::io::Sender<MessageAndFds>,
+    fds: FdHooks,
 }
 
 impl crate::OutgoingMessage for OutgoingMessage {
@@ -62,6 +93,10 @@ impl crate::OutgoingMessage for OutgoingMessage {
 
     fn get_body_as_reader(&self) -> ::capnp::Result<::capnp::any_pointer::Reader<'_>> {
         self.message.get_root_as_reader()
+    }
+
+    fn set_fds(&mut self, fds: FdHooks) {
+        self.fds = fds;
     }
 
     fn send(
@@ -74,12 +109,14 @@ impl crate::OutgoingMessage for OutgoingMessage {
         let Self {
             message,
             mut sender,
+            fds,
         } = tmp;
         let m = Rc::new(message);
-        (
-            Promise::from_future(sender.send(m.clone()).map_ok(|_| ())),
-            m,
-        )
+        let to_send = MessageAndFds {
+            message: m.clone(),
+            fds,
+        };
+        (Promise::from_future(sender.send_move(to_send)), m)
     }
 
     fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator> {
@@ -96,8 +133,8 @@ where
     T: AsyncFdRead + 'static,
 {
     input_stream: Rc<RefCell<Option<T>>>,
-    sender:
-        ::capnp_futures::io::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
+    sender: ::capnp_futures::io::Sender<MessageAndFds>,
+    max_fds_per_message: u8,
     side: crate::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
@@ -131,9 +168,8 @@ where
 {
     fn new(
         input_stream: T,
-        sender: ::capnp_futures::io::Sender<
-            Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
-        >,
+        sender: ::capnp_futures::io::Sender<MessageAndFds>,
+        max_fds_per_message: u8,
         side: crate::rpc_twoparty_capnp::Side,
         receive_options: ReaderOptions,
         on_disconnect_fulfiller: oneshot::Sender<()>,
@@ -142,6 +178,7 @@ where
             inner: Rc::new(RefCell::new(ConnectionInner {
                 input_stream: Rc::new(RefCell::new(Some(input_stream))),
                 sender,
+                max_fds_per_message,
                 side,
                 receive_options,
                 on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
@@ -169,6 +206,7 @@ where
         Box::new(OutgoingMessage {
             message,
             sender: self.inner.borrow().sender.clone(),
+            fds: FdHooks::new(),
         })
     }
 
@@ -182,13 +220,22 @@ where
         match maybe_input_stream {
             Some(mut s) => {
                 let receive_options = inner.receive_options;
+                let max_fds_per_message = inner.max_fds_per_message;
                 Promise::from_future(async move {
-                    let maybe_message =
-                        ::capnp_futures::io::serialize::try_read_message(&mut s, receive_options)
-                            .await?;
+                    let mut fd_buf = Vec::new();
+                    fd_buf.resize_with(max_fds_per_message.into(), Option::default);
+                    let maybe_message = ::capnp_futures::io::serialize::try_read_message_with_fds(
+                        &mut s,
+                        &mut fd_buf,
+                        receive_options,
+                    )
+                    .await?;
                     *return_it_here.borrow_mut() = Some(s);
-                    Ok(maybe_message.map(|message| {
-                        Box::new(IncomingMessage::new(message)) as Box<dyn crate::IncomingMessage>
+                    Ok(maybe_message.map(move |message| {
+                        fd_buf.truncate(message.fds);
+                        fd_buf.shrink_to_fit();
+                        Box::new(IncomingMessage::new(message.reader, fd_buf))
+                            as Box<dyn crate::IncomingMessage>
                     }))
                 })
             }
@@ -266,6 +313,19 @@ pub mod io {
         where
             U: AsyncFdWrite + 'static,
         {
+            Self::new_with_fds(input_stream, output_stream, 0, side, receive_options)
+        }
+
+        pub fn new_with_fds<U>(
+            input_stream: T,
+            output_stream: U,
+            max_fds_per_message: u8,
+            side: crate::rpc_twoparty_capnp::Side,
+            receive_options: ReaderOptions,
+        ) -> Self
+        where
+            U: AsyncFdWrite + 'static,
+        {
             let (fulfiller, disconnect_promise) = oneshot::channel();
             let disconnect_promise =
                 disconnect_promise.map_err(|_| ::capnp::Error::disconnected("disconnected".into()));
@@ -286,8 +346,14 @@ pub mod io {
                 )
             };
 
-            let connection =
-                Connection::new(input_stream, sender, side, receive_options, fulfiller);
+            let connection = Connection::new(
+                input_stream,
+                sender,
+                max_fds_per_message,
+                side,
+                receive_options,
+                fulfiller,
+            );
             let weak_inner = Rc::downgrade(&connection.inner);
             Self {
                 connection: Some(connection),

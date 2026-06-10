@@ -24,11 +24,13 @@ use std::task::{Context, Poll};
 
 use capnp::any_pointer;
 use capnp::capability::Promise;
+use capnp::fd::{AsFd as _, BorrowedFd, FdHooks, OwnedFd};
 use capnp::private::capability::{
     ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResponseHook, ResultsHook,
 };
 use capnp::Error;
 
+use capnp_futures::io::FdReadBuf;
 use futures_channel::oneshot;
 use futures_util::{future, Future, FutureExt, TryFutureExt};
 
@@ -763,6 +765,7 @@ impl<VatId> ConnectionState<VatId> {
             let cap = connection_state.bootstrap_cap.clone();
             let mut cap_table = Vec::new();
             let mut payload = ret.init_results();
+            let mut fds = FdHooks::new();
             {
                 let mut content = payload.reborrow().get_content();
                 content.imbue_mut(&mut cap_table);
@@ -770,7 +773,9 @@ impl<VatId> ConnectionState<VatId> {
             }
             assert_eq!(cap_table.len(), 1);
 
-            Self::write_descriptors(connection_state, &cap_table, payload)
+            let exports = Self::write_descriptors(connection_state, &cap_table, payload, &mut fds);
+            response.set_fds(fds);
+            exports
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
@@ -824,9 +829,13 @@ impl<VatId> ConnectionState<VatId> {
         Ok(())
     }
 
-    fn handle_resolve(connection_state: &Rc<Self>, resolve: resolve::Reader) -> capnp::Result<()> {
+    fn handle_resolve(
+        connection_state: &Rc<Self>,
+        resolve: resolve::Reader,
+        fds: &mut FdReadBuf,
+    ) -> capnp::Result<()> {
         let replacement_or_error = match resolve.which()? {
-            resolve::Cap(c) => match Self::receive_cap(connection_state, c?)? {
+            resolve::Cap(c) => match Self::receive_cap(connection_state, c?, fds)? {
                 Some(cap) => Ok(cap),
                 None => {
                     return Err(Error::failed(
@@ -935,7 +944,7 @@ impl<VatId> ConnectionState<VatId> {
 
     fn handle_message(
         weak_state: &Weak<Self>,
-        message: Box<dyn crate::IncomingMessage>,
+        mut message: Box<dyn crate::IncomingMessage>,
     ) -> ::capnp::Result<()> {
         let Some(connection_state) = weak_state.upgrade() else {
             return Err(Error::disconnected(
@@ -943,7 +952,8 @@ impl<VatId> ConnectionState<VatId> {
             ));
         };
 
-        let reader = message.get_body()?.get_as::<message::Reader>()?;
+        let (body, fds) = message.get_body_and_attached_fds();
+        let reader = body?.get_as::<message::Reader>()?;
         match reader.which() {
             Ok(message::Unimplemented(message)) => {
                 Self::handle_unimplemented(&connection_state, message?)?
@@ -971,7 +981,7 @@ impl<VatId> ConnectionState<VatId> {
                         call.get_interface_id(),
                         call.get_method_id(),
                         call.get_question_id(),
-                        Self::receive_caps(&connection_state, payload.get_cap_table()?)?,
+                        Self::receive_caps(&connection_state, payload.get_cap_table()?, fds)?,
                         redirect_results,
                     )
                 };
@@ -1079,6 +1089,7 @@ impl<VatId> ConnectionState<VatId> {
                                     let cap_table = Self::receive_caps(
                                         &connection_state,
                                         results?.get_cap_table()?,
+                                        fds,
                                     )?;
 
                                     let question_ref =
@@ -1150,7 +1161,9 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
             Ok(message::Finish(finish)) => Self::handle_finish(&connection_state, finish?)?,
-            Ok(message::Resolve(resolve)) => Self::handle_resolve(&connection_state, resolve?)?,
+            Ok(message::Resolve(resolve)) => {
+                Self::handle_resolve(&connection_state, resolve?, fds)?
+            }
             Ok(message::Release(release)) => {
                 let release = release?;
                 connection_state.release_export(release.get_id(), release.get_reference_count())?;
@@ -1389,6 +1402,7 @@ impl<VatId> ConnectionState<VatId> {
 
                     // OK, we have to send a `Resolve` message.
                     let mut message = connection_state.new_outgoing_message(15)?;
+                    let mut fds = FdHooks::new();
                     {
                         let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
@@ -1397,8 +1411,10 @@ impl<VatId> ConnectionState<VatId> {
                             &connection_state,
                             resolution,
                             resolve.init_cap(),
+                            &mut fds,
                         )?;
                     }
+                    message.set_fds(fds);
                     let _ = message.send();
                     Ok(())
                 }
@@ -1422,16 +1438,29 @@ impl<VatId> ConnectionState<VatId> {
         state: &Rc<Self>,
         mut inner: Box<dyn ClientHook>,
         mut descriptor: cap_descriptor::Builder,
+        fd_hooks: &mut FdHooks,
     ) -> ::capnp::Result<Option<ExportId>> {
         // Find the innermost wrapped capability.
         while let Some(resolved) = inner.get_resolved() {
             inner = resolved;
         }
+
+        // We don’t report an error if too many FDs have already been
+        // attached, as this can also happen due to per‐connection limits.
+        let result = fd_hooks.try_push(inner);
+        let inner = match &result {
+            Ok((attached_fd, inner)) => {
+                descriptor.set_attached_fd(*attached_fd);
+                *inner
+            }
+            Err(inner) => &**inner,
+        };
+
         if inner.get_brand() == state.get_brand() {
             let Some(c) = Client::from_ptr(inner.get_ptr(), state) else {
                 unreachable!()
             };
-            Ok(c.write_descriptor(descriptor))
+            Ok(c.write_descriptor(descriptor, fd_hooks))
         } else {
             let ptr = inner.get_ptr();
             let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
@@ -1445,7 +1474,7 @@ impl<VatId> ConnectionState<VatId> {
             } else {
                 // This is the first time we've seen this capability.
 
-                let mut exp = Export::new(inner.clone());
+                let mut exp = Export::new(inner.add_ref());
                 exp.canonical = true;
                 let export_id = state.exports.borrow_mut().push(exp);
                 state.exports_by_cap.borrow_mut().insert(ptr, export_id);
@@ -1471,6 +1500,7 @@ impl<VatId> ConnectionState<VatId> {
         state: &Rc<Self>,
         cap_table: &[Option<Box<dyn ClientHook>>],
         payload: payload::Builder,
+        fds: &mut FdHooks,
     ) -> Vec<ExportId> {
         let mut cap_table_builder = payload.init_cap_table(cap_table.len() as u32);
         let mut exports = Vec::new();
@@ -1481,6 +1511,7 @@ impl<VatId> ConnectionState<VatId> {
                         state,
                         cap.clone(),
                         cap_table_builder.reborrow().get(idx as u32),
+                        fds,
                     )
                     .unwrap()
                     {
@@ -1495,14 +1526,22 @@ impl<VatId> ConnectionState<VatId> {
         exports
     }
 
-    fn import(state: &Rc<Self>, import_id: ImportId, is_promise: bool) -> Box<dyn ClientHook> {
+    fn import(
+        state: &Rc<Self>,
+        import_id: ImportId,
+        is_promise: bool,
+        fd: Option<OwnedFd>,
+    ) -> Box<dyn ClientHook> {
         let import_client = {
             match state.imports.borrow_mut().slots.entry(import_id) {
-                hash_map::Entry::Occupied(occ) => occ
-                    .get()
-                    .import_client
-                    .upgrade()
-                    .expect("dangling ref to import client?"),
+                hash_map::Entry::Occupied(occ) => {
+                    let import_client = occ
+                        .get()
+                        .import_client
+                        .upgrade()
+                        .expect("dangling ref to import client?");
+                    import_client
+                }
                 hash_map::Entry::Vacant(v) => {
                     let import_client = ImportClient::new(state, import_id);
                     v.insert(Import::new(&import_client));
@@ -1510,6 +1549,8 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
         };
+
+        import_client.set_fd_if_missing(fd);
 
         // We just received a copy of this import ID, so the remote refcount has gone up.
         import_client.add_remote_ref();
@@ -1559,14 +1600,17 @@ impl<VatId> ConnectionState<VatId> {
     fn receive_cap(
         state: &Rc<Self>,
         descriptor: cap_descriptor::Reader,
+        fds: &mut FdReadBuf,
     ) -> ::capnp::Result<Option<Box<dyn ClientHook>>> {
+        let fd_index = descriptor.get_attached_fd();
+        let fd = fds.get_mut(usize::from(fd_index)).and_then(Option::take);
         match descriptor.which()? {
             cap_descriptor::None(()) => Ok(None),
             cap_descriptor::SenderHosted(sender_hosted) => {
-                Ok(Some(Self::import(state, sender_hosted, false)))
+                Ok(Some(Self::import(state, sender_hosted, false, fd)))
             }
             cap_descriptor::SenderPromise(sender_promise) => {
-                Ok(Some(Self::import(state, sender_promise, true)))
+                Ok(Some(Self::import(state, sender_promise, true, fd)))
             }
             cap_descriptor::ReceiverHosted(receiver_hosted) => {
                 if let Some(exp) = state.exports.borrow_mut().find(receiver_hosted) {
@@ -1599,10 +1643,11 @@ impl<VatId> ConnectionState<VatId> {
     fn receive_caps(
         state: &Rc<Self>,
         cap_table: ::capnp::struct_list::Reader<cap_descriptor::Owned>,
+        fds: &mut FdReadBuf,
     ) -> ::capnp::Result<Vec<Option<Box<dyn ClientHook>>>> {
         let mut result = Vec::new();
         for idx in 0..cap_table.len() {
-            result.push(Self::receive_cap(state, cap_table.get(idx))?);
+            result.push(Self::receive_cap(state, cap_table.get(idx), fds)?);
         }
         Ok(result)
     }
@@ -1806,11 +1851,14 @@ where
         Promise<Response<VatId>, Error>,
     ) {
         // Build the cap table.
+        let mut fds = FdHooks::new();
         let exports = ConnectionState::write_descriptors(
             connection_state,
             cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
+            &mut fds,
         );
+        message.set_fds(fds);
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -1857,11 +1905,14 @@ where
         flow: Rc<RefCell<Option<Box<dyn crate::FlowController>>>>,
     ) -> Promise<(), Error> {
         // Build the cap table.
+        let mut fds = FdHooks::new();
         let exports = ConnectionState::write_descriptors(
             connection_state,
             cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
+            &mut fds,
         );
+        message.set_fds(fds);
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -2542,6 +2593,7 @@ impl ResultsDone {
                                 Ok(hook)
                             }
                             (false, Ok(())) => {
+                                let mut fds = FdHooks::new();
                                 let exports = {
                                     let root: message::Builder = message.get_body()?.get_as()?;
                                     let message::Return(Ok(mut ret)) = root.which()? else {
@@ -2560,8 +2612,10 @@ impl ResultsDone {
                                         &connection_state,
                                         &cap_table,
                                         payload,
+                                        &mut fds,
                                     )
                                 };
+                                message.set_fds(fds);
 
                                 let (_promise, m) = message.send();
                                 connection_state.answer_has_sent_return(answer_id, exports);
@@ -2720,6 +2774,7 @@ where
 {
     connection_state: Rc<ConnectionState<VatId>>,
     import_id: ImportId,
+    fd: OnceCell<OwnedFd>,
 
     /// Number of times we've received this import from the peer.
     remote_ref_count: Cell<u32>,
@@ -2768,8 +2823,15 @@ where
         Rc::new(Self {
             connection_state: connection_state.clone(),
             import_id,
+            fd: OnceCell::new(),
             remote_ref_count: Cell::new(0),
         })
+    }
+
+    fn set_fd_if_missing(&self, fd: Option<OwnedFd>) {
+        if let Some(fd) = fd {
+            let _ = self.fd.set(fd);
+        }
     }
 
     fn add_remote_ref(&self) {
@@ -3063,7 +3125,11 @@ impl<VatId> Client<VatId> {
         }
     }
 
-    fn write_descriptor(&self, mut descriptor: cap_descriptor::Builder) -> Option<u32> {
+    fn write_descriptor(
+        &self,
+        mut descriptor: cap_descriptor::Builder,
+        fds: &mut FdHooks,
+    ) -> Option<u32> {
         match &self.variant {
             ClientVariant::Import(import_client) => {
                 descriptor.set_receiver_hosted(import_client.import_id);
@@ -3098,8 +3164,13 @@ impl<VatId> Client<VatId> {
                 } else {
                     panic!("promise was neither resolved nor unresolved");
                 };
-                ConnectionState::write_descriptor(&self.connection_state.clone(), cap, descriptor)
-                    .unwrap()
+                ConnectionState::write_descriptor(
+                    &self.connection_state.clone(),
+                    cap,
+                    descriptor,
+                    fds,
+                )
+                .unwrap()
             }
         }
     }
@@ -3226,6 +3297,16 @@ impl<VatId> ClientHook for Client<VatId> {
 
     fn when_resolved(&self) -> Promise<(), Error> {
         default_when_resolved_impl(self)
+    }
+
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        match &self.variant {
+            ClientVariant::Import(import_client) => import_client.fd.get().map(|fd| fd.as_fd()),
+            ClientVariant::Pipeline(_pipeline_client) => None,
+            ClientVariant::Promise(promise_client) => {
+                promise_client.resolved.get().and_then(|cap| cap.get_fd())
+            }
+        }
     }
 }
 

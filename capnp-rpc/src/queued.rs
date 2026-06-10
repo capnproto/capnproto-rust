@@ -21,6 +21,7 @@
 
 use capnp::any_pointer;
 use capnp::capability::Promise;
+use capnp::fd::BorrowedFd;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp, ResultsHook};
 use capnp::Error;
 use futures_util::{FutureExt as _, TryFutureExt as _};
@@ -351,5 +352,9 @@ impl ClientHook for Client {
 
     fn when_resolved(&self) -> Promise<(), Error> {
         crate::rpc::default_when_resolved_impl(self)
+    }
+
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        self.inner.redirect.get().and_then(|p| p.get_fd())
     }
 }
