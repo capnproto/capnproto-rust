@@ -538,7 +538,11 @@ mod wire_helpers {
             let far_segment_id = (*reff).far_segment_id();
 
             let (seg_start, _seg_len) = arena.get_segment(far_segment_id)?;
-            let ptr = seg_start.add((*reff).far_position_in_segment() as usize * BYTES_PER_WORD);
+            // Use wrapping arithmetic (as in `mut_target`): `far_position_in_segment()`
+            // is attacker-controlled and may point outside this segment's allocation.
+            // The `bounds_check` below validates `ptr` before it is dereferenced.
+            let ptr =
+                seg_start.wrapping_add((*reff).far_position_in_segment() as usize * BYTES_PER_WORD);
 
             let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
             bounds_check(arena, far_segment_id, ptr, pad_words, WirePointerKind::Far)?;
@@ -558,8 +562,11 @@ mod wire_helpers {
                 let tag = pad.add(1);
                 let double_far_segment_id = (*pad).far_segment_id();
                 let (segment_start, _segment_len) = arena.get_segment(double_far_segment_id)?;
-                let ptr =
-                    segment_start.add((*pad).far_position_in_segment() as usize * BYTES_PER_WORD);
+                // Wrapping arithmetic: `far_position_in_segment()` is attacker-controlled
+                // and may point outside the allocation. Callers bounds-check `ptr` before
+                // dereferencing it.
+                let ptr = segment_start
+                    .wrapping_add((*pad).far_position_in_segment() as usize * BYTES_PER_WORD);
                 Ok((ptr, tag, double_far_segment_id))
             }
         } else {
