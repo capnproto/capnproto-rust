@@ -1,5 +1,5 @@
 use rand::distr::uniform::SampleUniform;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use capnp::introspect::TypeVariant;
 use capnp::schema;

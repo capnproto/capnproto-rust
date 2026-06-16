@@ -2,7 +2,7 @@ use crate::streaming_capnp::receiver;
 use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use futures::AsyncReadExt;
-use rand::Rng;
+use rand::RngExt;
 use sha2::{Digest, Sha256};
 
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
