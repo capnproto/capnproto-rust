@@ -2323,9 +2323,7 @@ fn generate_node(
                 }),
                 BlankLine,
                 (if !is_generic {
-                    Branch(vec![
-                        Line(fmt!(ctx,"pub struct Reader<'a> {{ reader: {capnp}::private::layout::StructReader<'a> }}"))
-                    ])
+                    Line(fmt!(ctx,"pub struct Reader<'a> {{ reader: {capnp}::private::layout::StructReader<'a> }}"))
                 } else {
                     Branch(vec![
                         Line(format!("pub struct Reader<'a,{}> {} {{", params.params, params.where_clause)),
@@ -2424,9 +2422,7 @@ fn generate_node(
                 line("}"),
                 BlankLine,
                 (if !is_generic {
-                    Branch(vec![
-                        Line(fmt!(ctx,"pub struct Builder<'a> {{ builder: {capnp}::private::layout::StructBuilder<'a> }}"))
-                    ])
+                    Line(fmt!(ctx,"pub struct Builder<'a> {{ builder: {capnp}::private::layout::StructBuilder<'a> }}"))
                 } else {
                     Branch(vec![
                         Line(format!("pub struct Builder<'a,{}> {} {{",
@@ -2516,9 +2512,7 @@ fn generate_node(
                         line("}")
                     ])
                 } else {
-                    Branch(vec![
-                        Line(fmt!(ctx,"pub struct Pipeline {{ _typeless: {capnp}::any_pointer::Pipeline }}"))
-                    ])
+                    Line(fmt!(ctx,"pub struct Pipeline {{ _typeless: {capnp}::any_pointer::Pipeline }}"))
                 }),
                 Line(fmt!(ctx,"impl{bracketed_params} {capnp}::capability::FromTypelessPipeline for Pipeline{bracketed_params} {{")),
                 indent(vec![
