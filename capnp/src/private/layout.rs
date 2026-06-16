@@ -2276,16 +2276,21 @@ mod wire_helpers {
 
                 if element_size == InlineComposite {
                     let word_count = (*src_ptr).list_inline_composite_word_count();
-                    let tag: *const WirePointer = ptr as *const _;
-                    ptr = ptr.add(BYTES_PER_WORD);
 
+                    // Bounds-check before advancing `ptr` (see note in
+                    // `read_list_pointer`): `ptr` may be out-of-bounds or
+                    // one-past-the-end, so advancing with `.add()` first would
+                    // be undefined behavior.
                     bounds_check(
                         src.arena,
                         src_segment_id,
-                        ptr.sub(BYTES_PER_WORD),
+                        ptr,
                         word_count as usize + 1,
                         WirePointerKind::List,
                     )?;
+
+                    let tag: *const WirePointer = ptr as *const _;
+                    ptr = ptr.add(BYTES_PER_WORD);
 
                     if (*tag).kind() != WirePointerKind::Struct {
                         return Err(Error::from_kind(
@@ -2524,17 +2529,22 @@ mod wire_helpers {
             InlineComposite => {
                 let word_count = (*reff).list_inline_composite_word_count();
 
-                let tag: *const WirePointer = ptr as *const WirePointer;
-
-                ptr = ptr.add(BYTES_PER_WORD);
-
+                // Bounds-check *before* advancing `ptr`. `ptr` comes from
+                // `follow_fars()`, which for double-far pointers returns an
+                // unchecked (possibly out-of-bounds) pointer; even for ordinary
+                // pointers the target may be one-past-the-end of the segment.
+                // Advancing with `.add()` first would be undefined behavior.
                 bounds_check(
                     arena,
                     segment_id,
-                    ptr.sub(BYTES_PER_WORD),
+                    ptr,
                     word_count as usize + 1,
                     WirePointerKind::List,
                 )?;
+
+                let tag: *const WirePointer = ptr as *const WirePointer;
+
+                ptr = ptr.add(BYTES_PER_WORD);
 
                 if (*tag).kind() != WirePointerKind::Struct {
                     return Err(Error::from_kind(
