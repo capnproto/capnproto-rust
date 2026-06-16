@@ -2298,7 +2298,6 @@ fn generate_node(
                 Branch(preamble),
                 (if !is_generic {
                     Branch(vec![
-                        Branch(struct_doc_lines.clone()),
                         Line("#[derive(Copy, Clone)]".into()),
                         line("pub struct Owned(());"),
                         Line(fmt!(ctx,"impl {capnp}::introspect::Introspect for Owned {{ fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Struct({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types, annotation_types: _private::get_annotation_types }}).into() }} }}")),
@@ -2308,7 +2307,6 @@ fn generate_node(
                     ])
                 } else {
                     Branch(vec![
-                        Branch(struct_doc_lines.clone()),
                         Line("#[derive(Copy, Clone)]".into()),
                         Line(format!("pub struct Owned<{}> {{", params.params)),
                             indent(Line(params.phantom_data_type.clone())),
@@ -2326,12 +2324,10 @@ fn generate_node(
                 BlankLine,
                 (if !is_generic {
                     Branch(vec![
-                        Branch(struct_doc_lines.clone()),
                         Line(fmt!(ctx,"pub struct Reader<'a> {{ reader: {capnp}::private::layout::StructReader<'a> }}"))
                     ])
                 } else {
                     Branch(vec![
-                        Branch(struct_doc_lines.clone()),
                         Line(format!("pub struct Reader<'a,{}> {} {{", params.params, params.where_clause)),
                         indent(vec![
                             Line(fmt!(ctx,"reader: {capnp}::private::layout::StructReader<'a>,")),
@@ -2429,12 +2425,10 @@ fn generate_node(
                 BlankLine,
                 (if !is_generic {
                     Branch(vec![
-                        Branch(struct_doc_lines.clone()),
                         Line(fmt!(ctx,"pub struct Builder<'a> {{ builder: {capnp}::private::layout::StructBuilder<'a> }}"))
                     ])
                 } else {
                     Branch(vec![
-                        Branch(struct_doc_lines.clone()),
                         Line(format!("pub struct Builder<'a,{}> {} {{",
                                      params.params, params.where_clause)),
                             indent(vec![
@@ -2514,7 +2508,6 @@ fn generate_node(
                 BlankLine,
                 (if is_generic {
                     Branch(vec![
-                        Branch(struct_doc_lines.clone()),
                         Line(format!("pub struct Pipeline{bracketed_params} {{")),
                         indent(vec![
                             Line(fmt!(ctx,"_typeless: {capnp}::any_pointer::Pipeline,")),
@@ -2524,7 +2517,6 @@ fn generate_node(
                     ])
                 } else {
                     Branch(vec![
-                        Branch(struct_doc_lines.clone()),
                         Line(fmt!(ctx,"pub struct Pipeline {{ _typeless: {capnp}::any_pointer::Pipeline }}"))
                     ])
                 }),
@@ -2562,7 +2554,8 @@ fn generate_node(
             let mut match_branches = Vec::new();
             let enumerants = enum_reader.get_enumerants()?;
             for (ii, enumerant) in enumerants.into_iter().enumerate() {
-                let enumerant_doc_lines = generate_doc_comment(get_member_doc_comment(ctx, node_id, ii as u32));
+                let enumerant_doc_lines =
+                    generate_doc_comment(get_member_doc_comment(ctx, node_id, ii as u32));
                 if !enumerant_doc_lines.is_empty() {
                     members.push(Branch(enumerant_doc_lines));
                 }
@@ -2723,7 +2716,8 @@ fn generate_node(
                     param_type
                 )));
 
-                let method_doc_lines = generate_doc_comment(get_member_doc_comment(ctx, node_id, ordinal as u32));
+                let method_doc_lines =
+                    generate_doc_comment(get_member_doc_comment(ctx, node_id, ordinal as u32));
 
                 let result_id = method.get_result_struct_type();
                 if result_id != STREAM_RESULT_ID {
@@ -2805,7 +2799,7 @@ fn generate_node(
                                   capitalize_first_letter(name), params_ty_params,
                                   node_name, module_name(name)
                         )));
-                    
+
                     if !method_doc_lines.is_empty() {
                         client_impl_interior.push(Branch(method_doc_lines.clone()));
                     }
@@ -3260,7 +3254,7 @@ fn generate_node(
             } else {
                 interior.push(Line(fmt!(ctx,"pub fn get_type<{0}>() -> {capnp}::introspect::Type {1} {{ <{2} as {capnp}::introspect::Introspect>::introspect() }}", params.params, params.where_clause, ty.type_string(ctx, Leaf::Owned)?)));
             }
-            
+
             let mut annotation_module = vec![];
             if !annotation_doc_lines.is_empty() {
                 annotation_module.push(Branch(annotation_doc_lines));
