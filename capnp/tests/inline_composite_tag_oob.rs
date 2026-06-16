@@ -19,8 +19,7 @@ pub fn inline_composite_one_past_end() {
     //
     // offset_in_words() = 1 + (0 >> 2) = 1, so the target is word index 1,
     // i.e. exactly one-past-the-end of this 1-word segment.
-    let segment: &[capnp::Word] =
-        &[capnp::word(0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00)];
+    let segment: &[capnp::Word] = &[capnp::word(0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00)];
 
     let segments = &[capnp::Word::words_to_bytes(segment)];
     let segment_array = capnp::message::SegmentArray::new(segments);
