@@ -1,3 +1,6 @@
+## v0.25.6
+- Prevent possible undefined behavior in follow_fars().
+
 ## v0.25.5
 - Add `impl<T: FromClientHook> FromTypelessPipeline for T`, to support pipelining
   on generic capabilities.
