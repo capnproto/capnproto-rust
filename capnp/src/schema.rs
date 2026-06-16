@@ -256,9 +256,9 @@ pub struct EnumSchema {
 
 impl EnumSchema {
     pub fn new(raw: RawEnumSchema) -> Self {
-        let proto = crate::any_pointer::Reader::new(unsafe {
-            layout::PointerReader::get_root_unchecked(raw.encoded_node.as_ptr() as *const u8)
-        })
+        let proto = crate::any_pointer::Reader::new(
+            layout::PointerReader::get_root_from_arena(raw.arena).unwrap(),
+        )
         .get_as()
         .unwrap();
         Self { raw, proto }

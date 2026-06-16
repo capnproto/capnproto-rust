@@ -2480,14 +2480,14 @@ fn generate_node(
                     "impl {capnp}::introspect::Introspect for {last_name} {{"
                 )),
                 indent(Line(fmt!(ctx,
-                    "fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Enum({capnp}::introspect::RawEnumSchema {{ encoded_node: &{0}::ENCODED_NODE, annotation_types: {0}::get_annotation_types }}).into() }}", name_as_mod))),
+                    "fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Enum({capnp}::introspect::RawEnumSchema::new(&{0}::ARENA, {0}::get_annotation_types)).into() }}", name_as_mod))),
                 Line("}".into()),
             ]));
 
             output.push(Branch(vec![
                 Line(fmt!(ctx,"impl ::core::convert::From<{last_name}> for {capnp}::dynamic_value::Reader<'_> {{")),
                 indent(Line(fmt!(ctx,
-                    "fn from(e: {last_name}) -> Self {{ {capnp}::dynamic_value::Enum::new(e.into(), {capnp}::introspect::RawEnumSchema {{ encoded_node: &{0}::ENCODED_NODE, annotation_types: {0}::get_annotation_types }}.into()).into() }}", name_as_mod ))),
+                    "fn from(e: {last_name}) -> Self {{ {capnp}::dynamic_value::Enum::new(e.into(), {capnp}::introspect::RawEnumSchema::new(&{0}::ARENA, {0}::get_annotation_types).into()).into() }}", name_as_mod ))),
                 Line("}".into())
             ]));
 
@@ -2540,6 +2540,7 @@ fn generate_node(
                         crate::pointer_constants::WordArrayDeclarationOptions { pub_crate: true },
                     )?,
                     generate_get_annotation_types(ctx, *node_reader)?,
+                    Line(fmt!(ctx, "pub(crate) static ARENA: {capnp}::private::arena::GeneratedCodeArena = {capnp}::private::arena::GeneratedCodeArena::new(&ENCODED_NODE);")),
                 ]),
                 Line("}".into()),
             ]));

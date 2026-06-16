@@ -312,16 +312,16 @@ impl From<StructSchema> for RawBrandedStructSchema {
 #[derive(Clone, Copy)]
 pub struct RawEnumSchema {
     /// The Node (as defined in schema.capnp), as a single segment message.
-    pub encoded_node: &'static [crate::Word],
+    pub(crate) arena: &'static crate::private::arena::GeneratedCodeArena,
 
     /// Map from (maybe enumerant index, annotation index) to the Type
     /// of the value held by that annotation.
-    pub annotation_types: fn(Option<u16>, u32) -> Type,
+    pub(crate) annotation_types: fn(Option<u16>, u32) -> Type,
 }
 
 impl core::cmp::PartialEq for RawEnumSchema {
     fn eq(&self, other: &Self) -> bool {
-        ::core::ptr::eq(self.encoded_node, other.encoded_node)
+        ::core::ptr::eq(self.arena, other.arena)
     }
 }
 
@@ -329,7 +329,20 @@ impl core::cmp::Eq for RawEnumSchema {}
 
 impl core::fmt::Debug for RawEnumSchema {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
-        write!(f, "RawEnumSchema({:?})", self.encoded_node as *const _)
+        write!(f, "RawEnumSchema({:?})", self.arena as *const _)
+    }
+}
+
+impl RawEnumSchema {
+    /// Constructs a new `RawEnumSchema`.
+    pub const fn new(
+        arena: &'static crate::private::arena::GeneratedCodeArena,
+        annotation_types: fn(Option<u16>, u32) -> Type,
+    ) -> Self {
+        Self {
+            arena,
+            annotation_types,
+        }
     }
 }
 

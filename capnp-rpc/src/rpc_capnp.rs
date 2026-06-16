@@ -8559,10 +8559,10 @@ pub mod exception {
 
     impl ::capnp::introspect::Introspect for Type {
         fn introspect() -> ::capnp::introspect::Type {
-            ::capnp::introspect::TypeVariant::Enum(::capnp::introspect::RawEnumSchema {
-                encoded_node: &type_::ENCODED_NODE,
-                annotation_types: type_::get_annotation_types,
-            })
+            ::capnp::introspect::TypeVariant::Enum(::capnp::introspect::RawEnumSchema::new(
+                &type_::ARENA,
+                type_::get_annotation_types,
+            ))
             .into()
         }
     }
@@ -8570,11 +8570,8 @@ pub mod exception {
         fn from(e: Type) -> Self {
             ::capnp::dynamic_value::Enum::new(
                 e.into(),
-                ::capnp::introspect::RawEnumSchema {
-                    encoded_node: &type_::ENCODED_NODE,
-                    annotation_types: type_::get_annotation_types,
-                }
-                .into(),
+                ::capnp::introspect::RawEnumSchema::new(&type_::ARENA, type_::get_annotation_types)
+                    .into(),
             )
             .into()
         }
@@ -8648,5 +8645,7 @@ pub mod exception {
         ) -> ::capnp::introspect::Type {
             ::capnp::introspect::panic_invalid_annotation_indices(child_index, index)
         }
+        pub(crate) static ARENA: ::capnp::private::arena::GeneratedCodeArena =
+            ::capnp::private::arena::GeneratedCodeArena::new(&ENCODED_NODE);
     }
 }

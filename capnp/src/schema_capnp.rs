@@ -12934,10 +12934,10 @@ pub enum ElementSize {
 
 impl crate::introspect::Introspect for ElementSize {
     fn introspect() -> crate::introspect::Type {
-        crate::introspect::TypeVariant::Enum(crate::introspect::RawEnumSchema {
-            encoded_node: &element_size::ENCODED_NODE,
-            annotation_types: element_size::get_annotation_types,
-        })
+        crate::introspect::TypeVariant::Enum(crate::introspect::RawEnumSchema::new(
+            &element_size::ARENA,
+            element_size::get_annotation_types,
+        ))
         .into()
     }
 }
@@ -12945,10 +12945,10 @@ impl ::core::convert::From<ElementSize> for crate::dynamic_value::Reader<'_> {
     fn from(e: ElementSize) -> Self {
         crate::dynamic_value::Enum::new(
             e.into(),
-            crate::introspect::RawEnumSchema {
-                encoded_node: &element_size::ENCODED_NODE,
-                annotation_types: element_size::get_annotation_types,
-            }
+            crate::introspect::RawEnumSchema::new(
+                &element_size::ARENA,
+                element_size::get_annotation_types,
+            )
             .into(),
         )
         .into()
@@ -13044,6 +13044,8 @@ mod element_size {
     ) -> crate::introspect::Type {
         crate::introspect::panic_invalid_annotation_indices(child_index, index)
     }
+    pub(crate) static ARENA: crate::private::arena::GeneratedCodeArena =
+        crate::private::arena::GeneratedCodeArena::new(&ENCODED_NODE);
 }
 
 pub mod capnp_version {
