@@ -1,3 +1,6 @@
+## v0.26.0
+- Follow v0.26.0 release of other capnp crates.
+
 ## v0.25.1
 - Block nonstreaming calls while there are pending streaming calls, to match the
   capnproto-c++ semantics.

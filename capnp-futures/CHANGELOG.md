@@ -1,3 +1,6 @@
+## v0.26.0
+- Follow v0.26.0 release of other capnp crates.
+
 ## v0.25.2
 - Fix bug in `PackedWrite` that incorrectly encoded long streams of zeroes or non-zeroes.
 

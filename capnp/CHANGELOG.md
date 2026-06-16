@@ -1,3 +1,7 @@
+## v0.26.0
+- Use GeneratedCodeArena in construction of RawEnumSchema, avoiding need for an unsafe{}.
+- Update Allocator methods to use NonNull.
+
 ## v0.25.6
 - Prevent some instances of possible undefined behavior relating to pointer::add().
 
@@ -19,7 +23,7 @@
 
 ## v0.25.0
 - Add GeneratedCodeArena, allowing `constant::Reader::new()` and `RawStructSchema::new()` to
-  no loner need an `unsafe` marker.
+  no longer need an `unsafe` marker.
 
 ## v0.24.1
 - Make primitive_list<bool> return None from `as_slice()`, to prevent undefined behavior.

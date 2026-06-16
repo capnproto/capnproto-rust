@@ -1,3 +1,6 @@
+## v0.26.0
+- Adjust generated code for new RawEnumSchema constructor.
+
 ## v0.25.3
 - Avoid unreachable_pub warnings in generated code.
 
@@ -15,7 +18,7 @@
 - Add local `#[allow(unsafe_code)]` annotations to generated code.
 
 ## v0.24.0
-- Adjust generated code to used new constructors for constants and RawStructSchema.
+- Adjust generated code to use new constructors for constants and RawStructSchema.
 
 ## v0.23.3
 - Adjust generated dispatch code to properly disambiguate when an 'extends' interface method
