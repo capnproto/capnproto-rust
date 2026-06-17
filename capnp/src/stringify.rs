@@ -57,28 +57,28 @@ pub(crate) fn print(
 ) -> Result<(), fmt::Error> {
     match value {
         dynamic_value::Reader::Void => formatter.write_str("()"),
-        dynamic_value::Reader::Bool(b) => formatter.write_fmt(format_args!("{b}")),
-        dynamic_value::Reader::Int8(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::Int16(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::Int32(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::Int64(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::UInt8(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::UInt16(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::UInt32(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::UInt64(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::Float32(x) => formatter.write_fmt(format_args!("{x}")),
-        dynamic_value::Reader::Float64(x) => formatter.write_fmt(format_args!("{x}")),
+        dynamic_value::Reader::Bool(b) => write!(formatter, "{b}"),
+        dynamic_value::Reader::Int8(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::Int16(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::Int32(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::Int64(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::UInt8(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::UInt16(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::UInt32(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::UInt64(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::Float32(x) => write!(formatter, "{x}"),
+        dynamic_value::Reader::Float64(x) => write!(formatter, "{x}"),
         dynamic_value::Reader::Enum(e) => match cvt(e.get_enumerant())? {
             Some(enumerant) => {
                 formatter.write_str(cvt(cvt(enumerant.get_proto().get_name())?.to_str())?)
             }
-            None => formatter.write_fmt(format_args!("{}", e.get_value())),
+            None => write!(formatter, "{}", e.get_value()),
         },
-        dynamic_value::Reader::Text(t) => formatter.write_fmt(format_args!("{t:?}")),
+        dynamic_value::Reader::Text(t) => write!(formatter, "{t:?}"),
         dynamic_value::Reader::Data(d) => {
             formatter.write_str("0x\"")?;
             for b in d {
-                formatter.write_fmt(format_args!("{:02x}", *b))?;
+                write!(formatter, "{:02x}", *b)?;
             }
             formatter.write_str("\"")
         }
