@@ -27,7 +27,7 @@ use capnp::primitive_list;
 use capnp::Error;
 
 use ::capnp_rpc::ImbuedMessageBuilder;
-use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use crate::calculator_capnp::calculator;
 
@@ -55,15 +55,17 @@ impl calculator::value::Server for ValueImpl {
     }
 }
 
+// Returns a `Result` so that the synchronous reading of `expression` can use the `?`
+// operator. The `Promise` itself owns everything it needs, so callers can drop any borrow
+// backing `expression` (e.g. a `RefCell` guard) before awaiting it.
 fn evaluate_impl(
     expression: calculator::expression::Reader<'_>,
     params: Option<primitive_list::Reader<'_, f64>>,
-) -> Promise<f64, Error> {
-    match pry!(expression.which()) {
+) -> Result<Promise<f64, Error>, Error> {
+    Ok(match expression.which()? {
         calculator::expression::Literal(v) => Promise::ok(v),
         calculator::expression::PreviousResult(p) => Promise::from_future(
-            pry!(p)
-                .read_request()
+            p?.read_request()
                 .send()
                 .promise
                 .map(|v| Ok(v?.get()?.get_value())),
@@ -71,15 +73,16 @@ fn evaluate_impl(
 
         calculator::expression::Parameter(p) => match params {
             Some(params) if p < params.len() => Promise::ok(params.get(p)),
-            _ => Promise::err(Error::failed(format!("bad parameter: {p}"))),
+            _ => return Err(Error::failed(format!("bad parameter: {p}"))),
         },
 
         calculator::expression::Call(call) => {
-            let func = pry!(call.get_function());
+            let func = call.get_function()?;
             let eval_params = future::try_join_all(
-                pry!(call.get_params())
+                call.get_params()?
                     .iter()
-                    .map(|p| evaluate_impl(p, params)),
+                    .map(|p| evaluate_impl(p, params))
+                    .collect::<Result<Vec<_>, _>>()?,
             );
             Promise::from_future(async move {
                 let param_values = eval_params.await?;
@@ -93,7 +96,7 @@ fn evaluate_impl(
                 Ok(request.send().promise.await?.get()?.get_value())
             })
         }
-    }
+    })
 }
 
 struct FunctionImpl {
@@ -133,7 +136,7 @@ impl calculator::function::Server for FunctionImpl {
                 .get_root::<calculator::expression::Builder>()?
                 .into_reader(),
             Some(params),
-        );
+        )?;
 
         results.get().set_value(eval.await?);
         Ok(())
@@ -175,7 +178,7 @@ impl calculator::Server for CalculatorImpl {
         params: calculator::EvaluateParams,
         mut results: calculator::EvaluateResults,
     ) -> Result<(), Error> {
-        let v = evaluate_impl(params.get()?.get_expression()?, None).await?;
+        let v = evaluate_impl(params.get()?.get_expression()?, None)?.await?;
         results
             .get()
             .set_value(capnp_rpc::new_client(ValueImpl::new(v)));
