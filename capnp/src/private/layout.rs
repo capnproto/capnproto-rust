@@ -401,7 +401,6 @@ mod wire_helpers {
         WordCount32::try_from((bits + 63) / (BITS_PER_WORD as u64)).unwrap()
     }
 
-    #[allow(dead_code)]
     #[inline]
     pub(crate) fn round_bits_up_to_bytes(bits: BitCount64) -> ByteCount32 {
         ByteCount32::try_from((bits + 7) / (BITS_PER_BYTE as u64)).unwrap()
