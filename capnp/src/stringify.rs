@@ -47,10 +47,7 @@ impl Indent {
 }
 
 fn cvt<T, E>(r: core::result::Result<T, E>) -> Result<T, fmt::Error> {
-    match r {
-        Ok(v) => Ok(v),
-        Err(_) => Err(fmt::Error),
-    }
+    r.map_err(|_| fmt::Error)
 }
 
 pub(crate) fn print(
