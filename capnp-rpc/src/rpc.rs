@@ -1637,15 +1637,13 @@ impl<VatId> Disconnector<VatId> {
             ));
         }
     }
-}
 
-impl<VatId> Future for Disconnector<VatId>
-where
-    VatId: 'static,
-{
-    type Output = Result<(), capnp::Error>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+    /// Disconnects the `RpcSystem`'s ConnectionState but doesn't wait for it to close.
+    ///
+    /// This is useful if you want to just signal to the `RpcSystem` that you are done
+    /// with eg. a client connection and would like for it to shutdown but you either
+    /// don't want to or can't wait for it to complete the shutdown.
+    pub fn disconnect_background(&mut self) {
         self.state = match self.state {
             DisconnectorState::New => {
                 self.disconnect();
@@ -1660,6 +1658,17 @@ where
             }
             DisconnectorState::Disconnected => DisconnectorState::Disconnected,
         };
+    }
+}
+
+impl<VatId> Future for Disconnector<VatId>
+where
+    VatId: 'static,
+{
+    type Output = Result<(), capnp::Error>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        self.disconnect_background();
         match self.state {
             DisconnectorState::New => unreachable!(),
             DisconnectorState::Disconnecting => {
