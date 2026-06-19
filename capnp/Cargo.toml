@@ -20,7 +20,7 @@ quickcheck = { version = "1", optional = true }
 embedded-io = { version = "0.7.1", default-features = false, optional = true }
 
 [dev-dependencies]
-quickcheck = "=1.0"
+quickcheck = "=1.1"
 
 [features]
 alloc = ["embedded-io?/alloc"]
