@@ -11,7 +11,7 @@ pub mod message {
     };
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -1118,7 +1118,7 @@ pub mod message {
 
 pub mod bootstrap {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -1438,7 +1438,7 @@ pub mod bootstrap {
 
 pub mod call {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -2004,7 +2004,7 @@ pub mod call {
         pub use self::Which::{Caller, ThirdParty, Yourself};
 
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl ::capnp::introspect::Introspect for Owned {
             fn introspect() -> ::capnp::introspect::Type {
                 ::capnp::introspect::TypeVariant::Struct(
@@ -2378,7 +2378,7 @@ pub mod return_ {
     };
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -2983,7 +2983,7 @@ pub mod return_ {
 
 pub mod finish {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -3323,7 +3323,7 @@ pub mod resolve {
     pub use self::Which::{Cap, Exception};
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -3742,7 +3742,7 @@ pub mod resolve {
 
 pub mod release {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -4046,7 +4046,7 @@ pub mod release {
 
 pub mod disembargo {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -4377,7 +4377,7 @@ pub mod disembargo {
         pub use self::Which::{Accept, Provide, ReceiverLoopback, SenderLoopback};
 
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl ::capnp::introspect::Introspect for Owned {
             fn introspect() -> ::capnp::introspect::Type {
                 ::capnp::introspect::TypeVariant::Struct(
@@ -4756,7 +4756,7 @@ pub mod disembargo {
 
 pub mod provide {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -5131,7 +5131,7 @@ pub mod provide {
 
 pub mod accept {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -5478,7 +5478,7 @@ pub mod accept {
 
 pub mod join {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -5853,7 +5853,7 @@ pub mod message_target {
     pub use self::Which::{ImportedCap, PromisedAnswer};
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -6204,7 +6204,7 @@ pub mod message_target {
 
 pub mod payload {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -6569,7 +6569,7 @@ pub mod cap_descriptor {
     };
 
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -7100,7 +7100,7 @@ pub mod cap_descriptor {
 
 pub mod promised_answer {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -7454,7 +7454,7 @@ pub mod promised_answer {
         pub use self::Which::{GetPointerField, Noop};
 
         #[derive(Copy, Clone)]
-        pub struct Owned(());
+        pub enum Owned {}
         impl ::capnp::introspect::Introspect for Owned {
             fn introspect() -> ::capnp::introspect::Type {
                 ::capnp::introspect::TypeVariant::Struct(
@@ -7780,7 +7780,7 @@ pub mod promised_answer {
 
 pub mod third_party_cap_descriptor {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
@@ -8099,7 +8099,7 @@ pub mod third_party_cap_descriptor {
 
 pub mod exception {
     #[derive(Copy, Clone)]
-    pub struct Owned(());
+    pub enum Owned {}
     impl ::capnp::introspect::Introspect for Owned {
         fn introspect() -> ::capnp::introspect::Type {
             ::capnp::introspect::TypeVariant::Struct(::capnp::introspect::RawBrandedStructSchema {
