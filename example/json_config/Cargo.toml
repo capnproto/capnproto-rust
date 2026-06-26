@@ -1,0 +1,20 @@
+[package]
+name = "json_config"
+version = "0.0.0"
+edition = "2021"
+build = "build.rs"
+
+[features]
+default = ["serde"]
+serde = []
+
+[build-dependencies]
+capnpc = { path = "../../capnpc", features = ["serde"] }
+
+[dependencies]
+capnp = { path = "../../capnp" }
+serde = "1"
+serde_json = "1"
+
+[lints]
+workspace = true
