@@ -400,18 +400,6 @@ fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<
     }
 }
 
-fn snake_to_upper_case(s: &str) -> String {
-    let mut result_chars: Vec<char> = Vec::new();
-    for c in s.chars() {
-        if c == '_' {
-            result_chars.push('_');
-        } else {
-            result_chars.push(c.to_ascii_uppercase());
-        }
-    }
-    result_chars.into_iter().collect()
-}
-
 fn camel_to_snake_case(s: &str) -> String {
     let mut result_chars: Vec<char> = Vec::new();
     let mut first_char = true;
@@ -750,7 +738,7 @@ pub fn getter_text(
             let default = default_value.which()?;
             let default_name = format!(
                 "DEFAULT_{}",
-                snake_to_upper_case(&camel_to_snake_case(get_field_name(*field)?))
+                camel_to_snake_case(get_field_name(*field)?).to_ascii_uppercase()
             );
             let should_get_option = is_option_field(*field)?;
 
@@ -2971,7 +2959,7 @@ fn generate_node(
         }
 
         node::Const(c) => {
-            let styled_name = snake_to_upper_case(ctx.get_last_name(node_id)?);
+            let styled_name = ctx.get_last_name(node_id)?.to_ascii_uppercase();
 
             let typ = c.get_type()?;
             let formatted_text = match (typ.which()?, c.get_value()?.which()?) {
