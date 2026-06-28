@@ -1330,10 +1330,7 @@ fn used_params_of_brand(
     }
     let brand_scopes = brand_scopes; // freeze
     let mut current_node_id = node_id;
-    loop {
-        let Some(current_node) = ctx.node_map.get(&current_node_id) else {
-            break;
-        };
+    while let Some(current_node) = ctx.node_map.get(&current_node_id) {
         let params = current_node.get_parameters()?;
         match brand_scopes.get(&current_node_id) {
             None => (),
