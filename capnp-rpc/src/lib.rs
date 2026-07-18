@@ -392,6 +392,21 @@ where
     )))
 }
 
+/// Creates a "broken" capability that returns the given error from every operation.
+///
+/// The returned client fails with a clone of `error` on every method call
+/// (via both `call` and `new_call`) and on any pipelined capability obtained
+/// from such a call. It never resolves to a working capability.
+///
+/// This is useful when building a capability membrane or other interposition
+/// layer on top of `ClientHook`: the "deny" path of a membrane needs a
+/// capability that rejects all access with a specific error rather than
+/// forwarding to a real object. This parallels the `newBrokenCap` function
+/// exposed by the C++ implementation of Cap'n Proto.
+pub fn new_broken_cap(error: capnp::Error) -> capnp::capability::Client {
+    capnp::capability::Client::new(broken::new_cap(error))
+}
+
 /// Collection of unwrappable capabilities.
 ///
 /// Allows a server to recognize its own capabilities when passed back to it, and obtain the
