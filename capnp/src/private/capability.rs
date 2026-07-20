@@ -23,6 +23,7 @@
 
 use crate::any_pointer;
 use crate::capability::{Params, Promise, RemotePromise, Request, Results};
+use crate::fd::BorrowedFd;
 use crate::MessageSize;
 
 pub trait ResponseHook {
@@ -83,6 +84,12 @@ pub trait ClientHook {
 
     /// Repeatedly calls whenMoreResolved() until it returns nullptr.
     fn when_resolved(&self) -> Promise<(), crate::Error>;
+
+    /// Implements [`crate::capability::Client::get_fd()`]. If this returns `None` but [`when_more_resolved`] returns
+    /// `Some`, then [`crate::capability::Client::get_fd()`] waits for resolution and tries again.
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        None
+    }
 }
 
 impl Clone for alloc::boxed::Box<dyn ClientHook> {

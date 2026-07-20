@@ -24,15 +24,17 @@ use std::task::{Context, Poll};
 
 use capnp::any_pointer;
 use capnp::capability::Promise;
+use capnp::fd::{AsFd as _, BorrowedFd, FdHooks, OwnedFd};
 use capnp::private::capability::{
     ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResponseHook, ResultsHook,
 };
 use capnp::Error;
 
-use futures::channel::oneshot;
-use futures::{future, Future, FutureExt, TryFutureExt};
+use capnp_futures::io::FdReadBuf;
+use futures_channel::oneshot;
+use futures_util::{future, Future, FutureExt, TryFutureExt};
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::cmp::Reverse;
 use std::collections::binary_heap::BinaryHeap;
 use std::collections::hash_map::{self, HashMap};
@@ -305,7 +307,7 @@ pub(crate) struct Import<VatId>
 where
     VatId: 'static,
 {
-    import_client: Weak<RefCell<ImportClient<VatId>>>,
+    import_client: Weak<ImportClient<VatId>>,
 
     // Either a copy of importClient, or, in the case of promises, the wrapping PromiseClient.
     // Becomes null when it is discarded *or* when the import is destroyed (e.g. the promise is
@@ -313,11 +315,11 @@ where
     app_client: Option<WeakClient<VatId>>,
 
     // If non-null, the import is a promise.
-    promise_client_to_resolve: Option<Weak<RefCell<PromiseClient<VatId>>>>,
+    promise_client_to_resolve: Option<Weak<PromiseClient<VatId>>>,
 }
 
 impl<VatId> Import<VatId> {
-    fn new(import_client: &Rc<RefCell<ImportClient<VatId>>>) -> Self {
+    fn new(import_client: &Rc<ImportClient<VatId>>) -> Self {
         Self {
             import_client: Rc::downgrade(import_client),
             app_client: None,
@@ -532,7 +534,7 @@ impl<VatId> ConnectionState<VatId> {
             for (_, ref mut import) in import_slots.iter_mut() {
                 if let Some(f) = import.promise_client_to_resolve.take() {
                     if let Some(promise_client) = f.upgrade() {
-                        promise_client.borrow_mut().resolve(Err(error.clone()));
+                        promise_client.resolve(Err(error.clone()));
                     }
                 }
             }
@@ -763,6 +765,7 @@ impl<VatId> ConnectionState<VatId> {
             let cap = connection_state.bootstrap_cap.clone();
             let mut cap_table = Vec::new();
             let mut payload = ret.init_results();
+            let mut fds = FdHooks::new();
             {
                 let mut content = payload.reborrow().get_content();
                 content.imbue_mut(&mut cap_table);
@@ -770,7 +773,9 @@ impl<VatId> ConnectionState<VatId> {
             }
             assert_eq!(cap_table.len(), 1);
 
-            Self::write_descriptors(connection_state, &cap_table, payload)
+            let exports = Self::write_descriptors(connection_state, &cap_table, payload, &mut fds);
+            response.set_fds(fds);
+            exports
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
@@ -824,9 +829,13 @@ impl<VatId> ConnectionState<VatId> {
         Ok(())
     }
 
-    fn handle_resolve(connection_state: &Rc<Self>, resolve: resolve::Reader) -> capnp::Result<()> {
+    fn handle_resolve(
+        connection_state: &Rc<Self>,
+        resolve: resolve::Reader,
+        fds: &mut FdReadBuf,
+    ) -> capnp::Result<()> {
         let replacement_or_error = match resolve.which()? {
-            resolve::Cap(c) => match Self::receive_cap(connection_state, c?)? {
+            resolve::Cap(c) => match Self::receive_cap(connection_state, c?, fds)? {
                 Some(cap) => Ok(cap),
                 None => {
                     return Err(Error::failed(
@@ -849,7 +858,7 @@ impl<VatId> ConnectionState<VatId> {
             match import.promise_client_to_resolve.take() {
                 Some(weak_promise_client) => {
                     if let Some(promise_client) = weak_promise_client.upgrade() {
-                        promise_client.borrow_mut().resolve(replacement_or_error);
+                        promise_client.resolve(replacement_or_error);
                     }
                 }
                 None => {
@@ -935,7 +944,7 @@ impl<VatId> ConnectionState<VatId> {
 
     fn handle_message(
         weak_state: &Weak<Self>,
-        message: Box<dyn crate::IncomingMessage>,
+        mut message: Box<dyn crate::IncomingMessage>,
     ) -> ::capnp::Result<()> {
         let Some(connection_state) = weak_state.upgrade() else {
             return Err(Error::disconnected(
@@ -943,7 +952,8 @@ impl<VatId> ConnectionState<VatId> {
             ));
         };
 
-        let reader = message.get_body()?.get_as::<message::Reader>()?;
+        let (body, fds) = message.get_body_and_attached_fds();
+        let reader = body?.get_as::<message::Reader>()?;
         match reader.which() {
             Ok(message::Unimplemented(message)) => {
                 Self::handle_unimplemented(&connection_state, message?)?
@@ -971,7 +981,7 @@ impl<VatId> ConnectionState<VatId> {
                         call.get_interface_id(),
                         call.get_method_id(),
                         call.get_question_id(),
-                        Self::receive_caps(&connection_state, payload.get_cap_table()?)?,
+                        Self::receive_caps(&connection_state, payload.get_cap_table()?, fds)?,
                         redirect_results,
                     )
                 };
@@ -1079,6 +1089,7 @@ impl<VatId> ConnectionState<VatId> {
                                     let cap_table = Self::receive_caps(
                                         &connection_state,
                                         results?.get_cap_table()?,
+                                        fds,
                                     )?;
 
                                     let question_ref =
@@ -1150,7 +1161,9 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
             Ok(message::Finish(finish)) => Self::handle_finish(&connection_state, finish?)?,
-            Ok(message::Resolve(resolve)) => Self::handle_resolve(&connection_state, resolve?)?,
+            Ok(message::Resolve(resolve)) => {
+                Self::handle_resolve(&connection_state, resolve?, fds)?
+            }
             Ok(message::Release(release)) => {
                 let release = release?;
                 connection_state.release_export(release.get_id(), release.get_reference_count())?;
@@ -1389,6 +1402,7 @@ impl<VatId> ConnectionState<VatId> {
 
                     // OK, we have to send a `Resolve` message.
                     let mut message = connection_state.new_outgoing_message(15)?;
+                    let mut fds = FdHooks::new();
                     {
                         let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
@@ -1397,8 +1411,10 @@ impl<VatId> ConnectionState<VatId> {
                             &connection_state,
                             resolution,
                             resolve.init_cap(),
+                            &mut fds,
                         )?;
                     }
+                    message.set_fds(fds);
                     let _ = message.send();
                     Ok(())
                 }
@@ -1422,16 +1438,29 @@ impl<VatId> ConnectionState<VatId> {
         state: &Rc<Self>,
         mut inner: Box<dyn ClientHook>,
         mut descriptor: cap_descriptor::Builder,
+        fd_hooks: &mut FdHooks,
     ) -> ::capnp::Result<Option<ExportId>> {
         // Find the innermost wrapped capability.
         while let Some(resolved) = inner.get_resolved() {
             inner = resolved;
         }
+
+        // We don’t report an error if too many FDs have already been
+        // attached, as this can also happen due to per‐connection limits.
+        let result = fd_hooks.try_push(inner);
+        let inner = match &result {
+            Ok((attached_fd, inner)) => {
+                descriptor.set_attached_fd(*attached_fd);
+                *inner
+            }
+            Err(inner) => &**inner,
+        };
+
         if inner.get_brand() == state.get_brand() {
             let Some(c) = Client::from_ptr(inner.get_ptr(), state) else {
                 unreachable!()
             };
-            Ok(c.write_descriptor(descriptor))
+            Ok(c.write_descriptor(descriptor, fd_hooks))
         } else {
             let ptr = inner.get_ptr();
             let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
@@ -1445,7 +1474,7 @@ impl<VatId> ConnectionState<VatId> {
             } else {
                 // This is the first time we've seen this capability.
 
-                let mut exp = Export::new(inner.clone());
+                let mut exp = Export::new(inner.add_ref());
                 exp.canonical = true;
                 let export_id = state.exports.borrow_mut().push(exp);
                 state.exports_by_cap.borrow_mut().insert(ptr, export_id);
@@ -1471,6 +1500,7 @@ impl<VatId> ConnectionState<VatId> {
         state: &Rc<Self>,
         cap_table: &[Option<Box<dyn ClientHook>>],
         payload: payload::Builder,
+        fds: &mut FdHooks,
     ) -> Vec<ExportId> {
         let mut cap_table_builder = payload.init_cap_table(cap_table.len() as u32);
         let mut exports = Vec::new();
@@ -1481,6 +1511,7 @@ impl<VatId> ConnectionState<VatId> {
                         state,
                         cap.clone(),
                         cap_table_builder.reborrow().get(idx as u32),
+                        fds,
                     )
                     .unwrap()
                     {
@@ -1495,14 +1526,22 @@ impl<VatId> ConnectionState<VatId> {
         exports
     }
 
-    fn import(state: &Rc<Self>, import_id: ImportId, is_promise: bool) -> Box<dyn ClientHook> {
+    fn import(
+        state: &Rc<Self>,
+        import_id: ImportId,
+        is_promise: bool,
+        fd: Option<OwnedFd>,
+    ) -> Box<dyn ClientHook> {
         let import_client = {
             match state.imports.borrow_mut().slots.entry(import_id) {
-                hash_map::Entry::Occupied(occ) => occ
-                    .get()
-                    .import_client
-                    .upgrade()
-                    .expect("dangling ref to import client?"),
+                hash_map::Entry::Occupied(occ) => {
+                    let import_client = occ
+                        .get()
+                        .import_client
+                        .upgrade()
+                        .expect("dangling ref to import client?");
+                    import_client
+                }
                 hash_map::Entry::Vacant(v) => {
                     let import_client = ImportClient::new(state, import_id);
                     v.insert(Import::new(&import_client));
@@ -1511,8 +1550,10 @@ impl<VatId> ConnectionState<VatId> {
             }
         };
 
+        import_client.set_fd_if_missing(fd);
+
         // We just received a copy of this import ID, so the remote refcount has gone up.
-        import_client.borrow_mut().add_remote_ref();
+        import_client.add_remote_ref();
 
         let mut tmp = state.imports.borrow_mut();
         let Some(import) = tmp.slots.get_mut(&import_id) else {
@@ -1559,14 +1600,17 @@ impl<VatId> ConnectionState<VatId> {
     fn receive_cap(
         state: &Rc<Self>,
         descriptor: cap_descriptor::Reader,
+        fds: &mut FdReadBuf,
     ) -> ::capnp::Result<Option<Box<dyn ClientHook>>> {
+        let fd_index = descriptor.get_attached_fd();
+        let fd = fds.get_mut(usize::from(fd_index)).and_then(Option::take);
         match descriptor.which()? {
             cap_descriptor::None(()) => Ok(None),
             cap_descriptor::SenderHosted(sender_hosted) => {
-                Ok(Some(Self::import(state, sender_hosted, false)))
+                Ok(Some(Self::import(state, sender_hosted, false, fd)))
             }
             cap_descriptor::SenderPromise(sender_promise) => {
-                Ok(Some(Self::import(state, sender_promise, true)))
+                Ok(Some(Self::import(state, sender_promise, true, fd)))
             }
             cap_descriptor::ReceiverHosted(receiver_hosted) => {
                 if let Some(exp) = state.exports.borrow_mut().find(receiver_hosted) {
@@ -1599,10 +1643,11 @@ impl<VatId> ConnectionState<VatId> {
     fn receive_caps(
         state: &Rc<Self>,
         cap_table: ::capnp::struct_list::Reader<cap_descriptor::Owned>,
+        fds: &mut FdReadBuf,
     ) -> ::capnp::Result<Vec<Option<Box<dyn ClientHook>>>> {
         let mut result = Vec::new();
         for idx in 0..cap_table.len() {
-            result.push(Self::receive_cap(state, cap_table.get(idx))?);
+            result.push(Self::receive_cap(state, cap_table.get(idx), fds)?);
         }
         Ok(result)
     }
@@ -1806,11 +1851,14 @@ where
         Promise<Response<VatId>, Error>,
     ) {
         // Build the cap table.
+        let mut fds = FdHooks::new();
         let exports = ConnectionState::write_descriptors(
             connection_state,
             cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
+            &mut fds,
         );
+        message.set_fds(fds);
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -1857,11 +1905,14 @@ where
         flow: Rc<RefCell<Option<Box<dyn crate::FlowController>>>>,
     ) -> Promise<(), Error> {
         // Build the cap table.
+        let mut fds = FdHooks::new();
         let exports = ConnectionState::write_descriptors(
             connection_state,
             cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
+            &mut fds,
         );
+        message.set_fds(fds);
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -2086,17 +2137,14 @@ where
     VatId: 'static,
 {
     variant: PipelineVariant<VatId>,
-    redirect_later: Option<RefCell<futures::future::Shared<Promise<Response<VatId>, Error>>>>,
+    redirect_later: Option<RefCell<futures_util::future::Shared<Promise<Response<VatId>, Error>>>>,
     connection_state: Rc<ConnectionState<VatId>>,
 
     #[allow(dead_code)]
     resolve_self_promise: Promise<(), Error>,
 
     promise_clients_to_resolve: RefCell<
-        crate::sender_queue::SenderQueue<
-            (Weak<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>),
-            (),
-        >,
+        crate::sender_queue::SenderQueue<(Weak<PromiseClient<VatId>>, Vec<PipelineOp>), ()>,
     >,
     resolution_waiters: crate::sender_queue::SenderQueue<(), ()>,
 }
@@ -2120,7 +2168,7 @@ where
                 Err(e) => Err(e),
             };
             if let Some(c) = c.upgrade() {
-                c.borrow_mut().resolve(resolved);
+                c.resolve(resolved);
             }
         }
 
@@ -2545,6 +2593,7 @@ impl ResultsDone {
                                 Ok(hook)
                             }
                             (false, Ok(())) => {
+                                let mut fds = FdHooks::new();
                                 let exports = {
                                     let root: message::Builder = message.get_body()?.get_as()?;
                                     let message::Return(Ok(mut ret)) = root.which()? else {
@@ -2563,8 +2612,10 @@ impl ResultsDone {
                                         &connection_state,
                                         &cap_table,
                                         payload,
+                                        &mut fds,
                                     )
                                 };
+                                message.set_fds(fds);
 
                                 let (_promise, m) = message.send();
                                 connection_state.answer_has_sent_return(answer_id, exports);
@@ -2665,9 +2716,9 @@ enum ClientVariant<VatId>
 where
     VatId: 'static,
 {
-    Import(Rc<RefCell<ImportClient<VatId>>>),
-    Pipeline(Rc<RefCell<PipelineClient<VatId>>>),
-    Promise(Rc<RefCell<PromiseClient<VatId>>>),
+    Import(Rc<ImportClient<VatId>>),
+    Pipeline(Rc<PipelineClient<VatId>>),
+    Promise(Rc<PromiseClient<VatId>>),
 }
 
 struct Client<VatId>
@@ -2683,9 +2734,9 @@ enum WeakClientVariant<VatId>
 where
     VatId: 'static,
 {
-    Import(Weak<RefCell<ImportClient<VatId>>>),
-    Pipeline(Weak<RefCell<PipelineClient<VatId>>>),
-    Promise(Weak<RefCell<PromiseClient<VatId>>>),
+    Import(Weak<ImportClient<VatId>>),
+    Pipeline(Weak<PipelineClient<VatId>>),
+    Promise(Weak<PromiseClient<VatId>>),
 }
 
 struct WeakClient<VatId>
@@ -2723,9 +2774,10 @@ where
 {
     connection_state: Rc<ConnectionState<VatId>>,
     import_id: ImportId,
+    fd: OnceCell<OwnedFd>,
 
     /// Number of times we've received this import from the peer.
-    remote_ref_count: u32,
+    remote_ref_count: Cell<u32>,
 }
 
 impl<VatId> Drop for ImportClient<VatId> {
@@ -2750,13 +2802,13 @@ impl<VatId> Drop for ImportClient<VatId> {
 
         // Send a message releasing our remote references.
         let mut tmp = connection_state.connection.borrow_mut();
-        if let (true, Ok(c)) = (self.remote_ref_count > 0, tmp.as_mut()) {
+        if let (true, Ok(c)) = (self.remote_ref_count.get() > 0, tmp.as_mut()) {
             let mut message = c.new_outgoing_message(10);
             {
                 let root: message::Builder = message.get_body().unwrap().init_as();
                 let mut release = root.init_release();
                 release.set_id(self.import_id);
-                release.set_reference_count(self.remote_ref_count);
+                release.set_reference_count(self.remote_ref_count.get());
             }
             let _ = message.send();
         }
@@ -2767,25 +2819,29 @@ impl<VatId> ImportClient<VatId>
 where
     VatId: 'static,
 {
-    fn new(
-        connection_state: &Rc<ConnectionState<VatId>>,
-        import_id: ImportId,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+    fn new(connection_state: &Rc<ConnectionState<VatId>>, import_id: ImportId) -> Rc<Self> {
+        Rc::new(Self {
             connection_state: connection_state.clone(),
             import_id,
-            remote_ref_count: 0,
-        }))
+            fd: OnceCell::new(),
+            remote_ref_count: Cell::new(0),
+        })
     }
 
-    fn add_remote_ref(&mut self) {
-        self.remote_ref_count += 1;
+    fn set_fd_if_missing(&self, fd: Option<OwnedFd>) {
+        if let Some(fd) = fd {
+            let _ = self.fd.set(fd);
+        }
+    }
+
+    fn add_remote_ref(&self) {
+        self.remote_ref_count.update(|count| count + 1);
     }
 }
 
-impl<VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<ImportClient<VatId>>>) -> Self {
-        let connection_state = client.borrow().connection_state.clone();
+impl<VatId> From<Rc<ImportClient<VatId>>> for Client<VatId> {
+    fn from(client: Rc<ImportClient<VatId>>) -> Self {
+        let connection_state = client.connection_state.clone();
         Self::new(&connection_state, ClientVariant::Import(client))
     }
 }
@@ -2808,18 +2864,18 @@ where
         connection_state: &Rc<ConnectionState<VatId>>,
         question_ref: Rc<RefCell<QuestionRef<VatId>>>,
         ops: Vec<PipelineOp>,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+    ) -> Rc<Self> {
+        Rc::new(Self {
             connection_state: connection_state.clone(),
             question_ref,
             ops,
-        }))
+        })
     }
 }
 
-impl<VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<PipelineClient<VatId>>>) -> Self {
-        let connection_state = client.borrow().connection_state.clone();
+impl<VatId> From<Rc<PipelineClient<VatId>>> for Client<VatId> {
+    fn from(client: Rc<PipelineClient<VatId>>) -> Self {
+        let connection_state = client.connection_state.clone();
         Self::new(&connection_state, ClientVariant::Pipeline(client))
     }
 }
@@ -2842,9 +2898,13 @@ where
     VatId: 'static,
 {
     connection_state: Rc<ConnectionState<VatId>>,
-    is_resolved: bool,
-    cap: Box<dyn ClientHook>,
+    unresolved: RefCell<Option<PromiseClientUnresolved>>,
+    resolved: OnceCell<Box<dyn ClientHook>>,
     import_id: Option<ImportId>,
+}
+
+struct PromiseClientUnresolved {
+    initial: Box<dyn ClientHook>,
     received_call: bool,
     resolution_waiters: crate::sender_queue::SenderQueue<(), Box<dyn ClientHook>>,
 }
@@ -2854,18 +2914,24 @@ impl<VatId> PromiseClient<VatId> {
         connection_state: &Rc<ConnectionState<VatId>>,
         initial: Box<dyn ClientHook>,
         import_id: Option<ImportId>,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+    ) -> Rc<Self> {
+        Rc::new(Self {
             connection_state: connection_state.clone(),
-            is_resolved: false,
-            cap: initial,
+            unresolved: RefCell::new(Some(PromiseClientUnresolved {
+                initial,
+                received_call: false,
+                resolution_waiters: crate::sender_queue::SenderQueue::new(),
+            })),
+            resolved: OnceCell::new(),
             import_id,
-            received_call: false,
-            resolution_waiters: crate::sender_queue::SenderQueue::new(),
-        }))
+        })
     }
 
-    fn resolve(&mut self, replacement: Result<Box<dyn ClientHook>, Error>) {
+    fn resolve(&self, replacement: Result<Box<dyn ClientHook>, Error>) {
+        let Some(mut unresolved) = self.unresolved.borrow_mut().take() else {
+            // TODO: I *believe* this should never happen – should this panic?
+            return;
+        };
         let (mut replacement, is_error) = match replacement {
             Ok(v) => (v, false),
             Err(e) => (broken::new_cap(e), true),
@@ -2874,7 +2940,7 @@ impl<VatId> PromiseClient<VatId> {
         let is_connected = connection_state.connection.borrow().is_ok();
         let replacement_brand = replacement.get_brand();
         if replacement_brand != connection_state.get_brand()
-            && self.received_call
+            && unresolved.received_call
             && !is_error
             && is_connected
         {
@@ -2901,7 +2967,7 @@ impl<VatId> PromiseClient<VatId> {
                     .set_sender_loopback(embargo_id);
                 let target = disembargo.init_target();
 
-                let redirect = connection_state.write_target(&*self.cap, target);
+                let redirect = connection_state.write_target(&*unresolved.initial, target);
                 if redirect.is_some() {
                     panic!("Original promise target should always be from this RPC connection.")
                 }
@@ -2927,17 +2993,15 @@ impl<VatId> PromiseClient<VatId> {
             let _ = message.send();
         }
 
-        for ((), waiter) in self.resolution_waiters.drain() {
+        for ((), waiter) in unresolved.resolution_waiters.drain() {
             let _ = waiter.send(replacement.clone());
         }
 
-        let old_cap = mem::replace(&mut self.cap, replacement);
+        assert!(self.resolved.set(replacement).is_ok());
         connection_state.add_task(async move {
-            drop(old_cap);
+            drop(unresolved.initial);
             Ok(())
         });
-
-        self.is_resolved = true;
     }
 }
 
@@ -2971,9 +3035,9 @@ impl<VatId> Drop for PromiseClient<VatId> {
     }
 }
 
-impl<VatId> From<Rc<RefCell<PromiseClient<VatId>>>> for Client<VatId> {
-    fn from(client: Rc<RefCell<PromiseClient<VatId>>>) -> Self {
-        let connection_state = client.borrow().connection_state.clone();
+impl<VatId> From<Rc<PromiseClient<VatId>>> for Client<VatId> {
+    fn from(client: Rc<PromiseClient<VatId>>) -> Self {
+        let connection_state = client.connection_state.clone();
         Self::new(&connection_state, ClientVariant::Promise(client))
     }
 }
@@ -3026,18 +3090,17 @@ impl<VatId> Client<VatId> {
     ) -> Option<Box<dyn ClientHook>> {
         match &self.variant {
             ClientVariant::Import(import_client) => {
-                target.set_imported_cap(import_client.borrow().import_id);
+                target.set_imported_cap(import_client.import_id);
                 None
             }
             ClientVariant::Pipeline(pipeline_client) => {
                 let mut builder = target.init_promised_answer();
-                let question_ref = &pipeline_client.borrow().question_ref;
+                let question_ref = &pipeline_client.question_ref;
                 builder.set_question_id(question_ref.borrow().id);
-                let mut transform =
-                    builder.init_transform(pipeline_client.borrow().ops.len() as u32);
-                for idx in 0..pipeline_client.borrow().ops.len() {
+                let mut transform = builder.init_transform(pipeline_client.ops.len() as u32);
+                for idx in 0..pipeline_client.ops.len() {
                     if let ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) =
-                        pipeline_client.borrow().ops[idx]
+                        pipeline_client.ops[idx]
                     {
                         transform
                             .reborrow()
@@ -3048,28 +3111,39 @@ impl<VatId> Client<VatId> {
                 None
             }
             ClientVariant::Promise(promise_client) => {
-                promise_client.borrow_mut().received_call = true;
-                self.connection_state
-                    .write_target(&*promise_client.borrow().cap, target)
+                // TODO: Is this ever `Some`?
+                if let Some(resolved) = promise_client.resolved.get() {
+                    self.connection_state.write_target(&**resolved, target)
+                } else if let Some(unresolved) = promise_client.unresolved.borrow_mut().as_mut() {
+                    unresolved.received_call = true;
+                    self.connection_state
+                        .write_target(&*unresolved.initial, target)
+                } else {
+                    panic!("promise was neither resolved nor unresolved");
+                }
             }
         }
     }
 
-    fn write_descriptor(&self, mut descriptor: cap_descriptor::Builder) -> Option<u32> {
+    fn write_descriptor(
+        &self,
+        mut descriptor: cap_descriptor::Builder,
+        fds: &mut FdHooks,
+    ) -> Option<u32> {
         match &self.variant {
             ClientVariant::Import(import_client) => {
-                descriptor.set_receiver_hosted(import_client.borrow().import_id);
+                descriptor.set_receiver_hosted(import_client.import_id);
                 None
             }
             ClientVariant::Pipeline(pipeline_client) => {
                 let mut promised_answer = descriptor.init_receiver_answer();
-                let question_ref = &pipeline_client.borrow().question_ref;
+                let question_ref = &pipeline_client.question_ref;
                 promised_answer.set_question_id(question_ref.borrow().id);
                 let mut transform =
-                    promised_answer.init_transform(pipeline_client.borrow().ops.len() as u32);
-                for idx in 0..pipeline_client.borrow().ops.len() {
+                    promised_answer.init_transform(pipeline_client.ops.len() as u32);
+                for idx in 0..pipeline_client.ops.len() {
                     if let ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) =
-                        pipeline_client.borrow().ops[idx]
+                        pipeline_client.ops[idx]
                     {
                         transform
                             .reborrow()
@@ -3081,12 +3155,20 @@ impl<VatId> Client<VatId> {
                 None
             }
             ClientVariant::Promise(promise_client) => {
-                promise_client.borrow_mut().received_call = true;
-
+                // TODO: Is this ever `Some`?
+                let cap = if let Some(resolved) = promise_client.resolved.get() {
+                    resolved.clone()
+                } else if let Some(unresolved) = promise_client.unresolved.borrow_mut().as_mut() {
+                    unresolved.received_call = true;
+                    unresolved.initial.clone()
+                } else {
+                    panic!("promise was neither resolved nor unresolved");
+                };
                 ConnectionState::write_descriptor(
                     &self.connection_state.clone(),
-                    promise_client.borrow().cap.clone(),
+                    cap,
                     descriptor,
+                    fds,
                 )
                 .unwrap()
             }
@@ -3178,13 +3260,9 @@ impl<VatId> ClientHook for Client<VatId> {
 
     fn get_ptr(&self) -> usize {
         match &self.variant {
-            ClientVariant::Import(import_client) => (&*import_client.borrow()) as *const _ as usize,
-            ClientVariant::Pipeline(pipeline_client) => {
-                (&*pipeline_client.borrow()) as *const _ as usize
-            }
-            ClientVariant::Promise(promise_client) => {
-                (&*promise_client.borrow()) as *const _ as usize
-            }
+            ClientVariant::Import(import_client) => &**import_client as *const _ as usize,
+            ClientVariant::Pipeline(pipeline_client) => &**pipeline_client as *const _ as usize,
+            ClientVariant::Promise(promise_client) => &**promise_client as *const _ as usize,
         }
     }
 
@@ -3196,13 +3274,7 @@ impl<VatId> ClientHook for Client<VatId> {
         match &self.variant {
             ClientVariant::Import(_import_client) => None,
             ClientVariant::Pipeline(_pipeline_client) => None,
-            ClientVariant::Promise(promise_client) => {
-                if promise_client.borrow().is_resolved {
-                    Some(promise_client.borrow().cap.clone())
-                } else {
-                    None
-                }
-            }
+            ClientVariant::Promise(promise_client) => promise_client.resolved.get().cloned(),
         }
     }
 
@@ -3211,13 +3283,30 @@ impl<VatId> ClientHook for Client<VatId> {
             ClientVariant::Import(_import_client) => None,
             ClientVariant::Pipeline(_pipeline_client) => None,
             ClientVariant::Promise(promise_client) => {
-                Some(promise_client.borrow_mut().resolution_waiters.push(()))
+                // TODO: Is this ever `Some`?
+                if let Some(resolved) = promise_client.resolved.get() {
+                    Some(Promise::ok(resolved.add_ref()))
+                } else if let Some(unresolved) = promise_client.unresolved.borrow_mut().as_mut() {
+                    Some(unresolved.resolution_waiters.push(()))
+                } else {
+                    panic!("promise was neither resolved nor unresolved");
+                }
             }
         }
     }
 
     fn when_resolved(&self) -> Promise<(), Error> {
         default_when_resolved_impl(self)
+    }
+
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        match &self.variant {
+            ClientVariant::Import(import_client) => import_client.fd.get().map(|fd| fd.as_fd()),
+            ClientVariant::Pipeline(_pipeline_client) => None,
+            ClientVariant::Promise(promise_client) => {
+                promise_client.resolved.get().and_then(|cap| cap.get_fd())
+            }
+        }
     }
 }
 

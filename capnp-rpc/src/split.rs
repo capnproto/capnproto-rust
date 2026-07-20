@@ -19,10 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::{Future, FutureExt};
-
 use std::cell::RefCell;
+use std::future::Future;
 use std::rc::Rc;
+
+use futures_util::FutureExt as _;
 
 pub(crate) fn split<F, T1, T2, E>(
     f: F,

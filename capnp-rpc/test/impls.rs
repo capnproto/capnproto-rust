@@ -28,10 +28,13 @@ use crate::test_capnp::{
 use capnp::capability::FromClientHook;
 use capnp::Error;
 
-use futures::channel::oneshot;
-use futures::TryFutureExt;
+use futures_channel::oneshot;
+use futures_util::TryFutureExt as _;
 
 use std::cell::{Cell, RefCell};
+use std::future;
+#[cfg(unix)]
+use std::os::fd::{AsFd as _, BorrowedFd, OwnedFd};
 use std::rc::Rc;
 
 pub struct Bootstrap;
@@ -292,7 +295,7 @@ impl test_pipeline::Server for TestPipeline {
             .init_out_box()
             .set_cap(capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).cast_to());
         results.set_pipeline()?;
-        ::futures::future::pending().await
+        future::pending().await
     }
 }
 
@@ -399,7 +402,7 @@ impl test_more_stuff::Server for TestMoreStuff {
         // Also attach `cap` to the result struct so we can make sure that the results are released.
         results.get().set_cap_copy(cap);
 
-        ::futures::future::pending().await
+        future::pending().await
     }
 
     async fn hold(
@@ -531,7 +534,7 @@ impl test_more_stuff::Server for TestMoreStuff {
             results.push(request.send().promise);
         }
 
-        ::futures::future::try_join_all(results).await?;
+        futures_util::future::try_join_all(results).await?;
         Ok(())
     }
 
@@ -565,6 +568,23 @@ impl test_more_stuff::Server for TestMoreStuff {
         results
             .get()
             .set_cap(capnp_rpc::new_client(TestSelfImpl::new()));
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    async fn pass_fd(
+        self: Rc<Self>,
+        _params: test_more_stuff::PassFdParams,
+        mut results: test_more_stuff::PassFdResults,
+    ) -> Result<(), Error> {
+        use tokio::io::AsyncWriteExt as _;
+
+        let (mut tx, rx) = tokio::net::unix::pipe::pipe()?;
+        let fd = rx.into_nonblocking_fd()?;
+        let fd_cap: test_interface::Client = capnp_rpc::new_client(TestFd { fd });
+        results.get().set_fd_cap(fd_cap);
+        results.set_pipeline()?;
+        tx.write_all(b"sup").await?;
         Ok(())
     }
 }
@@ -634,6 +654,18 @@ impl test_interface::Server for TestCapDestructor {
         _results: test_interface::BazResults,
     ) -> Result<(), Error> {
         Err(Error::unimplemented("bar is not implemented".to_string()))
+    }
+}
+
+#[cfg(unix)]
+struct TestFd {
+    fd: OwnedFd,
+}
+
+#[cfg(unix)]
+impl test_interface::Server for TestFd {
+    fn get_fd(&self) -> Option<BorrowedFd<'_>> {
+        Some(self.fd.as_fd())
     }
 }
 

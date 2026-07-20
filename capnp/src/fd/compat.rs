@@ -1,4 +1,5 @@
-// Copyright (c) 2013-2016 Sandstorm Development Group, Inc. and contributors
+// Copyright (c) 2026 Sandstorm Development Group, Inc. and contributors
+// Licensed under the MIT License:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,13 +19,49 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::serialize;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::serialize_packed;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::ReadStream;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::{write_queue, Sender};
+use crate::private::capability::ClientHook;
 
-pub mod io;
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy)]
+pub enum BorrowedFd<'_> {}
+
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum OwnedFd {}
+
+pub trait AsFd {
+    fn as_fd(&self) -> BorrowedFd<'_>;
+}
+
+impl AsFd for BorrowedFd<'_> {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        match self {}
+    }
+}
+
+impl AsFd for OwnedFd {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        match self {}
+    }
+}
+
+#[derive(Default)]
+#[non_exhaustive]
+pub struct FdHooks {}
+
+impl FdHooks {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn try_push(
+        &mut self,
+        hook: Box<dyn ClientHook>,
+    ) -> Result<(u8, &dyn ClientHook), Box<dyn ClientHook>> {
+        Err(hook)
+    }
+
+    pub fn as_fds(&self) -> &[BorrowedFd<'_>] {
+        &[]
+    }
+}

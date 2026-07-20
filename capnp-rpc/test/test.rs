@@ -22,12 +22,15 @@
 #![cfg(test)]
 #![allow(clippy::bool_assert_comparison)]
 
+use std::future::Future;
+
 use capnp::capability::{FromClientHook, Promise};
 use capnp::Error;
+use capnp_futures::io::{AsyncFdRead, AsyncFdWrite};
 use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
-use futures::channel::oneshot;
-use futures::{Future, FutureExt, TryFutureExt};
+use futures_channel::oneshot;
+use futures_util::{FutureExt as _, TryFutureExt as _};
 
 capnp::generated_code!(pub mod test_capnp);
 
@@ -35,15 +38,15 @@ pub mod impls;
 pub mod reconnect_test;
 pub mod test_util;
 
-fn canceled_to_error(_e: futures::channel::oneshot::Canceled) -> Error {
+fn canceled_to_error(_e: oneshot::Canceled) -> Error {
     Error::failed("oneshot was canceled".to_string())
 }
 
-#[test]
-fn drop_rpc_system() {
+#[tokio::test(flavor = "local")]
+async fn drop_rpc_system() {
     let (writer, reader) = async_byte_channel::channel();
 
-    let network = Box::new(twoparty::VatNetwork::new(
+    let network = Box::new(twoparty::io::VatNetwork::new(
         reader,
         writer,
         rpc_twoparty_capnp::Side::Client,
@@ -59,7 +62,7 @@ fn disconnector_setup() -> (
 ) {
     let (client_writer, server_reader) = async_byte_channel::channel();
     let (server_writer, client_reader) = async_byte_channel::channel();
-    let client_network = Box::new(twoparty::VatNetwork::new(
+    let client_network = Box::new(twoparty::io::VatNetwork::new(
         client_reader,
         client_writer,
         rpc_twoparty_capnp::Side::Client,
@@ -68,7 +71,7 @@ fn disconnector_setup() -> (
 
     let client_rpc_system = RpcSystem::new(client_network, None);
 
-    let server_network = Box::new(twoparty::VatNetwork::new(
+    let server_network = Box::new(twoparty::io::VatNetwork::new(
         server_reader,
         server_writer,
         rpc_twoparty_capnp::Side::Server,
@@ -81,67 +84,55 @@ fn disconnector_setup() -> (
     (client_rpc_system, server_rpc_system)
 }
 
-fn spawn<F>(spawner: &mut futures::executor::LocalSpawner, task: F)
+fn spawn<F>(task: F)
 where
     F: Future<Output = Result<(), Error>> + 'static,
 {
-    use futures::task::LocalSpawnExt;
-    spawner
-        .spawn_local(task.map(|r| {
-            if let Err(e) = r {
-                panic!("Error on spawned task: {:?}", e);
-            }
-        }))
-        .unwrap();
+    tokio::task::spawn_local(async {
+        if let Err(e) = task.await {
+            panic!("Error on spawned task: {:?}", e);
+        }
+    });
 }
 
-#[test]
-fn drop_import_client_after_disconnect() {
-    let mut pool = futures::executor::LocalPool::new();
-    let mut spawner = pool.spawner();
+#[tokio::test(flavor = "local")]
+async fn drop_import_client_after_disconnect() {
     let (mut client_rpc_system, server_rpc_system) = disconnector_setup();
 
     let client: test_capnp::bootstrap::Client =
         client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-    spawn(&mut spawner, client_rpc_system);
+    spawn(client_rpc_system);
 
     let (tx, rx) = oneshot::channel::<()>();
     let rx = rx.map_err(crate::canceled_to_error);
-    spawn(
-        &mut spawner,
-        futures::future::try_join(rx, server_rpc_system).map(|_| Ok(())),
-    );
+    spawn(futures_util::future::try_join(rx, server_rpc_system).map(|_| Ok(())));
 
-    pool.run_until(async move {
-        client
-            .test_interface_request()
-            .send()
-            .promise
-            .await
-            .unwrap();
-        drop(tx);
+    client
+        .test_interface_request()
+        .send()
+        .promise
+        .await
+        .unwrap();
+    drop(tx);
 
-        match client.test_interface_request().send().promise.await {
-            Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
-            Err(e) => panic!("wrong kind of error: {:?}", e),
-            _ => panic!("Should have gotten a 'disconnected' error."),
-        }
+    match client.test_interface_request().send().promise.await {
+        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+        Err(e) => panic!("wrong kind of error: {:?}", e),
+        _ => panic!("Should have gotten a 'disconnected' error."),
+    }
 
-        // At one point, attempting to call again would cause a panic.
-        match client.test_interface_request().send().promise.await {
-            Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
-            _ => panic!("Should have gotten a 'disconnected' error."),
-        }
+    // At one point, attempting to call again would cause a panic.
+    match client.test_interface_request().send().promise.await {
+        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+        _ => panic!("Should have gotten a 'disconnected' error."),
+    }
 
-        drop(client);
-    });
+    drop(client);
 }
 
-#[test]
-fn disconnector_disconnects() {
-    let mut pool = futures::executor::LocalPool::new();
-    let mut spawner = pool.spawner();
+#[tokio::test(flavor = "local")]
+async fn disconnector_disconnects() {
     let (mut client_rpc_system, server_rpc_system) = disconnector_setup();
 
     let client: test_capnp::bootstrap::Client =
@@ -149,45 +140,39 @@ fn disconnector_disconnects() {
     let disconnector: capnp_rpc::Disconnector<capnp_rpc::rpc_twoparty_capnp::Side> =
         client_rpc_system.get_disconnector();
 
-    spawn(&mut spawner, client_rpc_system);
+    spawn(client_rpc_system);
 
     let (tx, rx) = oneshot::channel::<()>();
 
     //send on tx when server_rpc_system exits
-    spawn(
-        &mut spawner,
-        server_rpc_system.map(|x| {
-            tx.send(()).expect("sending on tx");
-            x
-        }),
-    );
-
-    pool.run_until(async move {
-        //make sure we can make an RPC system call
-        client
-            .test_interface_request()
-            .send()
-            .promise
-            .await
-            .unwrap();
-
-        //disconnect from the server; comment this next line out to see the test fail
-        disconnector.await.unwrap();
-
-        rx.await.expect("rpc system should exit");
-
-        //make sure we can't use client any more (because the server is disconnected)
-        match client.test_interface_request().send().promise.await {
-            Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
-            _ => panic!("Should have gotten a 'disconnected' error."),
-        }
+    spawn(async {
+        let x = server_rpc_system.await;
+        tx.send(()).expect("sending on tx");
+        x
     });
+
+    //make sure we can make an RPC system call
+    client
+        .test_interface_request()
+        .send()
+        .promise
+        .await
+        .unwrap();
+
+    //disconnect from the server; comment this next line out to see the test fail
+    disconnector.await.unwrap();
+
+    rx.await.expect("rpc system should exit");
+
+    //make sure we can't use client any more (because the server is disconnected)
+    match client.test_interface_request().send().promise.await {
+        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+        _ => panic!("Should have gotten a 'disconnected' error."),
+    }
 }
 
-#[test]
-fn disconnector_disconnects_2() {
-    let mut pool = futures::executor::LocalPool::new();
-    let mut spawner = pool.spawner();
+#[tokio::test(flavor = "local")]
+async fn disconnector_disconnects_2() {
     let (mut client_rpc_system, server_rpc_system) = disconnector_setup();
 
     // Grab the disconnector before calling bootstrap().
@@ -198,71 +183,93 @@ fn disconnector_disconnects_2() {
     let client: test_capnp::bootstrap::Client =
         client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-    spawn(&mut spawner, client_rpc_system);
+    spawn(client_rpc_system);
 
     let (tx, rx) = oneshot::channel::<()>();
 
     //send on tx when server_rpc_system exits
-    spawn(
-        &mut spawner,
-        server_rpc_system.map(|x| {
-            tx.send(()).expect("sending on tx");
-            x
-        }),
-    );
-
-    pool.run_until(async move {
-        //make sure we can make an RPC system call
-        client
-            .test_interface_request()
-            .send()
-            .promise
-            .await
-            .unwrap();
-
-        //disconnect from the server; comment this next line out to see the test fail
-        disconnector.await.unwrap();
-
-        rx.await.expect("rpc system should exit");
-
-        //make sure we can't use client any more (because the server is disconnected)
-        match client.test_interface_request().send().promise.await {
-            Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
-            _ => panic!("Should have gotten a 'disconnected' error."),
-        }
+    spawn(async {
+        let x = server_rpc_system.await;
+        tx.send(()).expect("sending on tx");
+        x
     });
+
+    //make sure we can make an RPC system call
+    client
+        .test_interface_request()
+        .send()
+        .promise
+        .await
+        .unwrap();
+
+    //disconnect from the server; comment this next line out to see the test fail
+    disconnector.await.unwrap();
+
+    rx.await.expect("rpc system should exit");
+
+    //make sure we can't use client any more (because the server is disconnected)
+    match client.test_interface_request().send().promise.await {
+        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+        _ => panic!("Should have gotten a 'disconnected' error."),
+    }
 }
 
 /// Sets up a test_capnp::bootstrap capability on the remote side of a
-/// two-party RPC connection and provides a local reference to it, along
-/// with a handle that supports spawning of tasks.
-fn rpc_top_level<F, G>(main: F)
+/// two-party RPC connection and provides a local reference to it.
+async fn rpc_top_level<F, G>(main: F)
 where
-    F: FnOnce(futures::executor::LocalSpawner, test_capnp::bootstrap::Client) -> G,
+    F: FnOnce(test_capnp::bootstrap::Client) -> G,
     F: Send + 'static,
     G: Future<Output = Result<(), Error>> + 'static,
 {
-    let mut pool = futures::executor::LocalPool::new();
-    let mut spawner = pool.spawner();
     let (client_writer, server_reader) = async_byte_channel::channel();
     let (server_writer, client_reader) = async_byte_channel::channel();
+    rpc_top_level_with_io(
+        server_reader,
+        server_writer,
+        client_reader,
+        client_writer,
+        0,
+        main,
+    )
+    .await
+}
 
+async fn rpc_top_level_with_io<F, G, T, U>(
+    server_reader: T,
+    server_writer: U,
+    client_reader: T,
+    client_writer: U,
+    max_fds_per_message: u8,
+    main: F,
+) where
+    F: FnOnce(test_capnp::bootstrap::Client) -> G,
+    F: Send + 'static,
+    G: Future<Output = Result<(), Error>> + 'static,
+    T: AsyncFdRead + Send + 'static,
+    U: AsyncFdWrite + Send + 'static,
+{
     let join_handle = std::thread::spawn(move || {
-        let network = Box::new(twoparty::VatNetwork::new(
+        let network = Box::new(twoparty::io::VatNetwork::new_with_fds(
             server_reader,
             server_writer,
+            max_fds_per_message,
             rpc_twoparty_capnp::Side::Server,
             Default::default(),
         ));
 
         let bootstrap: test_capnp::bootstrap::Client = capnp_rpc::new_client(impls::Bootstrap);
         let rpc_system = RpcSystem::new(network, Some(bootstrap.client));
-        futures::executor::block_on(rpc_system).unwrap();
+        tokio::runtime::LocalRuntime::new()
+            .unwrap()
+            .block_on(rpc_system)
+            .unwrap();
     });
 
-    let network = Box::new(twoparty::VatNetwork::new(
+    let network = Box::new(twoparty::io::VatNetwork::new_with_fds(
         client_reader,
         client_writer,
+        max_fds_per_message,
         rpc_twoparty_capnp::Side::Client,
         Default::default(),
     ));
@@ -272,48 +279,42 @@ where
         rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
     let disconnector = rpc_system.get_disconnector();
-    spawn(&mut spawner, rpc_system);
-    pool.run_until(main(spawner, client)).unwrap();
-
-    // Need to explicitly disconnect. Otherwise the spawned task will stick around.
-    // If we were using tokio::task::LocalSet, this would not be necessary, as dropping
-    // the LocalSet would drop all tasks spawned to it.
-    pool.run_until(disconnector).unwrap();
+    tokio::task::spawn_local(rpc_system);
+    main(client).await.unwrap();
+    disconnector.await.unwrap();
     join_handle.join().unwrap();
 }
 
 /// Like rpc_top_level(), but sets up the bootstrap::Client as a local capability,
 /// i.e. not on the other side of an RPC connection.
-fn local_top_level<F, G>(main: F)
+async fn local_top_level<F, G>(main: F)
 where
-    F: FnOnce(futures::executor::LocalSpawner, test_capnp::bootstrap::Client) -> G,
+    F: FnOnce(test_capnp::bootstrap::Client) -> G,
     G: Future<Output = Result<(), Error>> + 'static,
 {
-    let mut pool = futures::executor::LocalPool::new();
-    let spawner = pool.spawner();
     let client: test_capnp::bootstrap::Client = capnp_rpc::new_client(impls::Bootstrap);
-    pool.run_until(main(spawner, client)).unwrap();
+    main(client).await.unwrap();
 }
 
 /// Runs both rpc_top_level() and local_top_level() on the function `main`.
-fn rpc_and_local_top_level<F, G>(main: F)
+async fn rpc_and_local_top_level<F, G>(main: F)
 where
-    F: FnOnce(futures::executor::LocalSpawner, test_capnp::bootstrap::Client) -> G,
+    F: FnOnce(test_capnp::bootstrap::Client) -> G,
     F: Send + 'static + Clone,
     G: Future<Output = Result<(), Error>> + 'static,
 {
-    rpc_top_level(main.clone());
-    local_top_level(main);
+    rpc_top_level(main.clone()).await;
+    local_top_level(main).await;
 }
 
-#[test]
-fn do_nothing() {
-    rpc_top_level(|_spawner, _client| async { Ok(()) });
+#[tokio::test(flavor = "local")]
+async fn do_nothing() {
+    rpc_top_level(|_client| async { Ok(()) }).await;
 }
 
-#[test]
-fn basic_rpc_calls() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn basic_rpc_calls() {
+    rpc_top_level(|client| async move {
         let response = client.test_interface_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -345,12 +346,13 @@ fn basic_rpc_calls() {
         promise2.promise.await?;
         promise3.await?;
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn basic_pipelining() {
-    rpc_and_local_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn basic_pipelining() {
+    rpc_and_local_top_level(|client| async move {
         let response = client.test_pipeline_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -396,12 +398,13 @@ fn basic_pipelining() {
         crate::test_util::CheckTestMessage::check_test_message(response2.get()?);
         assert_eq!(chained_call_count.get(), 1);
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn pipelining_return_null() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn pipelining_return_null() {
+    rpc_top_level(|client| async move {
         let response = client.test_pipeline_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -423,11 +426,12 @@ fn pipelining_return_null() {
                 "Should have gotten null capability error.".to_string(),
             )),
         }
-    });
+    })
+    .await;
 }
 
-#[test]
-fn null_capability() {
+#[tokio::test(flavor = "local")]
+async fn null_capability() {
     let mut message = ::capnp::message::Builder::new_default();
     let root: crate::test_capnp::test_all_types::Builder = message.get_root().unwrap();
 
@@ -464,24 +468,21 @@ impl Future for WaitNTicks {
     }
 }
 
-#[test]
-fn set_pipeline() {
+#[tokio::test(flavor = "local")]
+async fn set_pipeline() {
     use std::cell::Cell;
     use std::rc::Rc;
-    rpc_and_local_top_level(|mut spawner, client| async move {
+    rpc_and_local_top_level(|client| async move {
         let response = client.test_pipeline_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
         let capnp::capability::RemotePromise { promise, pipeline } =
             client.get_cap_pipeline_only_request().send();
         let promise_completed = Rc::new(Cell::new(false));
         let promise_completed2 = promise_completed.clone();
-        spawn(
-            &mut spawner,
-            promise.map(move |_| {
-                promise_completed2.set(true);
-                Ok(())
-            }),
-        );
+        spawn(promise.map(move |_| {
+            promise_completed2.set(true);
+            Ok(())
+        }));
 
         let mut pipeline_request = pipeline.get_out_box().get_cap().foo_request();
         pipeline_request.get().set_i(321);
@@ -506,12 +507,13 @@ fn set_pipeline() {
         // The original promise never completed.
         assert!(!promise_completed.get());
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn release_simple() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn release_simple() {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -555,12 +557,13 @@ fn release_simple() {
         }
 
         Ok(())
-    });
+    })
+    .await;
 }
 
 /*
-#[test]
-fn release_on_cancel() {
+#[tokio::test(flavor = "local")]
+async fn release_on_cancel() {
     rpc_top_level(|mut exec, client| {
         let response = exec.run_until(client.test_more_stuff_request().send().promise)?;
         let client = response.get()?.get_cap()?;
@@ -588,13 +591,13 @@ fn release_on_cancel() {
             return Err(Error::failed(format!("handle count: expected 0, but got {}", handle_count)))
         }
         Ok(())
-    });
+    }).await;
 }
 */
 
-#[test]
-fn promise_resolve() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn promise_resolve() {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -629,30 +632,28 @@ fn promise_resolve() {
             return Err(Error::failed("expected s to equal 'bar'".to_string()));
         }
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn retain_and_release() {
+#[tokio::test(flavor = "local")]
+async fn retain_and_release() {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    rpc_top_level(|mut spawner, client| async move {
+    rpc_top_level(|client| async move {
         let (fulfiller, promise) = oneshot::channel::<()>();
         let destroyed = Rc::new(Cell::new(false));
 
         let (destroyed_done_sender, destroyed_done_receiver) = oneshot::channel::<()>();
 
         let destroyed1 = destroyed.clone();
-        spawn(
-            &mut spawner,
-            promise.map_err(canceled_to_error).map(move |r| {
-                r?;
-                destroyed1.set(true);
-                let _ = destroyed_done_sender.send(());
-                Ok(())
-            }),
-        );
+        spawn(promise.map_err(canceled_to_error).map(move |r| {
+            r?;
+            destroyed1.set(true);
+            let _ = destroyed_done_sender.send(());
+            Ok(())
+        }));
 
         {
             let response = client.test_more_stuff_request().send().promise.await?;
@@ -738,15 +739,16 @@ fn retain_and_release() {
         }
 
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn cancel_releases_params() {
+#[tokio::test(flavor = "local")]
+async fn cancel_releases_params() {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    rpc_top_level(|mut spawner, client| async move {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -756,15 +758,12 @@ fn cancel_releases_params() {
         let (destroyed_done_sender, destroyed_done_receiver) = oneshot::channel::<()>();
 
         let destroyed1 = destroyed.clone();
-        spawn(
-            &mut spawner,
-            promise.map_err(canceled_to_error).map(move |r| {
-                r?;
-                destroyed1.set(true);
-                let _ = destroyed_done_sender.send(());
-                Ok(())
-            }),
-        );
+        spawn(promise.map_err(canceled_to_error).map(move |r| {
+            r?;
+            destroyed1.set(true);
+            let _ = destroyed_done_sender.send(());
+            Ok(())
+        }));
 
         {
             let mut request = client.never_return_request();
@@ -800,12 +799,13 @@ fn cancel_releases_params() {
         }
 
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn dont_hold() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn dont_hold() {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -828,7 +828,8 @@ fn dont_hold() {
                 })
             })
             .await
-    });
+    })
+    .await;
 }
 
 fn get_call_sequence(
@@ -842,9 +843,9 @@ fn get_call_sequence(
     req.send()
 }
 
-#[test]
-fn embargo_success() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn embargo_success() {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -873,7 +874,7 @@ fn embargo_success() {
         let call4 = get_call_sequence(&pipeline, 4);
         let call5 = get_call_sequence(&pipeline, 5);
 
-        futures::future::try_join_all(vec![
+        futures_util::future::try_join_all(vec![
             call0.promise,
             call1.promise,
             call2.promise,
@@ -890,7 +891,8 @@ fn embargo_success() {
             Ok(())
         })
         .await
-    });
+    })
+    .await;
 }
 
 async fn expect_promise_throws<T>(promise: Promise<T, Error>) -> Result<(), Error> {
@@ -901,9 +903,9 @@ async fn expect_promise_throws<T>(promise: Promise<T, Error>) -> Result<(), Erro
     }
 }
 
-#[test]
-fn embargo_error() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn embargo_error() {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -943,12 +945,13 @@ fn embargo_error() {
         expect_promise_throws(call4.promise).await?;
         expect_promise_throws(call5.promise).await?;
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn echo_destruction() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn echo_destruction() {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -977,10 +980,11 @@ fn echo_destruction() {
             })
             .await
     })
+    .await;
 }
 
-#[test]
-fn local_client_call_not_immediate() {
+#[tokio::test(flavor = "local")]
+async fn local_client_call_not_immediate() {
     let server = crate::impls::TestInterface::new();
     let call_count = server.get_call_count();
     assert_eq!(call_count.get(), 0);
@@ -993,12 +997,12 @@ fn local_client_call_not_immediate() {
     // Hm... do we actually care about this?
     assert_eq!(call_count.get(), 0);
 
-    let _ = futures::executor::block_on(remote_promise.promise);
+    let _ = remote_promise.promise.await;
     assert_eq!(call_count.get(), 1);
 }
 
-#[test]
-fn local_client_send_cap() {
+#[tokio::test(flavor = "local")]
+async fn local_client_send_cap() {
     let server1 = crate::impls::TestMoreStuff::new();
     let server2 = crate::impls::TestInterface::new();
     let client1: crate::test_capnp::test_more_stuff::Client = capnp_rpc::new_client(server1);
@@ -1006,28 +1010,32 @@ fn local_client_send_cap() {
 
     let mut req = client1.call_foo_request();
     req.get().set_cap(client2);
-    let response = futures::executor::block_on(req.send().promise).unwrap();
+    let response = req.send().promise.await.unwrap();
     assert_eq!(response.get().unwrap().get_s().unwrap(), "bar");
 }
 
-#[test]
-fn local_client_return_cap() {
+#[tokio::test(flavor = "local")]
+async fn local_client_return_cap() {
     let server = crate::impls::Bootstrap;
     let client: crate::test_capnp::bootstrap::Client = capnp_rpc::new_client(server);
-    let response =
-        futures::executor::block_on(client.test_interface_request().send().promise).unwrap();
+    let response = client
+        .test_interface_request()
+        .send()
+        .promise
+        .await
+        .unwrap();
     let client1 = response.get().unwrap().get_cap().unwrap();
 
     let mut request = client1.foo_request();
     request.get().set_i(123);
     request.get().set_j(true);
-    let response1 = futures::executor::block_on(request.send().promise).unwrap();
+    let response1 = request.send().promise.await.unwrap();
     assert_eq!(response1.get().unwrap().get_x().unwrap(), "foo");
 }
 
-#[test]
-fn capability_list() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn capability_list() {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
 
@@ -1052,10 +1060,11 @@ fn capability_list() {
         assert_eq!(call_count2.get(), 1);
         Ok(())
     })
+    .await;
 }
 
-#[test]
-fn capability_server_set() {
+#[tokio::test(flavor = "local")]
+async fn capability_server_set() {
     use crate::impls;
     use crate::test_capnp::test_interface;
     use capnp_rpc::CapabilityServerSet;
@@ -1079,23 +1088,23 @@ fn capability_server_set() {
     set2.gc();
 
     // Getting the local server using the correct set works.
-    let own_server1_again = futures::executor::block_on(set1.get_local_server(&client1)).unwrap();
+    let own_server1_again = set1.get_local_server(&client1).await.unwrap();
     assert_eq!(
         own_server1_again.get_call_count().as_ptr(),
         own_server1_counter.as_ptr()
     );
 
-    let own_server2_again = futures::executor::block_on(set2.get_local_server(&client2)).unwrap();
+    let own_server2_again = set2.get_local_server(&client2).await.unwrap();
     assert_eq!(
         own_server2_again.get_call_count().as_ptr(),
         own_server2_counter.as_ptr()
     );
 
     // Getting the local server using the wrong set doesn't work.
-    assert!(futures::executor::block_on(set1.get_local_server(&client2)).is_none());
-    assert!(futures::executor::block_on(set2.get_local_server(&client1)).is_none());
-    assert!(futures::executor::block_on(set1.get_local_server(&client_standalone)).is_none());
-    assert!(futures::executor::block_on(set2.get_local_server(&client_standalone)).is_none());
+    assert!(set1.get_local_server(&client2).await.is_none());
+    assert!(set2.get_local_server(&client1).await.is_none());
+    assert!(set1.get_local_server(&client_standalone).await.is_none());
+    assert!(set2.get_local_server(&client_standalone).await.is_none());
 
     // Also works if the client is a promise.
     let (fulfiller, promise) = oneshot::channel();
@@ -1109,23 +1118,22 @@ fn capability_server_set() {
         ::capnp_rpc::new_future_client(error_promise.map_err(canceled_to_error));
 
     assert!(fulfiller.send(client1).is_ok());
-    let own_server1_again2 =
-        futures::executor::block_on(set1.get_local_server(&client_promise)).unwrap();
+    let own_server1_again2 = set1.get_local_server(&client_promise).await.unwrap();
     assert_eq!(
         own_server1_again2.get_call_count().as_ptr(),
         own_server1_counter.as_ptr()
     );
 
     // Wrong set; returns None.
-    assert!(futures::executor::block_on(set2.get_local_server(&client_promise2)).is_none());
+    assert!(set2.get_local_server(&client_promise2).await.is_none());
 
     drop(error_fulfiller);
-    assert!(futures::executor::block_on(set1.get_local_server(&error_promise)).is_none());
+    assert!(set1.get_local_server(&error_promise).await.is_none());
 }
 
-#[test]
-fn capability_server_set_rpc() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn capability_server_set_rpc() {
+    rpc_top_level(|client| async move {
         let response1 = client
             .test_capability_server_set_request()
             .send()
@@ -1157,11 +1165,12 @@ fn capability_server_set_rpc() {
 
         Ok(())
     })
+    .await;
 }
 
-#[test]
-fn basic_streaming() {
-    rpc_and_local_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn basic_streaming() {
+    rpc_and_local_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
         let response = client.get_test_streaming_request().send().promise.await?;
@@ -1179,12 +1188,13 @@ fn basic_streaming() {
         let results = r.get()?;
         assert_eq!(results.get_total_i(), ITERS * EACH);
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn finish_stream_observes_all_streaming_writes() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn finish_stream_observes_all_streaming_writes() {
+    rpc_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
         let response = client
@@ -1202,10 +1212,10 @@ fn finish_stream_observes_all_streaming_writes() {
             req.get().set_i(EACH);
             req.send()
         });
-        let writes = futures::future::try_join_all(writes);
+        let writes = futures_util::future::try_join_all(writes);
         let finish = client.finish_stream_request().send().promise;
 
-        let (_, response) = futures::future::try_join(writes, finish).await?;
+        let (_, response) = futures_util::future::try_join(writes, finish).await?;
         let total = response.get()?.get_total_i();
         assert_eq!(
             total,
@@ -1214,12 +1224,13 @@ fn finish_stream_observes_all_streaming_writes() {
             ITERS * EACH
         );
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn basic_streaming_on_pipeline() {
-    rpc_and_local_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn basic_streaming_on_pipeline() {
+    rpc_and_local_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().pipeline;
         let client = response.get_cap();
         let response = client.get_test_streaming_request().send().pipeline;
@@ -1237,12 +1248,13 @@ fn basic_streaming_on_pipeline() {
         let results = r.get()?;
         assert_eq!(results.get_total_i(), ITERS * EACH);
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn stream_error_gets_reported() {
-    rpc_and_local_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn stream_error_gets_reported() {
+    rpc_and_local_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
         let response = client.get_test_streaming_request().send().promise.await?;
@@ -1259,12 +1271,13 @@ fn stream_error_gets_reported() {
         };
         assert!(e.to_string().contains("throw requested"));
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn promise_resolve_twice() {
-    rpc_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn promise_resolve_twice() {
+    rpc_top_level(|client| async move {
         let response1 = client.test_promise_resolve_request().send().promise.await?;
         let client1 = response1.get()?.get_cap()?;
 
@@ -1287,12 +1300,13 @@ fn promise_resolve_twice() {
         let x = response2.get()?.get_x()?.to_str()?;
         assert_eq!(x, "foo");
         Ok(())
-    });
+    })
+    .await;
 }
 
-#[test]
-fn get_self() {
-    rpc_and_local_top_level(|_spawner, client| async move {
+#[tokio::test(flavor = "local")]
+async fn get_self() {
+    rpc_and_local_top_level(|client| async move {
         let response = client.test_more_stuff_request().send().promise.await?;
         let client = response.get()?.get_cap()?;
         let response = client.get_test_self_request().send().promise.await?;
@@ -1314,5 +1328,52 @@ fn get_self() {
         assert_eq!(response4.get()?.get_x(), 3);
 
         Ok(())
-    });
+    })
+    .await;
+}
+
+#[cfg(unix)]
+#[tokio::test(flavor = "local")]
+async fn pass_fd() {
+    use capnp_futures::io::tokio::UnixFdStream;
+    use tokio::io::AsyncReadExt as _;
+    use tokio::net::unix::pipe;
+    use tokio::net::UnixStream;
+
+    let main = |client: test_capnp::bootstrap::Client| async move {
+        let response = client
+            .test_more_stuff_request()
+            .send()
+            .pipeline
+            .get_cap()
+            .pass_fd_request()
+            .send();
+        let fd = response
+            .pipeline
+            .get_fd_cap()
+            .client
+            .get_fd()
+            .await?
+            .unwrap()
+            .try_clone_to_owned()?;
+        let mut rx = pipe::Receiver::from_owned_fd(fd)?;
+        let mut buf = Vec::new();
+        rx.read_to_end(&mut buf).await?;
+        assert_eq!(buf, b"sup");
+        Ok(())
+    };
+
+    let (client_writer, server_reader) = UnixStream::pair().unwrap();
+    let (server_writer, client_reader) = UnixStream::pair().unwrap();
+    rpc_top_level_with_io(
+        UnixFdStream::new(server_reader),
+        UnixFdStream::new(server_writer),
+        UnixFdStream::new(client_reader),
+        UnixFdStream::new(client_writer),
+        1,
+        main,
+    )
+    .await;
+
+    local_top_level(main).await;
 }

@@ -1,4 +1,5 @@
-// Copyright (c) 2013-2016 Sandstorm Development Group, Inc. and contributors
+// Copyright (c) 2026 Sandstorm Development Group, Inc. and contributors
+// Licensed under the MIT License:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,13 +19,49 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::serialize;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::serialize_packed;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::ReadStream;
-#[cfg(feature = "futures-io")]
-pub use io::futures_io::{write_queue, Sender};
+// Per <https://github.com/rust-lang/rust/blob/1.96.0/library/std/src/os/mod.rs>.
+#[cfg(not(all(
+    feature = "std",
+    any(
+        unix,
+        target_os = "hermit",
+        target_os = "trusty",
+        target_os = "wasi",
+        target_os = "motor",
+    )
+)))]
+mod compat;
+#[cfg(all(
+    feature = "std",
+    any(
+        unix,
+        target_os = "hermit",
+        target_os = "trusty",
+        target_os = "wasi",
+        target_os = "motor",
+    )
+))]
+mod unix;
 
-pub mod io;
+#[cfg(not(all(
+    feature = "std",
+    any(
+        unix,
+        target_os = "hermit",
+        target_os = "trusty",
+        target_os = "wasi",
+        target_os = "motor",
+    )
+)))]
+pub use compat::*;
+#[cfg(all(
+    feature = "std",
+    any(
+        unix,
+        target_os = "hermit",
+        target_os = "trusty",
+        target_os = "wasi",
+        target_os = "motor",
+    )
+))]
+pub use unix::*;
