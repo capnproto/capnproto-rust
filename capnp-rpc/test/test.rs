@@ -1316,3 +1316,34 @@ fn get_self() {
         Ok(())
     });
 }
+
+#[test]
+fn reimport_then_resend_does_not_poison_downcast_map() {
+    // Regression test: receiving a senderHosted descriptor for an import we
+    // already hold used to construct a second wrapper `Client`, overwriting
+    // the client_downcast_map entry keyed by the shared inner ImportClient.
+    // Dropping that duplicate then left a dead weak in the map, and the next
+    // outgoing message carrying the ORIGINAL client panicked in
+    // write_descriptor (`Client::from_ptr` returned None -> unreachable!()).
+    rpc_top_level(|_spawner, client| async move {
+        let response = client.test_more_stuff_request().send().promise.await?;
+        let more_stuff = response.get()?.get_cap()?;
+
+        // Re-import the same server-hosted cap: echoing it back makes the
+        // server return its own capability, so the response carries the same
+        // export id and import() runs again for an id we already hold. The
+        // duplicate wrapper is dropped at the end of this block.
+        {
+            let mut echo = more_stuff.echo_request();
+            echo.get().set_cap(more_stuff.clone().cast_to());
+            let resp = echo.send().promise.await?;
+            let _dup: crate::test_capnp::test_call_order::Client = resp.get()?.get_cap()?;
+        }
+
+        // Sending the original client again must not panic.
+        let mut echo = more_stuff.echo_request();
+        echo.get().set_cap(more_stuff.clone().cast_to());
+        echo.send().promise.await?;
+        Ok(())
+    });
+}
