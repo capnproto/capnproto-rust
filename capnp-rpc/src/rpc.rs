@@ -1428,11 +1428,18 @@ impl<VatId> ConnectionState<VatId> {
             inner = resolved;
         }
         if inner.get_brand() == state.get_brand() {
-            let Some(c) = Client::from_ptr(inner.get_ptr(), state) else {
-                unreachable!()
-            };
-            Ok(c.write_descriptor(descriptor))
-        } else {
+            if let Some(c) = Client::from_ptr(inner.get_ptr(), state) {
+                return Ok(c.write_descriptor(descriptor));
+            }
+            // The hook claims to belong to this connection but the downcast
+            // map has no live entry for it (e.g. a stale entry left by a
+            // since-dropped duplicate wrapper — see the reuse logic in
+            // `import()`). The hook itself still works for calls, so fall
+            // through and export it as if it were foreign: the receiver gets
+            // a functioning capability (at the cost of an extra round-trip)
+            // instead of the event loop panicking.
+        }
+        {
             let ptr = inner.get_ptr();
             let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
             if contains_key {
@@ -1550,9 +1557,22 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
         } else {
-            let client: Box<Client<VatId>> = Box::new(import_client.into());
-            import.app_client = Some(client.downgrade());
-            client
+            // Reuse the existing wrapper `Client` if one is still alive,
+            // mirroring the promise branch above. Unconditionally creating a
+            // new wrapper for an already-imported cap overwrites the
+            // `client_downcast_map` entry (keyed by the shared inner
+            // `ImportClient` pointer); when the newer wrapper is dropped
+            // while an older one is still held by the application, the map's
+            // weak reference dies and a later `write_descriptor` of the older
+            // wrapper hits `Client::from_ptr() == None`.
+            match import.app_client.as_ref().and_then(|c| c.upgrade()) {
+                Some(c) => Box::new(c),
+                None => {
+                    let client: Box<Client<VatId>> = Box::new(import_client.into());
+                    import.app_client = Some(client.downgrade());
+                    client
+                }
+            }
         }
     }
 

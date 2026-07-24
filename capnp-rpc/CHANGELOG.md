@@ -1,3 +1,6 @@
+## v0.26.2
+- Fix panic when re-sending a capability that was imported twice.
+
 ## v0.26.1
 - Avoid panic when Return message contains bad question ID.
 
