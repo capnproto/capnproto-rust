@@ -1328,10 +1328,8 @@ fn broken_cap_returns_supplied_error() {
         };
 
         // A direct method call fails with the supplied error.
-        match client.foo_request().send().promise.await {
-            Ok(_) => panic!("expected the broken cap to return an error"),
-            Err(e) => assert_eq!(e.extra, error.extra),
-        }
+        let e = client.foo_request().send().promise.await.err().unwrap();
+        assert_eq!(e.extra, error.extra);
 
         // Pipelined access through a broken call also fails with the error.
         let pipeline_client = test_capnp::test_pipeline::Client {
@@ -1339,10 +1337,15 @@ fn broken_cap_returns_supplied_error() {
         };
         let promise = pipeline_client.get_cap_request().send();
         let pipelined_cap = promise.pipeline.get_out_box().get_cap();
-        match pipelined_cap.foo_request().send().promise.await {
-            Ok(_) => panic!("expected pipelined access to return an error"),
-            Err(e) => assert_eq!(e.extra, error.extra),
-        }
+        let e = pipelined_cap
+            .foo_request()
+            .send()
+            .promise
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(e.extra, error.extra);
+    });
 }
 
 #[test]
