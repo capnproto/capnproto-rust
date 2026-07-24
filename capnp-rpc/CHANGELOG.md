@@ -1,3 +1,6 @@
+## v0.26.3
+- Add new_broken_cap() function.
+
 ## v0.26.2
 - Fix panic when re-sending a capability that was imported twice.
 
