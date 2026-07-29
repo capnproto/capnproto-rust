@@ -124,6 +124,20 @@ impl From<RawBrandedStructSchema> for StructSchema {
     }
 }
 
+impl std::cmp::PartialEq for StructSchema {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw == other.raw
+    }
+}
+
+impl std::cmp::Eq for StructSchema {}
+
+impl std::hash::Hash for StructSchema {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.raw.hash(state);
+    }
+}
+
 /// A field of a struct, with generics applied.
 #[derive(Clone, Copy)]
 pub struct Field {
@@ -152,6 +166,19 @@ impl Field {
             child_index: Some(self.index),
             get_annotation_type: self.parent.raw.annotation_types,
         })
+    }
+}
+
+impl std::cmp::PartialEq for Field {
+    fn eq(&self, other: &Self) -> bool {
+        self.parent == other.parent && self.index == other.index
+    }
+}
+impl std::cmp::Eq for Field {}
+impl std::hash::Hash for Field {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.parent.hash(state);
+        self.index.hash(state);
     }
 }
 
@@ -438,5 +465,113 @@ impl ::core::iter::IntoIterator for AnnotationList {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::introspect::Introspect;
+
+    #[test]
+    fn fields_can_be_hashed() {
+        let crate::introspect::TypeVariant::Struct(struct_schema) =
+            crate::schema_capnp::node::Owned::introspect().which()
+        else {
+            panic!("Expected a struct schema");
+        };
+
+        let struct_schema = crate::schema::StructSchema::new(struct_schema);
+
+        let display_name = struct_schema.get_field_by_name("displayName").unwrap();
+        let id = struct_schema.get_field_by_name("id").unwrap();
+
+        let mut map = std::collections::HashMap::new();
+        map.insert(display_name, 1);
+        map.insert(id, 2);
+
+        assert_eq!(map.get(&display_name), Some(&1));
+        assert_eq!(map.get(&id), Some(&2));
+        assert_eq!(
+            map.get(&struct_schema.get_field_by_name("displayName").unwrap()),
+            Some(&1)
+        );
+        assert_eq!(
+            map.get(&struct_schema.get_field_by_name("id").unwrap()),
+            Some(&2)
+        );
+    }
+
+    #[test]
+    fn fields_can_be_compared() {
+        let crate::introspect::TypeVariant::Struct(struct_schema) =
+            crate::schema_capnp::node::Owned::introspect().which()
+        else {
+            panic!("Expected a struct schema");
+        };
+
+        let struct_schema = crate::schema::StructSchema::new(struct_schema);
+
+        let display_name = struct_schema.get_field_by_name("displayName").unwrap();
+        let id = struct_schema.get_field_by_name("id").unwrap();
+
+        assert!(display_name == display_name);
+        assert!(display_name == struct_schema.get_field_by_name("displayName").unwrap());
+        assert!(id == id);
+        assert!(id == struct_schema.get_field_by_name("id").unwrap());
+
+        assert!(display_name != id);
+    }
+
+    #[test]
+    fn schemas_can_be_hashed() {
+        let node_schema = {
+            let crate::introspect::TypeVariant::Struct(schema) =
+                crate::schema_capnp::node::Owned::introspect().which()
+            else {
+                panic!("Expected a struct schema");
+            };
+
+            crate::schema::StructSchema::new(schema)
+        };
+        let cgr_schema = {
+            let crate::introspect::TypeVariant::Struct(schema) =
+                crate::schema_capnp::code_generator_request::Owned::introspect().which()
+            else {
+                panic!("Expected a struct schema");
+            };
+            crate::schema::StructSchema::new(schema)
+        };
+
+        let mut map = std::collections::HashMap::new();
+        map.insert(node_schema, 1);
+        map.insert(cgr_schema, 2);
+
+        assert_eq!(map.get(&node_schema), Some(&1));
+        assert_eq!(map.get(&cgr_schema), Some(&2));
+    }
+
+    #[test]
+    fn schemas_can_be_compared() {
+        let node_schema = {
+            let crate::introspect::TypeVariant::Struct(schema) =
+                crate::schema_capnp::node::Owned::introspect().which()
+            else {
+                panic!("Expected a struct schema");
+            };
+
+            crate::schema::StructSchema::new(schema)
+        };
+        let cgr_schema = {
+            let crate::introspect::TypeVariant::Struct(schema) =
+                crate::schema_capnp::code_generator_request::Owned::introspect().which()
+            else {
+                panic!("Expected a struct schema");
+            };
+            crate::schema::StructSchema::new(schema)
+        };
+
+        assert!(node_schema == node_schema);
+        assert!(cgr_schema == cgr_schema);
+        assert!(node_schema != cgr_schema);
     }
 }

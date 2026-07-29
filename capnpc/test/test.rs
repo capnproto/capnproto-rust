@@ -2338,4 +2338,37 @@ mod tests {
     ) -> ::capnp::Result<()> {
         b.set_struct_list(r.get_struct_list()?)
     }
+
+    #[test]
+    fn different_brands_of_structs_compare_differently() -> capnp::Result<()> {
+        use crate::test_capnp::test_generics;
+        use capnp::introspect::Introspect;
+        let schema_t_t = {
+            let capnp::introspect::TypeVariant::Struct(schema) =
+                test_generics::Owned::<capnp::text::Owned, capnp::text::Owned>::introspect()
+                    .which()
+            else {
+                panic!("expected struct")
+            };
+            capnp::schema::StructSchema::new(schema)
+        };
+        let schema_d_d = {
+            let capnp::introspect::TypeVariant::Struct(schema) =
+                test_generics::Owned::<capnp::data::Owned, capnp::data::Owned>::introspect()
+                    .which()
+            else {
+                panic!("expected struct")
+            };
+            capnp::schema::StructSchema::new(schema)
+        };
+
+        assert!(schema_t_t != schema_d_d);
+
+        let foo_t_t = schema_t_t.get_field_by_name("foo")?;
+        let foo_d_d = schema_d_d.get_field_by_name("foo")?;
+
+        assert!(foo_t_t != foo_d_d);
+
+        Ok(())
+    }
 }

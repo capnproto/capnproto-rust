@@ -289,6 +289,34 @@ pub struct RawBrandedStructSchema {
     pub annotation_types: fn(Option<u16>, u32) -> Type,
 }
 
+impl std::cmp::PartialEq for RawBrandedStructSchema {
+    // Suppress warning about comparing function pointers. See comment for
+    // explanation. This suppression can be removed when MSRV is increased to
+    // 1.85 or greater, which has an explicit compare function for function
+    // pointers:
+    //  && std::ptr::fn_addr_eq(self.field_types, other.field_types)
+    //  && std::ptr::fn_addr_eq(self.annotation_types, other.annotation_types)
+    #[allow(unpredictable_function_pointer_comparisons)]
+    fn eq(&self, other: &Self) -> bool {
+        ::core::ptr::eq(self.generic, other.generic)
+          // Comparing the function pointers is safe because the capnpc-rust
+          // compiler generates free functions for these, and the function
+          // pointers are guaranteed to be equal if they point to the same
+          // function.
+          && self.field_types == other.field_types
+          && self.annotation_types == other.annotation_types
+    }
+}
+impl std::cmp::Eq for RawBrandedStructSchema {}
+impl std::hash::Hash for RawBrandedStructSchema {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Hash the pointer to the generic schema, and the function pointers.
+        (self.generic as *const RawStructSchema).hash(state);
+        self.field_types.hash(state);
+        self.annotation_types.hash(state);
+    }
+}
+
 impl core::fmt::Debug for RawBrandedStructSchema {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
         write!(
