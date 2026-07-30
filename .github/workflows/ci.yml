@@ -153,6 +153,6 @@ jobs:
         with:
           toolchain: nightly-2025-12-02
           components: clippy
-      - uses: actions-rs-plus/clippy-check@v2
+      - uses: actions-rs-plus/clippy-check@v2.5.0
         with:
           args: --all --all-targets
