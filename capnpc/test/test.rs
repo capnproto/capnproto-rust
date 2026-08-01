@@ -2371,4 +2371,59 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn types_campare_in_sane_ways() -> capnp::Result<()> {
+        use capnp::introspect::Introspect;
+        let all_types = {
+            let capnp::introspect::TypeVariant::Struct(all_types) =
+                crate::test_capnp::test_all_types::Owned::introspect().which()
+            else {
+                panic!("expected struct")
+            };
+            capnp::schema::StructSchema::new(all_types)
+        };
+
+        let all_defaults = {
+            let capnp::introspect::TypeVariant::Struct(all_defaults) =
+                crate::test_capnp::test_defaults::Owned::introspect().which()
+            else {
+                panic!("expected struct")
+            };
+            capnp::schema::StructSchema::new(all_defaults)
+        };
+
+        assert!(
+            all_types.get_field_by_name("int8Field")?.get_type()
+                == all_types.get_field_by_name("int8Field")?.get_type()
+        );
+        assert!(
+            all_types.get_field_by_name("int8Field")?.get_type()
+                != all_types.get_field_by_name("int64Field")?.get_type()
+        );
+
+        assert!(
+            all_types.get_field_by_name("dataField")?.get_type()
+                == all_defaults.get_field_by_name("dataField")?.get_type()
+        );
+        assert!(
+            all_types.get_field_by_name("dataField")?.get_type()
+                != all_defaults.get_field_by_name("dataList")?.get_type()
+        );
+
+        assert!(
+            all_types.get_field_by_name("structField")?.get_type()
+                == all_defaults.get_field_by_name("structField")?.get_type()
+        );
+
+        let capnp::introspect::TypeVariant::List(list_member) =
+            all_types.get_field_by_name("textList")?.get_type().which()
+        else {
+            panic!("expected list")
+        };
+        assert!(list_member == all_types.get_field_by_name("textField")?.get_type());
+        assert!(list_member != all_types.get_field_by_name("dataField")?.get_type());
+
+        Ok(())
+    }
 }
