@@ -124,16 +124,16 @@ impl From<RawBrandedStructSchema> for StructSchema {
     }
 }
 
-impl std::cmp::PartialEq for StructSchema {
+impl ::core::cmp::PartialEq for StructSchema {
     fn eq(&self, other: &Self) -> bool {
         self.raw == other.raw
     }
 }
 
-impl std::cmp::Eq for StructSchema {}
+impl ::core::cmp::Eq for StructSchema {}
 
-impl std::hash::Hash for StructSchema {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+impl ::core::hash::Hash for StructSchema {
+    fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
         self.raw.hash(state);
     }
 }
@@ -169,14 +169,14 @@ impl Field {
     }
 }
 
-impl std::cmp::PartialEq for Field {
+impl ::core::cmp::PartialEq for Field {
     fn eq(&self, other: &Self) -> bool {
         self.parent == other.parent && self.index == other.index
     }
 }
-impl std::cmp::Eq for Field {}
-impl std::hash::Hash for Field {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+impl ::core::cmp::Eq for Field {}
+impl ::core::hash::Hash for Field {
+    fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
         self.parent.hash(state);
         self.index.hash(state);
     }
@@ -472,6 +472,7 @@ impl ::core::iter::IntoIterator for AnnotationList {
 mod tests {
     use crate::introspect::Introspect;
 
+    #[cfg(feature = "std")]
     #[test]
     fn fields_can_be_hashed() {
         let crate::introspect::TypeVariant::Struct(struct_schema) =
@@ -522,6 +523,7 @@ mod tests {
         assert!(display_name != id);
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn schemas_can_be_hashed() {
         let node_schema = {

@@ -293,14 +293,14 @@ pub struct RawBrandedStructSchema {
     pub type_id: ::core::any::TypeId,
 }
 
-impl std::cmp::PartialEq for RawBrandedStructSchema {
+impl ::core::cmp::PartialEq for RawBrandedStructSchema {
     fn eq(&self, other: &Self) -> bool {
         self.type_id == other.type_id
     }
 }
-impl std::cmp::Eq for RawBrandedStructSchema {}
-impl std::hash::Hash for RawBrandedStructSchema {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+impl ::core::cmp::Eq for RawBrandedStructSchema {}
+impl ::core::hash::Hash for RawBrandedStructSchema {
+    fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
         self.type_id.hash(state);
     }
 }
