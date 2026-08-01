@@ -2194,7 +2194,7 @@ fn generate_node(
                     Branch(vec![
                         Line("#[derive(Copy, Clone)]".into()),
                         line("pub struct Owned(());"),
-                        Line(fmt!(ctx,"impl {capnp}::introspect::Introspect for Owned {{ fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Struct({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types, annotation_types: _private::get_annotation_types }}).into() }} }}")),
+                        Line(fmt!(ctx,"impl {capnp}::introspect::Introspect for Owned {{ fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Struct({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types, annotation_types: _private::get_annotation_types, type_id: ::core::any::TypeId::of::<Owned>() }}).into() }} }}")),
                         Line(fmt!(ctx, "impl {capnp}::traits::Owned for Owned {{ type Reader<'a> = Reader<'a>; type Builder<'a> = Builder<'a>; }}")),
                         Line(fmt!(ctx,"impl {capnp}::traits::OwnedStruct for Owned {{ type Reader<'a> = Reader<'a>; type Builder<'a> = Builder<'a>; }}")),
                         Line(fmt!(ctx,"impl {capnp}::traits::Pipelined for Owned {{ type Pipeline = Pipeline; }}"))
@@ -2205,7 +2205,7 @@ fn generate_node(
                         Line(format!("pub struct Owned<{}> {{", params.params)),
                             indent(Line(params.phantom_data_type.clone())),
                         line("}"),
-                        Line(fmt!(ctx,"impl <{0}> {capnp}::introspect::Introspect for Owned <{0}> {1} {{ fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Struct({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}> }}).into() }} }}",
+                        Line(fmt!(ctx,"impl <{0}> {capnp}::introspect::Introspect for Owned <{0}> {1} {{ fn introspect() -> {capnp}::introspect::Type {{ {capnp}::introspect::TypeVariant::Struct({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>, type_id: ::core::any::TypeId::of::<Owned<{0}>>() }}).into() }} }}",
                             params.params, params.where_clause)),
                         Line(fmt!(ctx,"impl <{0}> {capnp}::traits::Owned for Owned <{0}> {1} {{ type Reader<'a> = Reader<'a, {0}>; type Builder<'a> = Builder<'a, {0}>; }}",
                             params.params, params.where_clause)),
@@ -2256,7 +2256,7 @@ fn generate_node(
                             params.params, params.where_clause)),
                 indent(vec![
                     Line(format!("fn from(reader: Reader<'a,{0}>) -> Self {{", params.params)),
-                    indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Reader::new(reader.reader, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})))", params.params))),
+                    indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Reader::new(reader.reader, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>, type_id: ::core::any::TypeId::of::<Owned<{0}>>()}})))", params.params))),
                     line("}")
                 ]),
                 line("}"),
@@ -2350,7 +2350,7 @@ fn generate_node(
                             params.params, params.where_clause)),
                 indent(vec![
                         Line(format!("fn from(builder: Builder<'a,{0}>) -> Self {{", params.params)),
-                        indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Builder::new(builder.builder, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>}})))", params.params))),
+                        indent(Line(fmt!(ctx,"Self::Struct({capnp}::dynamic_struct::Builder::new(builder.builder, {capnp}::schema::StructSchema::new({capnp}::introspect::RawBrandedStructSchema {{ generic: &_private::RAW_SCHEMA, field_types: _private::get_field_types::<{0}>, annotation_types: _private::get_annotation_types::<{0}>, type_id: ::core::any::TypeId::of::<Owned<{0}>>()}})))", params.params))),
                         line("}")
                 ]),
                 line("}"),
@@ -2864,7 +2864,7 @@ fn generate_node(
             mod_interior.push(Branch(vec![
                 Line(
                     fmt!(ctx,"impl <_S: Server{1} + 'static, {0}> {capnp}::capability::FromServer<_S> for Client{1} {2}  {{",
-                            params.params, bracketed_params, params.where_clause_with_static)),
+                            params.params, bracketed_params, params.where_clause)),
                 indent(vec![
                     Line(format!("type Dispatch = ServerDispatch<_S, {}>;", params.params)),
                     Line(fmt!(ctx, "fn from_server(s: {capnp}::capability::Rc<_S>) -> ServerDispatch<_S, {}> {{", params.params)),
@@ -2901,7 +2901,7 @@ fn generate_node(
             mod_interior.push(
                 Branch(vec![
                     (if is_generic {
-                        Line(fmt!(ctx,"impl <{}, _T: Server{}> {capnp}::capability::Server for ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause_with_static))
+                        Line(fmt!(ctx,"impl <{}, _T: Server{}> {capnp}::capability::Server for ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
                     } else {
                         Line(fmt!(ctx,"impl <_T: Server> {capnp}::capability::Server for ServerDispatch<_T> {{"))
                     }),
@@ -2920,7 +2920,7 @@ fn generate_node(
             mod_interior.push(
                 Branch(vec![
                     (if is_generic {
-                        Line(format!("impl <{}, _T: Server{}> ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause_with_static))
+                        Line(format!("impl <{}, _T: Server{}> ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
                     } else {
                         line("impl <_T :Server> ServerDispatch<_T> {")
                     }),

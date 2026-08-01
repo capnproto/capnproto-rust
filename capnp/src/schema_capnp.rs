@@ -15,6 +15,7 @@ pub mod node {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -58,6 +59,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -217,6 +219,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -810,6 +813,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -853,6 +857,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -940,6 +945,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -1110,6 +1116,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -1153,6 +1160,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -1244,6 +1252,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -1438,6 +1447,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -1481,6 +1491,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -1590,6 +1601,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -1858,6 +1870,7 @@ pub mod node {
                             generic: &_private::RAW_SCHEMA,
                             field_types: _private::get_field_types,
                             annotation_types: _private::get_annotation_types,
+                            type_id: ::core::any::TypeId::of::<Owned>(),
                         },
                     )
                     .into()
@@ -1903,6 +1916,7 @@ pub mod node {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -1992,6 +2006,7 @@ pub mod node {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -2172,6 +2187,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -2215,6 +2231,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -2332,6 +2349,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -2671,6 +2689,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -2714,6 +2733,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -2804,6 +2824,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -2989,6 +3010,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -3032,6 +3054,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -3136,6 +3159,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -3378,6 +3402,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -3421,6 +3446,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -3519,6 +3545,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -3744,6 +3771,7 @@ pub mod node {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -3787,6 +3815,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -3922,6 +3951,7 @@ pub mod node {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -4407,6 +4437,7 @@ pub mod field {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -4450,6 +4481,7 @@ pub mod field {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -4571,6 +4603,7 @@ pub mod field {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -4921,6 +4954,7 @@ pub mod field {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -4964,6 +4998,7 @@ pub mod field {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -5072,6 +5107,7 @@ pub mod field {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -5350,6 +5386,7 @@ pub mod field {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -5393,6 +5430,7 @@ pub mod field {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -5473,6 +5511,7 @@ pub mod field {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -5628,6 +5667,7 @@ pub mod field {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -5671,6 +5711,7 @@ pub mod field {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -5755,6 +5796,7 @@ pub mod field {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -5944,6 +5986,7 @@ pub mod enumerant {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -5987,6 +6030,7 @@ pub mod enumerant {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -6092,6 +6136,7 @@ pub mod enumerant {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -6336,6 +6381,7 @@ pub mod superclass {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -6379,6 +6425,7 @@ pub mod superclass {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -6470,6 +6517,7 @@ pub mod superclass {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -6669,6 +6717,7 @@ pub mod method {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -6712,6 +6761,7 @@ pub mod method {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -6862,6 +6912,7 @@ pub mod method {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -7310,6 +7361,7 @@ pub mod type_ {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -7353,6 +7405,7 @@ pub mod type_ {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -7454,6 +7507,7 @@ pub mod type_ {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -8007,6 +8061,7 @@ pub mod type_ {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -8050,6 +8105,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -8137,6 +8193,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -8317,6 +8374,7 @@ pub mod type_ {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -8360,6 +8418,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -8451,6 +8510,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -8652,6 +8712,7 @@ pub mod type_ {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -8695,6 +8756,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -8786,6 +8848,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -8988,6 +9051,7 @@ pub mod type_ {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -9031,6 +9095,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -9122,6 +9187,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -9326,6 +9392,7 @@ pub mod type_ {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -9369,6 +9436,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -9454,6 +9522,7 @@ pub mod type_ {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -9666,6 +9735,7 @@ pub mod type_ {
                             generic: &_private::RAW_SCHEMA,
                             field_types: _private::get_field_types,
                             annotation_types: _private::get_annotation_types,
+                            type_id: ::core::any::TypeId::of::<Owned>(),
                         },
                     )
                     .into()
@@ -9711,6 +9781,7 @@ pub mod type_ {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -9799,6 +9870,7 @@ pub mod type_ {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -10034,6 +10106,7 @@ pub mod type_ {
                             generic: &_private::RAW_SCHEMA,
                             field_types: _private::get_field_types,
                             annotation_types: _private::get_annotation_types,
+                            type_id: ::core::any::TypeId::of::<Owned>(),
                         },
                     )
                     .into()
@@ -10079,6 +10152,7 @@ pub mod type_ {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -10165,6 +10239,7 @@ pub mod type_ {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -10349,6 +10424,7 @@ pub mod type_ {
                             generic: &_private::RAW_SCHEMA,
                             field_types: _private::get_field_types,
                             annotation_types: _private::get_annotation_types,
+                            type_id: ::core::any::TypeId::of::<Owned>(),
                         },
                     )
                     .into()
@@ -10394,6 +10470,7 @@ pub mod type_ {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -10476,6 +10553,7 @@ pub mod type_ {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -10639,6 +10717,7 @@ pub mod brand {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -10682,6 +10761,7 @@ pub mod brand {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -10772,6 +10852,7 @@ pub mod brand {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -10957,6 +11038,7 @@ pub mod brand {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -11000,6 +11082,7 @@ pub mod brand {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -11100,6 +11183,7 @@ pub mod brand {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -11354,6 +11438,7 @@ pub mod brand {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -11397,6 +11482,7 @@ pub mod brand {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -11493,6 +11579,7 @@ pub mod brand {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -11711,6 +11798,7 @@ pub mod value {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -11754,6 +11842,7 @@ pub mod value {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -11906,6 +11995,7 @@ pub mod value {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -12567,6 +12657,7 @@ pub mod annotation {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -12610,6 +12701,7 @@ pub mod annotation {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -12712,6 +12804,7 @@ pub mod annotation {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -13089,6 +13182,7 @@ pub mod capnp_version {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -13132,6 +13226,7 @@ pub mod capnp_version {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -13220,6 +13315,7 @@ pub mod capnp_version {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -13419,6 +13515,7 @@ pub mod code_generator_request {
                 generic: &_private::RAW_SCHEMA,
                 field_types: _private::get_field_types,
                 annotation_types: _private::get_annotation_types,
+                type_id: ::core::any::TypeId::of::<Owned>(),
             })
             .into()
         }
@@ -13462,6 +13559,7 @@ pub mod code_generator_request {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -13598,6 +13696,7 @@ pub mod code_generator_request {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 }),
             ))
         }
@@ -13948,6 +14047,7 @@ pub mod code_generator_request {
                     generic: &_private::RAW_SCHEMA,
                     field_types: _private::get_field_types,
                     annotation_types: _private::get_annotation_types,
+                    type_id: ::core::any::TypeId::of::<Owned>(),
                 })
                 .into()
             }
@@ -13991,6 +14091,7 @@ pub mod code_generator_request {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -14100,6 +14201,7 @@ pub mod code_generator_request {
                         generic: &_private::RAW_SCHEMA,
                         field_types: _private::get_field_types,
                         annotation_types: _private::get_annotation_types,
+                        type_id: ::core::any::TypeId::of::<Owned>(),
                     }),
                 ))
             }
@@ -14370,6 +14472,7 @@ pub mod code_generator_request {
                             generic: &_private::RAW_SCHEMA,
                             field_types: _private::get_field_types,
                             annotation_types: _private::get_annotation_types,
+                            type_id: ::core::any::TypeId::of::<Owned>(),
                         },
                     )
                     .into()
@@ -14415,6 +14518,7 @@ pub mod code_generator_request {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))
@@ -14508,6 +14612,7 @@ pub mod code_generator_request {
                                 generic: &_private::RAW_SCHEMA,
                                 field_types: _private::get_field_types,
                                 annotation_types: _private::get_annotation_types,
+                                type_id: ::core::any::TypeId::of::<Owned>(),
                             },
                         ),
                     ))

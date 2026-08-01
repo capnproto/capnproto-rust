@@ -287,33 +287,21 @@ pub struct RawBrandedStructSchema {
     /// Map from (maybe field index, annotation index) to the Type
     /// of the value held by that annotation.
     pub annotation_types: fn(Option<u16>, u32) -> Type,
+
+    /// Used to compare schemas at runtime - the TypeId of the Owned struct that
+    /// this schema describes, including its branding.
+    pub type_id: ::core::any::TypeId,
 }
 
 impl std::cmp::PartialEq for RawBrandedStructSchema {
-    // Suppress warning about comparing function pointers. See comment for
-    // explanation. This suppression can be removed when MSRV is increased to
-    // 1.85 or greater, which has an explicit compare function for function
-    // pointers:
-    //  && std::ptr::fn_addr_eq(self.field_types, other.field_types)
-    //  && std::ptr::fn_addr_eq(self.annotation_types, other.annotation_types)
-    #[allow(unpredictable_function_pointer_comparisons)]
     fn eq(&self, other: &Self) -> bool {
-        ::core::ptr::eq(self.generic, other.generic)
-          // Comparing the function pointers is safe because the capnpc-rust
-          // compiler generates free functions for these, and the function
-          // pointers are guaranteed to be equal if they point to the same
-          // function.
-          && self.field_types == other.field_types
-          && self.annotation_types == other.annotation_types
+        self.type_id == other.type_id
     }
 }
 impl std::cmp::Eq for RawBrandedStructSchema {}
 impl std::hash::Hash for RawBrandedStructSchema {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        // Hash the pointer to the generic schema, and the function pointers.
-        (self.generic as *const RawStructSchema).hash(state);
-        self.field_types.hash(state);
-        self.annotation_types.hash(state);
+        self.type_id.hash(state);
     }
 }
 
