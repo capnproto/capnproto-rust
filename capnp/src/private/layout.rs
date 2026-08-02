@@ -2792,30 +2792,28 @@ pub type CapTable = alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>>;
 #[cfg(not(feature = "alloc"))]
 pub struct CapTable;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub enum CapTableReader {
-    // At one point, we had a `Dummy` variant here, but that ended up
-    // making values of this type take 16 bytes of memory. Now we instead
-    // represent a null CapTableReader with `Plain(ptr::null())`.
-    Plain(*const CapTable),
+    #[default]
+    Dummy,
+    Plain(core::ptr::NonNull<CapTable>),
 }
 
-impl Default for CapTableReader {
-    fn default() -> Self {
-        CapTableReader::Plain(ptr::null())
-    }
-}
+const _: () =
+    assert!(core::mem::size_of::<CapTableReader>() == core::mem::size_of::<*const CapTable>());
 
-#[cfg(feature = "alloc")]
 impl CapTableReader {
-    pub fn extract_cap(&self, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
+    pub fn from_ref(cap_table: &CapTable) -> Self {
+        Self::Plain(core::ptr::NonNull::from(cap_table))
+    }
+
+    #[cfg(feature = "alloc")]
+    pub(crate) fn extract_cap(&self, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
         match *self {
+            Self::Dummy => None,
             Self::Plain(hooks) => {
-                if hooks.is_null() {
-                    return None;
-                }
                 let hooks: &alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { &*hooks };
+                    unsafe { hooks.as_ref() };
                 if index >= hooks.len() {
                     None
                 } else {
@@ -2826,57 +2824,40 @@ impl CapTableReader {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub enum CapTableBuilder {
-    // At one point, we had a `Dummy` variant here, but that ended up
-    // making values of this type take 16 bytes of memory. Now we instead
-    // represent a null CapTableBuilder with `Plain(ptr::null_mut())`.
-    Plain(*mut CapTable),
+    #[default]
+    Dummy,
+    Plain(core::ptr::NonNull<CapTable>),
 }
 
-impl Default for CapTableBuilder {
-    fn default() -> Self {
-        CapTableBuilder::Plain(ptr::null_mut())
-    }
-}
+const _: () =
+    assert!(core::mem::size_of::<CapTableBuilder>() == core::mem::size_of::<*mut CapTable>());
 
 impl CapTableBuilder {
     pub fn into_reader(self) -> CapTableReader {
         match self {
+            Self::Dummy => CapTableReader::Dummy,
             Self::Plain(hooks) => CapTableReader::Plain(hooks),
         }
     }
 
-    #[cfg(feature = "alloc")]
-    pub fn extract_cap(&self, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
-        match *self {
-            Self::Plain(hooks) => {
-                if hooks.is_null() {
-                    return None;
-                }
-                let hooks: &alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { &*hooks };
-                if index >= hooks.len() {
-                    None
-                } else {
-                    hooks[index].as_ref().map(|hook| hook.add_ref())
-                }
-            }
-        }
+    pub fn from_ref(cap_table: &mut CapTable) -> Self {
+        Self::Plain(core::ptr::NonNull::from(cap_table))
     }
 
     #[cfg(feature = "alloc")]
-    pub fn inject_cap(&mut self, cap: alloc::boxed::Box<dyn ClientHook>) -> usize {
+    pub(crate) fn inject_cap(&mut self, cap: alloc::boxed::Box<dyn ClientHook>) -> usize {
         match *self {
-            Self::Plain(hooks) => {
-                if hooks.is_null() {
-                    panic!(
-                        "Called inject_cap() on a null capability table. You need \
-                            to call imbue_mut() on this message before adding capabilities."
-                    );
-                }
+            Self::Dummy => {
+                panic!(
+                    "Called inject_cap() on a null capability table. You need \
+                     to call imbue_mut() on this message before adding capabilities."
+                );
+            }
+            Self::Plain(mut hooks) => {
                 let hooks: &mut alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { &mut *hooks };
+                    unsafe { hooks.as_mut() };
                 hooks.push(Some(cap));
                 hooks.len() - 1
             }
@@ -2886,15 +2867,15 @@ impl CapTableBuilder {
     #[cfg(feature = "alloc")]
     pub fn drop_cap(&mut self, index: usize) {
         match *self {
-            Self::Plain(hooks) => {
-                if hooks.is_null() {
-                    panic!(
-                        "Called drop_cap() on a null capability table. You need \
-                            to call imbue_mut() on this message before adding capabilities."
-                    );
-                }
+            Self::Dummy => {
+                panic!(
+                    "Called drop_cap() on a null capability table. You need \
+                     to call imbue_mut() on this message before adding capabilities."
+                );
+            }
+            Self::Plain(mut hooks) => {
                 let hooks: &mut alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { &mut *hooks };
+                    unsafe { hooks.as_mut() };
                 if index < hooks.len() {
                     hooks[index] = None;
                 }
