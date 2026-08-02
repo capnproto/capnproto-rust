@@ -2792,20 +2792,15 @@ pub type CapTable = alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>>;
 #[cfg(not(feature = "alloc"))]
 pub struct CapTable;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub enum CapTableReader {
+    #[default]
     Dummy,
     Plain(core::ptr::NonNull<CapTable>),
 }
 
 const _: () =
     assert!(core::mem::size_of::<CapTableReader>() == core::mem::size_of::<*const CapTable>());
-
-impl Default for CapTableReader {
-    fn default() -> Self {
-        CapTableReader::Dummy
-    }
-}
 
 impl CapTableReader {
     pub fn from_ref(cap_table: &CapTable) -> Self {
@@ -2829,20 +2824,15 @@ impl CapTableReader {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub enum CapTableBuilder {
+    #[default]
     Dummy,
     Plain(core::ptr::NonNull<CapTable>),
 }
 
 const _: () =
     assert!(core::mem::size_of::<CapTableBuilder>() == core::mem::size_of::<*mut CapTable>());
-
-impl Default for CapTableBuilder {
-    fn default() -> Self {
-        CapTableBuilder::Dummy
-    }
-}
 
 impl CapTableBuilder {
     pub fn into_reader(self) -> CapTableReader {
