@@ -129,7 +129,7 @@ impl WirePointerKind {
 }
 
 #[repr(C)]
-pub struct WirePointer {
+pub(crate) struct WirePointer {
     /// Lower 32 bits of the wire pointer:
     /// - bits 0-1: [`WirePointerKind`] (0=struct, 1=list, 2=far, 3=other).
     /// - bits 2-31:
@@ -155,17 +155,17 @@ fn wire_pointer_align() {
 
 impl WirePointer {
     #[inline]
-    pub fn kind(&self) -> WirePointerKind {
+    pub(crate) fn kind(&self) -> WirePointerKind {
         WirePointerKind::from((self.offset_and_kind.get() & 3) as u8)
     }
 
     #[inline]
-    pub fn is_positional(&self) -> bool {
+    pub(crate) fn is_positional(&self) -> bool {
         (self.offset_and_kind.get() & 2) == 0 // match Struct and List but not Far and Other.
     }
 
     #[inline]
-    pub fn is_capability(&self) -> bool {
+    pub(crate) fn is_capability(&self) -> bool {
         self.offset_and_kind.get() == WirePointerKind::Other as u32
     }
 
@@ -177,7 +177,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub unsafe fn target(ptr: *const Self) -> *const u8 {
+    pub(crate) unsafe fn target(ptr: *const Self) -> *const u8 {
         let this_addr: *const u8 = ptr as *const _;
         unsafe { this_addr.offset(8 * (*ptr).offset_in_words() as isize) }
     }
@@ -207,7 +207,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn set_kind_and_target(&mut self, kind: WirePointerKind, target: *mut u8) {
+    pub(crate) fn set_kind_and_target(&mut self, kind: WirePointerKind, target: *mut u8) {
         let this_addr: isize = self as *const _ as isize;
         let target_addr: isize = target as *const _ as isize;
         self.offset_and_kind.set(
@@ -220,12 +220,12 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn set_kind_with_zero_offset(&mut self, kind: WirePointerKind) {
+    pub(crate) fn set_kind_with_zero_offset(&mut self, kind: WirePointerKind) {
         self.offset_and_kind.set(kind as u32)
     }
 
     #[inline]
-    pub fn set_kind_and_target_for_empty_struct(&mut self) {
+    pub(crate) fn set_kind_and_target_for_empty_struct(&mut self) {
         //# This pointer points at an empty struct. Assuming the
         //# WirePointer itself is in-bounds, we can set the target to
         //# point either at the WirePointer itself or immediately after
@@ -239,12 +239,12 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn inline_composite_list_element_count(&self) -> ElementCount32 {
+    pub(crate) fn inline_composite_list_element_count(&self) -> ElementCount32 {
         self.offset_and_kind.get() >> 2
     }
 
     #[inline]
-    pub fn set_kind_and_inline_composite_list_element_count(
+    pub(crate) fn set_kind_and_inline_composite_list_element_count(
         &mut self,
         kind: WirePointerKind,
         element_count: ElementCount32,
@@ -254,51 +254,51 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn far_position_in_segment(&self) -> WordCount32 {
+    pub(crate) fn far_position_in_segment(&self) -> WordCount32 {
         self.offset_and_kind.get() >> 3
     }
 
     #[inline]
-    pub fn is_double_far(&self) -> bool {
+    pub(crate) fn is_double_far(&self) -> bool {
         ((self.offset_and_kind.get() >> 2) & 1) != 0
     }
 
     #[inline]
-    pub fn set_far(&mut self, is_double_far: bool, pos: WordCount32) {
+    pub(crate) fn set_far(&mut self, is_double_far: bool, pos: WordCount32) {
         self.offset_and_kind
             .set((pos << 3) | (u32::from(is_double_far) << 2) | WirePointerKind::Far as u32);
     }
 
     #[inline]
-    pub fn set_cap(&mut self, index: u32) {
+    pub(crate) fn set_cap(&mut self, index: u32) {
         self.offset_and_kind.set(WirePointerKind::Other as u32);
         self.upper32bits.set(index);
     }
 
     #[inline]
-    pub fn struct_data_size(&self) -> WordCount16 {
+    pub(crate) fn struct_data_size(&self) -> WordCount16 {
         (self.upper32bits.get() & 0xFFFF) as WordCount16
     }
 
     #[inline]
-    pub fn struct_ptr_count(&self) -> WordCount16 {
+    pub(crate) fn struct_ptr_count(&self) -> WordCount16 {
         (self.upper32bits.get() >> 16) as WordCount16
     }
 
     #[inline]
-    pub fn struct_word_size(&self) -> WordCount32 {
+    pub(crate) fn struct_word_size(&self) -> WordCount32 {
         u32::from(self.struct_data_size())
             + u32::from(self.struct_ptr_count()) * u32::try_from(WORDS_PER_POINTER).unwrap()
     }
 
     #[inline]
-    pub fn set_struct_size(&mut self, size: StructSize) {
+    pub(crate) fn set_struct_size(&mut self, size: StructSize) {
         self.upper32bits
             .set(u32::from(size.data) | (u32::from(size.pointers) << 16))
     }
 
     #[inline]
-    pub fn set_struct_size_from_pieces(&mut self, ds: WordCount16, rc: WirePointerCount16) {
+    pub(crate) fn set_struct_size_from_pieces(&mut self, ds: WordCount16, rc: WirePointerCount16) {
         self.set_struct_size(StructSize {
             data: ds,
             pointers: rc,
@@ -306,28 +306,28 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn list_element_size(&self) -> ElementSize {
+    pub(crate) fn list_element_size(&self) -> ElementSize {
         ElementSize::from((self.upper32bits.get() & 7) as u8)
     }
 
     #[inline]
-    pub fn list_element_count(&self) -> ElementCount32 {
+    pub(crate) fn list_element_count(&self) -> ElementCount32 {
         self.upper32bits.get() >> 3
     }
 
     #[inline]
-    pub fn list_inline_composite_word_count(&self) -> WordCount32 {
+    pub(crate) fn list_inline_composite_word_count(&self) -> WordCount32 {
         self.list_element_count()
     }
 
     #[inline]
-    pub fn set_list_size_and_count(&mut self, es: ElementSize, ec: ElementCount32) {
+    pub(crate) fn set_list_size_and_count(&mut self, es: ElementSize, ec: ElementCount32) {
         assert!(ec < (1 << 29), "Lists are limited to 2**29 elements");
         self.upper32bits.set((ec << 3) | (es as u32));
     }
 
     #[inline]
-    pub fn set_list_inline_composite(&mut self, wc: WordCount32) {
+    pub(crate) fn set_list_inline_composite(&mut self, wc: WordCount32) {
         assert!(
             wc < (1 << 29),
             "Inline composite lists are limited to 2**29 words"
@@ -336,27 +336,22 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn far_segment_id(&self) -> SegmentId {
+    pub(crate) fn far_segment_id(&self) -> SegmentId {
         self.upper32bits.get() as SegmentId
     }
 
     #[inline]
-    pub fn set_far_segment_id(&mut self, si: SegmentId) {
+    pub(crate) fn set_far_segment_id(&mut self, si: SegmentId) {
         self.upper32bits.set(si)
     }
 
     #[inline]
-    pub fn cap_index(&self) -> u32 {
+    pub(crate) fn cap_index(&self) -> u32 {
         self.upper32bits.get()
     }
 
     #[inline]
-    pub fn set_cap_index(&mut self, index: u32) {
-        self.upper32bits.set(index)
-    }
-
-    #[inline]
-    pub fn is_null(&self) -> bool {
+    pub(crate) fn is_null(&self) -> bool {
         self.offset_and_kind.get() == 0 && self.upper32bits.get() == 0
     }
 }
@@ -3971,7 +3966,7 @@ impl<'a> ListReader<'a> {
         }
     }
 
-    pub unsafe fn is_canonical(
+    pub(crate) unsafe fn is_canonical(
         &self,
         read_head: &Cell<*const u8>,
         reff: *const WirePointer,
