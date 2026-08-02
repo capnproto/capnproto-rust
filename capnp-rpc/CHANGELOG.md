@@ -1,3 +1,8 @@
+## unreleased
+- Make `Disconnector` wait until the connection's `shutdown()` completes, as its
+  documentation already promised, and report shutdown errors instead of dropping
+  them. Previously it resolved as soon as teardown started.
+
 ## v0.26.3
 - Add new_broken_cap() function.
 

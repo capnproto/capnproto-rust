@@ -444,6 +444,10 @@ where
     connection: RefCell<::std::result::Result<Box<dyn crate::Connection<VatId>>, ::capnp::Error>>,
     disconnect_fulfiller: RefCell<Option<oneshot::Sender<Promise<(), Error>>>>,
 
+    // Set when `disconnect()` is called. Resolves once the connection's `shutdown()`
+    // has completed. `Disconnector` futures wait on a clone of this.
+    disconnect_promise: RefCell<Option<future::Shared<Promise<(), Error>>>>,
+
     client_downcast_map: RefCell<HashMap<usize, WeakClient<VatId>>>,
 }
 
@@ -464,6 +468,7 @@ impl<VatId> ConnectionState<VatId> {
             tasks: RefCell::new(None),
             connection: RefCell::new(Ok(connection)),
             disconnect_fulfiller: RefCell::new(Some(disconnect_fulfiller)),
+            disconnect_promise: RefCell::new(None),
             client_downcast_map: RefCell::new(HashMap::new()),
         });
         let (mut handle, tasks) =
@@ -585,10 +590,12 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
         });
+        let shutdown_promise = Promise::from_future(promise.attach(c)).shared();
+        *self.disconnect_promise.borrow_mut() = Some(shutdown_promise.clone());
         let Some(fulfiller) = self.disconnect_fulfiller.borrow_mut().take() else {
             unreachable!()
         };
-        let _ = fulfiller.send(Promise::from_future(promise.attach(c)));
+        let _ = fulfiller.send(Promise::from_future(shutdown_promise));
     }
 
     // Transform a future into a promise that gets executed even if it is never polled.
@@ -1630,7 +1637,7 @@ impl<VatId> ConnectionState<VatId> {
 
 enum DisconnectorState {
     New,
-    Disconnecting,
+    Disconnecting(future::Shared<Promise<(), Error>>),
     Disconnected,
 }
 
@@ -1650,11 +1657,14 @@ impl<VatId> Disconnector<VatId> {
             state: DisconnectorState::New,
         }
     }
-    fn disconnect(&self) {
+    fn disconnect(&self) -> Option<future::Shared<Promise<(), Error>>> {
         if let Some(ref state) = *(self.connection_state.borrow()) {
             state.disconnect(::capnp::Error::disconnected(
                 "client requested disconnect".to_owned(),
             ));
+            state.disconnect_promise.borrow().clone()
+        } else {
+            None
         }
     }
 }
@@ -1666,27 +1676,24 @@ where
     type Output = Result<(), capnp::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        self.state = match self.state {
-            DisconnectorState::New => {
-                self.disconnect();
-                DisconnectorState::Disconnecting
-            }
-            DisconnectorState::Disconnecting => {
-                if self.connection_state.borrow().is_some() {
-                    DisconnectorState::Disconnecting
-                } else {
-                    DisconnectorState::Disconnected
+        let this = &mut *self;
+        loop {
+            match this.state {
+                DisconnectorState::New => {
+                    this.state = match this.disconnect() {
+                        Some(shutdown_promise) => {
+                            DisconnectorState::Disconnecting(shutdown_promise)
+                        }
+                        None => DisconnectorState::Disconnected,
+                    };
                 }
+                DisconnectorState::Disconnecting(ref mut shutdown_promise) => {
+                    let result = futures::ready!(Pin::new(shutdown_promise).poll(cx));
+                    this.state = DisconnectorState::Disconnected;
+                    return Poll::Ready(result);
+                }
+                DisconnectorState::Disconnected => return Poll::Ready(Ok(())),
             }
-            DisconnectorState::Disconnected => DisconnectorState::Disconnected,
-        };
-        match self.state {
-            DisconnectorState::New => unreachable!(),
-            DisconnectorState::Disconnecting => {
-                cx.waker().wake_by_ref();
-                Poll::Pending
-            }
-            DisconnectorState::Disconnected => Poll::Ready(Ok(())),
         }
     }
 }

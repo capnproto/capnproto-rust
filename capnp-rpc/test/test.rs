@@ -31,6 +31,7 @@ use futures::{Future, FutureExt, TryFutureExt};
 
 capnp::generated_code!(pub mod test_capnp);
 
+pub mod disconnector_test;
 pub mod impls;
 pub mod reconnect_test;
 pub mod test_util;
