@@ -1,10 +1,10 @@
 ## v0.27.0
-- Add `PartialEq`, `Eq`, and `Hash` impls for `EnumSchema` and `Enumerant`, and
-  derive them for `TypeVariant`, matching the new impls on `StructSchema` and `Field`.
+- Use TypeId to implement precise equality for `RawBrandedStructSchema`. `StructSchema`,
+  `Field`, `EnumSchema` and `Enumerant`, and `Type`.
+- Deprecate `Type::loose_equals()`.
 - Add `Debug` impls for `StructSchema`, `Field`, `EnumSchema`, and `Enumerant`.
-- Make the dynamic API's field-membership assertions use full branded schema
-  equality. A `Field` from a differently-branded instantiation of the same
-  generic struct is now rejected instead of silently accepted.
+- Clean up some internal API in `private/layout.rs`.
+- Add bounds checking in `impl PrimitiveElement for bool`.
 
 ## v0.26.2
 - Avoid possible panic in `BufferSegments::new()`.

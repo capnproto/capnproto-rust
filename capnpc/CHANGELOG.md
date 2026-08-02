@@ -1,3 +1,6 @@
+## v0.27.0
+- Adjust generated code for updated base crate API.
+
 ## v0.26.0
 - Adjust generated code for new RawEnumSchema constructor.
 

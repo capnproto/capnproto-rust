@@ -1,3 +1,6 @@
+## v0.27.0
+- Follow v0.27.0 release of other capnp crates.
+
 ## v0.26.1
 - Fix some bugs in reading packed streams.
 
