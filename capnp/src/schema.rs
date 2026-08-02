@@ -138,6 +138,17 @@ impl ::core::hash::Hash for StructSchema {
     }
 }
 
+impl ::core::fmt::Debug for StructSchema {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        // Two schemas with the same display name are unequal if their brandings
+        // differ, so also include the type id.
+        match self.proto.get_display_name().map(|n| n.to_str()) {
+            Ok(Ok(name)) => write!(f, "StructSchema({name}, {:?})", self.raw.type_id),
+            _ => write!(f, "StructSchema({:?})", self.raw),
+        }
+    }
+}
+
 /// A field of a struct, with generics applied.
 #[derive(Clone, Copy)]
 pub struct Field {
@@ -179,6 +190,15 @@ impl ::core::hash::Hash for Field {
     fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
         self.parent.hash(state);
         self.index.hash(state);
+    }
+}
+
+impl ::core::fmt::Debug for Field {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        match self.proto.get_name().map(|n| n.to_str()) {
+            Ok(Ok(name)) => write!(f, "Field({name}, {:?})", self.parent),
+            _ => write!(f, "Field(index {}, {:?})", self.index, self.parent),
+        }
     }
 }
 
@@ -321,6 +341,29 @@ impl From<RawEnumSchema> for EnumSchema {
     }
 }
 
+impl ::core::cmp::PartialEq for EnumSchema {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw == other.raw
+    }
+}
+
+impl ::core::cmp::Eq for EnumSchema {}
+
+impl ::core::hash::Hash for EnumSchema {
+    fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+        self.raw.hash(state);
+    }
+}
+
+impl ::core::fmt::Debug for EnumSchema {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        match self.proto.get_display_name().map(|n| n.to_str()) {
+            Ok(Ok(name)) => write!(f, "EnumSchema({name})"),
+            _ => write!(f, "EnumSchema({:?})", self.raw),
+        }
+    }
+}
+
 /// An enumerant, with generics applied. (Generics may affect types of annotations.)
 #[derive(Clone, Copy)]
 pub struct Enumerant {
@@ -348,6 +391,28 @@ impl Enumerant {
             child_index: Some(self.ordinal),
             get_annotation_type: self.parent.raw.annotation_types,
         })
+    }
+}
+
+impl ::core::cmp::PartialEq for Enumerant {
+    fn eq(&self, other: &Self) -> bool {
+        self.parent == other.parent && self.ordinal == other.ordinal
+    }
+}
+impl ::core::cmp::Eq for Enumerant {}
+impl ::core::hash::Hash for Enumerant {
+    fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+        self.parent.hash(state);
+        self.ordinal.hash(state);
+    }
+}
+
+impl ::core::fmt::Debug for Enumerant {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        match self.proto.get_name().map(|n| n.to_str()) {
+            Ok(Ok(name)) => write!(f, "Enumerant({name}, {:?})", self.parent),
+            _ => write!(f, "Enumerant(ordinal {}, {:?})", self.ordinal, self.parent),
+        }
     }
 }
 
@@ -515,12 +580,15 @@ mod tests {
         let display_name = struct_schema.get_field_by_name("displayName").unwrap();
         let id = struct_schema.get_field_by_name("id").unwrap();
 
-        assert!(display_name == display_name);
-        assert!(display_name == struct_schema.get_field_by_name("displayName").unwrap());
-        assert!(id == id);
-        assert!(id == struct_schema.get_field_by_name("id").unwrap());
+        assert_eq!(display_name, display_name);
+        assert_eq!(
+            display_name,
+            struct_schema.get_field_by_name("displayName").unwrap()
+        );
+        assert_eq!(id, id);
+        assert_eq!(id, struct_schema.get_field_by_name("id").unwrap());
 
-        assert!(display_name != id);
+        assert_ne!(display_name, id);
     }
 
     #[cfg(feature = "std")]
@@ -572,8 +640,59 @@ mod tests {
             crate::schema::StructSchema::new(schema)
         };
 
-        assert!(node_schema == node_schema);
-        assert!(cgr_schema == cgr_schema);
-        assert!(node_schema != cgr_schema);
+        assert_eq!(node_schema, node_schema);
+        assert_eq!(cgr_schema, cgr_schema);
+        assert_ne!(node_schema, cgr_schema);
+    }
+
+    #[test]
+    fn enum_schemas_can_be_compared() {
+        let crate::introspect::TypeVariant::Enum(raw) =
+            crate::schema_capnp::ElementSize::introspect().which()
+        else {
+            panic!("Expected an enum schema");
+        };
+        let schema = crate::schema::EnumSchema::new(raw);
+
+        assert_eq!(schema, crate::schema::EnumSchema::new(raw));
+
+        let enumerants = schema.get_enumerants().unwrap();
+        assert_eq!(enumerants.get(0), enumerants.get(0));
+        assert_ne!(enumerants.get(0), enumerants.get(1));
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn enumerants_can_be_hashed() {
+        let crate::introspect::TypeVariant::Enum(raw) =
+            crate::schema_capnp::ElementSize::introspect().which()
+        else {
+            panic!("Expected an enum schema");
+        };
+        let schema = crate::schema::EnumSchema::new(raw);
+        let enumerants = schema.get_enumerants().unwrap();
+
+        let mut map = std::collections::HashMap::new();
+        map.insert(enumerants.get(0), 0);
+        map.insert(enumerants.get(1), 1);
+
+        assert_eq!(map.get(&enumerants.get(0)), Some(&0));
+        assert_eq!(map.get(&enumerants.get(1)), Some(&1));
+    }
+
+    #[test]
+    fn type_variants_can_be_compared() {
+        use crate::introspect::TypeVariant;
+
+        assert_eq!(u32::introspect().which(), TypeVariant::UInt32);
+        assert_ne!(u32::introspect().which(), TypeVariant::Int32);
+        assert_eq!(
+            crate::schema_capnp::node::Owned::introspect().which(),
+            crate::schema_capnp::node::Owned::introspect().which()
+        );
+        assert_ne!(
+            crate::schema_capnp::node::Owned::introspect().which(),
+            crate::schema_capnp::code_generator_request::Owned::introspect().which()
+        );
     }
 }

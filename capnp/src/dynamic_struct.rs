@@ -49,10 +49,7 @@ impl<'a> Reader<'a> {
     }
 
     pub fn get(self, field: Field) -> Result<dynamic_value::Reader<'a>> {
-        assert!(core::ptr::eq(
-            self.schema.raw.generic,
-            field.parent.raw.generic
-        ));
+        assert_eq!(self.schema, field.parent);
         let ty = field.get_type();
         match field.get_proto().which()? {
             field::Slot(slot) => {
@@ -201,10 +198,7 @@ impl<'a> Reader<'a> {
     /// is active in the union and is not a null pointer. On non-union fields,
     /// returns `true` if the field is not a null pointer.
     pub fn has(&self, field: Field) -> Result<bool> {
-        assert!(core::ptr::eq(
-            self.schema.raw.generic,
-            field.parent.raw.generic
-        ));
+        assert_eq!(self.schema, field.parent);
         let proto = field.get_proto();
         if has_discriminant_value(proto) {
             let node::Struct(st) = self.schema.get_proto().which()? else {
@@ -293,10 +287,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn get(self, field: Field) -> Result<dynamic_value::Builder<'a>> {
-        assert!(core::ptr::eq(
-            self.schema.raw.generic,
-            field.parent.raw.generic
-        ));
+        assert_eq!(self.schema, field.parent);
         let ty = field.get_type();
         match field.get_proto().which()? {
             field::Slot(slot) => {
@@ -453,10 +444,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn set(&mut self, field: Field, value: dynamic_value::Reader<'_>) -> Result<()> {
-        assert!(core::ptr::eq(
-            self.schema.raw.generic,
-            field.parent.raw.generic
-        ));
+        assert_eq!(self.schema, field.parent);
         self.set_in_union(field)?;
         let ty = field.get_type();
         match field.get_proto().which()? {
@@ -596,10 +584,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn init(mut self, field: Field) -> Result<dynamic_value::Builder<'a>> {
-        assert!(core::ptr::eq(
-            self.schema.raw.generic,
-            field.parent.raw.generic
-        ));
+        assert_eq!(self.schema, field.parent);
         self.set_in_union(field)?;
         let ty = field.get_type();
         match field.get_proto().which()? {
@@ -640,10 +625,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn initn(mut self, field: Field, size: u32) -> Result<dynamic_value::Builder<'a>> {
-        assert!(core::ptr::eq(
-            self.schema.raw.generic,
-            field.parent.raw.generic
-        ));
+        assert_eq!(self.schema, field.parent);
         self.set_in_union(field)?;
         let ty = field.get_type();
         match field.get_proto().which()? {
@@ -696,10 +678,7 @@ impl<'a> Builder<'a> {
     /// Clears a field, setting it to its default value. For pointer fields,
     /// this makes the field null.
     pub fn clear(&mut self, field: Field) -> Result<()> {
-        assert!(core::ptr::eq(
-            self.schema.raw.generic,
-            field.parent.raw.generic
-        ));
+        assert_eq!(self.schema, field.parent);
         self.set_in_union(field)?;
         let ty = field.get_type();
         match field.get_proto().which()? {

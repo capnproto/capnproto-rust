@@ -2362,12 +2362,12 @@ mod tests {
             capnp::schema::StructSchema::new(schema)
         };
 
-        assert!(schema_t_t != schema_d_d);
+        assert_ne!(schema_t_t, schema_d_d);
 
         let foo_t_t = schema_t_t.get_field_by_name("foo")?;
         let foo_d_d = schema_d_d.get_field_by_name("foo")?;
 
-        assert!(foo_t_t != foo_d_d);
+        assert_ne!(foo_t_t, foo_d_d);
 
         Ok(())
     }
