@@ -2373,7 +2373,7 @@ mod tests {
     }
 
     #[test]
-    fn types_campare_in_sane_ways() -> capnp::Result<()> {
+    fn types_compare_in_sane_ways() -> capnp::Result<()> {
         use capnp::introspect::Introspect;
         let all_types = {
             let capnp::introspect::TypeVariant::Struct(all_types) =
@@ -2393,27 +2393,25 @@ mod tests {
             capnp::schema::StructSchema::new(all_defaults)
         };
 
-        assert!(
+        assert_eq!(
+            all_types.get_field_by_name("int8Field")?.get_type(),
             all_types.get_field_by_name("int8Field")?.get_type()
-                == all_types.get_field_by_name("int8Field")?.get_type()
         );
-        assert!(
-            all_types.get_field_by_name("int8Field")?.get_type()
-                != all_types.get_field_by_name("int64Field")?.get_type()
+        assert_ne!(
+            all_types.get_field_by_name("int8Field")?.get_type(),
+            all_types.get_field_by_name("int64Field")?.get_type()
         );
-
-        assert!(
-            all_types.get_field_by_name("dataField")?.get_type()
-                == all_defaults.get_field_by_name("dataField")?.get_type()
+        assert_eq!(
+            all_types.get_field_by_name("dataField")?.get_type(),
+            all_defaults.get_field_by_name("dataField")?.get_type()
         );
-        assert!(
-            all_types.get_field_by_name("dataField")?.get_type()
-                != all_defaults.get_field_by_name("dataList")?.get_type()
+        assert_ne!(
+            all_types.get_field_by_name("dataField")?.get_type(),
+            all_defaults.get_field_by_name("dataList")?.get_type()
         );
-
-        assert!(
-            all_types.get_field_by_name("structField")?.get_type()
-                == all_defaults.get_field_by_name("structField")?.get_type()
+        assert_eq!(
+            all_types.get_field_by_name("structField")?.get_type(),
+            all_defaults.get_field_by_name("structField")?.get_type()
         );
 
         let capnp::introspect::TypeVariant::List(list_member) =
@@ -2421,8 +2419,14 @@ mod tests {
         else {
             panic!("expected list")
         };
-        assert!(list_member == all_types.get_field_by_name("textField")?.get_type());
-        assert!(list_member != all_types.get_field_by_name("dataField")?.get_type());
+        assert_eq!(
+            list_member,
+            all_types.get_field_by_name("textField")?.get_type()
+        );
+        assert_ne!(
+            list_member,
+            all_types.get_field_by_name("dataField")?.get_type()
+        );
 
         Ok(())
     }
