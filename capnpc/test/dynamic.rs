@@ -526,5 +526,60 @@ fn introspect_equals() {
         test_all_types::Owned::introspect()
     );
 
-    assert!(test_all_types::Owned::introspect() != test_defaults::Owned::introspect())
+    assert_ne!(
+        test_all_types::Owned::introspect(),
+        test_defaults::Owned::introspect()
+    )
+}
+
+#[test]
+#[should_panic(expected = "left == right")]
+fn field_from_wrong_schema_panics() {
+    use capnp::introspect::{Introspect, TypeVariant};
+
+    let mut builder = message::Builder::new_default();
+    builder.init_root::<test_all_types::Builder<'_>>();
+    let reader = builder
+        .get_root_as_reader::<test_all_types::Reader<'_>>()
+        .unwrap();
+    let dynamic: dynamic_value::Reader<'_> = reader.into();
+    let dynamic: dynamic_struct::Reader<'_> = dynamic.downcast();
+
+    // `test_defaults` has a field of the same name at the same index, but it
+    // belongs to a different schema.
+    let TypeVariant::Struct(raw) = test_defaults::Owned::introspect().which() else {
+        panic!("Expected a struct schema");
+    };
+    let wrong_schema = capnp::schema::StructSchema::new(raw);
+    let field = wrong_schema.get_field_by_name("boolField").unwrap();
+
+    let _ = dynamic.get(field);
+}
+
+#[test]
+#[should_panic(expected = "left == right")]
+fn field_from_differently_branded_schema_panics() {
+    use crate::test_capnp::test_generics;
+    use capnp::introspect::{Introspect, TypeVariant};
+    use capnp::{data, text};
+
+    let mut builder = message::Builder::new_default();
+    builder.init_root::<test_generics::Builder<'_, text::Owned, data::Owned>>();
+    let reader = builder
+        .get_root_as_reader::<test_generics::Reader<'_, text::Owned, data::Owned>>()
+        .unwrap();
+    let dynamic: dynamic_value::Reader<'_> = reader.into();
+    let dynamic: dynamic_struct::Reader<'_> = dynamic.downcast();
+
+    // Same generic struct, but with different type parameters. A field from
+    // this schema would report the wrong types for our reader.
+    let TypeVariant::Struct(raw) =
+        test_generics::Owned::<data::Owned, text::Owned>::introspect().which()
+    else {
+        panic!("Expected a struct schema");
+    };
+    let differently_branded = capnp::schema::StructSchema::new(raw);
+    let field = differently_branded.get_field_by_name("foo").unwrap();
+
+    let _ = dynamic.get(field);
 }

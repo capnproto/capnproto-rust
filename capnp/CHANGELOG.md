@@ -1,3 +1,11 @@
+## v0.27.0
+- Add `PartialEq`, `Eq`, and `Hash` impls for `EnumSchema` and `Enumerant`, and
+  derive them for `TypeVariant`, matching the new impls on `StructSchema` and `Field`.
+- Add `Debug` impls for `StructSchema`, `Field`, `EnumSchema`, and `Enumerant`.
+- Make the dynamic API's field-membership assertions use full branded schema
+  equality. A `Field` from a differently-branded instantiation of the same
+  generic struct is now rejected instead of silently accepted.
+
 ## v0.26.2
 - Avoid possible panic in `BufferSegments::new()`.
 - Avoid possible desyncing in `read_message_no_alloc()`.

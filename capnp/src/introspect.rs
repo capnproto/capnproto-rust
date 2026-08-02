@@ -148,7 +148,7 @@ impl Type {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 /// A `Type` unfolded one level. Suitable for pattern matching. Can be trivially
 /// converted to `Type` via the `From`/`Into` traits.
 pub enum TypeVariant {
