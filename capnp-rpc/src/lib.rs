@@ -358,6 +358,8 @@ impl<VatId> RpcSystem<VatId> {
     }
 
     /// Returns a `Disconnector` future that can be run to cleanly close the connection to this `RpcSystem`'s network.
+    /// The future resolves once the connection's shutdown has completed, and it reports any error
+    /// that occurred during shutdown.
     /// You should get the `Disconnector` before you spawn the `RpcSystem`.
     pub fn get_disconnector(&self) -> rpc::Disconnector<VatId> {
         rpc::Disconnector::new(self.connection_state.clone())
