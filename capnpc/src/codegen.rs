@@ -2294,7 +2294,7 @@ fn generate_node(
                     params.params, params.where_clause)),
                 indent(vec![
                     Line(fmt!(ctx,"fn imbue(&mut self, cap_table: &'a {capnp}::private::layout::CapTable) {{")),
-                    indent(Line(fmt!(ctx,"self.reader.imbue({capnp}::private::layout::CapTableReader::Plain(cap_table))"))),
+                    indent(Line(fmt!(ctx,"self.reader.imbue({capnp}::private::layout::CapTableReader::from_ref(cap_table))"))),
                     line("}")
                 ]),
                 line("}"),
@@ -2360,7 +2360,7 @@ fn generate_node(
                              params.params, params.where_clause)),
                 indent(vec![
                         Line(fmt!(ctx,"fn imbue_mut(&mut self, cap_table: &'a mut {capnp}::private::layout::CapTable) {{")),
-                        indent(Line(fmt!(ctx,"self.builder.imbue({capnp}::private::layout::CapTableBuilder::Plain(cap_table))"))),
+                        indent(Line(fmt!(ctx,"self.builder.imbue({capnp}::private::layout::CapTableBuilder::from_ref(cap_table))"))),
                         line("}")]),
                 line("}"),
                 BlankLine,
