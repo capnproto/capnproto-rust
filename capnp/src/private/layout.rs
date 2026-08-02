@@ -2913,7 +2913,7 @@ pub struct PointerReader<'a> {
 }
 
 impl<'a> PointerReader<'a> {
-    pub fn new_default<'b>() -> PointerReader<'b> {
+    pub(crate) fn new_default<'b>() -> PointerReader<'b> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
@@ -2923,7 +2923,7 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub unsafe fn get_root(
+    pub(crate) unsafe fn get_root(
         arena: &'a dyn ReaderArena,
         segment_id: u32,
         location: *const u8,
@@ -2953,7 +2953,8 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub unsafe fn get_root_unchecked<'b>(location: *const u8) -> PointerReader<'b> {
+    #[cfg(test)]
+    pub(crate) unsafe fn get_root_unchecked<'b>(location: *const u8) -> PointerReader<'b> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
@@ -3400,7 +3401,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn copy_from(&mut self, other: PointerReader, canonicalize: bool) -> Result<()> {
+    pub(crate) fn copy_from(&mut self, other: PointerReader, canonicalize: bool) -> Result<()> {
         if other.pointer.is_null() {
             if !self.pointer.is_null() {
                 unsafe {
@@ -3464,7 +3465,7 @@ pub struct StructReader<'a> {
 }
 
 impl<'a> StructReader<'a> {
-    pub fn new_default<'b>() -> StructReader<'b> {
+    pub(crate) fn new_default<'b>() -> StructReader<'b> {
         StructReader {
             arena: &NULL_ARENA,
             segment_id: 0,
@@ -3481,15 +3482,15 @@ impl<'a> StructReader<'a> {
         self.cap_table = cap_table
     }
 
-    pub fn get_data_section_size(&self) -> BitCount32 {
+    pub(crate) fn get_data_section_size(&self) -> BitCount32 {
         self.data_size
     }
 
-    pub fn get_pointer_section_size(&self) -> WirePointerCount16 {
+    pub(crate) fn get_pointer_section_size(&self) -> WirePointerCount16 {
         self.pointer_count
     }
 
-    pub fn get_pointer_section_as_list(&self) -> ListReader<'a> {
+    pub(crate) fn get_pointer_section_as_list(&self) -> ListReader<'a> {
         ListReader {
             arena: self.arena,
             segment_id: self.segment_id,
@@ -3504,7 +3505,7 @@ impl<'a> StructReader<'a> {
         }
     }
 
-    pub fn get_data_section_as_blob(&self) -> &'a [u8] {
+    pub(crate) fn get_data_section_as_blob(&self) -> &'a [u8] {
         if self.data_size == 0 {
             // Explicitly handle this case to avoid forming a slice to a null pointer,
             // which would be undefined behavior.
@@ -3778,7 +3779,7 @@ impl<'a> StructBuilder<'a> {
         unsafe { (*self.pointers.add(ptr_index)).is_null() }
     }
 
-    pub fn copy_content_from(&mut self, other: &StructReader) -> Result<()> {
+    pub(crate) fn copy_content_from(&mut self, other: &StructReader) -> Result<()> {
         use core::cmp::min;
         // Determine the amount of data the builders have in common.
         let shared_data_size = min(self.data_size, other.data_size);
@@ -3876,7 +3877,7 @@ pub struct ListReader<'a> {
 }
 
 impl<'a> ListReader<'a> {
-    pub fn new_default<'b>() -> ListReader<'b> {
+    pub(crate) fn new_default<'b>() -> ListReader<'b> {
         ListReader {
             arena: &NULL_ARENA,
             segment_id: 0,
@@ -3926,7 +3927,7 @@ impl<'a> ListReader<'a> {
     }
 
     #[inline]
-    pub fn get_struct_element(&self, index: ElementCount32) -> StructReader<'a> {
+    pub(crate) fn get_struct_element(&self, index: ElementCount32) -> StructReader<'a> {
         assert!(index < self.element_count);
         let index_byte =
             usize::try_from((u64::from(index) * u64::from(self.step)) / BITS_PER_BYTE as u64)
@@ -3950,7 +3951,7 @@ impl<'a> ListReader<'a> {
     }
 
     #[inline]
-    pub fn get_pointer_element(self, index: ElementCount32) -> PointerReader<'a> {
+    pub(crate) fn get_pointer_element(self, index: ElementCount32) -> PointerReader<'a> {
         assert!(index < self.element_count);
         let offset = usize::try_from(
             self.struct_data_size as u64 / BITS_PER_BYTE as u64
@@ -4090,7 +4091,7 @@ pub struct ListBuilder<'a> {
 
 impl<'a> ListBuilder<'a> {
     #[inline]
-    pub fn new_default(arena: &mut dyn BuilderArena) -> ListBuilder<'_> {
+    pub(crate) fn new_default(arena: &mut dyn BuilderArena) -> ListBuilder<'_> {
         ListBuilder {
             arena,
             segment_id: 0,
@@ -4141,7 +4142,7 @@ impl<'a> ListBuilder<'a> {
     }
 
     #[inline]
-    pub fn get_struct_element(self, index: ElementCount32) -> StructBuilder<'a> {
+    pub(crate) fn get_struct_element(self, index: ElementCount32) -> StructBuilder<'a> {
         assert!(index < self.element_count);
         let index_byte =
             usize::try_from((u64::from(index) * u64::from(self.step)) / BITS_PER_BYTE as u64)
