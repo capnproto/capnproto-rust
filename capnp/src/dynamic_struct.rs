@@ -244,7 +244,7 @@ impl<'a> Reader<'a> {
     pub fn downcast<T: crate::traits::OwnedStruct>(self) -> T::Reader<'a> {
         assert!(
             crate::introspect::Type::from(crate::introspect::TypeVariant::Struct(self.schema.raw))
-                .loose_equals(T::introspect())
+                == T::introspect()
         );
         self.reader.into()
     }
@@ -810,7 +810,7 @@ impl<'a> Builder<'a> {
     pub fn downcast<T: crate::traits::OwnedStruct>(self) -> T::Builder<'a> {
         assert!(
             crate::introspect::Type::from(crate::introspect::TypeVariant::Struct(self.schema.raw))
-                .loose_equals(T::introspect())
+                == T::introspect()
         );
         self.builder.into()
     }

@@ -14,7 +14,7 @@ pub trait Introspect {
 /// optimized to avoid heap allocation.
 ///
 /// To examine a `Type`, you should call the `which()` method.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Type {
     /// The type, minus any outer `List( )`.
     base: BaseType,
@@ -108,6 +108,10 @@ impl Type {
 
     /// Returns true if `self` is equal to `other` modulo
     /// type parameters and interface types.
+    #[deprecated(
+        since = "0.27.0",
+        note = "Type now implements Eq. loose_equals ignores generics on structs, while Eq is more precise and most likely the one you want."
+    )]
     pub fn loose_equals(&self, other: Self) -> bool {
         match (self.which(), other.which()) {
             (TypeVariant::Void, TypeVariant::Void) => true,
@@ -196,7 +200,7 @@ impl From<TypeVariant> for Type {
 }
 
 /// A Cap'n Proto type, excluding `List`.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 enum BaseType {
     Void,
     Bool,
@@ -287,6 +291,22 @@ pub struct RawBrandedStructSchema {
     /// Map from (maybe field index, annotation index) to the Type
     /// of the value held by that annotation.
     pub annotation_types: fn(Option<u16>, u32) -> Type,
+
+    /// Used to compare schemas at runtime - the TypeId of the Owned struct that
+    /// this schema describes, including its branding.
+    pub type_id: ::core::any::TypeId,
+}
+
+impl ::core::cmp::PartialEq for RawBrandedStructSchema {
+    fn eq(&self, other: &Self) -> bool {
+        self.type_id == other.type_id
+    }
+}
+impl ::core::cmp::Eq for RawBrandedStructSchema {}
+impl ::core::hash::Hash for RawBrandedStructSchema {
+    fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+        self.type_id.hash(state);
+    }
 }
 
 impl core::fmt::Debug for RawBrandedStructSchema {
@@ -327,6 +347,11 @@ impl core::cmp::PartialEq for RawEnumSchema {
 }
 
 impl core::cmp::Eq for RawEnumSchema {}
+impl core::hash::Hash for RawEnumSchema {
+    fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+        (self.arena as *const crate::private::arena::GeneratedCodeArena).hash(state);
+    }
+}
 
 impl core::fmt::Debug for RawEnumSchema {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {

@@ -2338,4 +2338,92 @@ mod tests {
     ) -> ::capnp::Result<()> {
         b.set_struct_list(r.get_struct_list()?)
     }
+
+    #[test]
+    fn different_brands_of_structs_compare_differently() -> capnp::Result<()> {
+        use crate::test_capnp::test_generics;
+        use capnp::introspect::Introspect;
+        let schema_t_t = {
+            let capnp::introspect::TypeVariant::Struct(schema) =
+                test_generics::Owned::<capnp::text::Owned, capnp::text::Owned>::introspect()
+                    .which()
+            else {
+                panic!("expected struct")
+            };
+            capnp::schema::StructSchema::new(schema)
+        };
+        let schema_d_d = {
+            let capnp::introspect::TypeVariant::Struct(schema) =
+                test_generics::Owned::<capnp::data::Owned, capnp::data::Owned>::introspect()
+                    .which()
+            else {
+                panic!("expected struct")
+            };
+            capnp::schema::StructSchema::new(schema)
+        };
+
+        assert!(schema_t_t != schema_d_d);
+
+        let foo_t_t = schema_t_t.get_field_by_name("foo")?;
+        let foo_d_d = schema_d_d.get_field_by_name("foo")?;
+
+        assert!(foo_t_t != foo_d_d);
+
+        Ok(())
+    }
+
+    #[test]
+    fn types_campare_in_sane_ways() -> capnp::Result<()> {
+        use capnp::introspect::Introspect;
+        let all_types = {
+            let capnp::introspect::TypeVariant::Struct(all_types) =
+                crate::test_capnp::test_all_types::Owned::introspect().which()
+            else {
+                panic!("expected struct")
+            };
+            capnp::schema::StructSchema::new(all_types)
+        };
+
+        let all_defaults = {
+            let capnp::introspect::TypeVariant::Struct(all_defaults) =
+                crate::test_capnp::test_defaults::Owned::introspect().which()
+            else {
+                panic!("expected struct")
+            };
+            capnp::schema::StructSchema::new(all_defaults)
+        };
+
+        assert!(
+            all_types.get_field_by_name("int8Field")?.get_type()
+                == all_types.get_field_by_name("int8Field")?.get_type()
+        );
+        assert!(
+            all_types.get_field_by_name("int8Field")?.get_type()
+                != all_types.get_field_by_name("int64Field")?.get_type()
+        );
+
+        assert!(
+            all_types.get_field_by_name("dataField")?.get_type()
+                == all_defaults.get_field_by_name("dataField")?.get_type()
+        );
+        assert!(
+            all_types.get_field_by_name("dataField")?.get_type()
+                != all_defaults.get_field_by_name("dataList")?.get_type()
+        );
+
+        assert!(
+            all_types.get_field_by_name("structField")?.get_type()
+                == all_defaults.get_field_by_name("structField")?.get_type()
+        );
+
+        let capnp::introspect::TypeVariant::List(list_member) =
+            all_types.get_field_by_name("textList")?.get_type().which()
+        else {
+            panic!("expected list")
+        };
+        assert!(list_member == all_types.get_field_by_name("textField")?.get_type());
+        assert!(list_member != all_types.get_field_by_name("dataField")?.get_type());
+
+        Ok(())
+    }
 }
