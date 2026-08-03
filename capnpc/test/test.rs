@@ -1548,10 +1548,8 @@ mod tests {
                 .allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
             let mut message2 = message::Builder::new(builder_options);
             let mut all_types2 = message2.init_root::<test_all_types::Builder<'_>>();
-
-            all_types2
-                .set_struct_field(message.get_root_as_reader().unwrap())
-                .unwrap();
+            let root_reader: test_all_types::Reader<'_> = message.get_root_as_reader().unwrap();
+            all_types2.set_struct_field(root_reader).unwrap();
             CheckTestMessage::check_test_message(all_types2.reborrow().get_struct_field().unwrap());
 
             let reader = all_types2.into_reader().get_struct_field().unwrap();

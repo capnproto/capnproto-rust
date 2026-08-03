@@ -22,7 +22,7 @@
 //! List of sequences of bytes.
 
 use crate::private::layout::*;
-use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
+use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter, SetterInput};
 use crate::Result;
 
 #[derive(Copy, Clone)]
@@ -134,12 +134,17 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn set(&mut self, index: u32, value: crate::data::Reader) {
+    #[inline]
+    pub fn set(&mut self, index: u32, value: impl SetterInput<crate::data::Owned>) {
         assert!(index < self.len());
-        self.builder
-            .reborrow()
-            .get_pointer_element(index)
-            .set_data(value);
+        SetterInput::set_pointer_builder(
+            self.builder.reborrow().get_pointer_element(index),
+            value,
+            false,
+        )
+        .unwrap()
+        // The text impls of SetterInput never return an error, so
+        // the above unwrap() won't panic.
     }
 
     pub fn reborrow(&mut self) -> Builder<'_> {
