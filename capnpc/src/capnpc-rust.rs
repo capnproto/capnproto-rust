@@ -28,8 +28,14 @@
 pub fn main() {
     //! Generates Rust code according to a `schema_capnp::code_generator_request` read from stdin.
 
-    ::capnpc::codegen::CodeGenerationCommand::new()
-        .output_directory(::std::path::Path::new("."))
-        .run(::std::io::stdin())
+    let mut cmd = ::capnpc::codegen::CodeGenerationCommand::new();
+    cmd.output_directory(::std::path::Path::new("."));
+
+    if let Ok(parent_module) = std::env::var("CAPNPC_RUST_DEFAULT_PARENT_MODULE") {
+        let modules = parent_module.split("::").map(ToString::to_string).collect();
+        cmd.default_parent_module(modules);
+    }
+
+    cmd.run(::std::io::stdin())
         .expect("failed to generate code");
 }
