@@ -167,7 +167,23 @@ impl core::ops::AddAssign for MessageSize {
 
 /// An enum value or union discriminant that was not found among those defined in a schema.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub struct NotInSchema(pub u16);
+pub struct NotInSchema(
+    // TODO: make private after in-crate generated files are regenerated.
+    pub(crate) u16,
+);
+
+impl NotInSchema {
+    /// For use by generated code only.
+    #[doc(hidden)]
+    pub fn hidden_new(x: u16) -> Self {
+        NotInSchema(x)
+    }
+
+    /// The numeric value not present in the schema.
+    pub fn value(&self) -> u16 {
+        self.0
+    }
+}
 
 impl ::core::fmt::Display for NotInSchema {
     fn fmt(
@@ -177,7 +193,7 @@ impl ::core::fmt::Display for NotInSchema {
         write!(
             fmt,
             "Enum value or union discriminant {} was not present in the schema.",
-            self.0
+            self.value()
         )
     }
 }
