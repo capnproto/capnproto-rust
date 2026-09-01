@@ -21,8 +21,11 @@
 
 use futures::{Future, FutureExt};
 
-use std::cell::RefCell;
-use std::rc::Rc;
+#[cfg(feature = "alloc")]
+use {alloc::rc::Rc, core::cell::RefCell};
+
+#[cfg(feature = "std")]
+use std::{cell::RefCell, rc::Rc};
 
 pub(crate) fn split<F, T1, T2, E>(
     f: F,

@@ -28,7 +28,11 @@ use capnp::Error;
 use capnp::capability::{Promise, RemotePromise};
 use capnp::traits::ImbueMut;
 
-use std::rc::Rc;
+#[cfg(feature = "alloc")]
+use alloc::{boxed::Box, rc::Rc, vec::Vec};
+
+#[cfg(feature = "std")]
+use std::{boxed::Box, rc::Rc, vec::Vec};
 
 pub(crate) struct Pipeline {
     error: Error,

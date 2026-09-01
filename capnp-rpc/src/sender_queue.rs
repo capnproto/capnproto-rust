@@ -22,13 +22,25 @@
 use futures::channel::oneshot;
 use futures::{FutureExt, TryFutureExt};
 
-use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+#[cfg(feature = "alloc")]
+use {
+    alloc::{
+        collections::btree_map::{self, BTreeMap},
+        rc::{Rc, Weak},
+    },
+    core::{cell::RefCell, iter, mem},
+};
+
+#[cfg(feature = "std")]
+use std::{
+    cell::RefCell,
+    collections::btree_map::{self, BTreeMap},
+    iter, mem,
+    rc::{Rc, Weak},
+};
 
 use capnp::capability::Promise;
 use capnp::Error;
-
-use std::collections::BTreeMap;
 
 struct Inner<In, Out>
 where
@@ -133,7 +145,7 @@ where
             ..
         } = *self.inner.borrow_mut();
         *next_id = 0;
-        let map = ::std::mem::take(map);
+        let map = mem::take(map);
         Drain {
             iter: map.into_iter(),
         }
@@ -145,10 +157,10 @@ where
     In: 'static,
     Out: 'static,
 {
-    iter: ::std::collections::btree_map::IntoIter<u64, (In, oneshot::Sender<Out>)>,
+    iter: btree_map::IntoIter<u64, (In, oneshot::Sender<Out>)>,
 }
 
-impl<In, Out> ::std::iter::Iterator for Drain<In, Out>
+impl<In, Out> iter::Iterator for Drain<In, Out>
 where
     In: 'static,
     Out: 'static,
