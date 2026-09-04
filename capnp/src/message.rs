@@ -941,7 +941,7 @@ impl<'a> ScratchSpaceHeapAllocator<'a> {
 #[cfg(feature = "alloc")]
 unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (core::ptr::NonNull<u8>, u32) {
-        if (minimum_size as usize) < (self.scratch_space.len() / BYTES_PER_WORD)
+        if (minimum_size as usize) <= (self.scratch_space.len() / BYTES_PER_WORD)
             && !self.scratch_space_allocated
         {
             self.scratch_space_allocated = true;
