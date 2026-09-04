@@ -111,10 +111,28 @@ pub struct Word {
 /// Constructs a word with the given bytes.
 ///
 #[allow(clippy::too_many_arguments)]
+#[doc(hidden)] // No longer used.
 pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8) -> Word {
     Word {
         raw_content: [b0, b1, b2, b3, b4, b5, b6, b7],
     }
+}
+
+///
+/// Constructs an array of words from an array of byte arrays.
+///
+pub const fn word_array<const N: usize>(raw_content: [[u8; 8]; N]) -> [Word; N] {
+    let mut result = [Word {
+        raw_content: [0; 8],
+    }; N];
+    let mut i = 0;
+    while i < N {
+        result[i] = Word {
+            raw_content: raw_content[i],
+        };
+        i += 1;
+    }
+    result
 }
 
 impl Word {
