@@ -1,3 +1,7 @@
+## v0.27.1
+- Fix off-by-one bug in ScratchSpaceHeapAllocator that could cause the heap to
+  be used in cases where it did not need to be.
+
 ## v0.27.0
 - Use TypeId to implement precise equality for `RawBrandedStructSchema`. `StructSchema`,
   `Field`, `EnumSchema` and `Enumerant`, and `Type`.
