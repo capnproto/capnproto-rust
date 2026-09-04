@@ -19,9 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::pin::Pin;
-use std::task::{Context, Poll};
-
 use capnp::any_pointer;
 use capnp::capability::Promise;
 use capnp::private::capability::{
@@ -32,12 +29,44 @@ use capnp::Error;
 use futures::channel::oneshot;
 use futures::{future, Future, FutureExt, TryFutureExt};
 
-use std::cell::{Cell, RefCell};
-use std::cmp::Reverse;
-use std::collections::binary_heap::BinaryHeap;
-use std::collections::hash_map::{self, HashMap};
-use std::mem;
-use std::rc::{Rc, Weak};
+#[cfg(feature = "alloc")]
+use {
+    alloc::{
+        borrow::ToOwned,
+        boxed::Box,
+        collections::binary_heap::BinaryHeap,
+        format,
+        rc::{Rc, Weak},
+        string::ToString,
+        vec,
+        vec::Vec,
+    },
+    core::{
+        cell::{Cell, RefCell},
+        cmp::Reverse,
+        iter, mem,
+        pin::Pin,
+        task::{Context, Poll},
+    },
+    hashbrown::hash_map::{Entry, HashMap},
+};
+
+#[cfg(feature = "std")]
+use std::{
+    borrow::ToOwned,
+    boxed::Box,
+    cell::{Cell, RefCell},
+    cmp::Reverse,
+    collections::binary_heap::BinaryHeap,
+    collections::hash_map::{Entry, HashMap},
+    format, iter, mem,
+    pin::Pin,
+    rc::{Rc, Weak},
+    string::ToString,
+    task::{Context, Poll},
+    vec,
+    vec::Vec,
+};
 
 use crate::attach::Attach;
 use crate::local::ResultsDoneHook;
@@ -80,7 +109,7 @@ where
     idx: usize,
 }
 
-impl<'a, T> ::std::iter::Iterator for ExportTableIter<'a, T>
+impl<'a, T> iter::Iterator for ExportTableIter<'a, T>
 where
     T: 'a,
 {
@@ -441,6 +470,9 @@ where
     embargoes: RefCell<ExportTable<Embargo>>,
 
     tasks: RefCell<Option<crate::task_set::TaskSetHandle<capnp::Error>>>,
+    #[cfg(feature = "alloc")]
+    connection: RefCell<::core::result::Result<Box<dyn crate::Connection<VatId>>, ::capnp::Error>>,
+    #[cfg(feature = "std")]
     connection: RefCell<::std::result::Result<Box<dyn crate::Connection<VatId>>, ::capnp::Error>>,
     disconnect_fulfiller: RefCell<Option<oneshot::Sender<Promise<(), Error>>>>,
 
@@ -781,7 +813,7 @@ impl<VatId> ConnectionState<VatId> {
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
-        let hash_map::Entry::Vacant(slot) = slots.entry(answer_id) else {
+        let Entry::Vacant(slot) = slots.entry(answer_id) else {
             connection_state.release_exports(&result_exports)?;
             return Err(Error::failed("questionId is already in use".to_string()));
         };
@@ -803,18 +835,18 @@ impl<VatId> ConnectionState<VatId> {
 
         let answers_slots = &mut connection_state.answers.borrow_mut().slots;
         match answers_slots.entry(answer_id) {
-            hash_map::Entry::Vacant(_) => {
+            Entry::Vacant(_) => {
                 // The `Finish` message targets a question ID that isn't present in our answer table.
                 // Probably, we sent a `Return` with `noFinishNeeded = true`, but the other side didn't
                 // recognize this hint and sent a `Finish` anyway, or the `Finish` was already in-flight at
                 // the time we sent the `Return`. We can silently ignore this.
             }
-            hash_map::Entry::Occupied(mut entry) => {
+            Entry::Occupied(mut entry) => {
                 let answer = entry.get_mut();
                 answer.received_finish.set(true);
 
                 if finish.get_release_result_caps() {
-                    exports_to_release = ::std::mem::take(&mut answer.result_exports);
+                    exports_to_release = mem::take(&mut answer.result_exports);
                 }
 
                 // If the pipeline has not been cloned, the following two lines cancel the call.
@@ -1022,7 +1054,7 @@ impl<VatId> ConnectionState<VatId> {
 
                 {
                     let slots = &mut connection_state.answers.borrow_mut().slots;
-                    let hash_map::Entry::Vacant(slot) = slots.entry(question_id) else {
+                    let Entry::Vacant(slot) = slots.entry(question_id) else {
                         return Err(Error::failed("questionId is already in use".to_string()));
                     };
                     slot.insert(answer);
@@ -1181,7 +1213,7 @@ impl<VatId> ConnectionState<VatId> {
 
     fn answer_has_sent_return(&self, id: AnswerId, result_exports: Vec<ExportId>) {
         let answers_slots = &mut self.answers.borrow_mut().slots;
-        let hash_map::Entry::Occupied(mut entry) = answers_slots.entry(id) else {
+        let Entry::Occupied(mut entry) = answers_slots.entry(id) else {
             unreachable!()
         };
         let a = entry.get_mut();
@@ -1366,8 +1398,8 @@ impl<VatId> ConnectionState<VatId> {
 
                             let replacement_export_id =
                                 match exports_by_cap.entry(exp.client_hook.get_ptr()) {
-                                    hash_map::Entry::Occupied(occ) => *occ.get(),
-                                    hash_map::Entry::Vacant(vac) => {
+                                    Entry::Occupied(occ) => *occ.get(),
+                                    Entry::Vacant(vac) => {
                                         // The replacement capability isn't previously exported,
                                         // so assign it to the existing table entry.
                                         vac.insert(export_id);
@@ -1512,12 +1544,12 @@ impl<VatId> ConnectionState<VatId> {
     fn import(state: &Rc<Self>, import_id: ImportId, is_promise: bool) -> Box<dyn ClientHook> {
         let import_client = {
             match state.imports.borrow_mut().slots.entry(import_id) {
-                hash_map::Entry::Occupied(occ) => occ
+                Entry::Occupied(occ) => occ
                     .get()
                     .import_client
                     .upgrade()
                     .expect("dangling ref to import client?"),
-                hash_map::Entry::Vacant(v) => {
+                Entry::Vacant(v) => {
                     let import_client = ImportClient::new(state, import_id);
                     v.insert(Import::new(&import_client));
                     import_client

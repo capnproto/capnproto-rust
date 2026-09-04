@@ -1,6 +1,11 @@
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::rc::Rc;
+#[cfg(feature = "alloc")]
+use {
+    alloc::{boxed::Box, rc::Rc},
+    core::{cell::RefCell, marker::PhantomData},
+};
+
+#[cfg(feature = "std")]
+use std::{boxed::Box, cell::RefCell, marker::PhantomData, rc::Rc};
 
 use capnp::capability::{FromClientHook, Promise};
 use capnp::private::capability::{ClientHook, RequestHook};
