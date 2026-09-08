@@ -3506,7 +3506,7 @@ impl<'a> StructReader<'a> {
         if offset
             .checked_add(1)
             .and_then(|o| o.checked_mul(bits_per_element::<T>()))
-            .map_or(false, |end_bits| end_bits <= self.data_size as usize)
+            .is_some_and(|end_bits| end_bits <= self.data_size as usize)
         {
             let dwv: *const <T as Primitive>::Raw = self.data as *const _;
             unsafe { <T as Primitive>::get(&*dwv.add(offset)) }
