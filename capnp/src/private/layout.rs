@@ -3503,7 +3503,11 @@ impl<'a> StructReader<'a> {
         // We need to check the offset because the struct may have
         // been created with an old version of the protocol that did
         // not contain the field.
-        if (offset + 1) * bits_per_element::<T>() <= self.data_size as usize {
+        if offset
+            .checked_add(1)
+            .and_then(|o| o.checked_mul(bits_per_element::<T>()))
+            .map_or(false, |end_bits| end_bits <= self.data_size as usize)
+        {
             let dwv: *const <T as Primitive>::Raw = self.data as *const _;
             unsafe { <T as Primitive>::get(&*dwv.add(offset)) }
         } else {
