@@ -1,3 +1,7 @@
+## v0.27.2
+- Fix integer overflow inStructReader::get_data_field(). (Bug was only reachable via
+  `capnp::private` API.)
+
 ## v0.27.1
 - Fix off-by-one bug in ScratchSpaceHeapAllocator that could cause the heap to
   be used in cases where it did not need to be.
