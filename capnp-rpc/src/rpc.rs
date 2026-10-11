@@ -3442,8 +3442,13 @@ mod terminalization_tests {
         state.exports_by_cap.borrow_mut().insert(ptr, id);
     }
 
+    fn assert_terminal_error(error: Error) {
+        assert_eq!(error.kind, capnp::ErrorKind::Disconnected);
+        assert_eq!(error.extra, "terminal cause");
+    }
+
     #[test]
-    fn disconnect_rejects_waiting_pipeline_without_polling_driver() {
+    fn disconnect_settles_retained_rpc_work_without_polling_driver() {
         let (_tasks, state, completion) = connection();
         let pipeline = waiting_pipeline(&state);
         let waiter = pipeline.when_resolved();
@@ -3459,15 +3464,33 @@ mod terminalization_tests {
         assert!(promised.when_resolved().now_or_never().is_some());
         assert!(import_resolution.now_or_never().is_some());
         assert!(imported.when_resolved().now_or_never().is_some());
-        assert!(matches!(
-            imported.new_call(0, 0, None).send().promise.now_or_never(),
-            Some(Err(_))
-        ));
-        assert!(matches!(embargo_rx.now_or_never(), Some(Ok(Err(_)))));
-        assert!(matches!(
-            promised.new_call(0, 0, None).send().promise.now_or_never(),
-            Some(Err(_))
-        ));
+        assert_terminal_error(
+            imported
+                .new_call(0, 0, None)
+                .send()
+                .promise
+                .now_or_never()
+                .expect("retained import call must settle")
+                .err()
+                .unwrap(),
+        );
+        assert_terminal_error(
+            embargo_rx
+                .now_or_never()
+                .expect("embargo must settle")
+                .expect("embargo must receive its terminal result")
+                .unwrap_err(),
+        );
+        assert_terminal_error(
+            promised
+                .new_call(0, 0, None)
+                .send()
+                .promise
+                .now_or_never()
+                .expect("retained promised call must settle")
+                .err()
+                .unwrap(),
+        );
         assert!(
             matches!(&pipeline.state.borrow().variant, PipelineVariant::Broken(e) if e.extra == "terminal cause")
         );
@@ -3477,6 +3500,53 @@ mod terminalization_tests {
             matches!(&pipeline.state.borrow().variant, PipelineVariant::Broken(e) if e.extra == "terminal cause")
         );
         assert!(matches!(completion.now_or_never(), Some(Ok(_))));
+    }
+
+    #[test]
+    fn disconnect_settles_admitted_tail_request_without_polling_driver() {
+        let (_tasks, state, _completion) = connection();
+        let target = ConnectionState::import(&state, 17, false);
+        let request = target.new_call(0, 0, None);
+        let (question_id, promise, pipeline) = request
+            .hook
+            .tail_send()
+            .expect("connected tail request must be admitted");
+        let retained_cap = pipeline.get_pipelined_cap(&[]);
+
+        state.disconnect(Error::disconnected("terminal cause".into()));
+
+        assert_terminal_error(
+            promise
+                .now_or_never()
+                .expect("tail request must settle")
+                .unwrap_err(),
+        );
+        assert_terminal_error(
+            retained_cap
+                .new_call(0, 0, None)
+                .send()
+                .promise
+                .now_or_never()
+                .expect("retained tail capability call must settle")
+                .err()
+                .unwrap(),
+        );
+        drop(retained_cap);
+        // Keep the returned pipeline alive: terminalization must release its
+        // question ownership, independently of rejecting new calls at entry.
+        assert!(
+            state
+                .questions
+                .borrow_mut()
+                .find(question_id)
+                .unwrap()
+                .self_ref
+                .as_ref()
+                .and_then(Weak::upgrade)
+                .is_none(),
+            "terminal tail pipeline retained its question"
+        );
+        drop(pipeline);
     }
 
     #[test]
@@ -3781,16 +3851,22 @@ mod terminalization_tests {
     // Exercise public capability hooks at both sides of descriptor admission.
     #[derive(Clone, Copy, PartialEq)]
     enum PreparationCallback {
-        Identity,
-        Resolution,
-        Drop,
+        GetPtr,
+        WhenMoreResolved,
+        ClonedHookDrop,
+    }
+
+    enum RequestKind {
+        Ordinary,
+        Streaming,
+        Tail,
     }
 
     struct PreparationHook {
         inner: Box<dyn ClientHook>,
         callback: Rc<RefCell<Option<Box<dyn FnOnce()>>>>,
         stage: PreparationCallback,
-        is_copy: bool,
+        is_clone: bool,
     }
 
     impl PreparationHook {
@@ -3806,8 +3882,10 @@ mod terminalization_tests {
 
     impl Drop for PreparationHook {
         fn drop(&mut self) {
-            if self.is_copy {
-                self.fire(PreparationCallback::Drop);
+            // The original remains in the request's cap table; only the
+            // temporary descriptor clone triggers this preparation callback.
+            if self.is_clone {
+                self.fire(PreparationCallback::ClonedHookDrop);
             }
         }
     }
@@ -3818,7 +3896,7 @@ mod terminalization_tests {
                 inner: self.inner.clone(),
                 callback: self.callback.clone(),
                 stage: self.stage,
-                is_copy: true,
+                is_clone: true,
             })
         }
         fn new_call(
@@ -3842,14 +3920,15 @@ mod terminalization_tests {
             self.inner.get_brand()
         }
         fn get_ptr(&self) -> usize {
-            self.fire(PreparationCallback::Identity);
+            self.fire(PreparationCallback::GetPtr);
             self.inner.get_ptr()
         }
         fn get_resolved(&self) -> Option<Box<dyn ClientHook>> {
+            // Do not let serialization unwrap this adapter and bypass its callback.
             None
         }
         fn when_more_resolved(&self) -> Option<Promise<Box<dyn ClientHook>, Error>> {
-            self.fire(PreparationCallback::Resolution);
+            self.fire(PreparationCallback::WhenMoreResolved);
             self.inner.when_more_resolved()
         }
         fn when_resolved(&self) -> Promise<(), Error> {
@@ -3864,7 +3943,7 @@ mod terminalization_tests {
         let weak = Rc::downgrade(state);
         // A reflected import takes the no-export path; dropping its temporary
         // descriptor hook can disconnect after the export checks have finished.
-        let inner = if stage == PreparationCallback::Drop {
+        let inner = if stage == PreparationCallback::ClonedHookDrop {
             ConnectionState::import(state, 23, false)
         } else {
             Box::new(local::Client::new(DropServer(Rc::new(DropAction(
@@ -3879,7 +3958,7 @@ mod terminalization_tests {
                     .disconnect(Error::disconnected("preparation stopped".into()));
             })))),
             stage,
-            is_copy: false,
+            is_clone: false,
         })
     }
 
@@ -3902,11 +3981,11 @@ mod terminalization_tests {
         assert_eq!(error.extra, "preparation stopped");
     }
 
-    fn request_preparation_disconnect(stage: PreparationCallback, streaming: bool, tail: bool) {
+    fn request_preparation_disconnect(kind: RequestKind, stage: PreparationCallback) {
         let (_tasks, state, _completion) = connection();
         let target = ConnectionState::import(&state, 17, false);
         // Retain an already-created streaming controller through the transition.
-        if streaming {
+        if matches!(kind, RequestKind::Streaming) {
             let client = Client::from_ptr(target.get_ptr(), &state).unwrap();
             let (flow, task) = state.connection.borrow_mut().as_mut().unwrap().new_stream();
             *client.flow_controller.borrow_mut() = Some(flow);
@@ -3928,38 +4007,42 @@ mod terminalization_tests {
             .get(1)
             .set_as_capability(preparation_hook(&state, stage));
         assert!(state.connection.borrow().is_ok());
-        if tail {
-            assert!(request.hook.tail_send().is_none());
-        } else if streaming {
-            let result = request.hook.send_streaming();
-            assert_empty_bookkeeping(&state);
-            assert_preparation_error(
-                result
-                    .now_or_never()
-                    .expect("terminal streaming result")
-                    .unwrap_err(),
-            );
-        } else {
-            let result = request.send();
-            assert_empty_bookkeeping(&state);
-            assert_preparation_error(
-                result
-                    .promise
-                    .now_or_never()
-                    .expect("terminal response")
-                    .err()
-                    .unwrap(),
-            );
-            let cap = result.pipeline.as_cap();
-            assert_preparation_error(
-                cap.new_call(0, 0, None)
-                    .send()
-                    .promise
-                    .now_or_never()
-                    .expect("terminal pipeline")
-                    .err()
-                    .unwrap(),
-            );
+        match kind {
+            RequestKind::Tail => {
+                assert!(request.hook.tail_send().is_none());
+            }
+            RequestKind::Streaming => {
+                let result = request.hook.send_streaming();
+                assert_empty_bookkeeping(&state);
+                assert_preparation_error(
+                    result
+                        .now_or_never()
+                        .expect("terminal streaming result")
+                        .unwrap_err(),
+                );
+            }
+            RequestKind::Ordinary => {
+                let result = request.send();
+                assert_empty_bookkeeping(&state);
+                assert_preparation_error(
+                    result
+                        .promise
+                        .now_or_never()
+                        .expect("terminal response")
+                        .err()
+                        .unwrap(),
+                );
+                let cap = result.pipeline.as_cap();
+                assert_preparation_error(
+                    cap.new_call(0, 0, None)
+                        .send()
+                        .promise
+                        .now_or_never()
+                        .expect("terminal pipeline")
+                        .err()
+                        .unwrap(),
+                );
+            }
         }
         assert!(state.connection.borrow().is_err());
         assert_empty_bookkeeping(&state);
@@ -3970,32 +4053,35 @@ mod terminalization_tests {
 
     #[test]
     fn ordinary_preparation_rejects_exports_after_callback() {
-        request_preparation_disconnect(PreparationCallback::Identity, false, false);
+        request_preparation_disconnect(RequestKind::Ordinary, PreparationCallback::GetPtr);
     }
 
     #[test]
     fn streaming_preparation_rejects_exports_after_callback() {
-        request_preparation_disconnect(PreparationCallback::Identity, true, false);
+        request_preparation_disconnect(RequestKind::Streaming, PreparationCallback::GetPtr);
     }
 
     #[test]
     fn tail_preparation_rejects_exports_after_callback() {
-        request_preparation_disconnect(PreparationCallback::Identity, false, true);
+        request_preparation_disconnect(RequestKind::Tail, PreparationCallback::GetPtr);
     }
 
     #[test]
     fn ordinary_preparation_rejects_question_after_descriptor_drop() {
-        request_preparation_disconnect(PreparationCallback::Drop, false, false);
+        request_preparation_disconnect(RequestKind::Ordinary, PreparationCallback::ClonedHookDrop);
     }
 
     #[test]
     fn streaming_preparation_rejects_question_after_descriptor_drop() {
-        request_preparation_disconnect(PreparationCallback::Drop, true, false);
+        request_preparation_disconnect(RequestKind::Streaming, PreparationCallback::ClonedHookDrop);
     }
 
     #[test]
     fn preparation_checks_resolution_callback_before_export() {
-        request_preparation_disconnect(PreparationCallback::Resolution, false, false);
+        request_preparation_disconnect(
+            RequestKind::Ordinary,
+            PreparationCallback::WhenMoreResolved,
+        );
     }
 
     #[test]
@@ -4018,7 +4104,7 @@ mod terminalization_tests {
             .push(Export::new(broken::new_cap(Error::failed(
                 "old promise".into(),
             ))));
-        let resolution = preparation_hook(&state, PreparationCallback::Resolution);
+        let resolution = preparation_hook(&state, PreparationCallback::WhenMoreResolved);
         let operation =
             ConnectionState::resolve_exported_promise(&state, id, Promise::ok(resolution));
         assert!((&mut tasks).now_or_never().is_none());
@@ -4041,7 +4127,7 @@ mod terminalization_tests {
         results
             .get()
             .unwrap()
-            .set_as_capability(preparation_hook(&state, PreparationCallback::Identity));
+            .set_as_capability(preparation_hook(&state, PreparationCallback::GetPtr));
         let inner = results.inner.take().unwrap();
         results.results_done_fulfiller.take();
         let result = ResultsDone::from_results_inner(Ok(inner), Ok(()), sender);
@@ -4093,8 +4179,8 @@ mod terminalization_tests {
                 )
                 .unwrap();
             })))),
-            stage: PreparationCallback::Resolution,
-            is_copy: false,
+            stage: PreparationCallback::WhenMoreResolved,
+            is_clone: false,
         };
         let mut message = capnp::message::Builder::new_default();
         let id = ConnectionState::write_descriptor(&state, Box::new(hook), message.init_root())
