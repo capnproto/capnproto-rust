@@ -659,7 +659,10 @@ impl<VatId> ConnectionState<VatId> {
         })) as Pin<Box<dyn Future<Output = ()> + Unpin>>;
         let f2 = Box::pin(rx2.map(drop)) as Pin<Box<dyn Future<Output = ()> + Unpin>>;
 
-        self.add_task(future::select(f1, f2).map(|_| Ok(())));
+        // Cancellation must win when both futures are ready. An export may have
+        // been released and its ID reused before this task is polled again;
+        // running its resolution then would send Resolve for the new export.
+        self.add_task(future::select(f2, f1).map(|_| Ok(())));
         Promise::from_future(rx.map_err(crate::canceled_to_error).map(|r| {
             drop(tx2);
             r?
@@ -4189,5 +4192,70 @@ mod terminalization_tests {
         assert_eq!(state.exports.borrow().iter().count(), 1);
         assert_eq!(state.exports_by_cap.borrow().len(), 1);
         assert_eq!(state.exports.borrow_mut().find(id).unwrap().refcount, 2);
+    }
+}
+
+#[cfg(test)]
+mod cancellation_tests {
+    use super::*;
+
+    struct IdleConnection;
+    impl crate::Connection<()> for IdleConnection {
+        fn get_peer_vat_id(&self) {}
+        fn new_outgoing_message(&mut self, _: u32) -> Box<dyn crate::OutgoingMessage> {
+            panic!("no RPC messages expected")
+        }
+        fn receive_incoming_message(
+            &mut self,
+        ) -> Promise<Option<Box<dyn crate::IncomingMessage>>, Error> {
+            Promise::from_future(future::pending())
+        }
+        fn shutdown(&mut self, _: capnp::Result<()>) -> Promise<(), Error> {
+            Promise::ok(())
+        }
+    }
+
+    fn ready_work_after_owner_drop(cancel: bool, poll_before_cancel: bool) {
+        let (disconnect, _disconnected) = oneshot::channel();
+        let (tasks, state) = ConnectionState::new(
+            broken::new_cap(Error::failed("unused bootstrap".into())),
+            Box::new(IdleConnection),
+            disconnect,
+        );
+        let ran = Rc::new(Cell::new(false));
+        let task_ran = ran.clone();
+        let (ready, receive_ready) = oneshot::channel::<()>();
+        let owner = state.eagerly_evaluate(Promise::from_future(async move {
+            receive_ready.await.map_err(crate::canceled_to_error)?;
+            task_ran.set(true);
+            Ok(())
+        }));
+        let mut tasks = Box::pin(tasks);
+        let mut cx = Context::from_waker(futures::task::noop_waker_ref());
+        if poll_before_cancel {
+            assert!(tasks.as_mut().poll(&mut cx).is_pending());
+        }
+        let mut owner = Some(owner);
+        if cancel {
+            drop(owner.take());
+        }
+        // Make both the computation and cancellation ready before the next poll.
+        // Model owner cancellation racing a ready resolution, without timing.
+        ready.send(()).unwrap();
+        assert!(tasks.as_mut().poll(&mut cx).is_pending());
+        assert_eq!(ran.get(), !cancel);
+        drop(owner);
+    }
+
+    #[test]
+    fn canceled_ready_work_is_not_polled() {
+        ready_work_after_owner_drop(true, false);
+        ready_work_after_owner_drop(true, true);
+    }
+
+    #[test]
+    fn owned_ready_work_is_polled() {
+        ready_work_after_owner_drop(false, false);
+        ready_work_after_owner_drop(false, true);
     }
 }

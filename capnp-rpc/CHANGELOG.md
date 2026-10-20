@@ -1,3 +1,7 @@
+## v0.27.1
+- Prioritize cancellation in eagerly_evaluate(), fixing a possible error of the
+  form "import ID … is not a promise"
+
 ## v0.27.0
 - Make `Disconnector` wait until the connection's `shutdown()` completes.
 
