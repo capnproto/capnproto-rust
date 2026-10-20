@@ -180,6 +180,7 @@ where
     connection_state: Rc<ConnectionState<VatId>>,
     id: QuestionId,
     fulfiller: Option<oneshot::Sender<Promise<Response<VatId>, Error>>>,
+    pipelines: Vec<Weak<RefCell<PipelineState<VatId>>>>,
 }
 
 impl<VatId> QuestionRef<VatId> {
@@ -192,6 +193,7 @@ impl<VatId> QuestionRef<VatId> {
             connection_state: state,
             id,
             fulfiller: Some(fulfiller),
+            pipelines: Vec::new(),
         }
     }
     fn fulfill(&mut self, response: Promise<Response<VatId>, Error>) {
@@ -202,7 +204,12 @@ impl<VatId> QuestionRef<VatId> {
 
     fn reject(&mut self, err: Error) {
         if let Some(fulfiller) = self.fulfiller.take() {
-            let _ = fulfiller.send(Promise::err(err));
+            let _ = fulfiller.send(Promise::err(err.clone()));
+        }
+        // The RPC driver may have unwound. Its scheduled pipeline resolvers
+        // cannot be relied on to release the application's response barrier.
+        for pipeline in self.pipelines.drain(..).filter_map(|p| p.upgrade()) {
+            PipelineState::resolve(&pipeline, Err(err.clone()));
         }
     }
 }
@@ -279,9 +286,9 @@ impl<VatId> Answer<VatId> {
 pub(crate) struct Export {
     refcount: u32,
 
-    /// If true, this is the canonical export entry for this clientHook, that is,
-    /// `exports_by_cap[clientHook]` points to this entry.
-    canonical: bool,
+    /// The capability identity whose canonical export is this entry. Cache it
+    /// so table updates never need to call application code to recover the key.
+    canonical: Option<usize>,
 
     client_hook: Box<dyn ClientHook>,
 
@@ -294,7 +301,7 @@ impl Export {
     fn new(client_hook: Box<dyn ClientHook>) -> Self {
         Self {
             refcount: 1,
-            canonical: false,
+            canonical: None,
             client_hook,
             resolve_op: Promise::err(Error::failed("no resolve op".to_string())),
         }
@@ -425,6 +432,29 @@ impl<VatId> crate::task_set::TaskReaper<capnp::Error> for ConnectionErrorHandler
     }
 }
 
+// Catch each teardown target independently and preserve the first panic's
+// original payload. A secondary payload may itself have a panicking Drop.
+fn catch_disconnect_panic<T>(
+    first: &mut Option<Box<dyn std::any::Any + Send>>,
+    action: impl FnOnce() -> T,
+) -> Option<T> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(action)) {
+        Ok(value) => Some(value),
+        Err(panic) => {
+            if first.is_none() {
+                *first = Some(panic);
+            } else if let Err(nested) =
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(panic)))
+            {
+                // There is no safe general way to destroy a recursively
+                // panicking payload. Retain the causal failure, not this one.
+                mem::forget(nested);
+            }
+            None
+        }
+    }
+}
+
 pub struct ConnectionState<VatId>
 where
     VatId: 'static,
@@ -489,113 +519,130 @@ impl<VatId> ConnectionState<VatId> {
         }
     }
 
+    fn check_connected(&self) -> capnp::Result<()> {
+        self.connection
+            .borrow()
+            .as_ref()
+            .map(|_| ())
+            .map_err(Clone::clone)
+    }
+
     fn disconnect(&self, error: ::capnp::Error) {
-        if self.connection.borrow().is_err() {
-            // Already disconnected.
-            return;
-        }
-
-        // Carefully pull all the objects out of the tables prior to releasing them because their
-        // destructors could come back and mess with the tables.
-        let mut pipelines_to_release = Vec::new();
-        let mut clients_to_release = Vec::new();
-        //let mut tail_calls_to_release = Vec::new();
-        let mut resolve_ops_to_release = Vec::new();
-
-        for q in self.questions.borrow().iter() {
-            if let Some(ref weak_question_ref) = q.self_ref {
-                if let Some(question_ref) = weak_question_ref.upgrade() {
-                    question_ref.borrow_mut().reject(error.clone());
-                }
+        let mut connection = {
+            let mut slot = self.connection.borrow_mut();
+            if slot.is_err() {
+                return;
             }
-        }
-
-        {
-            let answer_slots = &mut self.answers.borrow_mut().slots;
-            for (_, ref mut answer) in answer_slots.iter_mut() {
-                // TODO tail call
-                pipelines_to_release.push(answer.pipeline.take())
+            // Publish the terminal cause before any user-controlled drop or
+            // callback can reenter this connection.
+            match mem::replace(&mut *slot, Err(error.clone())) {
+                Ok(connection) => connection,
+                Err(_) => unreachable!(),
             }
-        }
-
-        let len = self.exports.borrow().slots.len();
-        for idx in 0..len {
-            if let Some(exp) = self.exports.borrow_mut().slots[idx].take() {
-                let Export {
-                    client_hook,
-                    resolve_op,
-                    ..
-                } = exp;
-                clients_to_release.push(client_hook);
-                resolve_ops_to_release.push(resolve_op);
-            }
-        }
-        *self.exports.borrow_mut() = ExportTable::new();
-
-        {
-            let import_slots = &mut self.imports.borrow_mut().slots;
-            for (_, ref mut import) in import_slots.iter_mut() {
-                if let Some(f) = import.promise_client_to_resolve.take() {
-                    if let Some(promise_client) = f.upgrade() {
-                        promise_client.borrow_mut().resolve(Err(error.clone()));
-                    }
-                }
-            }
-        }
-
-        let len = self.embargoes.borrow().slots.len();
-        for idx in 0..len {
-            if let Some(ref mut emb) = self.embargoes.borrow_mut().slots[idx] {
-                if let Some(f) = emb.fulfiller.take() {
-                    let _ = f.send(Err(error.clone()));
-                }
-            }
-        }
-        *self.embargoes.borrow_mut() = ExportTable::new();
-
-        drop(pipelines_to_release);
-        drop(clients_to_release);
-        drop(resolve_ops_to_release);
-        // TODO drop tail calls
-
-        match *self.connection.borrow_mut() {
-            Ok(ref mut c) => {
-                let mut message = c.new_outgoing_message(100); // TODO estimate size
-                {
-                    let builder = message
-                        .get_body()
-                        .unwrap()
-                        .init_as::<message::Builder>()
-                        .init_abort();
-                    from_error(&error, builder);
-                }
-                let _ = message.send();
-            }
-            Err(_) => unreachable!(),
-        }
-
-        let connection = mem::replace(&mut *self.connection.borrow_mut(), Err(error.clone()));
-
-        let Ok(mut c) = connection else {
-            unreachable!()
         };
-        let promise = c.shutdown(Err(error)).then(|r| match r {
+        let fulfiller = self.disconnect_fulfiller.borrow_mut().take();
+
+        // Extract every callback/drop target before invoking any of them.
+        // Resolving a pipeline can release its QuestionRef and revisit tables.
+        let questions: Vec<_> = self
+            .questions
+            .borrow()
+            .iter()
+            .filter_map(|q| q.self_ref.as_ref().and_then(Weak::upgrade))
+            .collect();
+        let pipelines: Vec<_> = self
+            .answers
+            .borrow_mut()
+            .slots
+            .values_mut()
+            .filter_map(|answer| answer.pipeline.take())
+            .collect();
+        let exports = mem::replace(&mut *self.exports.borrow_mut(), ExportTable::new());
+        self.exports_by_cap.borrow_mut().clear();
+        let mut clients = Vec::new();
+        let mut resolve_ops = Vec::new();
+        for export in exports.slots.into_iter().flatten() {
+            clients.push(export.client_hook);
+            resolve_ops.push(export.resolve_op);
+        }
+        let imports: Vec<_> = self
+            .imports
+            .borrow_mut()
+            .slots
+            .values_mut()
+            .filter_map(|import| import.promise_client_to_resolve.take())
+            .filter_map(|client| client.upgrade())
+            .collect();
+        let embargoes = mem::replace(&mut *self.embargoes.borrow_mut(), ExportTable::new());
+
+        let mut first_panic = None;
+        for question in questions {
+            catch_disconnect_panic(&mut first_panic, || {
+                question.borrow_mut().reject(error.clone())
+            });
+        }
+        for import in imports {
+            catch_disconnect_panic(&mut first_panic, || {
+                import.borrow_mut().resolve(Err(error.clone()))
+            });
+        }
+        for embargo in embargoes.slots.into_iter().flatten() {
+            if let Some(fulfiller) = embargo.fulfiller {
+                catch_disconnect_panic(&mut first_panic, || {
+                    let _ = fulfiller.send(Err(error.clone()));
+                });
+            }
+        }
+
+        // The removed transport is usable for the final abort/shutdown while
+        // all application-facing paths already observe a terminal connection.
+        catch_disconnect_panic(&mut first_panic, || {
+            let mut message = connection.new_outgoing_message(100);
+            from_error(
+                &error,
+                message
+                    .get_body()
+                    .unwrap()
+                    .init_as::<message::Builder>()
+                    .init_abort(),
+            );
+            let _ = message.send();
+        });
+        let shutdown =
+            catch_disconnect_panic(&mut first_panic, || connection.shutdown(Err(error.clone())))
+                .unwrap_or_else(|| Promise::err(error.clone()));
+        let shutdown = shutdown.then(|r| match r {
             Ok(()) => Promise::ok(()),
-            Err(e) => {
-                if e.kind != ::capnp::ErrorKind::Disconnected {
-                    // Don't report disconnects as an error.
-                    Promise::err(e)
-                } else {
-                    Promise::ok(())
-                }
+            Err(e) if e.kind == ::capnp::ErrorKind::Disconnected => Promise::ok(()),
+            Err(e) => Promise::err(e),
+        });
+
+        let shutdown = Promise::from_future(shutdown.attach(connection)).shared();
+        *self.disconnect_promise.borrow_mut() = Some(shutdown.clone());
+
+        // Each ownership edge gets its own unwind boundary. In particular,
+        // dropping a Vec while unwinding must not trigger a second destructor
+        // panic and abort before unrelated exports have been released.
+        for pipeline in pipelines {
+            catch_disconnect_panic(&mut first_panic, || drop(pipeline));
+        }
+        for client in clients {
+            catch_disconnect_panic(&mut first_panic, || drop(client));
+        }
+        for resolve_op in resolve_ops {
+            catch_disconnect_panic(&mut first_panic, || drop(resolve_op));
+        }
+
+        // Deliver completion before reporting the first causal panic. A closed
+        // receiver can drop the transport, so guard that ownership release too.
+        catch_disconnect_panic(&mut first_panic, || {
+            if let Some(fulfiller) = fulfiller {
+                let _ = fulfiller.send(Promise::from_future(shutdown));
             }
         });
-        let shutdown_promise = Promise::from_future(promise.attach(c)).shared();
-        *self.disconnect_promise.borrow_mut() = Some(shutdown_promise.clone());
-        let Some(fulfiller) = self.disconnect_fulfiller.borrow_mut().take() else {
-            unreachable!()
-        };
-        let _ = fulfiller.send(Promise::from_future(shutdown_promise));
+        if let Some(panic) = first_panic {
+            std::panic::resume_unwind(panic);
+        }
     }
 
     // Transform a future into a promise that gets executed even if it is never polled.
@@ -632,6 +679,9 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     pub fn bootstrap(state: &Rc<Self>) -> Box<dyn ClientHook> {
+        if let Err(error) = state.check_connected() {
+            return broken::new_cap(error);
+        }
         let question_id = state.questions.borrow_mut().push(Question::new());
 
         let (fulfiller, promise) = oneshot::channel();
@@ -780,7 +830,7 @@ impl<VatId> ConnectionState<VatId> {
             }
             assert_eq!(cap_table.len(), 1);
 
-            Self::write_descriptors(connection_state, &cap_table, payload)
+            Self::write_descriptors(connection_state, &cap_table, payload)?
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
@@ -1210,8 +1260,7 @@ impl<VatId> ConnectionState<VatId> {
         }
         e.refcount -= refcount;
         if e.refcount == 0 {
-            let client_ptr = e.client_hook.get_ptr();
-            if e.canonical {
+            if let Some(client_ptr) = e.canonical {
                 self.exports_by_cap.borrow_mut().remove(&client_ptr);
             }
             exports.erase(id);
@@ -1300,7 +1349,8 @@ impl<VatId> ConnectionState<VatId> {
             client = inner;
         }
         if client.get_brand() == self.get_brand() {
-            match self.client_downcast_map.borrow().get(&client.get_ptr()) {
+            let ptr = client.get_ptr();
+            match self.client_downcast_map.borrow().get(&ptr) {
                 Some(c) => Box::new(c.upgrade().expect("dangling client?")),
                 None => unreachable!(),
             }
@@ -1327,75 +1377,48 @@ impl<VatId> ConnectionState<VatId> {
 
             match resolution_result {
                 Ok(resolution) => {
-                    let resolution = connection_state.get_innermost_client(resolution.clone());
-
+                    let resolution = connection_state.get_innermost_client(resolution);
                     let brand = resolution.get_brand();
+                    let replacement = if brand != connection_state.get_brand() {
+                        resolution.when_more_resolved()
+                    } else {
+                        None
+                    };
+                    let ptr = resolution.get_ptr();
+                    let new_hook = resolution.clone();
+                    connection_state.check_connected()?;
 
-                    // Update the export table to point at this object instead. We know that our
-                    // entry in the export table is still live because when it is destroyed the
-                    // asynchronous resolution task (i.e. this code) is canceled.
+                    // Prepare hooks before borrowing either table, and retain the
+                    // old hook until both table borrows have been released.
                     let mut exports = connection_state.exports.borrow_mut();
                     let Some(exp) = exports.find(export_id) else {
                         return Err(Error::failed("export table entry not found".to_string()));
                     };
-
-                    if exp.canonical {
-                        connection_state
-                            .exports_by_cap
-                            .borrow_mut()
-                            .remove(&exp.client_hook.get_ptr());
+                    let mut exports_by_cap = connection_state.exports_by_cap.borrow_mut();
+                    if let Some(old_ptr) = exp.canonical.take() {
+                        exports_by_cap.remove(&old_ptr);
                     }
-                    exp.client_hook = resolution.clone();
-
-                    // The export now points to `resolution`, but it is not necessarily the
-                    // canonical export for `resolution`. The export itself still represents
-                    // the promise that ended up resolving to `resolution`, but `resolution`
-                    // itself also needs to be exported under a separate export ID to
-                    // distinguish from the promise. (Unless it's also a promise, see the next
-                    // bit...)
-                    exp.canonical = false;
-
-                    if brand != connection_state.get_brand() {
-                        // We're resolving to a local capability. If we're resolving to a promise,
-                        // we might be able to reuse our export table entry and avoid sending a
-                        // message.
-                        if let Some(promise) = resolution.when_more_resolved() {
-                            // We're replacing a promise with another local promise. In this case,
-                            // we might actually be able to just reuse the existing export table
-                            // entry to represent the new promise -- unless it already has an entry.
-                            // Let's check.
-
-                            let mut exports_by_cap = connection_state.exports_by_cap.borrow_mut();
-
-                            let replacement_export_id =
-                                match exports_by_cap.entry(exp.client_hook.get_ptr()) {
-                                    hash_map::Entry::Occupied(occ) => *occ.get(),
-                                    hash_map::Entry::Vacant(vac) => {
-                                        // The replacement capability isn't previously exported,
-                                        // so assign it to the existing table entry.
-                                        vac.insert(export_id);
-                                        export_id
-                                    }
-                                };
-                            if replacement_export_id == export_id {
-                                // The new promise was not already in the table, therefore the existing
-                                // export table entry has now been repurposed to represent it. There is
-                                // no need to send a resolve message at all. We do, however, have to
-                                // start resolving the next promise.
-                                exp.canonical = true;
-                                drop(exports);
-                                drop(exports_by_cap);
-                                return Self::resolve_exported_promise(
-                                    &connection_state,
-                                    export_id,
-                                    promise,
-                                )
-                                .await;
-                            }
-                        }
+                    let old_hook = mem::replace(&mut exp.client_hook, new_hook);
+                    let reuse = replacement.is_some() && !exports_by_cap.contains_key(&ptr);
+                    if reuse {
+                        // A new local promise can reuse this export; other
+                        // resolutions need a distinct descriptor below.
+                        exports_by_cap.insert(ptr, export_id);
+                        exp.canonical = Some(ptr);
                     }
-                    // Prevent a double borrow in write_descriptor() below.
+                    drop(exports_by_cap);
                     drop(exports);
+                    drop(old_hook);
+                    connection_state.check_connected()?;
+                    if reuse {
+                        return Self::resolve_exported_promise(
+                            &connection_state,
+                            export_id,
+                            replacement.unwrap(),
+                        )
+                        .await;
+                    }
+                    drop(replacement);
 
                     // OK, we have to send a `Resolve` message.
                     let mut message = connection_state.new_outgoing_message(15)?;
@@ -1433,62 +1456,65 @@ impl<VatId> ConnectionState<VatId> {
         mut inner: Box<dyn ClientHook>,
         mut descriptor: cap_descriptor::Builder,
     ) -> ::capnp::Result<Option<ExportId>> {
-        // Find the innermost wrapped capability.
+        state.check_connected()?;
+        // These hooks, including add_ref() through clone(), can run application
+        // code. Prepare everything before admitting an export or a resolver.
         while let Some(resolved) = inner.get_resolved() {
             inner = resolved;
         }
         if inner.get_brand() == state.get_brand() {
-            if let Some(c) = Client::from_ptr(inner.get_ptr(), state) {
-                return Ok(c.write_descriptor(descriptor));
-            }
-            // The hook claims to belong to this connection but the downcast
-            // map has no live entry for it (e.g. a stale entry left by a
-            // since-dropped duplicate wrapper — see the reuse logic in
-            // `import()`). The hook itself still works for calls, so fall
-            // through and export it as if it were foreign: the receiver gets
-            // a functioning capability (at the cost of an extra round-trip)
-            // instead of the event loop panicking.
-        }
-        {
             let ptr = inner.get_ptr();
-            let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
-            if contains_key {
-                // We've already seen and exported this capability before.  Just up the refcount.
-                let export_id = state.exports_by_cap.borrow()[&ptr];
-                descriptor.set_sender_hosted(export_id);
-                // Should never fail because exports_by_cap should match exports.
-                state.exports.borrow_mut().find(export_id).unwrap().refcount += 1;
-                Ok(Some(export_id))
-            } else {
-                // This is the first time we've seen this capability.
-
-                let mut exp = Export::new(inner.clone());
-                exp.canonical = true;
-                let export_id = state.exports.borrow_mut().push(exp);
-                state.exports_by_cap.borrow_mut().insert(ptr, export_id);
-                match inner.when_more_resolved() {
-                    Some(wrapped) => {
-                        // This is a promise.  Arrange for the `Resolve` message to be sent later.
-                        if let Some(exp) = state.exports.borrow_mut().find(export_id) {
-                            exp.resolve_op =
-                                Self::resolve_exported_promise(state, export_id, wrapped);
-                        }
-                        descriptor.set_sender_promise(export_id);
-                    }
-                    None => {
-                        descriptor.set_sender_hosted(export_id);
-                    }
-                }
-                Ok(Some(export_id))
+            state.check_connected()?;
+            if let Some(c) = Client::from_ptr(ptr, state) {
+                return c.write_descriptor(descriptor);
             }
+            // Preserve the duplicate-import fallback: a hook whose downcast
+            // entry disappeared can still be exported as a foreign capability.
         }
+        let ptr = inner.get_ptr();
+        state.check_connected()?;
+        let existing = state.exports_by_cap.borrow().get(&ptr).copied();
+        if let Some(export_id) = existing {
+            descriptor.set_sender_hosted(export_id);
+            state.exports.borrow_mut().find(export_id).unwrap().refcount += 1;
+            return Ok(Some(export_id));
+        }
+
+        let resolution = inner.when_more_resolved();
+        state.check_connected()?;
+        // Preparation may also have reentered while still connected and
+        // exported this same capability. Reuse that canonical entry.
+        let existing = state.exports_by_cap.borrow().get(&ptr).copied();
+        if let Some(export_id) = existing {
+            descriptor.set_sender_hosted(export_id);
+            state.exports.borrow_mut().find(export_id).unwrap().refcount += 1;
+            return Ok(Some(export_id));
+        }
+        let mut exp = Export::new(inner);
+        exp.canonical = Some(ptr);
+        let export_id = state.exports.borrow_mut().push(exp);
+        state.exports_by_cap.borrow_mut().insert(ptr, export_id);
+        match resolution {
+            Some(wrapped) => {
+                let resolve_op = Self::resolve_exported_promise(state, export_id, wrapped);
+                state
+                    .exports
+                    .borrow_mut()
+                    .find(export_id)
+                    .unwrap()
+                    .resolve_op = resolve_op;
+                descriptor.set_sender_promise(export_id);
+            }
+            None => descriptor.set_sender_hosted(export_id),
+        }
+        Ok(Some(export_id))
     }
 
     fn write_descriptors(
         state: &Rc<Self>,
         cap_table: &[Option<Box<dyn ClientHook>>],
         payload: payload::Builder,
-    ) -> Vec<ExportId> {
+    ) -> capnp::Result<Vec<ExportId>> {
         let mut cap_table_builder = payload.init_cap_table(cap_table.len() as u32);
         let mut exports = Vec::new();
         for (idx, value) in cap_table.iter().enumerate() {
@@ -1498,9 +1524,7 @@ impl<VatId> ConnectionState<VatId> {
                         state,
                         cap.clone(),
                         cap_table_builder.reborrow().get(idx as u32),
-                    )
-                    .unwrap()
-                    {
+                    )? {
                         exports.push(export_id);
                     }
                 }
@@ -1509,7 +1533,7 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
         }
-        exports
+        Ok(exports)
     }
 
     fn import(state: &Rc<Self>, import_id: ImportId, is_promise: bool) -> Box<dyn ClientHook> {
@@ -1661,7 +1685,8 @@ impl<VatId> Disconnector<VatId> {
         }
     }
     fn disconnect(&self) -> Option<future::Shared<Promise<(), Error>>> {
-        if let Some(ref state) = *(self.connection_state.borrow()) {
+        let state = self.connection_state.borrow().clone();
+        if let Some(state) = state {
             state.disconnect(::capnp::Error::disconnected(
                 "client requested disconnect".to_owned(),
             ));
@@ -1831,16 +1856,19 @@ where
         mut message: Box<dyn crate::OutgoingMessage>,
         cap_table: &[Option<Box<dyn ClientHook>>],
         is_tail_call: bool,
-    ) -> (
+    ) -> capnp::Result<(
         Rc<RefCell<QuestionRef<VatId>>>,
         Promise<Response<VatId>, Error>,
-    ) {
+    )> {
         // Build the cap table.
         let exports = ConnectionState::write_descriptors(
             connection_state,
             cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
-        );
+        )?;
+        // A temporary descriptor hook can disconnect even as it is dropped.
+        // Disconnect already releases all exports prepared by this request.
+        connection_state.check_connected()?;
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -1877,7 +1905,7 @@ where
         let promise = promise.attach(question_ref.clone());
         let promise2 = Promise::from_future(promise);
 
-        (question_ref, promise2)
+        Ok((question_ref, promise2))
     }
 
     fn send_streaming_internal(
@@ -1887,11 +1915,12 @@ where
         flow: Rc<RefCell<Option<Box<dyn crate::FlowController>>>>,
     ) -> Promise<(), Error> {
         // Build the cap table.
-        let exports = ConnectionState::write_descriptors(
+        let exports = pry!(ConnectionState::write_descriptors(
             connection_state,
             cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
-        );
+        ));
+        pry!(connection_state.check_connected());
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -1925,7 +1954,7 @@ where
         let mut flow = flow.borrow_mut();
         if flow.is_none() {
             match connection_state.connection.borrow_mut().as_mut() {
-                Err(_) => return Promise::err(Error::failed("no connection".into())),
+                Err(error) => return Promise::err(error.clone()),
                 Ok(connection) => {
                     let (s, p) = connection.new_stream();
                     connection_state.add_task(p);
@@ -1968,6 +1997,15 @@ impl<VatId> RequestHook for Request<VatId> {
             mut message,
             cap_table,
         } = tmp;
+        // A request can outlive the connection it was constructed on. Check
+        // again at send admission, before writing descriptors or questions.
+        let terminal = connection_state.connection.borrow().as_ref().err().cloned();
+        if let Some(error) = terminal {
+            return ::capnp::capability::RemotePromise {
+                promise: Promise::err(error.clone()),
+                pipeline: any_pointer::Pipeline::new(Box::new(broken::Pipeline::new(error))),
+            };
+        }
         let write_target_result = {
             let call_builder: call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
@@ -1994,7 +2032,17 @@ impl<VatId> RequestHook for Request<VatId> {
             return replacement.send();
         }
         let (question_ref, promise) =
-            Self::send_internal(&connection_state, message, &cap_table, false);
+            match Self::send_internal(&connection_state, message, &cap_table, false) {
+                Ok(result) => result,
+                Err(error) => {
+                    return ::capnp::capability::RemotePromise {
+                        promise: Promise::err(error.clone()),
+                        pipeline: any_pointer::Pipeline::new(Box::new(broken::Pipeline::new(
+                            error,
+                        ))),
+                    }
+                }
+            };
         let forked_promise1 = promise.shared();
         let forked_promise2 = forked_promise1.clone();
 
@@ -2027,6 +2075,12 @@ impl<VatId> RequestHook for Request<VatId> {
             mut message,
             cap_table,
         } = tmp;
+        // Retained streaming requests must not recreate drained exports or
+        // questions, even when their flow controller already exists.
+        let terminal = connection_state.connection.borrow().as_ref().err().cloned();
+        if let Some(error) = terminal {
+            return Promise::err(error);
+        }
         let write_target_result = {
             let call_builder: call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
@@ -2082,7 +2136,7 @@ impl<VatId> RequestHook for Request<VatId> {
             Some(_redirect) => {
                 return None;
             }
-            None => Self::send_internal(&connection_state, message, &cap_table, true),
+            None => Self::send_internal(&connection_state, message, &cap_table, true).ok()?,
         };
 
         let promise = promise.map_ok(|_response| {
@@ -2136,34 +2190,35 @@ where
     VatId: 'static,
 {
     fn resolve(state: &Rc<RefCell<Self>>, response: Result<Response<VatId>, Error>) {
-        let to_resolve = {
-            let tmp = state.borrow();
-            let r = tmp.promise_clients_to_resolve.borrow_mut().drain();
-            r
-        };
-        for ((c, ops), _) in to_resolve {
-            let resolved = match response.clone() {
-                Ok(v) => match v.get() {
-                    Ok(x) => x.get_pipelined_cap(&ops),
-                    Err(e) => Err(e),
-                },
-                Err(e) => Err(e),
+        let (old_variant, to_resolve, waiters) = {
+            let mut state = state.borrow_mut();
+            if !matches!(state.variant, PipelineVariant::Waiting(_)) {
+                // A terminal rejection may precede the scheduled resolver.
+                return;
+            }
+            let new_variant = match response.clone() {
+                Ok(r) => PipelineVariant::Resolved(r),
+                Err(e) => PipelineVariant::Broken(e),
             };
-            if let Some(c) = c.upgrade() {
-                c.borrow_mut().resolve(resolved);
+            let old_variant = mem::replace(&mut state.variant, new_variant);
+            let to_resolve = state.promise_clients_to_resolve.borrow_mut().drain();
+            let waiters = state.resolution_waiters.drain();
+            (old_variant, to_resolve, waiters)
+        };
+        for ((client, ops), _) in to_resolve {
+            let resolved = match response.clone() {
+                Ok(value) => value.get().and_then(|value| value.get_pipelined_cap(&ops)),
+                Err(error) => Err(error),
+            };
+            if let Some(client) = client.upgrade() {
+                client.borrow_mut().resolve(resolved);
             }
         }
-
-        let new_variant = match response {
-            Ok(r) => PipelineVariant::Resolved(r),
-            Err(e) => PipelineVariant::Broken(e),
-        };
-        let _old_variant = mem::replace(&mut state.borrow_mut().variant, new_variant);
-
-        let waiters = state.borrow_mut().resolution_waiters.drain();
         for (_, waiter) in waiters {
             let _ = waiter.send(());
         }
+        // Dropping the question can reenter the connection's question table.
+        drop(old_variant);
     }
 }
 
@@ -2181,13 +2236,17 @@ impl<VatId> Pipeline<VatId> {
         redirect_later: Option<Promise<Response<VatId>, ::capnp::Error>>,
     ) -> Self {
         let state = Rc::new(RefCell::new(PipelineState {
-            variant: PipelineVariant::Waiting(question_ref),
+            variant: PipelineVariant::Waiting(question_ref.clone()),
             connection_state: connection_state.clone(),
             redirect_later: None,
             resolve_self_promise: Promise::from_future(future::pending()),
             promise_clients_to_resolve: RefCell::new(crate::sender_queue::SenderQueue::new()),
             resolution_waiters: crate::sender_queue::SenderQueue::new(),
         }));
+        question_ref
+            .borrow_mut()
+            .pipelines
+            .push(Rc::downgrade(&state));
         if let Some(redirect_later_promise) = redirect_later {
             let fork = redirect_later_promise.shared();
             let this = Rc::downgrade(&state);
@@ -2215,13 +2274,17 @@ impl<VatId> Pipeline<VatId> {
         question_ref: Rc<RefCell<QuestionRef<VatId>>>,
     ) -> Self {
         let state = Rc::new(RefCell::new(PipelineState {
-            variant: PipelineVariant::Waiting(question_ref),
+            variant: PipelineVariant::Waiting(question_ref.clone()),
             connection_state,
             redirect_later: None,
             resolve_self_promise: Promise::from_future(future::pending()),
             promise_clients_to_resolve: RefCell::new(crate::sender_queue::SenderQueue::new()),
             resolution_waiters: crate::sender_queue::SenderQueue::new(),
         }));
+        question_ref
+            .borrow_mut()
+            .pipelines
+            .push(Rc::downgrade(&state));
 
         Self { state }
     }
@@ -2589,11 +2652,23 @@ impl ResultsDone {
                                     else {
                                         unreachable!()
                                     };
-                                    ConnectionState::write_descriptors(
+                                    match ConnectionState::write_descriptors(
                                         &connection_state,
                                         &cap_table,
                                         payload,
                                     )
+                                    .and_then(|exports| {
+                                        connection_state.check_connected()?;
+                                        Ok(exports)
+                                    }) {
+                                        Ok(exports) => exports,
+                                        Err(error) => {
+                                            pipeline_sender.complete(Box::new(
+                                                broken::Pipeline::new(error.clone()),
+                                            ));
+                                            return Err(error);
+                                        }
+                                    }
                                 };
 
                                 let (_promise, m) = message.send();
@@ -3085,11 +3160,14 @@ impl<VatId> Client<VatId> {
         }
     }
 
-    fn write_descriptor(&self, mut descriptor: cap_descriptor::Builder) -> Option<u32> {
+    fn write_descriptor(
+        &self,
+        mut descriptor: cap_descriptor::Builder,
+    ) -> capnp::Result<Option<u32>> {
         match &self.variant {
             ClientVariant::Import(import_client) => {
                 descriptor.set_receiver_hosted(import_client.borrow().import_id);
-                None
+                Ok(None)
             }
             ClientVariant::Pipeline(pipeline_client) => {
                 let mut promised_answer = descriptor.init_receiver_answer();
@@ -3108,17 +3186,13 @@ impl<VatId> Client<VatId> {
                     }
                 }
 
-                None
+                Ok(None)
             }
             ClientVariant::Promise(promise_client) => {
                 promise_client.borrow_mut().received_call = true;
 
-                ConnectionState::write_descriptor(
-                    &self.connection_state.clone(),
-                    promise_client.borrow().cap.clone(),
-                    descriptor,
-                )
-                .unwrap()
+                let cap = promise_client.borrow().cap.clone();
+                ConnectionState::write_descriptor(&self.connection_state, cap, descriptor)
             }
         }
     }
@@ -3241,7 +3315,12 @@ impl<VatId> ClientHook for Client<VatId> {
             ClientVariant::Import(_import_client) => None,
             ClientVariant::Pipeline(_pipeline_client) => None,
             ClientVariant::Promise(promise_client) => {
-                Some(promise_client.borrow_mut().resolution_waiters.push(()))
+                let mut client = promise_client.borrow_mut();
+                if client.is_resolved {
+                    Some(Promise::ok(client.cap.clone()))
+                } else {
+                    Some(client.resolution_waiters.push(()))
+                }
             }
         }
     }
@@ -3287,6 +3366,832 @@ impl PipelineHook for SingleCapPipeline {
         } else {
             broken::new_cap(Error::failed("Invalid pipeline transform.".to_string()))
         }
+    }
+}
+
+#[cfg(test)]
+mod terminalization_tests {
+    use super::*;
+    use crate::VatNetwork;
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    type Side = crate::rpc_twoparty_capnp::Side;
+
+    fn connection() -> (
+        TaskSet<Error>,
+        Rc<ConnectionState<Side>>,
+        oneshot::Receiver<Promise<(), Error>>,
+    ) {
+        let mut network = crate::twoparty::VatNetwork::new(
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            Side::Client,
+            Default::default(),
+        );
+        let (tx, rx) = oneshot::channel();
+        let (tasks, state) = ConnectionState::new(
+            broken::new_cap(Error::failed("unused bootstrap".into())),
+            network.connect(Side::Server).unwrap(),
+            tx,
+        );
+        (tasks, state, rx)
+    }
+
+    fn waiting_pipeline(state: &Rc<ConnectionState<Side>>) -> Pipeline<Side> {
+        let id = state.questions.borrow_mut().push(Question::new());
+        let (tx, rx) = oneshot::channel();
+        let question = Rc::new(RefCell::new(QuestionRef::new(state.clone(), id, tx)));
+        state.questions.borrow_mut().find(id).unwrap().self_ref = Some(Rc::downgrade(&question));
+        Pipeline::new(
+            state,
+            question,
+            Some(Promise::from_future(
+                rx.map_err(crate::canceled_to_error).and_then(|x| x),
+            )),
+        )
+    }
+
+    struct DropAction(Box<dyn Fn()>);
+    impl Drop for DropAction {
+        fn drop(&mut self) {
+            (self.0)();
+        }
+    }
+    #[derive(Clone)]
+    struct DropServer(Rc<DropAction>);
+    impl capnp::capability::Server for DropServer {
+        fn dispatch_call(
+            self,
+            _: u64,
+            _: u16,
+            _: capnp::capability::Params<any_pointer::Owned>,
+            _: capnp::capability::Results<any_pointer::Owned>,
+        ) -> capnp::capability::DispatchCallResult {
+            capnp::capability::DispatchCallResult {
+                promise: Promise::ok(()),
+                is_streaming: false,
+            }
+        }
+        fn as_ptr(&self) -> usize {
+            Rc::as_ptr(&self.0) as usize
+        }
+    }
+    fn export(state: &Rc<ConnectionState<Side>>, drop: impl Fn() + 'static) {
+        let hook = Box::new(local::Client::new(DropServer(Rc::new(DropAction(
+            Box::new(drop),
+        )))));
+        let ptr = hook.get_ptr();
+        let id = state.exports.borrow_mut().push(Export::new(hook));
+        state.exports_by_cap.borrow_mut().insert(ptr, id);
+    }
+
+    fn assert_terminal_error(error: Error) {
+        assert_eq!(error.kind, capnp::ErrorKind::Disconnected);
+        assert_eq!(error.extra, "terminal cause");
+    }
+
+    #[test]
+    fn disconnect_settles_retained_rpc_work_without_polling_driver() {
+        let (_tasks, state, completion) = connection();
+        let pipeline = waiting_pipeline(&state);
+        let waiter = pipeline.when_resolved();
+        let promised = pipeline.get_pipelined_cap(&[]);
+        let resolution = promised.when_resolved();
+        let imported = ConnectionState::import(&state, 7, true);
+        let import_resolution = imported.when_resolved();
+        let (embargo_tx, embargo_rx) = oneshot::channel();
+        state.embargoes.borrow_mut().push(Embargo::new(embargo_tx));
+        state.disconnect(Error::disconnected("terminal cause".into()));
+        assert!(matches!(waiter.now_or_never(), Some(Ok(()))));
+        assert!(resolution.now_or_never().is_some());
+        assert!(promised.when_resolved().now_or_never().is_some());
+        assert!(import_resolution.now_or_never().is_some());
+        assert!(imported.when_resolved().now_or_never().is_some());
+        assert_terminal_error(
+            imported
+                .new_call(0, 0, None)
+                .send()
+                .promise
+                .now_or_never()
+                .expect("retained import call must settle")
+                .err()
+                .unwrap(),
+        );
+        assert_terminal_error(
+            embargo_rx
+                .now_or_never()
+                .expect("embargo must settle")
+                .expect("embargo must receive its terminal result")
+                .unwrap_err(),
+        );
+        assert_terminal_error(
+            promised
+                .new_call(0, 0, None)
+                .send()
+                .promise
+                .now_or_never()
+                .expect("retained promised call must settle")
+                .err()
+                .unwrap(),
+        );
+        assert!(
+            matches!(&pipeline.state.borrow().variant, PipelineVariant::Broken(e) if e.extra == "terminal cause")
+        );
+        // A scheduled resolver completing later cannot overwrite terminal cause.
+        PipelineState::resolve(&pipeline.state, Err(Error::failed("late resolver".into())));
+        assert!(
+            matches!(&pipeline.state.borrow().variant, PipelineVariant::Broken(e) if e.extra == "terminal cause")
+        );
+        assert!(matches!(completion.now_or_never(), Some(Ok(_))));
+    }
+
+    #[test]
+    fn disconnect_settles_admitted_tail_request_without_polling_driver() {
+        let (_tasks, state, _completion) = connection();
+        let target = ConnectionState::import(&state, 17, false);
+        let request = target.new_call(0, 0, None);
+        let (question_id, promise, pipeline) = request
+            .hook
+            .tail_send()
+            .expect("connected tail request must be admitted");
+        let retained_cap = pipeline.get_pipelined_cap(&[]);
+
+        state.disconnect(Error::disconnected("terminal cause".into()));
+
+        assert_terminal_error(
+            promise
+                .now_or_never()
+                .expect("tail request must settle")
+                .unwrap_err(),
+        );
+        assert_terminal_error(
+            retained_cap
+                .new_call(0, 0, None)
+                .send()
+                .promise
+                .now_or_never()
+                .expect("retained tail capability call must settle")
+                .err()
+                .unwrap(),
+        );
+        drop(retained_cap);
+        // Keep the returned pipeline alive: terminalization must release its
+        // question ownership, independently of rejecting new calls at entry.
+        assert!(
+            state
+                .questions
+                .borrow_mut()
+                .find(question_id)
+                .unwrap()
+                .self_ref
+                .as_ref()
+                .and_then(Weak::upgrade)
+                .is_none(),
+            "terminal tail pipeline retained its question"
+        );
+        drop(pipeline);
+    }
+
+    #[test]
+    fn disconnect_is_terminal_before_reentrant_export_drop() {
+        let (_tasks, state, completion) = connection();
+        let weak = Rc::downgrade(&state);
+        let ran = Rc::new(Cell::new(0));
+        let observed = ran.clone();
+        export(&state, move || {
+            observed.set(observed.get() + 1);
+            let state = weak.upgrade().unwrap();
+            assert!(state.new_outgoing_message(0).is_err());
+            assert_eq!(state.exports.borrow().iter().count(), 0);
+            assert!(state.exports_by_cap.borrow().is_empty());
+            state.disconnect(Error::disconnected("reentrant".into()));
+        });
+        state.disconnect(Error::disconnected("terminal cause".into()));
+        assert_eq!(ran.get(), 1);
+        assert!(matches!(completion.now_or_never(), Some(Ok(_))));
+        state.disconnect(Error::disconnected("repeated".into()));
+        assert_eq!(ran.get(), 1);
+    }
+
+    #[test]
+    fn destructor_panic_does_not_skip_exports_or_disconnect_completion() {
+        let (_tasks, state, completion) = connection();
+        export(&state, || panic!("first destructor"));
+        let drops = Rc::new(Cell::new(0));
+        let observed = drops.clone();
+        export(&state, move || observed.set(observed.get() + 1));
+        let panic = catch_unwind(AssertUnwindSafe(|| {
+            state.disconnect(Error::disconnected("terminal cause".into()))
+        }))
+        .unwrap_err();
+        assert_eq!(panic.downcast_ref::<&str>(), Some(&"first destructor"));
+        assert_eq!(drops.get(), 1);
+        assert!(state.connection.borrow().is_err());
+        assert!(state.disconnect_fulfiller.borrow().is_none());
+        assert!(matches!(completion.now_or_never(), Some(Ok(_))));
+        state.disconnect(Error::disconnected("repeated".into()));
+        assert_eq!(drops.get(), 1);
+    }
+
+    #[test]
+    fn multiple_destructor_panics_preserve_first_cause() {
+        // The unpatched implementation aborts on a second destructor panic.
+        // Isolate it so the regression reports failure without killing the suite.
+        const CHILD: &str = "CAPNP_TERMINALIZATION_PANIC_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "rpc::terminalization_tests::multiple_destructor_panics_preserve_first_cause",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+        struct PanickingPayload;
+        impl Drop for PanickingPayload {
+            fn drop(&mut self) {
+                panic!("secondary payload destructor");
+            }
+        }
+        let (_tasks, state, completion) = connection();
+        export(&state, || panic!("first destructor"));
+        export(&state, || std::panic::panic_any(PanickingPayload));
+        let drops = Rc::new(Cell::new(0));
+        let observed = drops.clone();
+        export(&state, move || observed.set(observed.get() + 1));
+        // Export-owned cancellation handles are independent drop targets. These
+        // synthetic futures test those handles, not the TaskSet-owned resolver.
+        let resolve_drops = Rc::new(Cell::new(0));
+        for i in 0..2 {
+            let observed = resolve_drops.clone();
+            let on_drop = DropAction(Box::new(move || {
+                observed.set(observed.get() + 1);
+                assert_ne!(i, 0, "resolve destructor");
+            }));
+            let mut export = Export::new(broken::new_cap(Error::failed("unused".into())));
+            export.resolve_op = Promise::from_future(async move {
+                let _on_drop = on_drop;
+                future::pending::<Result<(), Error>>().await
+            });
+            state.exports.borrow_mut().push(export);
+        }
+        let shared = Rc::new(RefCell::new(Some(state.clone())));
+        let mut disconnector = Disconnector::new(shared.clone());
+        let panic =
+            catch_unwind(AssertUnwindSafe(|| (&mut disconnector).now_or_never())).unwrap_err();
+        assert_eq!(panic.downcast_ref::<&str>(), Some(&"first destructor"));
+        assert_eq!(drops.get(), 1);
+        assert_eq!(resolve_drops.get(), 2);
+        assert!(state.connection.borrow().is_err());
+        assert!(state.disconnect_fulfiller.borrow().is_none());
+        assert!(matches!(completion.now_or_never(), Some(Ok(_))));
+        // Repeated initiation and later completion neither panic nor drop twice.
+        state.disconnect(Error::disconnected("repeated".into()));
+        let mut shutdown = state.disconnect_promise.borrow().clone().unwrap();
+        assert!(matches!((&mut disconnector).now_or_never(), Some(Ok(()))));
+        assert!(matches!((&mut shutdown).now_or_never(), Some(Ok(()))));
+        assert!(matches!((&mut disconnector).now_or_never(), Some(Ok(()))));
+        assert_eq!(drops.get(), 1);
+        assert_eq!(resolve_drops.get(), 2);
+    }
+
+    struct PendingRead;
+
+    impl futures::io::AsyncRead for PendingRead {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _: &mut Context<'_>,
+            _: &mut [u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+    }
+
+    // Keep real two-party connections, but control the network driver's result
+    // independently of connection shutdown to exercise a retained failed owner.
+    struct ControlledNetwork {
+        inner: crate::twoparty::VatNetwork<PendingRead>,
+        driver_result: Option<oneshot::Receiver<Result<(), Error>>>,
+    }
+
+    impl VatNetwork<Side> for ControlledNetwork {
+        fn connect(&mut self, side: Side) -> Option<Box<dyn crate::Connection<Side>>> {
+            self.inner.connect(side)
+        }
+
+        fn accept(&mut self) -> Promise<Box<dyn crate::Connection<Side>>, Error> {
+            self.inner.accept()
+        }
+
+        fn drive_until_shutdown(&mut self) -> Promise<(), Error> {
+            let result = self.driver_result.take().unwrap();
+            Promise::from_future(async move { result.await.unwrap() })
+        }
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    enum ResolverOwnerState {
+        NeverPolled,
+        Pending,
+        Failed,
+    }
+
+    fn assert_rpc_drop_releases_export_resolution(owner_state: ResolverOwnerState) {
+        let (driver_tx, driver_rx) = oneshot::channel();
+        let network = ControlledNetwork {
+            inner: crate::twoparty::VatNetwork::new(
+                PendingRead,
+                futures::io::Cursor::new(Vec::<u8>::new()),
+                Side::Client,
+                Default::default(),
+            ),
+            driver_result: Some(driver_rx),
+        };
+        let mut rpc = crate::RpcSystem::new(Box::new(network), None);
+        let bootstrap: capnp::capability::Client = rpc.bootstrap(Side::Server);
+        let state = rpc.connection_state.borrow().as_ref().unwrap().clone();
+        let import = ConnectionState::import(&state, 42, false);
+        let drops = Rc::new(Cell::new(0));
+        let observed = drops.clone();
+        let on_drop = DropAction(Box::new(move || observed.set(observed.get() + 1)));
+        let polls = Rc::new(Cell::new(0));
+        let observed_polls = polls.clone();
+        let promise = Promise::from_future(async move {
+            let _on_drop = on_drop;
+            future::poll_fn(move |_| {
+                observed_polls.set(observed_polls.get() + 1);
+                Poll::<Result<Box<dyn ClientHook>, Error>>::Pending
+            })
+            .await
+        });
+        let id = state
+            .exports
+            .borrow_mut()
+            .push(Export::new(broken::new_cap(Error::failed("unused".into()))));
+        let resolve_op = ConnectionState::resolve_exported_promise(&state, id, promise);
+        state.exports.borrow_mut().find(id).unwrap().resolve_op = resolve_op;
+
+        if !matches!(owner_state, ResolverOwnerState::NeverPolled) {
+            assert!((&mut rpc).now_or_never().is_none());
+            assert!(polls.get() > 0, "resolver must have returned Pending");
+        } else {
+            assert_eq!(polls.get(), 0);
+        }
+        if matches!(owner_state, ResolverOwnerState::Failed) {
+            driver_tx
+                .send(Err(Error::failed("controlled driver failure".into())))
+                .unwrap();
+            let result = (0..32)
+                .find_map(|_| (&mut rpc).now_or_never())
+                .expect("driver must finish after its explicit failure signal");
+            assert_eq!(result.unwrap_err().extra, "controlled driver failure");
+            assert_eq!(drops.get(), 0, "a retained failed owner may retain tasks");
+        }
+
+        state.disconnect(Error::disconnected("terminal cause".into()));
+        // Disconnect signals cancellation; destruction of the owner releases
+        // the queued or suspended resolver without polling that owner again.
+        let polls_before_drop = polls.get();
+        assert_eq!(drops.get(), 0);
+        drop(rpc);
+        assert_eq!(drops.get(), 1, "owner state: {owner_state:?}");
+        assert_eq!(polls.get(), polls_before_drop);
+        // Keep external handles alive until after the release assertion.
+        drop((bootstrap, import, state));
+        assert_eq!(drops.get(), 1);
+    }
+
+    #[test]
+    fn rpc_drop_releases_never_polled_export_resolution() {
+        assert_rpc_drop_releases_export_resolution(ResolverOwnerState::NeverPolled);
+    }
+
+    #[test]
+    fn rpc_drop_releases_pending_export_resolution() {
+        assert_rpc_drop_releases_export_resolution(ResolverOwnerState::Pending);
+    }
+
+    #[test]
+    fn rpc_drop_releases_export_resolution_after_driver_failure() {
+        assert_rpc_drop_releases_export_resolution(ResolverOwnerState::Failed);
+    }
+
+    fn preconstructed_request_during_export_drop(streaming: bool) {
+        let (_tasks, state, completion) = connection();
+        let target = ConnectionState::import(&state, 17, false);
+        let mut request = target.new_call(0, 0, None);
+        let drops = Rc::new(Cell::new(0));
+        let observed = drops.clone();
+        let parameter = Box::new(local::Client::new(DropServer(Rc::new(DropAction(
+            Box::new(move || observed.set(observed.get() + 1)),
+        )))));
+        request.get().set_as_capability(parameter);
+        let request = RefCell::new(Some(request));
+        let outcome = Rc::new(RefCell::new(None));
+        let result = outcome.clone();
+        // The request already owns an outgoing transport message. Sending it
+        // from a destructor must not repopulate the drained export/question tables.
+        export(&state, move || {
+            let request = request.borrow_mut().take().unwrap();
+            *result.borrow_mut() = if streaming {
+                request.hook.send_streaming().now_or_never()
+            } else {
+                let pending = request.send();
+                let result = pending.promise.now_or_never().map(|r| r.map(|_| ()));
+                drop(pending.pipeline);
+                result
+            };
+        });
+        assert_eq!(state.questions.borrow().iter().count(), 0);
+        state.disconnect(Error::disconnected("terminal cause".into()));
+        assert_eq!(
+            state.exports.borrow().iter().count(),
+            0,
+            "preconstructed request created an owning export after disconnect"
+        );
+        assert!(state.exports_by_cap.borrow().is_empty());
+        assert_eq!(
+            state.questions.borrow().iter().count(),
+            0,
+            "preconstructed request created a question after disconnect"
+        );
+        assert_eq!(
+            drops.get(),
+            1,
+            "request parameter ownership must be released"
+        );
+        let error = outcome
+            .borrow_mut()
+            .take()
+            .expect("terminal send must settle immediately")
+            .unwrap_err();
+        assert_eq!(error.kind, capnp::ErrorKind::Disconnected);
+        assert_eq!(error.extra, "terminal cause");
+        assert!(matches!(completion.now_or_never(), Some(Ok(_))));
+        state.disconnect(Error::disconnected("repeated".into()));
+        assert_eq!(state.exports.borrow().iter().count(), 0);
+        assert_eq!(state.questions.borrow().iter().count(), 0);
+        assert_eq!(drops.get(), 1);
+    }
+
+    #[test]
+    fn preconstructed_ordinary_request_is_rejected_during_export_drop() {
+        preconstructed_request_during_export_drop(false);
+    }
+
+    #[test]
+    fn preconstructed_streaming_request_is_rejected_during_export_drop() {
+        preconstructed_request_during_export_drop(true);
+    }
+    // Exercise public capability hooks at both sides of descriptor admission.
+    #[derive(Clone, Copy, PartialEq)]
+    enum PreparationCallback {
+        GetPtr,
+        WhenMoreResolved,
+        ClonedHookDrop,
+    }
+
+    enum RequestKind {
+        Ordinary,
+        Streaming,
+        Tail,
+    }
+
+    struct PreparationHook {
+        inner: Box<dyn ClientHook>,
+        callback: Rc<RefCell<Option<Box<dyn FnOnce()>>>>,
+        stage: PreparationCallback,
+        is_clone: bool,
+    }
+
+    impl PreparationHook {
+        fn fire(&self, stage: PreparationCallback) {
+            if self.stage == stage {
+                let callback = self.callback.borrow_mut().take();
+                if let Some(callback) = callback {
+                    callback();
+                }
+            }
+        }
+    }
+
+    impl Drop for PreparationHook {
+        fn drop(&mut self) {
+            // The original remains in the request's cap table; only the
+            // temporary descriptor clone triggers this preparation callback.
+            if self.is_clone {
+                self.fire(PreparationCallback::ClonedHookDrop);
+            }
+        }
+    }
+
+    impl ClientHook for PreparationHook {
+        fn add_ref(&self) -> Box<dyn ClientHook> {
+            Box::new(Self {
+                inner: self.inner.clone(),
+                callback: self.callback.clone(),
+                stage: self.stage,
+                is_clone: true,
+            })
+        }
+        fn new_call(
+            &self,
+            interface: u64,
+            method: u16,
+            hint: Option<capnp::MessageSize>,
+        ) -> capnp::capability::Request<any_pointer::Owned, any_pointer::Owned> {
+            self.inner.new_call(interface, method, hint)
+        }
+        fn call(
+            &self,
+            interface: u64,
+            method: u16,
+            params: Box<dyn ParamsHook>,
+            results: Box<dyn ResultsHook>,
+        ) -> Promise<(), Error> {
+            self.inner.call(interface, method, params, results)
+        }
+        fn get_brand(&self) -> usize {
+            self.inner.get_brand()
+        }
+        fn get_ptr(&self) -> usize {
+            self.fire(PreparationCallback::GetPtr);
+            self.inner.get_ptr()
+        }
+        fn get_resolved(&self) -> Option<Box<dyn ClientHook>> {
+            // Do not let serialization unwrap this adapter and bypass its callback.
+            None
+        }
+        fn when_more_resolved(&self) -> Option<Promise<Box<dyn ClientHook>, Error>> {
+            self.fire(PreparationCallback::WhenMoreResolved);
+            self.inner.when_more_resolved()
+        }
+        fn when_resolved(&self) -> Promise<(), Error> {
+            default_when_resolved_impl(self)
+        }
+    }
+
+    fn preparation_hook(
+        state: &Rc<ConnectionState<Side>>,
+        stage: PreparationCallback,
+    ) -> Box<dyn ClientHook> {
+        let weak = Rc::downgrade(state);
+        // A reflected import takes the no-export path; dropping its temporary
+        // descriptor hook can disconnect after the export checks have finished.
+        let inner = if stage == PreparationCallback::ClonedHookDrop {
+            ConnectionState::import(state, 23, false)
+        } else {
+            Box::new(local::Client::new(DropServer(Rc::new(DropAction(
+                Box::new(|| {}),
+            )))))
+        };
+        Box::new(PreparationHook {
+            inner,
+            callback: Rc::new(RefCell::new(Some(Box::new(move || {
+                weak.upgrade()
+                    .unwrap()
+                    .disconnect(Error::disconnected("preparation stopped".into()));
+            })))),
+            stage,
+            is_clone: false,
+        })
+    }
+
+    fn assert_empty_bookkeeping(state: &ConnectionState<Side>) {
+        assert_eq!(
+            state.exports.borrow().iter().count(),
+            0,
+            "exports survived rejected preparation"
+        );
+        assert!(state.exports_by_cap.borrow().is_empty());
+        assert_eq!(
+            state.questions.borrow().iter().count(),
+            0,
+            "question admitted after terminalization"
+        );
+    }
+
+    fn assert_preparation_error(error: Error) {
+        assert_eq!(error.kind, capnp::ErrorKind::Disconnected);
+        assert_eq!(error.extra, "preparation stopped");
+    }
+
+    fn request_preparation_disconnect(kind: RequestKind, stage: PreparationCallback) {
+        let (_tasks, state, _completion) = connection();
+        let target = ConnectionState::import(&state, 17, false);
+        // Retain an already-created streaming controller through the transition.
+        if matches!(kind, RequestKind::Streaming) {
+            let client = Client::from_ptr(target.get_ptr(), &state).unwrap();
+            let (flow, task) = state.connection.borrow_mut().as_mut().unwrap().new_stream();
+            *client.flow_controller.borrow_mut() = Some(flow);
+            state.add_task(task);
+        }
+        let mut request = target.new_call(0, 0, None);
+        let mut params = request
+            .get()
+            .initn_as::<capnp::any_pointer_list::Builder>(2);
+        // This first descriptor records ownership before the second callback
+        // disconnects. Terminal rejection must leave neither ownership edge.
+        params
+            .reborrow()
+            .get(0)
+            .set_as_capability(Box::new(local::Client::new(DropServer(Rc::new(
+                DropAction(Box::new(|| {})),
+            )))));
+        params
+            .get(1)
+            .set_as_capability(preparation_hook(&state, stage));
+        assert!(state.connection.borrow().is_ok());
+        match kind {
+            RequestKind::Tail => {
+                assert!(request.hook.tail_send().is_none());
+            }
+            RequestKind::Streaming => {
+                let result = request.hook.send_streaming();
+                assert_empty_bookkeeping(&state);
+                assert_preparation_error(
+                    result
+                        .now_or_never()
+                        .expect("terminal streaming result")
+                        .unwrap_err(),
+                );
+            }
+            RequestKind::Ordinary => {
+                let result = request.send();
+                assert_empty_bookkeeping(&state);
+                assert_preparation_error(
+                    result
+                        .promise
+                        .now_or_never()
+                        .expect("terminal response")
+                        .err()
+                        .unwrap(),
+                );
+                let cap = result.pipeline.as_cap();
+                assert_preparation_error(
+                    cap.new_call(0, 0, None)
+                        .send()
+                        .promise
+                        .now_or_never()
+                        .expect("terminal pipeline")
+                        .err()
+                        .unwrap(),
+                );
+            }
+        }
+        assert!(state.connection.borrow().is_err());
+        assert_empty_bookkeeping(&state);
+        state.disconnect(Error::failed("later cause".into()));
+        assert_empty_bookkeeping(&state);
+        assert_preparation_error(state.connection.borrow().as_ref().err().unwrap().clone());
+    }
+
+    #[test]
+    fn ordinary_preparation_rejects_exports_after_callback() {
+        request_preparation_disconnect(RequestKind::Ordinary, PreparationCallback::GetPtr);
+    }
+
+    #[test]
+    fn streaming_preparation_rejects_exports_after_callback() {
+        request_preparation_disconnect(RequestKind::Streaming, PreparationCallback::GetPtr);
+    }
+
+    #[test]
+    fn tail_preparation_rejects_exports_after_callback() {
+        request_preparation_disconnect(RequestKind::Tail, PreparationCallback::GetPtr);
+    }
+
+    #[test]
+    fn ordinary_preparation_rejects_question_after_descriptor_drop() {
+        request_preparation_disconnect(RequestKind::Ordinary, PreparationCallback::ClonedHookDrop);
+    }
+
+    #[test]
+    fn streaming_preparation_rejects_question_after_descriptor_drop() {
+        request_preparation_disconnect(RequestKind::Streaming, PreparationCallback::ClonedHookDrop);
+    }
+
+    #[test]
+    fn preparation_checks_resolution_callback_before_export() {
+        request_preparation_disconnect(
+            RequestKind::Ordinary,
+            PreparationCallback::WhenMoreResolved,
+        );
+    }
+
+    #[test]
+    fn export_resolution_preparation_can_disconnect_without_table_borrows() {
+        let mut network = crate::twoparty::VatNetwork::new(
+            PendingRead,
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            Side::Client,
+            Default::default(),
+        );
+        let (done, _completion) = oneshot::channel();
+        let (mut tasks, state) = ConnectionState::new(
+            broken::new_cap(Error::failed("unused bootstrap".into())),
+            network.connect(Side::Server).unwrap(),
+            done,
+        );
+        let id = state
+            .exports
+            .borrow_mut()
+            .push(Export::new(broken::new_cap(Error::failed(
+                "old promise".into(),
+            ))));
+        let resolution = preparation_hook(&state, PreparationCallback::WhenMoreResolved);
+        let operation =
+            ConnectionState::resolve_exported_promise(&state, id, Promise::ok(resolution));
+        assert!((&mut tasks).now_or_never().is_none());
+        assert_preparation_error(
+            operation
+                .now_or_never()
+                .expect("resolver must settle")
+                .unwrap_err(),
+        );
+        assert_empty_bookkeeping(&state);
+    }
+
+    #[test]
+    fn result_preparation_rejects_exports_after_callback() {
+        let (_tasks, state, _completion) = connection();
+        let (sender, pipeline) = queued::Pipeline::new();
+        let (done, _receiver) = oneshot::channel();
+        state.answers.borrow_mut().slots.insert(7, Answer::new());
+        let mut results = Results::new(&state, 7, false, done, Rc::new(Cell::new(false)), None);
+        results
+            .get()
+            .unwrap()
+            .set_as_capability(preparation_hook(&state, PreparationCallback::GetPtr));
+        let inner = results.inner.take().unwrap();
+        results.results_done_fulfiller.take();
+        let result = ResultsDone::from_results_inner(Ok(inner), Ok(()), sender);
+        assert_empty_bookkeeping(&state);
+        assert_preparation_error(result.err().expect("terminal results"));
+        let cap = pipeline.get_pipelined_cap(&[]);
+        assert_preparation_error(
+            cap.new_call(0, 0, None)
+                .send()
+                .promise
+                .now_or_never()
+                .expect("terminal result pipeline")
+                .err()
+                .unwrap(),
+        );
+    }
+    #[test]
+    fn bootstrap_rejects_question_after_disconnect() {
+        let (_tasks, state, _completion) = connection();
+        state.disconnect(Error::disconnected("preparation stopped".into()));
+        let cap = ConnectionState::bootstrap(&state);
+        assert_empty_bookkeeping(&state);
+        assert_preparation_error(
+            cap.new_call(0, 0, None)
+                .send()
+                .promise
+                .now_or_never()
+                .expect("terminal bootstrap")
+                .err()
+                .unwrap(),
+        );
+    }
+    #[test]
+    fn descriptor_preparation_reuses_reentrant_export() {
+        let (_tasks, state, _completion) = connection();
+        let inner = Box::new(local::Client::new(DropServer(Rc::new(DropAction(
+            Box::new(|| {}),
+        ))))) as Box<dyn ClientHook>;
+        let nested = inner.clone();
+        let weak = Rc::downgrade(&state);
+        let hook = PreparationHook {
+            inner,
+            callback: Rc::new(RefCell::new(Some(Box::new(move || {
+                let mut message = capnp::message::Builder::new_default();
+                ConnectionState::write_descriptor(
+                    &weak.upgrade().unwrap(),
+                    nested,
+                    message.init_root(),
+                )
+                .unwrap();
+            })))),
+            stage: PreparationCallback::WhenMoreResolved,
+            is_clone: false,
+        };
+        let mut message = capnp::message::Builder::new_default();
+        let id = ConnectionState::write_descriptor(&state, Box::new(hook), message.init_root())
+            .unwrap()
+            .unwrap();
+        assert_eq!(state.exports.borrow().iter().count(), 1);
+        assert_eq!(state.exports_by_cap.borrow().len(), 1);
+        assert_eq!(state.exports.borrow_mut().find(id).unwrap().refcount, 2);
     }
 }
 
