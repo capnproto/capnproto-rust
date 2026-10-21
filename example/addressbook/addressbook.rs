@@ -86,7 +86,7 @@ pub mod addressbook {
                     Ok(person::phone_number::Type::Mobile) => "mobile",
                     Ok(person::phone_number::Type::Home) => "home",
                     Ok(person::phone_number::Type::Work) => "work",
-                    Err(::capnp::NotInSchema(_)) => "UNKNOWN",
+                    Err::<_, ::capnp::NotInSchema>(_) => "UNKNOWN",
                 };
                 println!("  {} phone: {}", type_name, phone.get_number()?.to_str()?);
             }
@@ -103,7 +103,7 @@ pub mod addressbook {
                 Ok(person::employment::SelfEmployed(())) => {
                     println!("  self-employed");
                 }
-                Err(::capnp::NotInSchema(_)) => {}
+                Err::<_, ::capnp::NotInSchema>(_) => {}
             }
         }
         Ok(())

@@ -1175,7 +1175,7 @@ impl<VatId> ConnectionState<VatId> {
                 | message::ObsoleteSave(_)
                 | message::ObsoleteDelete(_),
             )
-            | Err(::capnp::NotInSchema(_)) => {
+            | Err::<_, ::capnp::NotInSchema>(_) => {
                 Self::send_unimplemented(&connection_state, message.as_ref())?;
             }
         }
