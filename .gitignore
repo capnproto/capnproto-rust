@@ -11,3 +11,5 @@
 Cargo.lock
 /target/
 
+# IDEs
+.idea
