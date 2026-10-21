@@ -26,8 +26,23 @@ use capnp::Error;
 
 use futures::{Future, FutureExt, TryFutureExt};
 
-use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+#[cfg(feature = "alloc")]
+use {
+    alloc::{
+        boxed::Box,
+        rc::{Rc, Weak},
+        vec::Vec,
+    },
+    core::cell::RefCell,
+};
+
+#[cfg(feature = "std")]
+use std::{
+    boxed::Box,
+    cell::RefCell,
+    rc::{Rc, Weak},
+    vec::Vec,
+};
 
 use crate::attach::Attach;
 use crate::sender_queue::SenderQueue;

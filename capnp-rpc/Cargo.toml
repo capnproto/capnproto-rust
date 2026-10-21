@@ -13,14 +13,20 @@ edition = "2021"
 
 readme = "README.md"
 
+[features]
+default = ["std"]
+alloc = ["futures/alloc", "capnp/alloc", "hashbrown/alloc"]
+std = ["futures/std", "capnp/std"]
+
 [dependencies.futures]
 version = "0.3.0"
 default-features = false
-features = ["std"]
+features = []
 
 [dependencies]
 capnp-futures = { version = "0.27.0", path = "../capnp-futures" }
-capnp = {version = "0.27.0", path = "../capnp"}
+capnp = { version = "0.27.0", path = "../capnp", no-default-features = true }
+hashbrown = { version = "0.17.1", optional = true }
 
 [lints]
 workspace = true

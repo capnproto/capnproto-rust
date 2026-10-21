@@ -29,12 +29,31 @@ use capnp::{any_pointer, message};
 use futures::channel::oneshot;
 use futures::TryFutureExt;
 
-use std::cell::RefCell;
-use std::collections::VecDeque;
-use std::future::Future;
-use std::pin::Pin;
-use std::rc::Rc;
-use std::task::{Context, Poll};
+#[cfg(feature = "alloc")]
+use {
+    alloc::{boxed::Box, collections::VecDeque, rc::Rc, vec, vec::Vec},
+    core::{
+        cell::RefCell,
+        future::Future,
+        mem,
+        pin::Pin,
+        task::{Context, Poll},
+    },
+};
+
+#[cfg(feature = "std")]
+use std::{
+    boxed::Box,
+    cell::RefCell,
+    collections::VecDeque,
+    future::Future,
+    mem,
+    pin::Pin,
+    rc::Rc,
+    task::{Context, Poll},
+    vec,
+    vec::Vec,
+};
 
 pub trait ResultsDoneHook {
     fn add_ref(&self) -> Box<dyn ResultsDoneHook>;
@@ -111,7 +130,7 @@ impl Drop for Results {
         if let (Some(message), Some(fulfiller)) =
             (self.message.take(), self.results_done_fulfiller.take())
         {
-            let cap_table = ::std::mem::take(&mut self.cap_table);
+            let cap_table = mem::take(&mut self.cap_table);
             let _ = fulfiller.send(Box::new(ResultsDone::new(message, cap_table)));
         } else {
             unreachable!()

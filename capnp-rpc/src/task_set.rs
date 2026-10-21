@@ -21,11 +21,29 @@
 use futures::channel::{mpsc, oneshot};
 use futures::stream::FuturesUnordered;
 use futures::{Future, FutureExt, Stream};
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
-use std::cell::RefCell;
-use std::rc::Rc;
+#[cfg(feature = "alloc")]
+use {
+    alloc::{boxed::Box, rc::Rc, vec, vec::Vec},
+    core::{
+        cell::RefCell,
+        fmt, mem,
+        pin::Pin,
+        task::{Context, Poll},
+    },
+};
+
+#[cfg(feature = "std")]
+use std::{
+    boxed::Box,
+    cell::RefCell,
+    fmt, mem,
+    pin::Pin,
+    rc::Rc,
+    task::{Context, Poll},
+    vec,
+    vec::Vec,
+};
 
 enum EnqueuedTask<E> {
     Task(Pin<Box<dyn Future<Output = Result<(), E>>>>),
@@ -74,7 +92,7 @@ where
     pub fn new(reaper: Box<dyn TaskReaper<E>>) -> (TaskSetHandle<E>, Self)
     where
         E: 'static,
-        E: ::std::fmt::Debug,
+        E: fmt::Debug,
     {
         let (sender, receiver) = mpsc::unbounded();
 
@@ -98,7 +116,7 @@ where
     fn update_on_empty_fulfillers(&mut self) {
         // There is always the one pending() future that we added in `new()`.
         if self.in_progress.len() <= 1 {
-            for f in std::mem::take(&mut self.on_empty_fulfillers) {
+            for f in mem::take(&mut self.on_empty_fulfillers) {
                 let _ = f.send(());
             }
         }

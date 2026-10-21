@@ -18,9 +18,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#[cfg(feature = "alloc")]
+use core::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 use futures::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+#[cfg(feature = "std")]
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 pub(crate) struct AttachFuture<F, T>
 where

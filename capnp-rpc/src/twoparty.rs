@@ -27,8 +27,23 @@ use capnp::message::ReaderOptions;
 use futures::channel::oneshot;
 use futures::{AsyncRead, AsyncWrite, FutureExt, TryFutureExt};
 
-use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+#[cfg(feature = "alloc")]
+use {
+    alloc::{
+        boxed::Box,
+        rc::{Rc, Weak},
+        string::ToString,
+    },
+    core::cell::RefCell,
+};
+
+#[cfg(feature = "std")]
+use std::{
+    boxed::Box,
+    cell::RefCell,
+    rc::{Rc, Weak},
+    string::ToString,
+};
 
 pub type VatId = crate::rpc_twoparty_capnp::Side;
 

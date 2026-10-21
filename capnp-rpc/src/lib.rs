@@ -58,15 +58,55 @@
 //!
 //! For a more complete example, see <https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator>
 
+#![no_std]
+#[cfg(any(
+    not(any(feature = "std", feature = "alloc")),
+    all(feature = "std", feature = "alloc")
+))]
+compile_error!("exactly one of the std and alloc features must be enabled");
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
+
 use capnp::capability::Promise;
 use capnp::private::capability::ClientHook;
 use capnp::Error;
 use futures::channel::oneshot;
 use futures::{Future, FutureExt, TryFutureExt};
-use std::cell::RefCell;
-use std::pin::Pin;
-use std::rc::{Rc, Weak};
-use std::task::{Context, Poll};
+
+#[cfg(feature = "std")]
+use std::{
+    boxed::Box,
+    cell::RefCell,
+    collections::HashMap,
+    default, format, marker,
+    pin::Pin,
+    println,
+    rc::{Rc, Weak},
+    string::ToString,
+    task::{Context, Poll},
+    vec::Vec,
+};
+#[cfg(feature = "alloc")]
+use {
+    alloc::{
+        boxed::Box,
+        format,
+        rc::{Rc, Weak},
+        string::ToString,
+        vec::Vec,
+    },
+    core::{
+        cell::RefCell,
+        default, marker,
+        pin::Pin,
+        task::{Context, Poll},
+    },
+    hashbrown::HashMap,
+};
 
 pub use crate::rpc::Disconnector;
 use crate::task_set::TaskSet;
@@ -85,6 +125,20 @@ pub mod rpc_twoparty_capnp;
 ///
 /// Unwraps a `Result<T, E>`. In the case of an error `Err(e)`, immediately returns from the
 /// enclosing function with `Promise::err(e)`.
+#[cfg(feature = "alloc")]
+#[macro_export]
+macro_rules! pry {
+    ($expr:expr) => {
+        match $expr {
+            ::core::result::Result::Ok(val) => val,
+            ::core::result::Result::Err(err) => {
+                return ::capnp::capability::Promise::err(::core::convert::From::from(err))
+            }
+        }
+    };
+}
+
+#[cfg(feature = "std")]
 #[macro_export]
 macro_rules! pry {
     ($expr:expr) => {
@@ -419,8 +473,8 @@ pub struct CapabilityServerSet<S, C>
 where
     C: capnp::capability::FromServer<S>,
 {
-    caps: std::collections::HashMap<usize, Weak<S>>,
-    marker: std::marker::PhantomData<C>,
+    caps: HashMap<usize, Weak<S>>,
+    marker: marker::PhantomData<C>,
 }
 
 impl<S, C> Default for CapabilityServerSet<S, C>
@@ -429,8 +483,8 @@ where
 {
     fn default() -> Self {
         Self {
-            caps: std::default::Default::default(),
-            marker: std::marker::PhantomData,
+            caps: default::Default::default(),
+            marker: marker::PhantomData,
         }
     }
 }
@@ -517,6 +571,12 @@ where
 
 struct SystemTaskReaper;
 impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
+    #[cfg(feature = "alloc")]
+    fn task_failed(&mut self, _error: Error) {
+        // `core` has no stdio
+    }
+
+    #[cfg(feature = "std")]
     fn task_failed(&mut self, error: Error) {
         println!("ERROR: {error}");
     }
