@@ -1,3 +1,6 @@
+## v0.27.2
+- Avoid possible unreachable() panic on reentrant disconnect().
+
 ## v0.27.1
 - Prioritize cancellation in eagerly_evaluate(), fixing a possible error of the
   form "import ID … is not a promise"
