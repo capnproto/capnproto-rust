@@ -490,10 +490,19 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     fn disconnect(&self, error: ::capnp::Error) {
-        if self.connection.borrow().is_err() {
-            // Already disconnected.
-            return;
-        }
+        // Set our connection state to Err now so that no one tries to write any messages to it in
+        // their destructors, and so that any reentrant call to disconnect() returns early.
+        let mut connection = {
+            let mut slot = self.connection.borrow_mut();
+            if slot.is_err() {
+                // Already disconnected.
+                return;
+            }
+            let Ok(c) = mem::replace(&mut *slot, Err(error.clone())) else {
+                unreachable!()
+            };
+            c
+        };
 
         // Carefully pull all the objects out of the tables prior to releasing them because their
         // destructors could come back and mess with the tables.
@@ -531,6 +540,7 @@ impl<VatId> ConnectionState<VatId> {
             }
         }
         *self.exports.borrow_mut() = ExportTable::new();
+        self.exports_by_cap.borrow_mut().clear();
 
         {
             let import_slots = &mut self.imports.borrow_mut().slots;
@@ -558,28 +568,18 @@ impl<VatId> ConnectionState<VatId> {
         drop(resolve_ops_to_release);
         // TODO drop tail calls
 
-        match *self.connection.borrow_mut() {
-            Ok(ref mut c) => {
-                let mut message = c.new_outgoing_message(100); // TODO estimate size
-                {
-                    let builder = message
-                        .get_body()
-                        .unwrap()
-                        .init_as::<message::Builder>()
-                        .init_abort();
-                    from_error(&error, builder);
-                }
-                let _ = message.send();
-            }
-            Err(_) => unreachable!(),
+        let mut message = connection.new_outgoing_message(100); // TODO estimate size
+        {
+            let builder = message
+                .get_body()
+                .unwrap()
+                .init_as::<message::Builder>()
+                .init_abort();
+            from_error(&error, builder);
         }
+        let _ = message.send();
 
-        let connection = mem::replace(&mut *self.connection.borrow_mut(), Err(error.clone()));
-
-        let Ok(mut c) = connection else {
-            unreachable!()
-        };
-        let promise = c.shutdown(Err(error)).then(|r| match r {
+        let promise = connection.shutdown(Err(error)).then(|r| match r {
             Ok(()) => Promise::ok(()),
             Err(e) => {
                 if e.kind != ::capnp::ErrorKind::Disconnected {
@@ -590,7 +590,7 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
         });
-        let shutdown_promise = Promise::from_future(promise.attach(c)).shared();
+        let shutdown_promise = Promise::from_future(promise.attach(connection)).shared();
         *self.disconnect_promise.borrow_mut() = Some(shutdown_promise.clone());
         let Some(fulfiller) = self.disconnect_fulfiller.borrow_mut().take() else {
             unreachable!()
@@ -632,6 +632,9 @@ impl<VatId> ConnectionState<VatId> {
     }
 
     pub fn bootstrap(state: &Rc<Self>) -> Box<dyn ClientHook> {
+        if let Err(e) = &*state.connection.borrow() {
+            return broken::new_cap(e.clone());
+        }
         let question_id = state.questions.borrow_mut().push(Question::new());
 
         let (fulfiller, promise) = oneshot::channel();
@@ -1968,6 +1971,13 @@ impl<VatId> RequestHook for Request<VatId> {
             mut message,
             cap_table,
         } = tmp;
+        if let Err(e) = &*connection_state.connection.borrow() {
+            // Connection is broken.
+            return ::capnp::capability::RemotePromise {
+                promise: Promise::err(e.clone()),
+                pipeline: any_pointer::Pipeline::new(Box::new(broken::Pipeline::new(e.clone()))),
+            };
+        }
         let write_target_result = {
             let call_builder: call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
@@ -2027,6 +2037,10 @@ impl<VatId> RequestHook for Request<VatId> {
             mut message,
             cap_table,
         } = tmp;
+        if let Err(e) = &*connection_state.connection.borrow() {
+            // Connection is broken.
+            return Promise::err(e.clone());
+        }
         let write_target_result = {
             let call_builder: call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
@@ -3352,5 +3366,107 @@ mod cancellation_tests {
     fn owned_ready_work_is_polled() {
         ready_work_after_owner_drop(false, false);
         ready_work_after_owner_drop(false, true);
+    }
+}
+
+#[cfg(test)]
+mod disconnect_tests {
+    use super::*;
+    use crate::rpc_twoparty_capnp::Side;
+    use crate::VatNetwork;
+
+    fn new_connection_state() -> (TaskSet<Error>, Rc<ConnectionState<Side>>) {
+        let mut network = crate::twoparty::VatNetwork::new(
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            Side::Client,
+            Default::default(),
+        );
+        let (disconnect, _disconnected) = oneshot::channel();
+        ConnectionState::new(
+            broken::new_cap(Error::failed("unused bootstrap".into())),
+            network.connect(Side::Server).unwrap(),
+            disconnect,
+        )
+    }
+
+    fn assert_disconnected_with(error: Error, extra: &str) {
+        assert_eq!(error.kind, capnp::ErrorKind::Disconnected);
+        assert_eq!(error.extra, extra);
+    }
+
+    struct DisconnectOnDrop(Weak<ConnectionState<Side>>);
+    impl Drop for DisconnectOnDrop {
+        fn drop(&mut self) {
+            let state = self.0.upgrade().unwrap();
+            assert!(state.new_outgoing_message(0).is_err());
+            state.disconnect(Error::disconnected("reentrant".into()));
+        }
+    }
+
+    #[derive(Clone)]
+    struct Server(Rc<DisconnectOnDrop>);
+    impl capnp::capability::Server for Server {
+        fn dispatch_call(
+            self,
+            _: u64,
+            _: u16,
+            _: capnp::capability::Params<any_pointer::Owned>,
+            _: capnp::capability::Results<any_pointer::Owned>,
+        ) -> capnp::capability::DispatchCallResult {
+            unimplemented!()
+        }
+        fn as_ptr(&self) -> usize {
+            Rc::as_ptr(&self.0) as usize
+        }
+    }
+
+    #[test]
+    fn reentrant_disconnect_from_export_drop() {
+        let (_tasks, state) = new_connection_state();
+        let hook: Box<dyn ClientHook> = Box::new(local::Client::new(Server(Rc::new(
+            DisconnectOnDrop(Rc::downgrade(&state)),
+        ))));
+        let ptr = hook.get_ptr();
+        let export_id = state.exports.borrow_mut().push(Export::new(hook));
+        state.exports_by_cap.borrow_mut().insert(ptr, export_id);
+
+        state.disconnect(Error::disconnected("first".into()));
+
+        let error = state.connection.borrow().as_ref().err().unwrap().clone();
+        assert_disconnected_with(error, "first");
+        assert!(state.exports_by_cap.borrow().is_empty());
+    }
+
+    #[test]
+    fn request_built_before_disconnect_fails_on_send() {
+        let (_tasks, state) = new_connection_state();
+        let target = ConnectionState::import(&state, 7, false);
+        let request = target.new_call(0, 0, None);
+        let streaming_request = target.new_call(0, 0, None);
+
+        state.disconnect(Error::disconnected("gone".into()));
+
+        let Some(Err(error)) = request.send().promise.now_or_never() else {
+            panic!("expected immediate error");
+        };
+        assert_disconnected_with(error, "gone");
+        let Some(Err(error)) = streaming_request.hook.send_streaming().now_or_never() else {
+            panic!("expected immediate error");
+        };
+        assert_disconnected_with(error, "gone");
+        assert_eq!(state.questions.borrow().iter().count(), 0);
+    }
+
+    #[test]
+    fn bootstrap_after_disconnect_is_broken() {
+        let (_tasks, state) = new_connection_state();
+        state.disconnect(Error::disconnected("gone".into()));
+        let cap = ConnectionState::bootstrap(&state);
+        let Some(Err(error)) = cap.new_call(0, 0, None).send().promise.now_or_never() else {
+            panic!("expected broken capability");
+        };
+        assert_disconnected_with(error, "gone");
+        assert_eq!(state.questions.borrow().iter().count(), 0);
     }
 }
