@@ -3959,10 +3959,13 @@ impl<'a> ListReader<'a> {
     ) -> Result<bool> {
         match self.element_size {
             ElementSize::InlineComposite => {
-                read_head.set(unsafe { read_head.get().add(BYTES_PER_WORD) }); // tag word
-                if !core::ptr::eq(self.ptr, read_head.get()) {
+                // The tag word should be at `read_head`, followed by the elements. Compare
+                // before advancing: `read_head` may be at the end of the segment, so
+                // advancing it with `.add()` first could be undefined behavior.
+                if !core::ptr::eq(self.ptr, read_head.get().wrapping_add(BYTES_PER_WORD)) {
                     return Ok(false);
                 }
+                read_head.set(self.ptr);
                 if self.struct_data_size % u32::try_from(BITS_PER_WORD).unwrap() != 0 {
                     return Ok(false);
                 }
