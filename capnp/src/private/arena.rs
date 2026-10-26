@@ -50,6 +50,34 @@ pub(crate) fn interval_in_segment(
     start >= segment_start && size <= this_size && start - segment_start <= this_size - size
 }
 
+/// If address `start` lies within the segment of `segment_len` words starting at address
+/// `segment_start`, and moving it by `offset_in_words` words leaves it within the segment
+/// (or exactly one past its end), returns that offset in bytes.
+///
+/// Avoids arithmetic overflow and panics, which matters on 32-bit targets: the offset
+/// can be up to 2^29 words in either direction, which is 2^32 bytes.
+#[inline]
+pub(crate) fn offset_in_segment(
+    segment_start: usize,
+    segment_len: u32,
+    start: usize,
+    offset_in_words: i32,
+) -> Option<isize> {
+    // Cannot overflow: the segment is a valid allocation of this many bytes.
+    let this_size = segment_len as usize * BYTES_PER_WORD;
+    let start_idx = start.checked_sub(segment_start)?;
+    if start_idx > this_size {
+        return None;
+    }
+    let offset = i64::from(offset_in_words) * i64::try_from(BYTES_PER_WORD).unwrap();
+    let target_idx = i64::try_from(start_idx).ok()?.checked_add(offset)?;
+    if usize::try_from(target_idx).ok()? > this_size {
+        return None;
+    }
+    // Both indices are at most `this_size`, which is at most `isize::MAX`.
+    isize::try_from(offset).ok()
+}
+
 pub unsafe trait ReaderArena {
     // return pointer to start of segment, and number of words in that segment
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
@@ -61,22 +89,16 @@ pub unsafe trait ReaderArena {
         offset_in_words: i32,
     ) -> Result<*const u8> {
         let (segment_start, segment_len) = self.get_segment(segment_id)?;
-        let this_start: usize = segment_start as usize;
-        let this_size: usize = segment_len as usize * BYTES_PER_WORD;
-        let offset: i64 = i64::from(offset_in_words) * i64::try_from(BYTES_PER_WORD).unwrap();
-        let start_idx = start as usize;
-        if start_idx < this_start {
-            return Err(Error::from_kind(
+        match offset_in_segment(
+            segment_start as usize,
+            segment_len,
+            start as usize,
+            offset_in_words,
+        ) {
+            Some(offset) => unsafe { Ok(start.offset(offset)) },
+            None => Err(Error::from_kind(
                 ErrorKind::MessageContainsOutOfBoundsPointer,
-            ));
-        }
-        let target_idx = i64::try_from(start_idx - this_start).unwrap() + offset;
-        if target_idx < 0 || usize::try_from(target_idx).unwrap() > this_size {
-            Err(Error::from_kind(
-                ErrorKind::MessageContainsOutOfBoundsPointer,
-            ))
-        } else {
-            unsafe { Ok(start.offset(isize::try_from(offset).unwrap())) }
+            )),
         }
     }
 
