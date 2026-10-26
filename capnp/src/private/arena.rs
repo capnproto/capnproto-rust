@@ -30,6 +30,26 @@ use crate::{Error, ErrorKind, Result};
 
 pub type SegmentId = u32;
 
+/// Returns whether `size_in_words` words starting at address `start` lie within the
+/// segment of `segment_len` words starting at address `segment_start`.
+///
+/// Avoids arithmetic overflow, which matters on 32-bit targets: an InlineComposite list
+/// can claim 2^29 words including its tag, which is 2^32 bytes.
+#[inline]
+pub(crate) fn interval_in_segment(
+    segment_start: usize,
+    segment_len: u32,
+    start: usize,
+    size_in_words: usize,
+) -> bool {
+    // Cannot overflow: the segment is a valid allocation of this many bytes.
+    let this_size = segment_len as usize * BYTES_PER_WORD;
+    let Some(size) = size_in_words.checked_mul(BYTES_PER_WORD) else {
+        return false;
+    };
+    start >= segment_start && size <= this_size && start - segment_start <= this_size - size
+}
+
 pub unsafe trait ReaderArena {
     // return pointer to start of segment, and number of words in that segment
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
@@ -133,12 +153,12 @@ where
 
     fn contains_interval(&self, id: u32, start: *const u8, size_in_words: usize) -> Result<()> {
         let (segment_start, segment_len) = self.get_segment(id)?;
-        let this_start: usize = segment_start as usize;
-        let this_size: usize = segment_len as usize * BYTES_PER_WORD;
-        let start = start as usize;
-        let size = size_in_words * BYTES_PER_WORD;
-
-        if !(start >= this_start && start - this_start + size <= this_size) {
+        if !interval_in_segment(
+            segment_start as usize,
+            segment_len,
+            start as usize,
+            size_in_words,
+        ) {
             Err(Error::from_kind(
                 ErrorKind::MessageContainsOutOfBoundsPointer,
             ))
@@ -542,12 +562,12 @@ unsafe impl ReaderArena for GeneratedCodeArena {
 
     fn contains_interval(&self, id: u32, start: *const u8, size_in_words: usize) -> Result<()> {
         let (segment_start, segment_len) = self.get_segment(id)?;
-        let this_start: usize = segment_start as usize;
-        let this_size: usize = segment_len as usize * BYTES_PER_WORD;
-        let start = start as usize;
-        let size = size_in_words * BYTES_PER_WORD;
-
-        if !(start >= this_start && start - this_start + size <= this_size) {
+        if !interval_in_segment(
+            segment_start as usize,
+            segment_len,
+            start as usize,
+            size_in_words,
+        ) {
             Err(Error::from_kind(
                 ErrorKind::MessageContainsOutOfBoundsPointer,
             ))
