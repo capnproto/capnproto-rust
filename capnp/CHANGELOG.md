@@ -1,3 +1,7 @@
+## v0.27.3
+- Avoid possible undefined behavior in is_canonical().
+- Fix overflows possible on 32-bit targets.
+
 ## v0.27.2
 - Fix integer overflow inStructReader::get_data_field(). (Bug was only reachable via
   `capnp::private` API.)
