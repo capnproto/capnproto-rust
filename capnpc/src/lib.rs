@@ -87,6 +87,7 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
     capnp::Error {
         extra: format!("{err}"),
         kind,
+        details: vec![],
     }
 }
 
