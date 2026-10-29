@@ -202,6 +202,11 @@ pub struct Error {
     /// Extra context about error
     #[cfg(feature = "alloc")]
     pub extra: alloc::string::String,
+
+    /// Optional details as key/value pairs. Keys are expected to be unique IDs and values
+    /// can be arbitrary data.
+    #[cfg(feature = "alloc")]
+    pub details: Vec<(u64, Vec<u8>)>,
 }
 
 /// The general nature of an error. The purpose of this enum is not to describe the error itself,
@@ -441,6 +446,7 @@ impl Error {
         Self {
             extra: description,
             kind: ErrorKind::Failed,
+            details: vec![],
         }
     }
 
@@ -451,6 +457,7 @@ impl Error {
         return Self {
             kind,
             extra: alloc::string::String::new(),
+            details: vec![],
         };
     }
 
@@ -459,6 +466,7 @@ impl Error {
         Self {
             extra: description,
             kind: ErrorKind::Overloaded,
+            details: vec![],
         }
     }
     #[cfg(feature = "alloc")]
@@ -466,6 +474,7 @@ impl Error {
         Self {
             extra: description,
             kind: ErrorKind::Disconnected,
+            details: vec![],
         }
     }
 
@@ -474,6 +483,7 @@ impl Error {
         Self {
             extra: description,
             kind: ErrorKind::Unimplemented,
+            details: vec![],
         }
     }
 }
@@ -496,6 +506,7 @@ impl core::convert::From<::std::io::Error> for Error {
         return Self {
             kind,
             extra: format!("{err}"),
+            details: vec![],
         };
         #[cfg(not(feature = "alloc"))]
         return Self { kind };
