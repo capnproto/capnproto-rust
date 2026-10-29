@@ -381,6 +381,22 @@ fn from_error(error: &Error, mut builder: exception::Builder) {
             builder.set_reason(error.to_string());
         }
     }
+
+    let mut details_builder = builder.init_details(error.details.len() as u32);
+
+    for (idx, (id, data)) in error.details.iter().enumerate() {
+        let mut detail_builder = details_builder.reborrow().get(idx as u32);
+        detail_builder.set_detail_id(*id);
+        detail_builder.set_data(data);
+    }
+}
+
+fn malformed_error() -> Error {
+    Error {
+        kind: ::capnp::ErrorKind::Failed,
+        extra: "remote exception: (malformed error)".into(),
+        details: vec![],
+    }
 }
 
 fn remote_exception_to_error(exception: exception::Reader) -> Error {
@@ -393,14 +409,33 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
         (Ok(exception::Type::Unimplemented), Ok(reason)) => {
             (::capnp::ErrorKind::Unimplemented, reason)
         }
-        _ => (::capnp::ErrorKind::Failed, "(malformed error)".into()),
+        _ => return malformed_error()
     };
     let reason_str = reason
         .to_str()
         .unwrap_or("<malformed utf-8 in error reason>");
+
+    let mut details = vec![];
+
+    let details_reader = if let Ok(reader) = exception.get_details() {
+        reader
+    } else {
+        return malformed_error();
+    };
+
+    for detail in details_reader {
+        let id = detail.get_detail_id();
+        let data = if let Ok(d) = detail.get_data() {
+            d.to_vec()
+        } else {
+            return malformed_error();
+        };
+        details.push((id, data));
+    }
     Error {
         extra: format!("remote exception: {reason_str}"),
         kind,
+        details,
     }
 }
 
@@ -937,7 +972,7 @@ impl<VatId> ConnectionState<VatId> {
                 }
                 connection_state.embargoes.borrow_mut().erase(embargo_id);
             }
-            disembargo::context::Accept(_) | disembargo::context::Provide(_) => {
+            disembargo::context::Accept(_) => {
                 return Err(Error::unimplemented(
                     "Disembargo::Context::Provide/Accept not implemented".to_string(),
                 ));
@@ -960,6 +995,11 @@ impl<VatId> ConnectionState<VatId> {
         match reader.which() {
             Ok(message::Unimplemented(message)) => {
                 Self::handle_unimplemented(&connection_state, message?)?
+            }
+            Ok(message::ThirdPartyAnswer(_)) => {
+                return Err(Error::failed(
+                    "Unsupported `ThirdPartyAnswer`.".to_string(),
+                ));
             }
             Ok(message::Abort(abort)) => return Err(remote_exception_to_error(abort?)),
             Ok(message::Bootstrap(bootstrap)) => {
@@ -1088,7 +1128,7 @@ impl<VatId> ConnectionState<VatId> {
                         }
                         match question.self_ref {
                             Some(ref question_ref) => match ret.which()? {
-                                return_::Results(results) => {
+                                return_::Which::Results(results) => {
                                     let cap_table = Self::receive_caps(
                                         &connection_state,
                                         results?.get_cap_table()?,
@@ -1104,18 +1144,21 @@ impl<VatId> ConnectionState<VatId> {
                                     );
                                     question_ref.borrow_mut().fulfill(Promise::ok(response));
                                 }
-                                return_::Exception(e) => {
+                                return_::Which::Exception(e) => {
                                     let tmp =
                                         question_ref.upgrade().expect("dangling question ref?");
                                     tmp.borrow_mut().reject(remote_exception_to_error(e?));
                                 }
-                                return_::Canceled(_) => {
+                                return_::Which::Canceled(_) => {
                                     Self::send_unimplemented(&connection_state, message.as_ref())?;
                                 }
-                                return_::ResultsSentElsewhere(_) => {
+                                return_::Which::ResultsSentElsewhere(_) => {
                                     Self::send_unimplemented(&connection_state, message.as_ref())?;
                                 }
-                                return_::TakeFromOtherQuestion(id) => {
+                                return_::Which::AwaitFromThirdParty(_) => {
+                                    Self::send_unimplemented(&connection_state, message.as_ref())?;
+                                }
+                                return_::Which::TakeFromOtherQuestion(id) => {
                                     if let Some(answer) =
                                         connection_state.answers.borrow_mut().slots.get_mut(&id)
                                     {
@@ -1134,10 +1177,6 @@ impl<VatId> ConnectionState<VatId> {
                                                 .to_string(),
                                         ));
                                     }
-                                }
-                                return_::AcceptFromThirdParty(_) => {
-                                    drop(questions);
-                                    Self::send_unimplemented(&connection_state, message.as_ref())?;
                                 }
                             },
                             None => {
