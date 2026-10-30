@@ -202,6 +202,32 @@ pub struct Error {
     /// Extra context about error
     #[cfg(feature = "alloc")]
     pub extra: alloc::string::String,
+
+    /// Optional details as key/value pairs. Keys are expected to be unique IDs and values
+    /// can be arbitrary data. These details can be set in an rpc server when returning an
+    /// error and then retrieved on the client after awaiting.
+    ///
+    /// For example, the server might implement an rpc call validation error by returning an error:
+    /// ```
+    /// let mut err = ::capnp::Error::failed("invalid".to_owned());
+    /// // The id VALIDATION_ERROR should be generated using `capnp id`
+    /// err.details.push((VALIDATION_ERROR, validation_error_details));
+    /// return err;
+    /// ```
+    ///
+    /// The client will receive this error after awaiting on the result of the rpc call:
+    /// ```
+    /// let reply = request.send().promise.await;
+    /// if let Err(e) = reply {
+    ///     for (id, data) in e.details {
+    ///         if id == VALIDATION_ERROR {
+    ///             return MyError::Invalid(data);
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    #[cfg(feature = "alloc")]
+    pub details: Vec<(u64, Vec<u8>)>,
 }
 
 /// The general nature of an error. The purpose of this enum is not to describe the error itself,
@@ -441,6 +467,7 @@ impl Error {
         Self {
             extra: description,
             kind: ErrorKind::Failed,
+            details: vec![],
         }
     }
 
@@ -451,6 +478,7 @@ impl Error {
         return Self {
             kind,
             extra: alloc::string::String::new(),
+            details: vec![],
         };
     }
 
@@ -459,6 +487,7 @@ impl Error {
         Self {
             extra: description,
             kind: ErrorKind::Overloaded,
+            details: vec![],
         }
     }
     #[cfg(feature = "alloc")]
@@ -466,6 +495,7 @@ impl Error {
         Self {
             extra: description,
             kind: ErrorKind::Disconnected,
+            details: vec![],
         }
     }
 
@@ -474,6 +504,7 @@ impl Error {
         Self {
             extra: description,
             kind: ErrorKind::Unimplemented,
+            details: vec![],
         }
     }
 }
@@ -496,6 +527,7 @@ impl core::convert::From<::std::io::Error> for Error {
         return Self {
             kind,
             extra: format!("{err}"),
+            details: vec![],
         };
         #[cfg(not(feature = "alloc"))]
         return Self { kind };

@@ -60,12 +60,20 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut request = hello_world.say_hello_request();
             request.get().init_request().set_name(&msg[..]);
 
-            let reply = request.send().promise.await?;
+            let reply = request.send().promise.await;
+            match reply {
+                Ok(r) => {
+                    println!(
+                        "received: {}",
+                        r.get()?.get_reply()?.get_message()?.to_str()?
+                    );
+                }
+                Err(e) => {
+                    let details = e.details;
+                    println!("error details: {:?}", details);
+                }
+            }
 
-            println!(
-                "received: {}",
-                reply.get()?.get_reply()?.get_message()?.to_str()?
-            );
             Ok(())
         })
         .await
