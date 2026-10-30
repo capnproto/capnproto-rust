@@ -34,12 +34,9 @@ impl hello_world::Server for HelloWorldImpl {
         params: hello_world::SayHelloParams,
         mut results: hello_world::SayHelloResults,
     ) -> Result<(), ::capnp::Error> {
-        let request = params.get()?.get_request()?;
-        let name = request.get_name()?.to_str()?;
-        let message = format!("Hello, {name}!");
-        results.get().init_reply().set_message(message);
-
-        Ok(())
+        let mut err = ::capnp::Error::failed("it failed".to_owned());
+        err.details.push((1, b"hello".to_vec()));
+        Err(err)
     }
 }
 
