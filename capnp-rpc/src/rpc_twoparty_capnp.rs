@@ -2,7 +2,7 @@
 // DO NOT EDIT.
 // source: rpc-twoparty.capnp
 // capnp binary version: 2.0.0
-// capnpc crate version: 0.27.0
+// capnpc crate version: 0.28.0
 
 #[repr(u16)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

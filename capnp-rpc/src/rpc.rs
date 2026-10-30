@@ -382,12 +382,14 @@ fn from_error(error: &Error, mut builder: exception::Builder) {
         }
     }
 
-    let mut details_builder = builder.init_details(error.details.len() as u32);
+    if error.details.len() > 0 {
+        let mut details_builder = builder.init_details(error.details.len() as u32);
 
-    for (idx, (id, data)) in error.details.iter().enumerate() {
-        let mut detail_builder = details_builder.reborrow().get(idx as u32);
-        detail_builder.set_detail_id(*id);
-        detail_builder.set_data(data);
+        for (idx, (id, data)) in error.details.iter().enumerate() {
+            let mut detail_builder = details_builder.reborrow().get(idx as u32);
+            detail_builder.set_detail_id(*id);
+            detail_builder.set_data(data);
+        }
     }
 }
 
@@ -409,28 +411,29 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
         (Ok(exception::Type::Unimplemented), Ok(reason)) => {
             (::capnp::ErrorKind::Unimplemented, reason)
         }
-        _ => return malformed_error()
+        _ => return malformed_error(),
     };
     let reason_str = reason
         .to_str()
         .unwrap_or("<malformed utf-8 in error reason>");
 
     let mut details = vec![];
-
-    let details_reader = if let Ok(reader) = exception.get_details() {
-        reader
-    } else {
-        return malformed_error();
-    };
-
-    for detail in details_reader {
-        let id = detail.get_detail_id();
-        let data = if let Ok(d) = detail.get_data() {
-            d.to_vec()
+    if exception.has_details() {
+        let details_reader = if let Ok(reader) = exception.get_details() {
+            reader
         } else {
             return malformed_error();
         };
-        details.push((id, data));
+
+        for detail in details_reader {
+            let id = detail.get_detail_id();
+            let data = if let Ok(d) = detail.get_data() {
+                d.to_vec()
+            } else {
+                return malformed_error();
+            };
+            details.push((id, data));
+        }
     }
     Error {
         extra: format!("remote exception: {reason_str}"),
@@ -998,9 +1001,7 @@ impl<VatId> ConnectionState<VatId> {
                 Self::handle_unimplemented(&connection_state, message?)?
             }
             Ok(message::ThirdPartyAnswer(_)) => {
-                return Err(Error::failed(
-                    "Unsupported `ThirdPartyAnswer`.".to_string(),
-                ));
+                return Err(Error::failed("Unsupported `ThirdPartyAnswer`.".to_string()));
             }
             Ok(message::Abort(abort)) => return Err(remote_exception_to_error(abort?)),
             Ok(message::Bootstrap(bootstrap)) => {
