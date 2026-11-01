@@ -3838,4 +3838,95 @@ mod preparation_completion_regression {
         ));
         state.disconnect(Error::disconnected("test complete".into()));
     }
+
+    fn new_connection_state() -> (TaskSet<Error>, Rc<ConnectionState<Side>>) {
+        let mut network = crate::twoparty::VatNetwork::new(
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            Side::Client,
+            Default::default(),
+        );
+        let (done, _completion) = oneshot::channel();
+        ConnectionState::new(
+            broken::new_cap(Error::failed("unused bootstrap".into())),
+            network.connect(Side::Server).unwrap(),
+            done,
+        )
+    }
+
+    #[test]
+    fn promise_descriptor_propagates_preparation_disconnect() {
+        let (_tasks, state) = new_connection_state();
+        let target = ConnectionState::import(&state, 17, false);
+        let observed = Rc::new(Cell::new(false));
+        let witness = Rc::downgrade(&observed);
+        let cap = PreparationHook {
+            inner: broken::new_cap(Error::failed("unused local cap".into())),
+            connection: Rc::downgrade(&state),
+            observed: observed.clone(),
+            temporary: false,
+            disconnect_at: DisconnectAt::GetPtr,
+        };
+        // An unresolved promise uses Client::write_descriptor() recursively.
+        // It is not an imported promise, so disconnect does not resolve it.
+        let promise = Client::from(PromiseClient::new(&state, Box::new(cap), None));
+        let mut request = target.new_call(0, 0, None);
+        request.get().set_as_capability(Box::new(promise));
+
+        let result = request.send();
+
+        assert!(observed.get());
+        assert_eq!(state.questions.borrow().iter().count(), 0);
+        assert_disconnect(result.promise.now_or_never());
+        assert_eq!(state.exports.borrow().iter().count(), 0);
+        assert!(state.exports_by_cap.borrow().is_empty());
+        drop(observed);
+        assert!(witness.upgrade().is_none(), "the capability was retained");
+    }
+
+    #[test]
+    fn results_propagate_preparation_disconnect() {
+        let (_tasks, state) = new_connection_state();
+        let observed = Rc::new(Cell::new(false));
+        let witness = Rc::downgrade(&observed);
+        let cap = PreparationHook {
+            inner: ConnectionState::import(&state, 23, false),
+            connection: Rc::downgrade(&state),
+            observed: observed.clone(),
+            temporary: false,
+            disconnect_at: DisconnectAt::TemporaryDrop,
+        };
+        let answer = Answer::new();
+        let (done, completion) = oneshot::channel();
+        let (pipeline_sender, _pipeline) = queued::Pipeline::new();
+        let mut results = Results::new(
+            &state,
+            0,
+            false,
+            done,
+            answer.received_finish.clone(),
+            Some(pipeline_sender.weak_clone()),
+        );
+        state.answers.borrow_mut().slots.insert(0, answer);
+        results.get().unwrap().set_as_capability(Box::new(cap));
+        drop(results);
+        let inner = completion.now_or_never().unwrap().unwrap();
+
+        assert_disconnect(Some(ResultsDone::from_results_inner(
+            Ok(inner),
+            Ok(()),
+            pipeline_sender,
+        )));
+
+        assert!(observed.get());
+        let answers = state.answers.borrow();
+        let answer = answers.slots.get(&0).unwrap();
+        assert!(!answer.return_has_been_sent);
+        assert!(answer.result_exports.is_empty());
+        assert_eq!(state.questions.borrow().iter().count(), 0);
+        assert_eq!(state.exports.borrow().iter().count(), 0);
+        assert!(state.exports_by_cap.borrow().is_empty());
+        drop(observed);
+        assert!(witness.upgrade().is_none(), "the capability was retained");
+    }
 }
