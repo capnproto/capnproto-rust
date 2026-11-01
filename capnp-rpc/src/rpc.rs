@@ -783,7 +783,7 @@ impl<VatId> ConnectionState<VatId> {
             }
             assert_eq!(cap_table.len(), 1);
 
-            Self::write_descriptors(connection_state, &cap_table, payload)
+            Self::write_descriptors(connection_state, &cap_table, payload)?
         };
 
         let slots = &mut connection_state.answers.borrow_mut().slots;
@@ -1442,7 +1442,7 @@ impl<VatId> ConnectionState<VatId> {
         }
         if inner.get_brand() == state.get_brand() {
             if let Some(c) = Client::from_ptr(inner.get_ptr(), state) {
-                return Ok(c.write_descriptor(descriptor));
+                return c.write_descriptor(descriptor);
             }
             // The hook claims to belong to this connection but the downcast
             // map has no live entry for it (e.g. a stale entry left by a
@@ -1454,6 +1454,10 @@ impl<VatId> ConnectionState<VatId> {
         }
         {
             let ptr = inner.get_ptr();
+            // The capability hooks above may have disconnected us.
+            if let Err(e) = &*state.connection.borrow() {
+                return Err(e.clone());
+            }
             let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
             if contains_key {
                 // We've already seen and exported this capability before.  Just up the refcount.
@@ -1466,6 +1470,10 @@ impl<VatId> ConnectionState<VatId> {
                 // This is the first time we've seen this capability.
 
                 let mut exp = Export::new(inner.clone());
+                // add_ref() can also call back into the connection.
+                if let Err(e) = &*state.connection.borrow() {
+                    return Err(e.clone());
+                }
                 exp.canonical = true;
                 let export_id = state.exports.borrow_mut().push(exp);
                 state.exports_by_cap.borrow_mut().insert(ptr, export_id);
@@ -1491,7 +1499,7 @@ impl<VatId> ConnectionState<VatId> {
         state: &Rc<Self>,
         cap_table: &[Option<Box<dyn ClientHook>>],
         payload: payload::Builder,
-    ) -> Vec<ExportId> {
+    ) -> capnp::Result<Vec<ExportId>> {
         let mut cap_table_builder = payload.init_cap_table(cap_table.len() as u32);
         let mut exports = Vec::new();
         for (idx, value) in cap_table.iter().enumerate() {
@@ -1501,9 +1509,7 @@ impl<VatId> ConnectionState<VatId> {
                         state,
                         cap.clone(),
                         cap_table_builder.reborrow().get(idx as u32),
-                    )
-                    .unwrap()
-                    {
+                    )? {
                         exports.push(export_id);
                     }
                 }
@@ -1512,7 +1518,13 @@ impl<VatId> ConnectionState<VatId> {
                 }
             }
         }
-        exports
+        // Releasing temporary capability hooks can disconnect us, including
+        // after the last descriptor was written. Do not admit a new question
+        // (or return exports that disconnect() has already released).
+        match &*state.connection.borrow() {
+            Ok(_) => Ok(exports),
+            Err(e) => Err(e.clone()),
+        }
     }
 
     fn import(state: &Rc<Self>, import_id: ImportId, is_promise: bool) -> Box<dyn ClientHook> {
@@ -1834,16 +1846,16 @@ where
         mut message: Box<dyn crate::OutgoingMessage>,
         cap_table: &[Option<Box<dyn ClientHook>>],
         is_tail_call: bool,
-    ) -> (
+    ) -> capnp::Result<(
         Rc<RefCell<QuestionRef<VatId>>>,
         Promise<Response<VatId>, Error>,
-    ) {
+    )> {
         // Build the cap table.
         let exports = ConnectionState::write_descriptors(
             connection_state,
             cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
-        );
+        )?;
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -1880,7 +1892,7 @@ where
         let promise = promise.attach(question_ref.clone());
         let promise2 = Promise::from_future(promise);
 
-        (question_ref, promise2)
+        Ok((question_ref, promise2))
     }
 
     fn send_streaming_internal(
@@ -1890,11 +1902,11 @@ where
         flow: Rc<RefCell<Option<Box<dyn crate::FlowController>>>>,
     ) -> Promise<(), Error> {
         // Build the cap table.
-        let exports = ConnectionState::write_descriptors(
+        let exports = pry!(ConnectionState::write_descriptors(
             connection_state,
             cap_table,
             get_call(&mut message).unwrap().get_params().unwrap(),
-        );
+        ));
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -2004,7 +2016,15 @@ impl<VatId> RequestHook for Request<VatId> {
             return replacement.send();
         }
         let (question_ref, promise) =
-            Self::send_internal(&connection_state, message, &cap_table, false);
+            match Self::send_internal(&connection_state, message, &cap_table, false) {
+                Ok(result) => result,
+                Err(e) => {
+                    return ::capnp::capability::RemotePromise {
+                        promise: Promise::err(e.clone()),
+                        pipeline: any_pointer::Pipeline::new(Box::new(broken::Pipeline::new(e))),
+                    };
+                }
+            };
         let forked_promise1 = promise.shared();
         let forked_promise2 = forked_promise1.clone();
 
@@ -2096,7 +2116,7 @@ impl<VatId> RequestHook for Request<VatId> {
             Some(_redirect) => {
                 return None;
             }
-            None => Self::send_internal(&connection_state, message, &cap_table, true),
+            None => Self::send_internal(&connection_state, message, &cap_table, true).ok()?,
         };
 
         let promise = promise.map_ok(|_response| {
@@ -2607,7 +2627,7 @@ impl ResultsDone {
                                         &connection_state,
                                         &cap_table,
                                         payload,
-                                    )
+                                    )?
                                 };
 
                                 let (_promise, m) = message.send();
@@ -3099,8 +3119,11 @@ impl<VatId> Client<VatId> {
         }
     }
 
-    fn write_descriptor(&self, mut descriptor: cap_descriptor::Builder) -> Option<u32> {
-        match &self.variant {
+    fn write_descriptor(
+        &self,
+        mut descriptor: cap_descriptor::Builder,
+    ) -> capnp::Result<Option<u32>> {
+        Ok(match &self.variant {
             ClientVariant::Import(import_client) => {
                 descriptor.set_receiver_hosted(import_client.borrow().import_id);
                 None
@@ -3131,10 +3154,9 @@ impl<VatId> Client<VatId> {
                     &self.connection_state.clone(),
                     promise_client.borrow().cap.clone(),
                     descriptor,
-                )
-                .unwrap()
+                )?
             }
-        }
+        })
     }
 }
 
@@ -3468,5 +3490,352 @@ mod disconnect_tests {
         };
         assert_disconnected_with(error, "gone");
         assert_eq!(state.questions.borrow().iter().count(), 0);
+    }
+}
+
+#[cfg(test)]
+mod preparation_completion_regression {
+    use super::*;
+    use crate::rpc_twoparty_capnp::Side;
+    use crate::VatNetwork;
+
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    enum DisconnectAt {
+        TemporaryDrop,
+        GetPtr,
+        ExportClone,
+        WhenMoreResolved,
+    }
+
+    // Wrap a capability and disconnect from a serialization callback.
+    struct PreparationHook {
+        inner: Box<dyn ClientHook>,
+        connection: Weak<ConnectionState<Side>>,
+        observed: Rc<Cell<bool>>,
+        temporary: bool,
+        disconnect_at: DisconnectAt,
+    }
+
+    impl PreparationHook {
+        fn disconnect_at(&self, at: DisconnectAt) {
+            if self.temporary && self.disconnect_at == at && !self.observed.replace(true) {
+                if let Some(state) = self.connection.upgrade() {
+                    state.disconnect(Error::disconnected("closed during preparation".into()));
+                }
+            }
+        }
+    }
+
+    impl Drop for PreparationHook {
+        fn drop(&mut self) {
+            self.disconnect_at(DisconnectAt::TemporaryDrop);
+        }
+    }
+
+    impl ClientHook for PreparationHook {
+        fn add_ref(&self) -> Box<dyn ClientHook> {
+            // The first clone prepares the descriptor; cloning that temporary
+            // creates the export's reference.
+            self.disconnect_at(DisconnectAt::ExportClone);
+            Box::new(Self {
+                inner: self.inner.clone(),
+                connection: self.connection.clone(),
+                observed: self.observed.clone(),
+                temporary: true,
+                disconnect_at: self.disconnect_at,
+            })
+        }
+
+        fn new_call(
+            &self,
+            interface: u64,
+            method: u16,
+            hint: Option<capnp::MessageSize>,
+        ) -> capnp::capability::Request<any_pointer::Owned, any_pointer::Owned> {
+            self.inner.new_call(interface, method, hint)
+        }
+
+        fn call(
+            &self,
+            interface: u64,
+            method: u16,
+            params: Box<dyn ParamsHook>,
+            results: Box<dyn ResultsHook>,
+        ) -> Promise<(), Error> {
+            self.inner.call(interface, method, params, results)
+        }
+
+        fn get_brand(&self) -> usize {
+            self.inner.get_brand()
+        }
+
+        fn get_ptr(&self) -> usize {
+            self.disconnect_at(DisconnectAt::GetPtr);
+            self.inner.get_ptr()
+        }
+
+        fn get_resolved(&self) -> Option<Box<dyn ClientHook>> {
+            None
+        }
+
+        fn when_more_resolved(&self) -> Option<Promise<Box<dyn ClientHook>, Error>> {
+            self.disconnect_at(DisconnectAt::WhenMoreResolved);
+            self.inner.when_more_resolved()
+        }
+
+        fn when_resolved(&self) -> Promise<(), Error> {
+            default_when_resolved_impl(self)
+        }
+    }
+
+    #[test]
+    fn request_completes_when_connection_closes_during_preparation() {
+        let mut network = crate::twoparty::VatNetwork::new(
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            Side::Client,
+            Default::default(),
+        );
+
+        let (done, _completion) = oneshot::channel();
+
+        let (_tasks, state) = ConnectionState::new(
+            broken::new_cap(Error::failed("unused bootstrap".into())),
+            network.connect(Side::Server).unwrap(),
+            done,
+        );
+
+        let target = ConnectionState::import(&state, 17, false);
+        let mut request = target.new_call(0, 0, None);
+
+        let observed = Rc::new(Cell::new(false));
+
+        let cap = PreparationHook {
+            inner: ConnectionState::import(&state, 23, false),
+            connection: Rc::downgrade(&state),
+            observed: observed.clone(),
+            temporary: false,
+            disconnect_at: DisconnectAt::TemporaryDrop,
+        };
+
+        request
+            .get()
+            .initn_as::<capnp::any_pointer_list::Builder>(1)
+            .get(0)
+            .set_as_capability(Box::new(cap));
+
+        assert!(state.connection.borrow().is_ok());
+
+        let result = request.send();
+
+        assert!(observed.get(), "the preparation callback was not exercised");
+        assert!(state.connection.borrow().is_err());
+
+        let question_count = state.questions.borrow().iter().count();
+
+        // Poll once. This does not wait for the network or the driver.
+        let completion = result.promise.now_or_never();
+
+        let settled = matches!(
+            completion,
+            Some(Err(ref error))
+                if error.kind == capnp::ErrorKind::Disconnected
+        );
+
+        eprintln!("settled={settled}, remaining_questions={question_count}");
+
+        assert!(
+            settled,
+            "the request did not complete with the disconnect error"
+        );
+        assert_eq!(
+            question_count, 0,
+            "request bookkeeping remained after connection closure"
+        );
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    enum SendKind {
+        Ordinary,
+        Streaming,
+        StreamingWithController,
+        Tail,
+    }
+
+    struct UnusedFlowController;
+
+    impl crate::FlowController for UnusedFlowController {
+        fn send(
+            &mut self,
+            _: Box<dyn crate::OutgoingMessage>,
+            _: Promise<(), Error>,
+        ) -> Promise<(), Error> {
+            panic!("a disconnected request reached the flow controller");
+        }
+
+        fn wait_all_acked(&mut self) -> Promise<(), Error> {
+            Promise::ok(())
+        }
+    }
+
+    fn assert_disconnect<T>(completion: Option<Result<T, Error>>) {
+        let Some(Err(error)) = completion else {
+            panic!("expected immediate disconnect error");
+        };
+        assert_eq!(error.kind, capnp::ErrorKind::Disconnected);
+        assert_eq!(error.extra, "closed during preparation");
+    }
+
+    fn check_admission(disconnect_at: DisconnectAt) {
+        for kind in [
+            SendKind::Ordinary,
+            SendKind::Streaming,
+            SendKind::StreamingWithController,
+            SendKind::Tail,
+        ] {
+            eprintln!("disconnect_at={disconnect_at:?}, send={kind:?}");
+            let mut network = crate::twoparty::VatNetwork::new(
+                futures::io::Cursor::new(Vec::<u8>::new()),
+                futures::io::Cursor::new(Vec::<u8>::new()),
+                Side::Client,
+                Default::default(),
+            );
+            let (done, _completion) = oneshot::channel();
+            let (_tasks, state) = ConnectionState::new(
+                broken::new_cap(Error::failed("unused bootstrap".into())),
+                network.connect(Side::Server).unwrap(),
+                done,
+            );
+            let target = ConnectionState::import(&state, 17, false);
+            if matches!(kind, SendKind::StreamingWithController) {
+                let client = Client::from_ptr(target.get_ptr(), &state).unwrap();
+                *client.flow_controller.borrow_mut() = Some(Box::new(UnusedFlowController));
+            }
+            let observed = Rc::new(Cell::new(false));
+            let witness = Rc::downgrade(&observed);
+            let cap = PreparationHook {
+                inner: if disconnect_at == DisconnectAt::TemporaryDrop {
+                    ConnectionState::import(&state, 23, false)
+                } else {
+                    broken::new_cap(Error::failed("unused local cap".into()))
+                },
+                connection: Rc::downgrade(&state),
+                observed: observed.clone(),
+                temporary: false,
+                disconnect_at,
+            };
+            if disconnect_at == DisconnectAt::GetPtr {
+                // The disconnect must clear a previously exported capability,
+                // without the resumed descriptor path recreating its export.
+                let ptr = cap.get_ptr();
+                let export_id = state.exports.borrow_mut().push(Export::new(cap.add_ref()));
+                state.exports_by_cap.borrow_mut().insert(ptr, export_id);
+            }
+            let mut request = target.new_call(0, 0, None);
+            let mut params = request
+                .get()
+                .initn_as::<capnp::any_pointer_list::Builder>(2);
+            params.reborrow().get(0).set_as_capability(Box::new(cap));
+            // A later descriptor must not create an export after the first
+            // descriptor's callback has completed disconnect cleanup.
+            params
+                .get(1)
+                .set_as_capability(broken::new_cap(Error::failed("later cap".into())));
+            assert!(state.connection.borrow().is_ok());
+            match kind {
+                SendKind::Ordinary => {
+                    let result = request.send();
+                    assert_eq!(state.questions.borrow().iter().count(), 0);
+                    assert_disconnect(result.promise.now_or_never());
+                    assert_disconnect(
+                        result
+                            .pipeline
+                            .as_cap()
+                            .new_call(0, 0, None)
+                            .send()
+                            .promise
+                            .now_or_never(),
+                    );
+                }
+                SendKind::Streaming | SendKind::StreamingWithController => {
+                    let result = request.hook.send_streaming();
+                    assert_eq!(state.questions.borrow().iter().count(), 0);
+                    assert_disconnect(result.now_or_never());
+                }
+                SendKind::Tail => assert!(request.hook.tail_send().is_none()),
+            }
+            assert!(observed.get());
+            assert_eq!(state.questions.borrow().iter().count(), 0);
+            assert_eq!(state.exports.borrow().iter().count(), 0);
+            assert!(state.exports_by_cap.borrow().is_empty());
+            drop(observed);
+            assert!(witness.upgrade().is_none(), "the capability was retained");
+        }
+    }
+
+    #[test]
+    fn admission_after_temporary_drop() {
+        check_admission(DisconnectAt::TemporaryDrop);
+    }
+
+    #[test]
+    fn admission_after_get_ptr() {
+        check_admission(DisconnectAt::GetPtr);
+    }
+
+    #[test]
+    fn admission_after_export_clone() {
+        check_admission(DisconnectAt::ExportClone);
+    }
+
+    #[test]
+    fn admission_after_when_more_resolved() {
+        check_admission(DisconnectAt::WhenMoreResolved);
+    }
+
+    #[test]
+    fn connected_descriptors_preserve_capability_identity() {
+        let mut network = crate::twoparty::VatNetwork::new(
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            futures::io::Cursor::new(Vec::<u8>::new()),
+            Side::Client,
+            Default::default(),
+        );
+        let (done, _completion) = oneshot::channel();
+        let (_tasks, state) = ConnectionState::new(
+            broken::new_cap(Error::failed("unused bootstrap".into())),
+            network.connect(Side::Server).unwrap(),
+            done,
+        );
+        let cap = broken::new_cap(Error::failed("unused local cap".into()));
+        let ptr = cap.get_ptr();
+        let imported = ConnectionState::import(&state, 23, false);
+        let caps = [Some(cap.clone()), Some(cap), Some(imported)];
+        let mut message = capnp::message::Builder::new_default();
+        let payload = message.init_root::<payload::Builder>();
+        let exports = ConnectionState::write_descriptors(&state, &caps, payload).unwrap();
+        assert_eq!(exports.len(), 2);
+        assert_eq!(exports[0], exports[1]);
+        assert_eq!(state.exports_by_cap.borrow()[&ptr], exports[0]);
+        assert_eq!(state.exports.borrow().iter().count(), 1);
+        assert_eq!(
+            state
+                .exports
+                .borrow_mut()
+                .find(exports[0])
+                .unwrap()
+                .refcount,
+            2
+        );
+        let descriptors = message
+            .get_root_as_reader::<payload::Reader>()
+            .unwrap()
+            .get_cap_table()
+            .unwrap();
+        assert!(matches!(
+            descriptors.get(2).which().unwrap(),
+            cap_descriptor::ReceiverHosted(23)
+        ));
+        state.disconnect(Error::disconnected("test complete".into()));
     }
 }
