@@ -1,3 +1,6 @@
+## v0.27.3
+- Add disconnect() error propagation to prevent possible never-resolving promises.
+
 ## v0.27.2
 - Avoid possible unreachable() panic on reentrant disconnect().
 
