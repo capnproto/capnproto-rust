@@ -3922,4 +3922,6 @@ mod disconnect_tests {
         ));
         state.disconnect(Error::disconnected("test complete".into()));
     }
+    include!("invocation_origin_disconnect_tests.rs");
+    include!("invocation_origin_tests.rs");
 }
