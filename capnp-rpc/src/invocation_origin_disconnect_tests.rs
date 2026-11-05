@@ -12,9 +12,16 @@ fn typed_origin_preserves_descriptor_disconnect_errors_and_cleanup() {
     }
 }
 
+// protects: conflicted RPC requests cannot emit; existing disconnect errors take precedence.
+// break: ignoring slot conflicts or checking them before the connection error.
+// observe: ordinary/streaming errors retain their cause, tail sends reject, and no question exists.
+// seam: none.
 #[test]
 fn typed_conflict_does_not_mask_an_existing_disconnect() {
-    for streaming in [false, true] {
+    for (kind, disconnected) in [SendKind::Ordinary, SendKind::Streaming, SendKind::Tail]
+        .into_iter()
+        .flat_map(|kind| [false, true].map(|disconnected| (kind, disconnected)))
+    {
         let (_tasks, state) = new_connection_state();
         let target = ConnectionState::import(&state, 17, false);
         let mut request = target.new_call(0, 0, None);
@@ -26,15 +33,31 @@ fn typed_conflict_does_not_mask_an_existing_disconnect() {
             .hook
             .set_invocation_origin(InvocationOrigin::new())
             .is_err());
-        state.disconnect(Error::disconnected("original disconnect".into()));
-        let result = if streaming {
-            request.hook.send_streaming().now_or_never()
-        } else {
-            request.send().promise.map_ok(|_| ()).now_or_never()
-        };
-        assert_disconnected_with(result.unwrap().unwrap_err(), "original disconnect");
+        if disconnected {
+            state.disconnect(Error::disconnected("original disconnect".into()));
+        }
+        match kind {
+            SendKind::Tail => assert!(request.hook.tail_send().is_none()),
+            SendKind::Ordinary | SendKind::Streaming => {
+                let result = if matches!(kind, SendKind::Streaming) {
+                    request.hook.send_streaming().now_or_never()
+                } else {
+                    request.send().promise.map_ok(|_| ()).now_or_never()
+                };
+                let error = result.unwrap().unwrap_err();
+                if disconnected {
+                    assert_disconnected_with(error, "original disconnect");
+                } else {
+                    assert_eq!(error.kind, capnp::ErrorKind::Failed);
+                    assert_eq!(error.extra, "conflicting local call context");
+                    assert!(state.connection.borrow().is_ok());
+                }
+            }
+            SendKind::StreamingWithController => unreachable!(),
+        }
         assert_eq!(state.questions.borrow().iter().count(), 0);
         assert_eq!(state.exports.borrow().iter().count(), 0);
+        state.disconnect(Error::disconnected("done".into()));
     }
 }
 
@@ -96,11 +119,18 @@ fn typed_origin_getter_disconnect_cannot_admit_copied_request() {
     assert_eq!(state.exports.borrow().iter().count(), 0);
 }
 
+#[derive(Clone, Copy)]
+enum OriginRedirectFailure {
+    SetterDisconnect,
+    CopyDisconnect,
+    Rejected,
+}
+
 #[derive(Clone)]
 struct OriginRedirectTarget {
     state: Weak<ConnectionState<Side>>,
     sent: Rc<Cell<bool>>,
-    close_in_setter: bool,
+    failure: OriginRedirectFailure,
 }
 
 impl ClientHook for OriginRedirectTarget {
@@ -154,7 +184,10 @@ struct OriginRedirectRequest {
 impl RequestHook for OriginRedirectRequest {
     fn set_invocation_origin(&mut self, origin: InvocationOrigin) -> capnp::Result<()> {
         self.origin = Some(origin);
-        if self.target.close_in_setter {
+        if matches!(self.target.failure, OriginRedirectFailure::Rejected) {
+            return Err(Error::unimplemented("origin transfer rejected".into()));
+        }
+        if matches!(self.target.failure, OriginRedirectFailure::SetterDisconnect) {
             self.target
                 .state
                 .upgrade()
@@ -170,7 +203,7 @@ impl RequestHook for OriginRedirectRequest {
             self.origin.is_some(),
             "origin must be assigned before copying"
         );
-        if !self.target.close_in_setter {
+        if matches!(self.target.failure, OriginRedirectFailure::CopyDisconnect) {
             self.target
                 .state
                 .upgrade()
@@ -199,10 +232,18 @@ impl RequestHook for OriginRedirectRequest {
     }
 }
 
+// protects: redirect assignment/copy failures stop both send paths.
+// break: ignoring setter rejection or a callback's source disconnect.
+// observe: exact error survives, source state matches the failure, and no target dispatch occurs.
+// seam: none.
 #[test]
 fn typed_redirect_callback_disconnect_prevents_local_send() {
     for streaming in [false, true] {
-        for close_in_setter in [false, true] {
+        for failure in [
+            OriginRedirectFailure::CopyDisconnect,
+            OriginRedirectFailure::SetterDisconnect,
+            OriginRedirectFailure::Rejected,
+        ] {
             let (_tasks, state) = new_connection_state();
             let import = ConnectionState::import(&state, 17, false);
             let pending = PromiseClient::new(&state, import, None);
@@ -218,24 +259,31 @@ fn typed_redirect_callback_disconnect_prevents_local_send() {
                 .resolve(Ok(Box::new(OriginRedirectTarget {
                     state: Rc::downgrade(&state),
                     sent: sent.clone(),
-                    close_in_setter,
+                    failure,
                 })));
             let result = if streaming {
                 request.hook.send_streaming().now_or_never()
             } else {
                 request.send().promise.map_ok(|_| ()).now_or_never()
             };
-            assert_disconnected_with(
-                result.unwrap().unwrap_err(),
-                if close_in_setter {
-                    "origin setter"
-                } else {
-                    "replacement copy"
-                },
-            );
-            assert!(!sent.get(), "closed source connection admitted local work");
+            let error = result.unwrap().unwrap_err();
+            match failure {
+                OriginRedirectFailure::SetterDisconnect => {
+                    assert_disconnected_with(error, "origin setter");
+                }
+                OriginRedirectFailure::CopyDisconnect => {
+                    assert_disconnected_with(error, "replacement copy");
+                }
+                OriginRedirectFailure::Rejected => {
+                    assert_eq!(error.kind, capnp::ErrorKind::Unimplemented);
+                    assert_eq!(error.extra, "origin transfer rejected");
+                    assert!(state.connection.borrow().is_ok());
+                }
+            }
+            assert!(!sent.get(), "failed origin transfer admitted local work");
             assert_eq!(state.questions.borrow().iter().count(), 0);
             assert_eq!(state.exports.borrow().iter().count(), 0);
+            state.disconnect(Error::disconnected("done".into()));
         }
     }
 }
@@ -338,6 +386,60 @@ impl crate::IncomingMessage for OriginIncomingMessage {
     fn get_body(&self) -> capnp::Result<any_pointer::Reader<'_>> {
         self.0.get_root_as_reader()
     }
+}
+
+#[derive(Clone)]
+struct DisconnectingIngressPipeline {
+    state: Weak<ConnectionState<Side>>,
+    target: Box<dyn ClientHook>,
+}
+
+impl PipelineHook for DisconnectingIngressPipeline {
+    fn add_ref(&self) -> Box<dyn PipelineHook> {
+        Box::new(self.clone())
+    }
+    fn get_pipelined_cap(&self, _: &[PipelineOp]) -> Box<dyn ClientHook> {
+        self.state
+            .upgrade()
+            .unwrap()
+            .disconnect(Error::disconnected("ingress target resolution".into()));
+        self.target.add_ref()
+    }
+}
+
+// protects: a target-resolution callback cannot admit an invocation after ingress disconnects.
+// break: omitting the connection check before constructing Params and an Answer.
+// observe: the original disconnect is returned, no new Answer exists, and the server is not called.
+// seam: none; exercise the existing promised-answer target hook.
+#[test]
+fn typed_ingress_disconnect_before_params_prevents_dispatch() {
+    let (_tasks, state) = new_connection_state();
+    let seen = Rc::new(RefCell::new(Vec::new()));
+    let mut answer = Answer::new();
+    answer.pipeline = Some(Box::new(DisconnectingIngressPipeline {
+        state: Rc::downgrade(&state),
+        target: Box::new(local::Client::new(OriginRecorder(seen.clone()))),
+    }));
+    state.answers.borrow_mut().slots.insert(0, answer);
+    let mut incoming = capnp::message::Builder::new_default();
+    let mut call = incoming.init_root::<message::Builder>().init_call();
+    call.set_question_id(1);
+    call.reborrow()
+        .init_target()
+        .init_promised_answer()
+        .set_question_id(0);
+    call.reborrow().init_params().init_cap_table(0);
+    call.init_send_results_to().set_caller(());
+    let error = ConnectionState::handle_message(
+        &Rc::downgrade(&state),
+        Box::new(OriginIncomingMessage(incoming)),
+    )
+    .unwrap_err();
+    assert_disconnected_with(error, "ingress target resolution");
+    assert!(seen.borrow().is_empty());
+    assert!(!state.answers.borrow().slots.contains_key(&1));
+    assert_eq!(state.questions.borrow().iter().count(), 0);
+    assert_eq!(state.exports.borrow().iter().count(), 0);
 }
 
 #[test]

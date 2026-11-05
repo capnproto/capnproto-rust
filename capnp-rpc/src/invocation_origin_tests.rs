@@ -243,15 +243,19 @@ fn typed_reconnect_requests_preserve_origin_and_conflict() {
     assert_eq!(*seen.borrow(), [a, b]);
 }
 
-// protects: identity-keyed native registries distinguish fresh tokens from clones.
-// break: value equality for fresh tokens or inconsistent clone hashing.
-// observe: a retained clone finds its original entry; a fresh token does not.
+// protects: identity-keyed registries distinguish fresh tokens without exposing addresses.
+// break: shared default identities, inconsistent clone hashing, or address-bearing Debug.
+// observe: clones find their entry, fresh defaults do not, and Debug remains opaque.
 // seam: none.
 #[test]
 fn typed_origin_clones_preserve_registry_identity() {
     let origin = InvocationOrigin::new();
     let clone = origin.clone();
     let fresh = InvocationOrigin::new();
+    let default = InvocationOrigin::default();
+    assert_ne!(default, InvocationOrigin::default());
+    assert_eq!(format!("{origin:?}"), "InvocationOrigin(..)");
+    assert_eq!(format!("{default:?}"), "InvocationOrigin(..)");
     let mut registry = std::collections::HashSet::new();
     assert!(registry.insert(origin));
     assert!(!registry.insert(clone.clone()));
@@ -259,6 +263,8 @@ fn typed_origin_clones_preserve_registry_identity() {
     assert!(!registry.contains(&fresh));
     assert!(registry.insert(fresh));
     assert_eq!(registry.len(), 2);
+    assert!(!registry.contains(&default));
+    assert!(registry.insert(default));
 }
 
 struct UntaggedParams(capnp::message::Builder<capnp::message::HeapAllocator>);
@@ -316,4 +322,39 @@ fn typed_origin_defaults_reject_unsupported_or_absent_provenance() {
         .unwrap();
     assert_eq!(error.extra, "missing origin");
     assert!(seen.borrow().is_empty());
+
+    // Reconstruction must not synthesize an origin for untagged Params either.
+    let (_tasks, state) = new_connection_state();
+    let pending = PromiseClient::new(&state, ConnectionState::import(&state, 17, false), None);
+    let imported = Client::from(pending.clone());
+    pending.borrow_mut().resolve(Ok(target.add_ref()));
+    let error =
+        complete_origin_call(imported.call(0, 0, Box::new(params), Box::new(UnusedResults)))
+            .unwrap_err();
+    assert_eq!(error.extra, "missing origin");
+    assert!(seen.borrow().is_empty());
+    assert_eq!(state.questions.borrow().iter().count(), 0);
+    state.disconnect(Error::disconnected("done".into()));
+}
+
+// protects: provenance assignment preserves the original broken-request error.
+// break: using the default unsupported setter instead of the stored error.
+// observe: assignment and send report the original error kind and message.
+// seam: none.
+#[test]
+fn typed_broken_request_preserves_original_error() {
+    for original in [
+        Error::failed("denied".into()),
+        Error::disconnected("gone".into()),
+    ] {
+        let mut request = Box::new(broken::Request::new(original.clone(), None));
+        let error = request
+            .set_invocation_origin(InvocationOrigin::new())
+            .unwrap_err();
+        assert_eq!(error.kind, original.kind);
+        assert_eq!(error.extra, original.extra);
+        let error = complete_origin_call(request.send().promise).err().unwrap();
+        assert_eq!(error.kind, original.kind);
+        assert_eq!(error.extra, original.extra);
+    }
 }
