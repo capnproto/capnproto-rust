@@ -64,6 +64,7 @@ impl ResponseHook for Response {
 }
 
 struct Params {
+    context: Option<capnp::private::capability::InvocationOrigin>,
     request: message::Builder<message::HeapAllocator>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
 }
@@ -72,12 +73,21 @@ impl Params {
     fn new(
         request: message::Builder<message::HeapAllocator>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
+        context: Option<capnp::private::capability::InvocationOrigin>,
     ) -> Self {
-        Self { request, cap_table }
+        Self {
+            request,
+            cap_table,
+            context,
+        }
     }
 }
 
 impl ParamsHook for Params {
+    fn invocation_origin(&self) -> Option<capnp::private::capability::InvocationOrigin> {
+        self.context.clone()
+    }
+
     fn get(&self) -> ::capnp::Result<any_pointer::Reader<'_>> {
         let mut result: any_pointer::Reader = self.request.get_root_as_reader()?;
         result.imbue(&self.cap_table);
@@ -204,6 +214,7 @@ impl ResultsDoneHook for ResultsDone {
 }
 
 pub(crate) struct Request {
+    context: crate::invocation_origin::Slot,
     message: message::Builder<::capnp::message::HeapAllocator>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
     interface_id: u64,
@@ -222,6 +233,7 @@ impl Request {
     ) -> Self {
         let (pipeline_sender, pipeline) = crate::queued::Pipeline::new();
         Self {
+            context: Default::default(),
             message: message::Builder::new_default(),
             cap_table: Vec::new(),
             interface_id,
@@ -234,6 +246,13 @@ impl Request {
 }
 
 impl RequestHook for Request {
+    fn set_invocation_origin(
+        &mut self,
+        context: capnp::private::capability::InvocationOrigin,
+    ) -> capnp::Result<()> {
+        self.context.set(context)
+    }
+
     fn get(&mut self) -> any_pointer::Builder<'_> {
         let mut result: any_pointer::Builder = self.message.get_root().unwrap();
         result.imbue_mut(&mut self.cap_table);
@@ -245,6 +264,7 @@ impl RequestHook for Request {
     fn send(self: Box<Self>) -> capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let Self {
+            context,
             message,
             cap_table,
             interface_id,
@@ -253,7 +273,11 @@ impl RequestHook for Request {
             mut pipeline,
             pipeline_sender,
         } = tmp;
-        let params = Params::new(message, cap_table);
+        let context = match context.take() {
+            Ok(context) => context,
+            Err(error) => return Box::new(crate::broken::Request::new(error, None)).send(),
+        };
+        let params = Params::new(message, cap_table, context);
 
         let (results_done_fulfiller, results_done_promise) =
             oneshot::channel::<Box<dyn ResultsDoneHook>>();

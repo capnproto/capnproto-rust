@@ -430,6 +430,7 @@ where
     VatId: 'static,
 {
     bootstrap_cap: Box<dyn ClientHook>,
+    incoming_invocation_origin: Option<capnp::private::capability::InvocationOrigin>,
     exports: RefCell<ExportTable<Export>>,
     questions: RefCell<ExportTable<Question<VatId>>>,
     answers: RefCell<ImportTable<Answer<VatId>>>,
@@ -457,8 +458,11 @@ impl<VatId> ConnectionState<VatId> {
         connection: Box<dyn crate::Connection<VatId>>,
         disconnect_fulfiller: oneshot::Sender<Promise<(), Error>>,
     ) -> (TaskSet<Error>, Rc<Self>) {
+        // Read trusted connection classification before publishing or borrowing the state.
+        let incoming_invocation_origin = connection.incoming_invocation_origin();
         let state = Rc::new(Self {
             bootstrap_cap,
+            incoming_invocation_origin,
             exports: RefCell::new(ExportTable::new()),
             questions: RefCell::new(ExportTable::new()),
             answers: RefCell::new(ImportTable::new()),
@@ -1000,7 +1004,11 @@ impl<VatId> ConnectionState<VatId> {
                     )));
                 }
 
-                let params = Params::new(message, cap_table_array);
+                if let Err(error) = &*connection_state.connection.borrow() {
+                    return Err(error.clone());
+                }
+                let context = connection_state.incoming_invocation_origin.clone();
+                let params = Params::new(message, cap_table_array, context);
 
                 let answer = Answer::new();
 
@@ -1802,6 +1810,7 @@ struct Request<VatId>
 where
     VatId: 'static,
 {
+    context: crate::invocation_origin::Slot,
     connection_state: Rc<ConnectionState<VatId>>,
     target: Client<VatId>,
     message: Box<dyn crate::OutgoingMessage>,
@@ -1829,6 +1838,7 @@ where
     ) -> ::capnp::Result<Self> {
         let message = connection_state.new_outgoing_message(1024)?;
         Ok(Self {
+            context: Default::default(),
             connection_state,
             target,
             message,
@@ -1962,6 +1972,13 @@ where
 }
 
 impl<VatId> RequestHook for Request<VatId> {
+    fn set_invocation_origin(
+        &mut self,
+        context: capnp::private::capability::InvocationOrigin,
+    ) -> capnp::Result<()> {
+        self.context.set(context)
+    }
+
     fn get(&mut self) -> any_pointer::Builder<'_> {
         use ::capnp::traits::ImbueMut;
         let mut builder = get_call(&mut self.message)
@@ -1978,6 +1995,7 @@ impl<VatId> RequestHook for Request<VatId> {
     fn send(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let Self {
+            context,
             connection_state,
             target,
             mut message,
@@ -1990,6 +2008,10 @@ impl<VatId> RequestHook for Request<VatId> {
                 pipeline: any_pointer::Pipeline::new(Box::new(broken::Pipeline::new(e.clone()))),
             };
         }
+        let context = match context.take() {
+            Ok(context) => context,
+            Err(error) => return Box::new(broken::Request::new(error, None)).send(),
+        };
         let write_target_result = {
             let call_builder: call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
@@ -2004,6 +2026,17 @@ impl<VatId> RequestHook for Request<VatId> {
                 None,
             );
 
+            if let Some(context) = context {
+                let assigned = replacement.hook.set_invocation_origin(context);
+                // A user-supplied request wrapper can disconnect during assignment.
+                if let Err(error) = &*connection_state.connection.borrow() {
+                    return Box::new(broken::Request::new(error.clone(), None)).send();
+                }
+                if let Err(error) = assigned {
+                    return Box::new(broken::Request::new(error, None)).send();
+                }
+            }
+
             replacement
                 .set(
                     call_builder
@@ -2013,6 +2046,9 @@ impl<VatId> RequestHook for Request<VatId> {
                         .into_reader(),
                 )
                 .unwrap();
+            if let Err(error) = &*connection_state.connection.borrow() {
+                return Box::new(broken::Request::new(error.clone(), None)).send();
+            }
             return replacement.send();
         }
         let (question_ref, promise) =
@@ -2052,6 +2088,7 @@ impl<VatId> RequestHook for Request<VatId> {
     fn send_streaming(self: Box<Self>) -> Promise<(), Error> {
         let tmp = *self;
         let Self {
+            context,
             connection_state,
             target,
             mut message,
@@ -2061,6 +2098,10 @@ impl<VatId> RequestHook for Request<VatId> {
             // Connection is broken.
             return Promise::err(e.clone());
         }
+        let context = match context.take() {
+            Ok(context) => context,
+            Err(error) => return Promise::err(error),
+        };
         let write_target_result = {
             let call_builder: call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
@@ -2075,6 +2116,16 @@ impl<VatId> RequestHook for Request<VatId> {
                 None,
             );
 
+            if let Some(context) = context {
+                let assigned = replacement.hook.set_invocation_origin(context);
+                if let Err(error) = &*connection_state.connection.borrow() {
+                    return Promise::err(error.clone());
+                }
+                if let Err(error) = assigned {
+                    return Promise::err(error);
+                }
+            }
+
             replacement
                 .set(
                     call_builder
@@ -2084,6 +2135,9 @@ impl<VatId> RequestHook for Request<VatId> {
                         .into_reader(),
                 )
                 .unwrap();
+            if let Err(error) = &*connection_state.connection.borrow() {
+                return Promise::err(error.clone());
+            }
             return replacement.hook.send_streaming();
         }
         Self::send_streaming_internal(
@@ -2096,12 +2150,18 @@ impl<VatId> RequestHook for Request<VatId> {
     fn tail_send(self: Box<Self>) -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)> {
         let tmp = *self;
         let Self {
+            context,
             connection_state,
             target,
             mut message,
             cap_table,
         } = tmp;
 
+        // The existing implementation has no functioning local tail-send fallback.
+        // Reject a disputed context before any wire emission.
+        if context.take().is_err() {
+            return None;
+        }
         if connection_state.connection.borrow().is_err() {
             // Disconnected; fall back to a regular send() which will fail appropriately.
             return None;
@@ -2314,6 +2374,7 @@ impl<VatId> PipelineHook for Pipeline<VatId> {
 }
 
 pub(crate) struct Params {
+    context: Option<capnp::private::capability::InvocationOrigin>,
     request: Box<dyn crate::IncomingMessage>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
 }
@@ -2322,12 +2383,21 @@ impl Params {
     fn new(
         request: Box<dyn crate::IncomingMessage>,
         cap_table: Vec<Option<Box<dyn ClientHook>>>,
+        context: Option<capnp::private::capability::InvocationOrigin>,
     ) -> Self {
-        Self { request, cap_table }
+        Self {
+            request,
+            cap_table,
+            context,
+        }
     }
 }
 
 impl ParamsHook for Params {
+    fn invocation_origin(&self) -> Option<capnp::private::capability::InvocationOrigin> {
+        self.context.clone()
+    }
+
     fn get(&self) -> ::capnp::Result<any_pointer::Reader<'_>> {
         let root: message::Reader = self.request.get_body()?.get_as()?;
         let message::Call(call) = root.which()? else {
@@ -3218,6 +3288,9 @@ impl<VatId> ClientHook for Client<VatId> {
             let mut request = p
                 .target_size()
                 .map(|s| self.new_call(interface_id, method_id, Some(s)))?;
+            if let Some(context) = params.invocation_origin() {
+                request.hook.set_invocation_origin(context)?;
+            }
             request.get().set_as(p)?;
             Ok(request)
         });
@@ -3849,4 +3922,6 @@ mod disconnect_tests {
         ));
         state.disconnect(Error::disconnected("test complete".into()));
     }
+    include!("invocation_origin_disconnect_tests.rs");
+    include!("invocation_origin_tests.rs");
 }
