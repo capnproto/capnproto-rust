@@ -684,20 +684,21 @@ impl<VatId> ConnectionState<VatId> {
             Ok(ref mut connection) => connection.receive_incoming_message(),
         };
 
+        // The connection state can be dropped while the receive is pending: disconnect() clears
+        // the RpcSystem's reference, but this task keeps running in the RpcSystem's task set.
+        // The connection is then already torn down, so the loop just ends.
         Promise::from_future(async move {
             match promise.await? {
                 Some(m) => {
                     Self::handle_message(&weak_state, m)?;
-                    weak_state
-                        .upgrade()
-                        .expect("message loop outlived connection state?")
-                        .add_task(Self::message_loop(weak_state));
+                    if let Some(state) = weak_state.upgrade() {
+                        state.add_task(Self::message_loop(weak_state));
+                    }
                 }
                 None => {
-                    weak_state
-                        .upgrade()
-                        .expect("message loop outlived connection state?")
-                        .disconnect(Error::disconnected("Peer disconnected.".to_string()));
+                    if let Some(state) = weak_state.upgrade() {
+                        state.disconnect(Error::disconnected("Peer disconnected.".to_string()));
+                    }
                 }
             }
             Ok(())
@@ -3490,6 +3491,16 @@ mod disconnect_tests {
         };
         assert_disconnected_with(error, "gone");
         assert_eq!(state.questions.borrow().iter().count(), 0);
+    }
+
+    #[test]
+    fn message_loop_ends_when_peer_closes_after_state_is_dropped() {
+        let (mut tasks, state) = new_connection_state();
+        state.disconnect(Error::disconnected("local disconnect".into()));
+        drop(state);
+
+        // The pending receive now reads end of stream with no connection state left.
+        assert!((&mut tasks).now_or_never().is_none());
     }
 
     /// The `ClientHook` callback that `DisconnectingHook` disconnects from.
