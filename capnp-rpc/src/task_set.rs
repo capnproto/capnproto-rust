@@ -95,6 +95,10 @@ where
         (handle, set)
     }
 
+    pub(crate) fn set_reaper(&mut self, reaper: Box<dyn TaskReaper<E>>) {
+        *self.reaper.borrow_mut() = reaper;
+    }
+
     fn update_on_empty_fulfillers(&mut self) {
         // There is always the one pending() future that we added in `new()`.
         if self.in_progress.len() <= 1 {
