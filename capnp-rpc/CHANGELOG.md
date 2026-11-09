@@ -1,3 +1,8 @@
+## v0.27.4
+- Add RpcSystem::set_background_error_handler().
+- In default background error handler, use writeln!() instead of println!(), to
+  avoid panics.
+
 ## v0.27.3
 - Add disconnect() error propagation to prevent possible never-resolving promises.
 
