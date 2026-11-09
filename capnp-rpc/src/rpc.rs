@@ -521,7 +521,7 @@ impl<VatId> ConnectionState<VatId> {
 
         {
             let answer_slots = &mut self.answers.borrow_mut().slots;
-            for (_, ref mut answer) in answer_slots.iter_mut() {
+            for ref mut answer in answer_slots.values_mut() {
                 // TODO tail call
                 pipelines_to_release.push(answer.pipeline.take())
             }
@@ -544,7 +544,7 @@ impl<VatId> ConnectionState<VatId> {
 
         {
             let import_slots = &mut self.imports.borrow_mut().slots;
-            for (_, ref mut import) in import_slots.iter_mut() {
+            for ref mut import in import_slots.values_mut() {
                 if let Some(f) = import.promise_client_to_resolve.take() {
                     if let Some(promise_client) = f.upgrade() {
                         promise_client.borrow_mut().resolve(Err(error.clone()));
