@@ -518,7 +518,7 @@ where
 struct SystemTaskReaper;
 impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
-        println!("ERROR: {error}");
+        log::error!("{error}");
     }
 }
 
