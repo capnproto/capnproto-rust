@@ -292,6 +292,19 @@ impl<VatId> RpcSystem<VatId> {
         result
     }
 
+    /// Sets the callback used to log errors from this RpcSystem's background tasks.
+    ///
+    /// The default handler prints errors to stdout, ignoring any I/O errors.
+    /// The replacement is called synchronously while polling this `RpcSystem`,
+    /// including for tasks that were already running when the handler was set.
+    /// Set the handler before spawning the system to handle errors from its first poll.
+    ///
+    /// This callback is intended only for reporting errors. It should return promptly.
+    pub fn set_background_error_handler(&mut self, handler: impl FnMut(Error) + 'static) {
+        self.tasks
+            .set_reaper(Box::new(BackgroundErrorHandler(handler)));
+    }
+
     /// Connects to the given vat and returns its bootstrap interface, returns
     /// a client that can be used to invoke the bootstrap interface.
     pub fn bootstrap<T>(&mut self, vat_id: VatId) -> T
@@ -518,7 +531,20 @@ where
 struct SystemTaskReaper;
 impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
-        println!("ERROR: {error}");
+        use std::io::Write;
+        // Unlike println!, this does not panic on I/O errors, such as when
+        // nonblocking stdout's buffer is full. Reporting a background task
+        // failure should not panic while the RpcSystem is being polled.
+        // TODO(apibump): log to stderr instead of stdout.
+        let _ = writeln!(std::io::stdout().lock(), "ERROR: {error}");
+    }
+}
+
+struct BackgroundErrorHandler<F>(F);
+
+impl<F: FnMut(Error)> crate::task_set::TaskReaper<Error> for BackgroundErrorHandler<F> {
+    fn task_failed(&mut self, error: Error) {
+        (self.0)(error);
     }
 }
 
