@@ -1,3 +1,6 @@
+## v0.27.5
+- Avoid possible "message loop outlived connection state?" panic on shutdown.
+
 ## v0.27.4
 - Add RpcSystem::set_background_error_handler().
 - In default background error handler, use writeln!() instead of println!(), to
