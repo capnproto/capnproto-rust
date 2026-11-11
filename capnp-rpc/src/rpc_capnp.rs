@@ -291,7 +291,7 @@ pub mod message {
                         ::core::option::Option::None,
                     ),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -782,7 +782,7 @@ pub mod message {
                         ::core::option::Option::None,
                     ),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -2145,7 +2145,7 @@ pub mod call {
                     2 => ::core::result::Result::Ok(ThirdParty(::capnp::any_pointer::Reader::new(
                         self.reader.get_pointer_field(2),
                     ))),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -2275,7 +2275,7 @@ pub mod call {
                     2 => ::core::result::Result::Ok(ThirdParty(
                         ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(2)),
                     )),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -2563,7 +2563,7 @@ pub mod return_ {
                 5 => ::core::result::Result::Ok(AcceptFromThirdParty(
                     ::capnp::any_pointer::Reader::new(self.reader.get_pointer_field(0)),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -2779,7 +2779,7 @@ pub mod return_ {
                 5 => ::core::result::Result::Ok(AcceptFromThirdParty(
                     ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0)),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -3499,7 +3499,7 @@ pub mod resolve {
                         ::core::option::Option::None,
                     ),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -3664,7 +3664,7 @@ pub mod resolve {
                         ::core::option::Option::None,
                     ),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -4556,7 +4556,7 @@ pub mod disembargo {
                     )),
                     2 => ::core::result::Result::Ok(Accept(())),
                     3 => ::core::result::Result::Ok(Provide(self.reader.get_data_field::<u32>(0))),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -4685,7 +4685,7 @@ pub mod disembargo {
                     )),
                     2 => ::core::result::Result::Ok(Accept(())),
                     3 => ::core::result::Result::Ok(Provide(self.builder.get_data_field::<u32>(0))),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -6062,7 +6062,7 @@ pub mod message_target {
                         ::core::option::Option::None,
                     ),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -6195,7 +6195,7 @@ pub mod message_target {
                         ::core::option::Option::None,
                     ),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -6816,7 +6816,7 @@ pub mod cap_descriptor {
                         ::core::option::Option::None,
                     ),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -7012,7 +7012,7 @@ pub mod cap_descriptor {
                         ::core::option::Option::None,
                     ),
                 )),
-                x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
             }
         }
     }
@@ -7685,7 +7685,7 @@ pub mod promised_answer {
                     1 => ::core::result::Result::Ok(GetPointerField(
                         self.reader.get_data_field::<u16>(1),
                     )),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -7800,7 +7800,7 @@ pub mod promised_answer {
                     1 => ::core::result::Result::Ok(GetPointerField(
                         self.builder.get_data_field::<u16>(1),
                     )),
-                    x => ::core::result::Result::Err(::capnp::NotInSchema(x)),
+                    x => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(x)),
                 }
             }
         }
@@ -8726,7 +8726,7 @@ pub mod exception {
                 1 => ::core::result::Result::Ok(Self::Overloaded),
                 2 => ::core::result::Result::Ok(Self::Disconnected),
                 3 => ::core::result::Result::Ok(Self::Unimplemented),
-                n => ::core::result::Result::Err(::capnp::NotInSchema(n)),
+                n => ::core::result::Result::Err(::capnp::NotInSchema::hidden_new(n)),
             }
         }
     }

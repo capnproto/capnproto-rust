@@ -1455,7 +1455,7 @@ fn generate_union(
 
     getter_interior.push(Line(fmt!(
         ctx,
-        "x => ::core::result::Result::Err({capnp}::NotInSchema(x))"
+        "x => ::core::result::Result::Err({capnp}::NotInSchema::hidden_new(x))"
     )));
 
     interior.push(Branch(vec![
@@ -2448,7 +2448,7 @@ fn generate_node(
             }
             match_branches.push(Line(fmt!(
                 ctx,
-                "n => ::core::result::Result::Err({capnp}::NotInSchema(n)),"
+                "n => ::core::result::Result::Err({capnp}::NotInSchema::hidden_new(n)),"
             )));
 
             output.push(Branch(vec![
