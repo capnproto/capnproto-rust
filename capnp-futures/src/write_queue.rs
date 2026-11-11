@@ -21,7 +21,7 @@
 use std::future::Future;
 
 use futures_channel::oneshot;
-use futures_util::{AsyncWrite, AsyncWriteExt, StreamExt, TryFutureExt};
+use futures_util::{AsyncWrite, AsyncWriteExt, FutureExt, StreamExt, TryFutureExt};
 
 use capnp::Error;
 
@@ -62,6 +62,10 @@ where
 /// queue, and `task` is a future that performs the work of the writes. The queue
 /// will run as long as `task` is polled, until either `sender.terminate()` is
 /// called or `sender` and all of its clones are dropped.
+///
+/// Messages that are already queued when the task starts writing are written
+/// back to back and share a single `flush()`. Messages sent while that batch is
+/// being written go into the next batch.
 pub fn write_queue<W, M>(mut writer: W) -> (Sender<M>, impl Future<Output = Result<(), Error>>)
 where
     W: AsyncWrite + Unpin,
@@ -77,25 +81,56 @@ where
     };
 
     let queue = async move {
-        while let Some(item) = rx.next().await {
-            match item {
-                Item::Message(m, returner) => {
-                    let result = crate::serialize::write_message(&mut writer, &m).await;
-                    in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
-                    result?;
-                    writer.flush().await?;
-                    let _ = returner.send(m);
+        let mut written = Vec::new();
+        while let Some(mut item) = rx.next().await {
+            let mut batch_remaining = in_flight.load(std::sync::atomic::Ordering::SeqCst);
+            loop {
+                match item {
+                    Item::Message(m, returner) => {
+                        let result = crate::serialize::write_message(&mut writer, &m).await;
+                        in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                        result?;
+                        written.push((m, returner));
+                        batch_remaining -= 1;
+                    }
+                    Item::Done(r, finisher) => {
+                        flush_written(&mut writer, &mut written).await?;
+                        let _ = finisher.send(());
+                        return r;
+                    }
                 }
-                Item::Done(r, finisher) => {
-                    let _ = finisher.send(());
-                    return r;
+                if batch_remaining <= 0 {
+                    break;
+                }
+                match rx.next().now_or_never() {
+                    Some(Some(next)) => item = next,
+                    _ => break,
                 }
             }
+            flush_written(&mut writer, &mut written).await?;
         }
         Ok(())
     };
 
     (sender, queue)
+}
+
+/// Flushes `writer`, then hands each written message back to its sender.
+async fn flush_written<W, M>(
+    writer: &mut W,
+    written: &mut Vec<(M, oneshot::Sender<M>)>,
+) -> Result<(), Error>
+where
+    W: AsyncWrite + Unpin,
+{
+    if written.is_empty() {
+        return Ok(());
+    }
+    writer.flush().await?;
+    for (m, returner) in written.drain(..) {
+        let _ = returner.send(m);
+    }
+    Ok(())
 }
 
 fn _assert_kinds() {
@@ -155,5 +190,159 @@ where
 
         receiver
             .map_err(|oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::rc::Rc;
+    use std::task::{Context, Poll};
+
+    use capnp::message::{Builder, HeapAllocator, ReaderOptions};
+    use futures::executor::block_on;
+    use futures_util::{AsyncWrite, FutureExt};
+
+    use super::{write_queue, Sender};
+
+    type Message = Builder<HeapAllocator>;
+
+    #[derive(Default)]
+    struct RecordingWriter {
+        bytes: Vec<u8>,
+        flushes: usize,
+        pending_flushes: usize,
+        on_first_write: Option<Box<dyn FnOnce()>>,
+    }
+
+    impl AsyncWrite for RecordingWriter {
+        fn poll_write(
+            mut self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if let Some(f) = self.on_first_write.take() {
+                f();
+            }
+            self.bytes.extend_from_slice(buf);
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            if self.pending_flushes > 0 {
+                self.pending_flushes -= 1;
+                cx.waker().wake_by_ref();
+                return Poll::Pending;
+            }
+            self.flushes += 1;
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    fn message(value: u64) -> Message {
+        let mut message = Builder::new_default();
+        message
+            .init_root::<capnp::any_pointer::Builder>()
+            .initn_as::<capnp::primitive_list::Builder<u64>>(1)
+            .set(0, value);
+        message
+    }
+
+    fn values(mut bytes: &[u8]) -> Vec<u64> {
+        let mut values = Vec::new();
+        while !bytes.is_empty() {
+            let reader =
+                capnp::serialize::read_message_from_flat_slice(&mut bytes, ReaderOptions::new())
+                    .unwrap();
+            let list: capnp::primitive_list::Reader<u64> = reader.get_root().unwrap();
+            values.push(list.get(0));
+        }
+        values
+    }
+
+    #[test]
+    fn queued_messages_share_one_flush() {
+        let mut writer = RecordingWriter::default();
+        let (mut sender, queue) = write_queue::<_, Message>(&mut writer);
+        let sent: Vec<_> = (0..3).map(|i| sender.send(message(i))).collect();
+        let terminated = sender.terminate(Ok(()));
+
+        block_on(queue).unwrap();
+        for s in sent {
+            block_on(s).unwrap();
+        }
+        block_on(terminated).unwrap();
+
+        assert_eq!(writer.flushes, 1);
+        assert_eq!(values(&writer.bytes), [0, 1, 2]);
+    }
+
+    #[test]
+    fn terminate_flushes_messages_written_before_it() {
+        let mut writer = RecordingWriter::default();
+        let (mut sender, queue) = write_queue::<_, Message>(&mut writer);
+        let first = sender.send(message(0));
+        let terminated = sender.terminate(Ok(()));
+        let after_terminate = sender.send(message(1));
+
+        block_on(queue).unwrap();
+
+        let returned = block_on(first).unwrap();
+        let list: capnp::primitive_list::Reader<u64> = returned.get_root_as_reader().unwrap();
+        assert_eq!(list.get(0), 0);
+        block_on(terminated).unwrap();
+        assert!(block_on(after_terminate).is_err());
+        assert_eq!(writer.flushes, 1);
+        assert_eq!(values(&writer.bytes), [0]);
+    }
+
+    #[test]
+    fn messages_sent_during_a_write_get_their_own_flush() {
+        let slot: Rc<RefCell<Option<Sender<Message>>>> = Rc::new(RefCell::new(None));
+        let mut writer = RecordingWriter::default();
+        let late_sender = slot.clone();
+        writer.on_first_write = Some(Box::new(move || {
+            let mut sender = late_sender.borrow_mut().take().unwrap();
+            drop(sender.send(message(1)));
+        }));
+
+        let (mut sender, queue) = write_queue::<_, Message>(&mut writer);
+        *slot.borrow_mut() = Some(sender.clone());
+        let first = sender.send(message(0));
+        drop(sender);
+
+        block_on(queue).unwrap();
+        block_on(first).unwrap();
+
+        assert_eq!(writer.flushes, 2);
+        assert_eq!(values(&writer.bytes), [0, 1]);
+    }
+
+    #[test]
+    fn send_resolves_after_flush() {
+        let mut writer = RecordingWriter {
+            pending_flushes: 1,
+            ..Default::default()
+        };
+        let (mut sender, queue) = write_queue::<_, Message>(&mut writer);
+        let mut sent = sender.send(message(0));
+        drop(sender);
+
+        let mut queue = Box::pin(queue);
+        let waker = futures::task::noop_waker();
+        let mut cx = Context::from_waker(&waker);
+        assert!(queue.as_mut().poll(&mut cx).is_pending());
+        assert!((&mut sent).now_or_never().is_none());
+
+        assert!(queue.as_mut().poll(&mut cx).is_ready());
+        assert!(sent.now_or_never().unwrap().is_ok());
+        drop(queue);
+        assert_eq!(writer.flushes, 1);
     }
 }
