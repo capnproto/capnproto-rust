@@ -25,11 +25,67 @@ use crate::any_pointer;
 use crate::capability::{Params, Promise, RemotePromise, Request, Results};
 use crate::MessageSize;
 
+/// An opaque process-local invocation origin. Never serialized or attached to a capability.
+///
+/// Creation supplies identity only, not authentication, permission, or owner liveness.
+/// Trusted native integration must register origins and bind them to authenticated ingress.
+/// Each invocation retains its own association with the origin, independently of its poller.
+#[derive(Clone)]
+pub struct InvocationOrigin(alloc::rc::Rc<OriginIdentity>);
+
+struct OriginIdentity;
+
+impl InvocationOrigin {
+    /// Creates a fresh identity without application data or callbacks.
+    pub fn new() -> Self {
+        Self(alloc::rc::Rc::new(OriginIdentity))
+    }
+}
+
+impl Default for InvocationOrigin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PartialEq for InvocationOrigin {
+    fn eq(&self, other: &Self) -> bool {
+        alloc::rc::Rc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for InvocationOrigin {}
+
+impl core::hash::Hash for InvocationOrigin {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        core::ptr::hash(alloc::rc::Rc::as_ptr(&self.0), state);
+    }
+}
+
+impl core::fmt::Debug for InvocationOrigin {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("InvocationOrigin(..)")
+    }
+}
+
 pub trait ResponseHook {
     fn get(&self) -> crate::Result<any_pointer::Reader<'_>>;
 }
 
 pub trait RequestHook {
+    /// Associates a trusted local origin with this request, preserving its normal send path.
+    /// Repeating the same origin succeeds. A conflicting origin must permanently reject
+    /// the request, even if the caller ignores the setter error.
+    ///
+    /// Request wrappers must delegate this method to preserve provenance. The default
+    /// rejects transfer; callers must propagate the error. The default preserves existing
+    /// implementations without adding provenance support.
+    fn set_invocation_origin(&mut self, _context: InvocationOrigin) -> crate::Result<()> {
+        Err(crate::Error::unimplemented(
+            "local call context unsupported".into(),
+        ))
+    }
+
     fn get(&mut self) -> any_pointer::Builder<'_>;
     fn get_brand(&self) -> usize;
     fn send(self: alloc::boxed::Box<Self>) -> RemotePromise<any_pointer::Owned>;
@@ -111,6 +167,13 @@ pub trait ResultsHook {
 }
 
 pub trait ParamsHook {
+    /// Returns this invocation's local origin, independent of its target or polling task.
+    /// Params wrappers must delegate this method when preserving provenance. The default
+    /// means no origin is available; an origin-dependent sink must reject absent origins.
+    fn invocation_origin(&self) -> Option<InvocationOrigin> {
+        None
+    }
+
     fn get(&self) -> crate::Result<crate::any_pointer::Reader<'_>>;
 }
 

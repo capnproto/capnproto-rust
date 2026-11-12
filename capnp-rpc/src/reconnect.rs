@@ -226,6 +226,13 @@ where
     C: FromClientHook,
     C: 'static,
 {
+    fn set_invocation_origin(
+        &mut self,
+        context: capnp::private::capability::InvocationOrigin,
+    ) -> capnp::Result<()> {
+        self.inner.set_invocation_origin(context)
+    }
+
     fn get(&mut self) -> capnp::any_pointer::Builder<'_> {
         self.inner.get()
     }

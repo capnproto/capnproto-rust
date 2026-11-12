@@ -100,6 +100,7 @@ macro_rules! pry {
 mod attach;
 mod broken;
 mod flow_control;
+mod invocation_origin;
 mod local;
 mod queued;
 mod reconnect;
@@ -154,6 +155,13 @@ pub trait IncomingMessage {
 ///
 /// A connection can be created by [`VatNetwork::connect()`].
 pub trait Connection<VatId> {
+    /// Trusted immutable ingress classification, captured once when the RPC connection state
+    /// is created and cloned into each received invocation.
+    /// The transport implementation must never obtain this value from peer-supplied data.
+    fn incoming_invocation_origin(&self) -> Option<capnp::private::capability::InvocationOrigin> {
+        None
+    }
+
     /// Returns the connected vat's authenticated VatId.  It is the VatNetwork's
     /// responsibility to authenticate this, so that the caller can be assured
     /// that they are really talking to the identified vat and not an imposter.
