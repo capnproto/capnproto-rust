@@ -1,3 +1,6 @@
+## v0.27.1
+- Add batching in write_queue to minimize flush() calls.
+
 ## v0.27.0
 - Follow v0.27.0 release of other capnp crates.
 
