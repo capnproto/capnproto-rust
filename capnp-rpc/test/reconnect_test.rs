@@ -102,9 +102,10 @@ macro_rules! assert_err {
         let e1 = $e1;
         let e2 = $e2;
         assert_eq!(e1.kind, e2.kind);
-        if !e1.extra.ends_with(&e2.extra) {
-            assert_eq!(e1.extra, e2.extra);
+        if !e1.extra().ends_with(e2.extra()) {
+            assert_eq!(e1.extra(), e2.extra());
         }
+        assert_eq!(e1.get_details(), e2.get_details());
     };
 }
 
@@ -154,13 +155,10 @@ where
 
         assert_eq!(test(pool, &client, 123, true).unwrap(), "123 true 0");
 
-        current_server
-            .borrow()
-            .set_error(capnp::Error::disconnected("test1 disconnect".into()));
-        assert_err!(
-            test(pool, &client, 456, true).unwrap_err(),
-            Error::disconnected("test1 disconnect".into())
-        );
+        let mut disconnect_err = capnp::Error::disconnected("test1 disconnect".into());
+        disconnect_err.set_detail(42, b"reconnect-detail".to_vec());
+        current_server.borrow().set_error(disconnect_err.clone());
+        assert_err!(test(pool, &client, 456, true).unwrap_err(), disconnect_err);
 
         assert_eq!(test(pool, &client, 789, false).unwrap(), "789 false 1");
         assert_eq!(test(pool, &client, 21, true).unwrap(), "21 true 1");
