@@ -194,14 +194,21 @@ pub type Result<T> = ::core::result::Result<T, Error>;
 
 /// Describes an arbitrary error that prevented an operation from completing.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Error {
     /// The general kind of the error. Code that decides how to respond to an error
     /// should read only this field in making its decision.
     pub kind: ErrorKind,
 
-    /// Extra context about error
     #[cfg(feature = "alloc")]
-    pub extra: alloc::string::String,
+    extra: Option<alloc::boxed::Box<ErrorExtra>>,
+}
+
+#[cfg(feature = "alloc")]
+#[derive(Debug, Clone, Default)]
+struct ErrorExtra {
+    extra: alloc::string::String,
+    details: alloc::vec::Vec<(u64, alloc::vec::Vec<u8>)>,
 }
 
 /// The general nature of an error. The purpose of this enum is not to describe the error itself,
@@ -426,55 +433,126 @@ pub enum ErrorKind {
 }
 
 impl Error {
-    /// Writes to the `extra` field. Does nothing if the "alloc" feature is not enabled.
-    /// This is intended to be used with the `write!()` macro from core.
-    pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) {
-        #[cfg(feature = "alloc")]
-        {
-            use core::fmt::Write;
-            let _ = self.extra.write_fmt(fmt);
+    #[cfg(feature = "alloc")]
+    pub fn new(kind: ErrorKind, extra: alloc::string::String) -> Self {
+        let extra = if extra.is_empty() {
+            None
+        } else {
+            Some(alloc::boxed::Box::new(ErrorExtra {
+                extra,
+                details: alloc::vec::Vec::new(),
+            }))
+        };
+        Self { kind, extra }
+    }
+
+    pub fn from_kind(kind: ErrorKind) -> Self {
+        Self {
+            kind,
+            #[cfg(feature = "alloc")]
+            extra: None,
         }
     }
 
     #[cfg(feature = "alloc")]
     pub fn failed(description: alloc::string::String) -> Self {
-        Self {
-            extra: description,
-            kind: ErrorKind::Failed,
-        }
-    }
-
-    pub fn from_kind(kind: ErrorKind) -> Self {
-        #[cfg(not(feature = "alloc"))]
-        return Self { kind };
-        #[cfg(feature = "alloc")]
-        return Self {
-            kind,
-            extra: alloc::string::String::new(),
-        };
+        Self::new(ErrorKind::Failed, description)
     }
 
     #[cfg(feature = "alloc")]
     pub fn overloaded(description: alloc::string::String) -> Self {
-        Self {
-            extra: description,
-            kind: ErrorKind::Overloaded,
-        }
+        Self::new(ErrorKind::Overloaded, description)
     }
+
     #[cfg(feature = "alloc")]
     pub fn disconnected(description: alloc::string::String) -> Self {
-        Self {
-            extra: description,
-            kind: ErrorKind::Disconnected,
-        }
+        Self::new(ErrorKind::Disconnected, description)
     }
 
     #[cfg(feature = "alloc")]
     pub fn unimplemented(description: alloc::string::String) -> Self {
-        Self {
-            extra: description,
-            kind: ErrorKind::Unimplemented,
+        Self::new(ErrorKind::Unimplemented, description)
+    }
+
+    /// Returns any extra human-readable context attached to this error, or `""` if none.
+    pub fn extra(&self) -> &str {
+        #[cfg(feature = "alloc")]
+        if let Some(extra) = &self.extra {
+            return &extra.extra;
         }
+        ""
+    }
+
+    /// Appends formatted text to this error's `extra` context. Does nothing if the `"alloc"`
+    /// feature is not enabled. This is intended to be used with the `write!()` macro from `core`.
+    pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) {
+        #[cfg(feature = "alloc")]
+        {
+            use core::fmt::Write;
+            let extra = self.extra.get_or_insert_with(Default::default);
+            let _ = extra.extra.write_fmt(fmt);
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            let _ = fmt;
+        }
+    }
+
+    /// Returns the opaque detail payload associated with `detail_id`, if present.
+    ///
+    /// Details can be attached to an error returned by an RPC server method and retrieved on the
+    /// client after awaiting the call. Each detail type should use a unique 64-bit ID (typically
+    /// generated with `capnp id`).
+    #[cfg(feature = "alloc")]
+    pub fn get_detail(&self, detail_id: u64) -> Option<&[u8]> {
+        let extra = self.extra.as_ref()?;
+        extra
+            .details
+            .iter()
+            .find(|(id, _)| *id == detail_id)
+            .map(|(_, data)| data.as_slice())
+    }
+
+    /// Returns all `(detail_id, data)` pairs attached to this error.
+    #[cfg(feature = "alloc")]
+    pub fn get_details(&self) -> &[(u64, alloc::vec::Vec<u8>)] {
+        match &self.extra {
+            Some(extra) => &extra.details,
+            None => &[],
+        }
+    }
+
+    /// Attaches an opaque detail payload keyed by `detail_id` to this error, replacing any
+    /// existing payload with the same `detail_id`.
+    ///
+    /// Each detail type should use a unique 64-bit ID (typically generated with `capnp id`).
+    ///
+    /// ```
+    /// const VALIDATION_ERROR: u64 = 0x9935_c2b4_7d94_809c;
+    /// let mut err = capnp::Error::failed("invalid".into());
+    /// err.set_detail(VALIDATION_ERROR, b"field x must be positive".to_vec());
+    /// assert_eq!(err.get_detail(VALIDATION_ERROR), Some(&b"field x must be positive"[..]));
+    /// ```
+    #[cfg(feature = "alloc")]
+    pub fn set_detail(&mut self, detail_id: u64, data: alloc::vec::Vec<u8>) {
+        let extra = self.extra.get_or_insert_with(Default::default);
+        if let Some((_, existing)) = extra.details.iter_mut().find(|(id, _)| *id == detail_id) {
+            *existing = data;
+        } else {
+            extra.details.push((detail_id, data));
+        }
+    }
+
+    /// Removes and returns the detail payload associated with `detail_id`, if present.
+    #[cfg(feature = "alloc")]
+    pub fn release_detail(&mut self, detail_id: u64) -> Option<alloc::vec::Vec<u8>> {
+        let extra = self.extra.as_mut()?;
+        let idx = extra.details.iter().position(|(id, _)| *id == detail_id)?;
+        let (_, data) = extra.details.remove(idx);
+        if extra.extra.is_empty() && extra.details.is_empty() {
+            self.extra = None;
+        }
+        Some(data)
     }
 }
 
@@ -493,12 +571,9 @@ impl core::convert::From<::std::io::Error> for Error {
             _ => ErrorKind::Failed,
         };
         #[cfg(feature = "alloc")]
-        return Self {
-            kind,
-            extra: format!("{err}"),
-        };
+        return Self::new(kind, format!("{err}"));
         #[cfg(not(feature = "alloc"))]
-        return Self { kind };
+        return Self::from_kind(kind);
     }
 }
 
@@ -625,22 +700,18 @@ impl core::fmt::Display for ErrorKind {
 
 impl core::fmt::Display for Error {
     fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
-        #[cfg(feature = "alloc")]
-        let result = if self.extra.is_empty() {
+        let extra = self.extra();
+        if extra.is_empty() {
             write!(fmt, "{}", self.kind)
         } else {
-            write!(fmt, "{}: {}", self.kind, self.extra)
-        };
-        #[cfg(not(feature = "alloc"))]
-        let result = write!(fmt, "{}", self.kind);
-        result
+            write!(fmt, "{}: {extra}", self.kind)
+        }
     }
 }
 
 impl core::error::Error for Error {
-    #[cfg(feature = "alloc")]
     fn description(&self) -> &str {
-        &self.extra
+        self.extra()
     }
     fn cause(&self) -> Option<&dyn ::core::error::Error> {
         None
@@ -676,5 +747,64 @@ impl message::ReaderSegments for OutputSegments<'_> {
             #[cfg(feature = "alloc")]
             OutputSegments::MultiSegment(v) => v.get(id as usize).copied(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn error_size() {
+        assert_eq!(core::mem::size_of::<ErrorKind>(), 24);
+        #[cfg(feature = "alloc")]
+        assert_eq!(core::mem::size_of::<Error>(), 32);
+        #[cfg(not(feature = "alloc"))]
+        assert_eq!(core::mem::size_of::<Error>(), 24);
+    }
+
+    #[test]
+    fn error_from_kind_extra_is_empty() {
+        let e = Error::from_kind(ErrorKind::NotAStruct);
+        assert_eq!(e.extra(), "");
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn error_details() {
+        let mut e = Error::failed("foo".into());
+        assert_eq!(e.extra(), "foo");
+        assert!(e.get_details().is_empty());
+        assert_eq!(e.get_detail(123), None);
+
+        e.set_detail(123, b"foo".to_vec());
+        e.set_detail(456, b"bar".to_vec());
+        assert_eq!(e.get_detail(123), Some(&b"foo"[..]));
+        assert_eq!(e.get_detail(456), Some(&b"bar"[..]));
+        assert_eq!(e.get_detail(789), None);
+        assert_eq!(e.get_details().len(), 2);
+
+        // Overwriting an existing detail ID updates it in place without duplicating.
+        e.set_detail(123, b"baz".to_vec());
+        assert_eq!(e.get_detail(123), Some(&b"baz"[..]));
+        assert_eq!(e.get_details().len(), 2);
+
+        let mut e2 = e.clone();
+        assert_eq!(e2.extra(), "foo");
+        assert_eq!(e2.get_detail(123), Some(&b"baz"[..]));
+        assert_eq!(e2.get_detail(456), Some(&b"bar"[..]));
+
+        assert_eq!(e2.release_detail(123), Some(b"baz".to_vec()));
+        assert_eq!(e2.get_detail(123), None);
+        assert_eq!(e2.get_detail(456), Some(&b"bar"[..]));
+        assert_eq!(e2.release_detail(123), None);
+
+        // Details on a `from_kind` error with empty `extra` clean up the box when released.
+        let mut e3 = Error::from_kind(ErrorKind::NotAStruct);
+        e3.set_detail(1, vec![]);
+        assert_eq!(e3.get_detail(1), Some(&b""[..]));
+        assert_eq!(e3.release_detail(1), Some(vec![]));
+        assert!(e3.extra.is_none());
     }
 }
