@@ -372,13 +372,25 @@ fn from_error(error: &Error, mut builder: exception::Builder) {
         | ::capnp::ErrorKind::Overloaded
         | ::capnp::ErrorKind::Disconnected
         | ::capnp::ErrorKind::Unimplemented => {
-            builder.set_reason(&error.extra);
+            builder.set_reason(error.extra());
         }
         _ => {
             // There is extra information in `error.kind` that is not
             // captured by `typ`. We call `error.to_string()` to allow that
             // information to be recorded in the `reason` field.
             builder.set_reason(error.to_string());
+        }
+    }
+
+    let details = error.get_details();
+    if let Ok(len) = u32::try_from(details.len()) {
+        if len > 0 {
+            let mut details_builder = builder.init_details(len);
+            for (idx, (id, data)) in (0..len).zip(details.iter()) {
+                let mut detail_builder = details_builder.reborrow().get(idx);
+                detail_builder.set_detail_id(*id);
+                detail_builder.set_data(data);
+            }
         }
     }
 }
@@ -393,15 +405,26 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
         (Ok(exception::Type::Unimplemented), Ok(reason)) => {
             (::capnp::ErrorKind::Unimplemented, reason)
         }
-        _ => (::capnp::ErrorKind::Failed, "(malformed error)".into()),
+        _ => return Error::failed("remote exception: (malformed error)".into()),
     };
     let reason_str = reason
         .to_str()
         .unwrap_or("<malformed utf-8 in error reason>");
-    Error {
-        extra: format!("remote exception: {reason_str}"),
-        kind,
+    let mut err = Error::new(kind, format!("remote exception: {reason_str}"));
+    if exception.has_details() {
+        let Ok(details_reader) = exception.get_details() else {
+            return Error::failed("remote exception: (malformed error)".into());
+        };
+        for detail in details_reader {
+            if detail.has_data() {
+                let Ok(data) = detail.get_data() else {
+                    return Error::failed("remote exception: (malformed error)".into());
+                };
+                err.set_detail(detail.get_detail_id(), data.to_vec());
+            }
+        }
     }
+    err
 }
 
 pub(crate) struct ConnectionErrorHandler<VatId>
@@ -938,9 +961,9 @@ impl<VatId> ConnectionState<VatId> {
                 }
                 connection_state.embargoes.borrow_mut().erase(embargo_id);
             }
-            disembargo::context::Accept(_) | disembargo::context::Provide(_) => {
+            disembargo::context::Accept(_) => {
                 return Err(Error::unimplemented(
-                    "Disembargo::Context::Provide/Accept not implemented".to_string(),
+                    "Disembargo::Context::Accept not implemented".to_string(),
                 ));
             }
         }
@@ -1136,7 +1159,7 @@ impl<VatId> ConnectionState<VatId> {
                                         ));
                                     }
                                 }
-                                return_::AcceptFromThirdParty(_) => {
+                                return_::AwaitFromThirdParty(_) => {
                                     drop(questions);
                                     Self::send_unimplemented(&connection_state, message.as_ref())?;
                                 }
@@ -1175,6 +1198,7 @@ impl<VatId> ConnectionState<VatId> {
             Ok(
                 message::Provide(_)
                 | message::Accept(_)
+                | message::ThirdPartyAnswer(_)
                 | message::Join(_)
                 | message::ObsoleteSave(_)
                 | message::ObsoleteDelete(_),
@@ -3415,7 +3439,7 @@ mod disconnect_tests {
 
     fn assert_disconnected_with(error: Error, extra: &str) {
         assert_eq!(error.kind, capnp::ErrorKind::Disconnected);
-        assert_eq!(error.extra, extra);
+        assert_eq!(error.extra(), extra);
     }
 
     struct DisconnectOnDrop(Weak<ConnectionState<Side>>);
@@ -3859,5 +3883,58 @@ mod disconnect_tests {
             cap_descriptor::ReceiverHosted(23)
         ));
         state.disconnect(Error::disconnected("test complete".into()));
+    }
+
+    #[test]
+    fn exception_details_wire_encoding() {
+        // An error without details must leave the `details` pointer null on the wire.
+        let plain = Error::failed("plain failure".into());
+        let mut message = capnp::message::Builder::new_default();
+        from_error(&plain, message.init_root::<exception::Builder>());
+        let reader = message.get_root_as_reader::<exception::Reader>().unwrap();
+        assert!(!reader.has_details());
+        let decoded = remote_exception_to_error(reader);
+        assert_eq!(decoded.kind, capnp::ErrorKind::Failed);
+        assert_eq!(decoded.extra(), "remote exception: plain failure");
+        assert!(decoded.get_details().is_empty());
+
+        // Details preserve `ErrorKind` across all four RPC exception types, including empty data.
+        for kind in [
+            capnp::ErrorKind::Failed,
+            capnp::ErrorKind::Overloaded,
+            capnp::ErrorKind::Disconnected,
+            capnp::ErrorKind::Unimplemented,
+        ] {
+            let mut err = Error::new(kind, "detailed".into());
+            err.set_detail(10, b"alpha".to_vec());
+            err.set_detail(20, vec![]);
+            let mut msg = capnp::message::Builder::new_default();
+            from_error(&err, msg.init_root::<exception::Builder>());
+            let reader = msg.get_root_as_reader::<exception::Reader>().unwrap();
+            assert!(reader.has_details());
+            let decoded = remote_exception_to_error(reader);
+            assert_eq!(decoded.kind, kind);
+            assert_eq!(decoded.extra(), "remote exception: detailed");
+            assert_eq!(decoded.get_detail(10), Some(&b"alpha"[..]));
+            assert_eq!(decoded.get_detail(20), Some(&b""[..]));
+            assert_eq!(decoded.get_detail(30), None);
+        }
+
+        // A detail entry whose `data` pointer is null is ignored (matching capnproto-c++).
+        let mut msg = capnp::message::Builder::new_default();
+        {
+            let mut exc = msg.init_root::<exception::Builder>();
+            exc.set_type(exception::Type::Failed);
+            exc.set_reason("null detail data");
+            let mut details = exc.init_details(2);
+            details.reborrow().get(0).set_detail_id(1);
+            let mut second = details.get(1);
+            second.set_detail_id(2);
+            second.set_data(b"present");
+        }
+        let decoded =
+            remote_exception_to_error(msg.get_root_as_reader::<exception::Reader>().unwrap());
+        assert_eq!(decoded.get_detail(1), None);
+        assert_eq!(decoded.get_detail(2), Some(&b"present"[..]));
     }
 }

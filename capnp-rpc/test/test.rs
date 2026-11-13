@@ -410,7 +410,7 @@ fn pipelining_return_null() {
         let cap = request.send().pipeline.get_cap();
         match cap.foo_request().send().promise.await {
             Err(ref e) => {
-                if e.extra
+                if e.extra()
                     .contains("Pipeline call on a request that returned no capabilities")
                 {
                     Ok(())
@@ -1330,7 +1330,7 @@ fn broken_cap_returns_supplied_error() {
 
         // A direct method call fails with the supplied error.
         let e = client.foo_request().send().promise.await.err().unwrap();
-        assert_eq!(e.extra, error.extra);
+        assert_eq!(e.extra(), error.extra());
 
         // Pipelined access through a broken call also fails with the error.
         let pipeline_client = test_capnp::test_pipeline::Client {
@@ -1345,7 +1345,7 @@ fn broken_cap_returns_supplied_error() {
             .await
             .err()
             .unwrap();
-        assert_eq!(e.extra, error.extra);
+        assert_eq!(e.extra(), error.extra());
     });
 }
 
@@ -1376,6 +1376,28 @@ fn reimport_then_resend_does_not_poison_downcast_map() {
         let mut echo = more_stuff.echo_request();
         echo.get().set_cap(more_stuff.clone().cast_to());
         echo.send().promise.await?;
+        Ok(())
+    });
+}
+
+#[test]
+fn method_throws_exception_with_detail() {
+    rpc_top_level(|_spawner, client| async move {
+        let response = client.test_more_stuff_request().send().promise.await?;
+        let more_stuff = response.get()?.get_cap()?;
+
+        let err = more_stuff
+            .throw_exception_with_detail_request()
+            .send()
+            .promise
+            .await
+            .err()
+            .expect("expected exception");
+        assert_eq!(err.kind, ::capnp::ErrorKind::Failed);
+        assert_eq!(err.extra(), "remote exception: test exception");
+        assert_eq!(err.get_detail(1), Some(&b"foo"[..]));
+        assert_eq!(err.get_detail(2), Some(&b"bar"[..]));
+        assert_eq!(err.get_detail(3), None);
         Ok(())
     });
 }
