@@ -41,7 +41,7 @@ fn background_errors_use_custom_handler() {
     let errors = errors.borrow();
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0].kind, capnp::ErrorKind::Failed);
-    assert_eq!(errors[0].extra, "background task failed");
+    assert_eq!(errors[0].extra(), "background task failed");
     assert!((&mut rpc_system).now_or_never().is_none());
 }
 
@@ -69,5 +69,5 @@ fn replacement_handler_applies_to_running_tasks() {
     assert!((&mut rpc_system).now_or_never().is_none());
     let errors = errors.borrow();
     assert_eq!(errors.len(), 1);
-    assert_eq!(errors[0].extra, "delayed failure");
+    assert_eq!(errors[0].extra(), "delayed failure");
 }

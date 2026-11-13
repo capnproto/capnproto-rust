@@ -84,10 +84,7 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
         | io::ErrorKind::NotConnected => capnp::ErrorKind::Disconnected,
         _ => capnp::ErrorKind::Failed,
     };
-    capnp::Error {
-        extra: format!("{err}"),
-        kind,
-    }
+    capnp::Error::new(kind, format!("{err}"))
 }
 
 fn run_command(
@@ -394,6 +391,8 @@ impl CompilerCommand {
 #[cfg_attr(miri, ignore)]
 fn compiler_command_new_no_out_dir() {
     std::env::remove_var("OUT_DIR");
-    let error = CompilerCommand::new().run().unwrap_err().extra;
-    assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
+    let error = CompilerCommand::new().run().unwrap_err();
+    assert!(error
+        .extra()
+        .starts_with("Could not access `OUT_DIR` environment variable"));
 }
