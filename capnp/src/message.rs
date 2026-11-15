@@ -70,6 +70,8 @@
 //!
 //! ```
 
+use crate::OutputSegments;
+use crate::Result;
 use crate::any_pointer;
 use crate::private::arena::{BuilderArena, BuilderArenaImpl};
 use crate::private::arena::{ReaderArena, ReaderArenaImpl};
@@ -77,8 +79,6 @@ use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
 use crate::traits::{FromPointerBuilder, SetterInput};
 use crate::traits::{FromPointerReader, Owned};
-use crate::OutputSegments;
-use crate::Result;
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy, Debug)]
@@ -901,7 +901,7 @@ impl<'a> ScratchSpaceHeapAllocator<'a> {
     pub fn new(scratch_space: &'a mut [u8]) -> ScratchSpaceHeapAllocator<'a> {
         #[cfg(not(feature = "unaligned"))]
         {
-            if scratch_space.as_ptr() as usize % BYTES_PER_WORD != 0 {
+            if !(scratch_space.as_ptr() as usize).is_multiple_of(BYTES_PER_WORD) {
                 panic!(
                     "Scratch space must be 8-byte aligned, or you must enable the \"unaligned\" \
                         feature in the capnp crate"
@@ -973,8 +973,10 @@ unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
             }
             self.scratch_space_allocated = false;
         } else {
-            self.allocator
-                .deallocate_segment(ptr, word_size, words_used);
+            unsafe {
+                self.allocator
+                    .deallocate_segment(ptr, word_size, words_used);
+            }
         }
     }
 }
@@ -1007,7 +1009,7 @@ impl<'a> SingleSegmentAllocator<'a> {
     pub fn new(segment: &'a mut [u8]) -> SingleSegmentAllocator<'a> {
         #[cfg(not(feature = "unaligned"))]
         {
-            if segment.as_ptr() as usize % BYTES_PER_WORD != 0 {
+            if !(segment.as_ptr() as usize).is_multiple_of(BYTES_PER_WORD) {
                 panic!(
                     "Segment must be 8-byte aligned, or you must enable the \"unaligned\" \
                         feature in the capnp crate"
@@ -1081,6 +1083,6 @@ where
         word_size: u32,
         words_used: u32,
     ) {
-        (*self).deallocate_segment(ptr, word_size, words_used)
+        unsafe { (*self).deallocate_segment(ptr, word_size, words_used) }
     }
 }

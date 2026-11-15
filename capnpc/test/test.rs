@@ -61,15 +61,15 @@ mod dynamic;
 
 #[cfg(test)]
 mod tests {
-    use crate::test_util::{init_test_message, CheckTestMessage};
+    use crate::test_util::{CheckTestMessage, init_test_message};
     use capnp::message::ReaderOptions;
     use capnp::message::{self, TypedBuilder, TypedReader};
-    use capnp::{primitive_list, text, Word};
+    use capnp::{Word, primitive_list, text};
 
     // like the unstable std::assert_matches::assert_matches but doesn't
     // require $left implement Debug
     macro_rules! assert_matches {
-        ($left:expr, $pattern:pat_param) => {
+        ($left:expr_2021, $pattern:pat_param) => {
             match $left {
                 $pattern => {}
                 _ => panic!(
@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn test_complex_list() {
-        use crate::test_capnp::{test_complex_list, AnEnum};
+        use crate::test_capnp::{AnEnum, test_complex_list};
 
         let mut message = message::Builder::new_default();
 
@@ -507,7 +507,7 @@ mod tests {
 
     #[test]
     fn test_defaults() {
-        use crate::test_capnp::{test_defaults, TestEnum};
+        use crate::test_capnp::{TestEnum, test_defaults};
 
         {
             let message = message::Builder::new_default();
@@ -1089,7 +1089,7 @@ mod tests {
 
     #[test]
     fn test_constants() {
-        use crate::test_capnp::{test_constants, TestEnum};
+        use crate::test_capnp::{TestEnum, test_constants};
         assert_eq!(test_constants::BOOL_CONST, true);
         assert_eq!(test_constants::INT8_CONST, -123);
         assert_eq!(test_constants::INT16_CONST, -12345);

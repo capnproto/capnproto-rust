@@ -21,7 +21,7 @@
 use capnp::{any_pointer, message};
 
 use crate::codegen::FormattedText::{Branch, Indent, Line};
-use crate::codegen::{fmt, indent, line, FormattedText, GeneratorContext};
+use crate::codegen::{FormattedText, GeneratorContext, fmt, indent, line};
 use crate::codegen_types::{Leaf, RustTypeInfo};
 use capnp::schema_capnp::type_;
 
@@ -117,10 +117,7 @@ pub(crate) fn generate_pointer_constant(
                 ctx,
                 "static ARENA: {capnp}::private::arena::GeneratedCodeArena = {capnp}::private::arena::GeneratedCodeArena::new(&WORDS);"
             )),
-            Line(fmt!(
-                ctx,
-                "{capnp}::constant::Reader::new(&ARENA)"
-            )),
+            Line(fmt!(ctx, "{capnp}::constant::Reader::new(&ARENA)")),
         ]))),
         line("};"),
     ]))

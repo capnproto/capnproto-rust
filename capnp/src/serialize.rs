@@ -31,9 +31,9 @@ pub use no_alloc_buffer_segments::{
 
 use crate::io::{Read, Write};
 
+use crate::Result;
 use crate::message;
 use crate::private::units::BYTES_PER_WORD;
-use crate::Result;
 use crate::{Error, ErrorKind};
 
 pub const SEGMENTS_COUNT_LIMIT: usize = 512;
@@ -338,7 +338,7 @@ pub fn try_read_message_no_alloc<R>(
 where
     R: Read,
 {
-    if !cfg!(feature = "unaligned") && buffer.as_ptr() as usize % BYTES_PER_WORD != 0 {
+    if !cfg!(feature = "unaligned") && !(buffer.as_ptr() as usize).is_multiple_of(BYTES_PER_WORD) {
         return Err(Error::from_kind(ErrorKind::UnalignedSegment));
     }
 
@@ -645,7 +645,7 @@ where
                             .to_le_bytes(),
                     );
                 }
-                if segment_count % 2 == 0 {
+                if segment_count.is_multiple_of(2) {
                     let start_idx = buf.len() - 4;
                     for b in &mut buf[start_idx..] {
                         *b = 0
@@ -708,7 +708,7 @@ where
 pub mod test {
     use crate::io::{Read, Write};
 
-    use quickcheck::{quickcheck, TestResult};
+    use quickcheck::{TestResult, quickcheck};
 
     use super::{
         flatten_segments, read_message, read_message_from_flat_slice, read_segment_table,
@@ -733,9 +733,11 @@ pub mod test {
     #[test]
     fn try_read_empty() {
         let mut buf: &[u8] = &[];
-        assert!(try_read_message(&mut buf, message::ReaderOptions::new())
-            .unwrap()
-            .is_none());
+        assert!(
+            try_read_message(&mut buf, message::ReaderOptions::new())
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]

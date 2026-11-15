@@ -24,7 +24,7 @@
 //! Each message is preceded by a segment table indicating the size of its segments.
 
 use capnp::serialize::{OwnedSegments, SegmentLengthsBuilder};
-use capnp::{message, Error, OutputSegments, Result};
+use capnp::{Error, OutputSegments, Result, message};
 use futures_util::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 /// Asynchronously reads a message from `reader`.
@@ -239,9 +239,7 @@ where
                     .copy_from_slice(&((segments[idx].len() / 8) as u32).to_le_bytes());
             }
 
-            // capnp's minimum rust version does not suppoert is_multiple_of() yet.
-            #[allow(clippy::manual_is_multiple_of)]
-            if segment_count % 2 == 0 {
+            if segment_count.is_multiple_of(2) {
                 for idx in (buf.len() - 4)..(buf.len()) {
                     buf[idx] = 0
                 }
@@ -273,12 +271,12 @@ pub mod test {
     use futures::io::Cursor;
     use futures::{AsyncRead, AsyncWrite};
 
-    use quickcheck::{quickcheck, TestResult};
+    use quickcheck::{TestResult, quickcheck};
 
     use capnp::message::ReaderSegments;
-    use capnp::{message, OutputSegments};
+    use capnp::{OutputSegments, message};
 
-    use super::{read_segment_table, try_read_message, write_message, AsOutputSegments};
+    use super::{AsOutputSegments, read_segment_table, try_read_message, write_message};
 
     #[test]
     fn test_read_segment_table() {
@@ -393,41 +391,45 @@ pub mod test {
 
         buf.extend([0, 2, 0, 0]); // 513 segments
         buf.extend([0; 513 * 4]);
-        assert!(exec
-            .run_until(read_segment_table(
+        assert!(
+            exec.run_until(read_segment_table(
                 Cursor::new(&buf[..]),
                 message::ReaderOptions::new()
             ))
-            .is_err());
+            .is_err()
+        );
         buf.clear();
 
         buf.extend([0, 0, 0, 0]); // 1 segments
-        assert!(exec
-            .run_until(read_segment_table(
+        assert!(
+            exec.run_until(read_segment_table(
                 Cursor::new(&buf[..]),
                 message::ReaderOptions::new()
             ))
-            .is_err());
+            .is_err()
+        );
 
         buf.clear();
 
         buf.extend([0, 0, 0, 0]); // 1 segments
         buf.extend([0; 3]);
-        assert!(exec
-            .run_until(read_segment_table(
+        assert!(
+            exec.run_until(read_segment_table(
                 Cursor::new(&buf[..]),
                 message::ReaderOptions::new()
             ))
-            .is_err());
+            .is_err()
+        );
         buf.clear();
 
         buf.extend([255, 255, 255, 255]); // 0 segments
-        assert!(exec
-            .run_until(read_segment_table(
+        assert!(
+            exec.run_until(read_segment_table(
                 Cursor::new(&buf[..]),
                 message::ReaderOptions::new()
             ))
-            .is_err());
+            .is_err()
+        );
         buf.clear();
     }
 

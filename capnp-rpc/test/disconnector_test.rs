@@ -5,15 +5,15 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use capnp::capability::Promise;
 use capnp::Error;
+use capnp::capability::Promise;
 use capnp_rpc::rpc_twoparty_capnp::Side;
 use capnp_rpc::{Connection, IncomingMessage, OutgoingMessage, RpcSystem, VatNetwork};
 
+use futures::FutureExt;
 use futures::channel::oneshot;
 use futures::executor::LocalPool;
 use futures::task::LocalSpawnExt;
-use futures::FutureExt;
 
 struct MockOutgoingMessage {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,

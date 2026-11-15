@@ -2,17 +2,17 @@ use std::cell::RefCell;
 use std::future::Future;
 use std::rc::Rc;
 
-use capnp::capability::{Promise, Response};
 use capnp::Error;
+use capnp::capability::{Promise, Response};
 use capnp_rpc::{
-    auto_reconnect, lazy_auto_reconnect, new_client, new_future_client, rpc_twoparty_capnp,
-    twoparty, RpcSystem,
+    RpcSystem, auto_reconnect, lazy_auto_reconnect, new_client, new_future_client,
+    rpc_twoparty_capnp, twoparty,
 };
+use futures::FutureExt;
 use futures::channel::oneshot;
 use futures::executor::LocalPool;
 use futures::future::Shared;
 use futures::task::LocalSpawnExt;
-use futures::FutureExt;
 
 use crate::spawn;
 use crate::test_capnp::{self, test_interface};
@@ -98,7 +98,7 @@ where
 }
 
 macro_rules! assert_err {
-    ($e1:expr, $e2:expr) => {
+    ($e1:expr_2021, $e2:expr_2021) => {
         let e1 = $e1;
         let e2 = $e2;
         assert_eq!(e1.kind, e2.kind);
@@ -267,11 +267,12 @@ impl test_capnp::bootstrap::Server for Bootstrap {
         _params: test_capnp::bootstrap::TestInterfaceParams,
         mut results: test_capnp::bootstrap::TestInterfaceResults,
     ) -> Result<(), Error> {
-        if let Some(client) = self.0.borrow_mut().take() {
-            results.get().set_cap(client);
-            Ok(())
-        } else {
-            Err(Error::failed("No interface available".into()))
+        match self.0.borrow_mut().take() {
+            Some(client) => {
+                results.get().set_cap(client);
+                Ok(())
+            }
+            _ => Err(Error::failed("No interface available".into())),
         }
     }
 }

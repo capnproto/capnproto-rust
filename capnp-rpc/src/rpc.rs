@@ -22,15 +22,15 @@
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use capnp::Error;
 use capnp::any_pointer;
 use capnp::capability::Promise;
 use capnp::private::capability::{
     ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResponseHook, ResultsHook,
 };
-use capnp::Error;
 
 use futures::channel::oneshot;
-use futures::{future, Future, FutureExt, TryFutureExt};
+use futures::{Future, FutureExt, TryFutureExt, future};
 
 use std::cell::{Cell, RefCell};
 use std::cmp::Reverse;
@@ -999,7 +999,7 @@ impl<VatId> ConnectionState<VatId> {
                         call::send_results_to::ThirdParty(_) => {
                             return Err(Error::failed(
                                 "Unsupported `Call.sendResultsTo`.".to_string(),
-                            ))
+                            ));
                         }
                     };
                     let payload = call.get_params()?;
@@ -1140,23 +1140,25 @@ impl<VatId> ConnectionState<VatId> {
                                     Self::send_unimplemented(&connection_state, message.as_ref())?;
                                 }
                                 return_::TakeFromOtherQuestion(id) => {
-                                    if let Some(answer) =
-                                        connection_state.answers.borrow_mut().slots.get_mut(&id)
-                                    {
-                                        if let Some(res) = answer.redirected_results.take() {
-                                            let tmp = question_ref
-                                                .upgrade()
-                                                .expect("dangling question ref?");
-                                            tmp.borrow_mut().fulfill(res);
-                                        } else {
-                                            return Err(Error::failed("return.takeFromOtherQuestion referenced a call that \
+                                    match connection_state.answers.borrow_mut().slots.get_mut(&id) {
+                                        Some(answer) => match answer.redirected_results.take() {
+                                            Some(res) => {
+                                                let tmp = question_ref
+                                                    .upgrade()
+                                                    .expect("dangling question ref?");
+                                                tmp.borrow_mut().fulfill(res);
+                                            }
+                                            _ => {
+                                                return Err(Error::failed("return.takeFromOtherQuestion referenced a call that \
                                                      did not use sendResultsTo.yourself.".to_string()));
-                                        }
-                                    } else {
-                                        return Err(Error::failed(
+                                            }
+                                        },
+                                        _ => {
+                                            return Err(Error::failed(
                                             "return.takeFromOtherQuestion had invalid answer ID."
                                                 .to_string(),
                                         ));
+                                        }
                                     }
                                 }
                                 return_::AwaitFromThirdParty(_) => {
@@ -1701,13 +1703,14 @@ impl<VatId> Disconnector<VatId> {
         }
     }
     fn disconnect(&self) -> Option<future::Shared<Promise<(), Error>>> {
-        if let Some(ref state) = *(self.connection_state.borrow()) {
-            state.disconnect(::capnp::Error::disconnected(
-                "client requested disconnect".to_owned(),
-            ));
-            state.disconnect_promise.borrow().clone()
-        } else {
-            None
+        match *(self.connection_state.borrow()) {
+            Some(ref state) => {
+                state.disconnect(::capnp::Error::disconnected(
+                    "client requested disconnect".to_owned(),
+                ));
+                state.disconnect_promise.borrow().clone()
+            }
+            _ => None,
         }
     }
 }
@@ -2528,36 +2531,37 @@ impl<VatId> ResultsHook for Results<VatId> {
         mut self: Box<Self>,
         request: Box<dyn RequestHook>,
     ) -> (Promise<(), Error>, Box<dyn PipelineHook>) {
-        if let (Some(inner), Some(fulfiller)) =
-            (self.inner.take(), self.results_done_fulfiller.take())
-        {
-            let state = inner.connection_state.clone();
-            if request.get_brand() == state.get_brand() && !inner.redirect_results {
-                // The tail call is headed towards the peer that called us in the first place, so we can
-                // optimize out the return trip.
-                if let Some((question_id, promise, pipeline)) = request.tail_send() {
-                    let mut message = state.new_outgoing_message(100).expect("no connection?"); // size hint?
+        match (self.inner.take(), self.results_done_fulfiller.take()) {
+            (Some(inner), Some(fulfiller)) => {
+                let state = inner.connection_state.clone();
+                if request.get_brand() == state.get_brand() && !inner.redirect_results {
+                    // The tail call is headed towards the peer that called us in the first place, so we can
+                    // optimize out the return trip.
+                    if let Some((question_id, promise, pipeline)) = request.tail_send() {
+                        let mut message = state.new_outgoing_message(100).expect("no connection?"); // size hint?
 
-                    {
-                        let root: message::Builder = message.get_body().unwrap().init_as();
-                        let mut ret = root.init_return();
-                        ret.set_answer_id(inner.answer_id);
-                        ret.set_release_param_caps(false);
-                        ret.set_take_from_other_question(question_id);
+                        {
+                            let root: message::Builder = message.get_body().unwrap().init_as();
+                            let mut ret = root.init_return();
+                            ret.set_answer_id(inner.answer_id);
+                            ret.set_release_param_caps(false);
+                            ret.set_take_from_other_question(question_id);
+                        }
+                        let _ = message.send();
+
+                        // TODO cleanupanswertable
+
+                        let _ = fulfiller.send(inner); // ??
+                        return (promise, pipeline);
                     }
-                    let _ = message.send();
-
-                    // TODO cleanupanswertable
-
-                    let _ = fulfiller.send(inner); // ??
-                    return (promise, pipeline);
+                    unimplemented!()
+                } else {
+                    unimplemented!()
                 }
-                unimplemented!()
-            } else {
-                unimplemented!()
             }
-        } else {
-            unreachable!();
+            _ => {
+                unreachable!();
+            }
         }
     }
 
@@ -2821,11 +2825,13 @@ impl<VatId> Drop for ImportClient<VatId> {
     fn drop(&mut self) {
         let connection_state = self.connection_state.clone();
 
-        assert!(connection_state
-            .client_downcast_map
-            .borrow_mut()
-            .remove(&((self) as *const _ as usize))
-            .is_some());
+        assert!(
+            connection_state
+                .client_downcast_map
+                .borrow_mut()
+                .remove(&((self) as *const _ as usize))
+                .is_some()
+        );
 
         // Remove the corresponding entry of the imports table.
         // Note: the C++ implementation checks here pointer equality between self and
@@ -2915,12 +2921,13 @@ impl<VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
 
 impl<VatId> Drop for PipelineClient<VatId> {
     fn drop(&mut self) {
-        assert!(self
-            .connection_state
-            .client_downcast_map
-            .borrow_mut()
-            .remove(&((self) as *const _ as usize))
-            .is_some());
+        assert!(
+            self.connection_state
+                .client_downcast_map
+                .borrow_mut()
+                .remove(&((self) as *const _ as usize))
+                .is_some()
+        );
     }
 }
 
@@ -3051,12 +3058,13 @@ impl<VatId> Drop for PromiseClient<VatId> {
             }
         }
 
-        assert!(self
-            .connection_state
-            .client_downcast_map
-            .borrow_mut()
-            .remove(&self_ptr)
-            .is_some());
+        assert!(
+            self.connection_state
+                .client_downcast_map
+                .borrow_mut()
+                .remove(&self_ptr)
+                .is_some()
+        );
     }
 }
 
@@ -3419,8 +3427,8 @@ mod cancellation_tests {
 #[cfg(test)]
 mod disconnect_tests {
     use super::*;
-    use crate::rpc_twoparty_capnp::Side;
     use crate::VatNetwork;
+    use crate::rpc_twoparty_capnp::Side;
 
     fn new_connection_state() -> (TaskSet<Error>, Rc<ConnectionState<Side>>) {
         let mut network = crate::twoparty::VatNetwork::new(

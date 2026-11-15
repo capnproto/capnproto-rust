@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use crate::hello_world_capnp::hello_world;
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 use std::net::ToSocketAddrs;
 
 use futures::AsyncReadExt;

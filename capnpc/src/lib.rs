@@ -298,7 +298,7 @@ impl CompilerCommand {
                     "Failed to execute `capnp --version`: {error}. \
                      Please verify that version 0.5.2 or higher of the capnp executable \
                      is installed on your system. See https://capnproto.org/install.html"
-                )))
+                )));
             }
             Ok(output) => {
                 if !output.status.success() {
@@ -390,9 +390,12 @@ impl CompilerCommand {
 #[test]
 #[cfg_attr(miri, ignore)]
 fn compiler_command_new_no_out_dir() {
-    std::env::remove_var("OUT_DIR");
+    // FIXME: Audit that the environment access only happens in single-threaded code.
+    unsafe { std::env::remove_var("OUT_DIR") };
     let error = CompilerCommand::new().run().unwrap_err();
-    assert!(error
-        .extra()
-        .starts_with("Could not access `OUT_DIR` environment variable"));
+    assert!(
+        error
+            .extra()
+            .starts_with("Could not access `OUT_DIR` environment variable")
+    );
 }

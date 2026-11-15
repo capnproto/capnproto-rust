@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use crate::common::*;
-use crate::eval_capnp::{evaluation_result, expression, Operation};
+use crate::eval_capnp::{Operation, evaluation_result, expression};
 
 fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth: u32) -> i32 {
     exp.set_op(

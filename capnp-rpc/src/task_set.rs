@@ -156,7 +156,7 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         let mut enqueued_stream_complete = false;
-        if let Self {
+        if let &mut Self {
             enqueued: Some(ref mut enqueued),
             ref mut in_progress,
             ref reaper,

@@ -84,7 +84,7 @@ pub mod traits;
 /// ```
 #[macro_export]
 macro_rules! generated_code {
-    ($vis:vis mod $mod_name:ident, $file_name:expr) => {
+    ($vis:vis mod $mod_name:ident, $file_name:expr_2021) => {
         $vis mod $mod_name {
             #![allow(clippy::all)]
             include!(concat!(env!("OUT_DIR"), "/", $file_name));
@@ -639,68 +639,172 @@ impl core::fmt::Display for ErrorKind {
             Self::Disconnected => write!(fmt, "Disconnected"),
             Self::Unimplemented => write!(fmt, "Unimplemented"),
             Self::BufferNotLargeEnough => write!(fmt, "buffer is not large enough"),
-            Self::ExistingListPointerIsNotByteSized => write!(fmt, "Called get_writable_{{data|text}}_pointer() but existing list pointer is not byte-sized."),
-            Self::ExistingPointerIsNotAList => write!(fmt, "Called get_writable_{{data|text|list|struct_list}}_pointer() but existing pointer is not a list."),
-            Self::CannotCreateACanonicalMessageWithACapability => write!(fmt, "Cannot create a canonical message with a capability"),
-            Self::FourByteLengthTooBigForUSize => write!(fmt, "Cannot represent 4 byte length as `usize`. This may indicate that you are running on 8 or 16 bit platform or message is too large."),
-            Self::FourByteSegmentLengthTooBigForUSize => write!(fmt, "Cannot represent 4 byte segment length as usize. This may indicate that you are running on 8 or 16 bit platform or segment is too large"),
-            Self::CannotSetAnyPointerFieldToAPrimitiveValue => write!(fmt, "cannot set AnyPointer field to a primitive value"),
-            Self::CantHandleNonStructInlineComposite => write!(fmt, "Don't know how to handle non-STRUCT inline composite."),
+            Self::ExistingListPointerIsNotByteSized => write!(
+                fmt,
+                "Called get_writable_{{data|text}}_pointer() but existing list pointer is not byte-sized."
+            ),
+            Self::ExistingPointerIsNotAList => write!(
+                fmt,
+                "Called get_writable_{{data|text|list|struct_list}}_pointer() but existing pointer is not a list."
+            ),
+            Self::CannotCreateACanonicalMessageWithACapability => {
+                write!(fmt, "Cannot create a canonical message with a capability")
+            }
+            Self::FourByteLengthTooBigForUSize => write!(
+                fmt,
+                "Cannot represent 4 byte length as `usize`. This may indicate that you are running on 8 or 16 bit platform or message is too large."
+            ),
+            Self::FourByteSegmentLengthTooBigForUSize => write!(
+                fmt,
+                "Cannot represent 4 byte segment length as usize. This may indicate that you are running on 8 or 16 bit platform or segment is too large"
+            ),
+            Self::CannotSetAnyPointerFieldToAPrimitiveValue => {
+                write!(fmt, "cannot set AnyPointer field to a primitive value")
+            }
+            Self::CantHandleNonStructInlineComposite => {
+                write!(fmt, "Don't know how to handle non-STRUCT inline composite.")
+            }
             Self::EmptyBuffer => write!(fmt, "empty buffer"),
             Self::EmptySlice => write!(fmt, "empty slice"),
-            Self::EnumValueOrUnionDiscriminantNotPresent(val) => write!(fmt, "Enum value or union discriminant {val} was not present in schema"),
-            Self::ExistingListValueIsIncompatibleWithExpectedType => write!(fmt, "Existing list value is incompatible with expected type."),
+            Self::EnumValueOrUnionDiscriminantNotPresent(val) => write!(
+                fmt,
+                "Enum value or union discriminant {val} was not present in schema"
+            ),
+            Self::ExistingListValueIsIncompatibleWithExpectedType => write!(
+                fmt,
+                "Existing list value is incompatible with expected type."
+            ),
             Self::ExpectedAListOrBlob => write!(fmt, "Expected a list or blob."),
-            Self::ExpectedAPointerListButGotAListOfDataOnlyStructs => write!(fmt, "Expected a pointer list, but got a list of data-only structs"),
-            Self::ExpectedAPrimitiveListButGotAListOfPointerOnlyStructs => write!(fmt, "Expected a primitive list, but got a list of pointer-only structs"),
+            Self::ExpectedAPointerListButGotAListOfDataOnlyStructs => write!(
+                fmt,
+                "Expected a pointer list, but got a list of data-only structs"
+            ),
+            Self::ExpectedAPrimitiveListButGotAListOfPointerOnlyStructs => write!(
+                fmt,
+                "Expected a primitive list, but got a list of pointer-only structs"
+            ),
             Self::FailedToFillTheWholeBuffer => write!(fmt, "failed to fill the whole buffer"),
             Self::FieldAndDefaultMismatch => write!(fmt, "field and default mismatch"),
             Self::FieldNotFound => write!(fmt, "field not found"),
-            Self::FoundBitListWhereStructListWasExpected => write!(fmt, "Found bit list where struct list was expected; upgrading boolean lists to struct lists is no longer supported."),
-            Self::FoundStructListWhereBitListWasExpected => write!(fmt, "Found struct list where bit list was expected."),
+            Self::FoundBitListWhereStructListWasExpected => write!(
+                fmt,
+                "Found bit list where struct list was expected; upgrading boolean lists to struct lists is no longer supported."
+            ),
+            Self::FoundStructListWhereBitListWasExpected => {
+                write!(fmt, "Found struct list where bit list was expected.")
+            }
             Self::GroupFieldButTypeIsNotStruct => write!(fmt, "group field but type is not Struct"),
-            Self::InitIsOnlyValidForStructAndAnyPointerFields => write!(fmt, "init() is only valid for struct and AnyPointer fields"),
-            Self::InitnIsOnlyValidForListTextOrDataFields => write!(fmt, "initn() is only valid for list, text, or data fields"),
-            Self::InlineCompositeListWithNonStructElementsNotSupported => write!(fmt, "InlineComposite list with non-STRUCT elements not supported."),
-            Self::InlineCompositeListsElementsOverrunItsWordCount => write!(fmt, "InlineComposite list's elements overrun its word count."),
-            Self::InlineCompositeListsOfNonStructTypeAreNotSupported => write!(fmt, "InlineComposite lists of non-STRUCT type are not supported."),
-            Self::InvalidNumberOfSegments(segment_count) => write!(fmt, "Too many or too few segments {segment_count}"),
+            Self::InitIsOnlyValidForStructAndAnyPointerFields => {
+                write!(fmt, "init() is only valid for struct and AnyPointer fields")
+            }
+            Self::InitnIsOnlyValidForListTextOrDataFields => {
+                write!(fmt, "initn() is only valid for list, text, or data fields")
+            }
+            Self::InlineCompositeListWithNonStructElementsNotSupported => write!(
+                fmt,
+                "InlineComposite list with non-STRUCT elements not supported."
+            ),
+            Self::InlineCompositeListsElementsOverrunItsWordCount => write!(
+                fmt,
+                "InlineComposite list's elements overrun its word count."
+            ),
+            Self::InlineCompositeListsOfNonStructTypeAreNotSupported => write!(
+                fmt,
+                "InlineComposite lists of non-STRUCT type are not supported."
+            ),
+            Self::InvalidNumberOfSegments(segment_count) => {
+                write!(fmt, "Too many or too few segments {segment_count}")
+            }
             Self::InvalidSegmentId(id) => write!(fmt, "Invalid segment id {id}"),
             Self::ListAnyPointerNotSupported => write!(fmt, "List(AnyPointer) not supported."),
             Self::ListCapabilityNotSupported => write!(fmt, "List(Capability) not supported"),
             Self::MalformedDoubleFarPointer => write!(fmt, "Malformed double-far pointer."),
-            Self::MessageContainsInvalidCapabilityPointer => write!(fmt, "Message contained invalid capability pointer."),
-            Self::MessageContainsListPointerOfNonBytesWhereDataWasExpected => write!(fmt, "Message contains list pointer of non-bytes where data was expected."),
-            Self::MessageContainsListPointerOfNonBytesWhereTextWasExpected => write!(fmt, "Message contains list pointer of non-bytes where text was expected."),
-            Self::MessageContainsListWithIncompatibleElementType => write!(fmt, "Message contains list with incompatible element type."),
-            Self::MessageContainsNonCapabilityPointerWhereCapabilityPointerWasExpected => write!(fmt, "Message contains non-capability pointer where capability pointer was expected."),
-            Self::MessageContainsNonListPointerWhereDataWasExpected => write!(fmt, "Message contains non-list pointer where data was expected."),
-            Self::MessageContainsNonListPointerWhereListPointerWasExpected => write!(fmt, "Message contains non-list pointer where list pointer was expected"),
-            Self::MessageContainsNonListPointerWhereTextWasExpected => write!(fmt, "Message contains non-list pointer where text was expected."),
-            Self::MessageContainsNonStructPointerWhereStructPointerWasExpected => write!(fmt, "Message contains non-struct pointer where struct pointer was expected."),
-            Self::MessageContainsNullCapabilityPointer => write!(fmt, "Message contains null capability pointer."),
-            Self::MessageContainsOutOfBoundsPointer => write!(fmt, "Message contains out-of-bounds pointer"),
-            Self::MessageContainsTextThatIsNotNULTerminated => write!(fmt, "Message contains text that is not NUL-terminated"),
-            Self::MessageEndsPrematurely(header, body) => write!(fmt, "Message ends prematurely. Header claimed {header} words, but message only has {body} words"),
+            Self::MessageContainsInvalidCapabilityPointer => {
+                write!(fmt, "Message contained invalid capability pointer.")
+            }
+            Self::MessageContainsListPointerOfNonBytesWhereDataWasExpected => write!(
+                fmt,
+                "Message contains list pointer of non-bytes where data was expected."
+            ),
+            Self::MessageContainsListPointerOfNonBytesWhereTextWasExpected => write!(
+                fmt,
+                "Message contains list pointer of non-bytes where text was expected."
+            ),
+            Self::MessageContainsListWithIncompatibleElementType => {
+                write!(fmt, "Message contains list with incompatible element type.")
+            }
+            Self::MessageContainsNonCapabilityPointerWhereCapabilityPointerWasExpected => write!(
+                fmt,
+                "Message contains non-capability pointer where capability pointer was expected."
+            ),
+            Self::MessageContainsNonListPointerWhereDataWasExpected => write!(
+                fmt,
+                "Message contains non-list pointer where data was expected."
+            ),
+            Self::MessageContainsNonListPointerWhereListPointerWasExpected => write!(
+                fmt,
+                "Message contains non-list pointer where list pointer was expected"
+            ),
+            Self::MessageContainsNonListPointerWhereTextWasExpected => write!(
+                fmt,
+                "Message contains non-list pointer where text was expected."
+            ),
+            Self::MessageContainsNonStructPointerWhereStructPointerWasExpected => write!(
+                fmt,
+                "Message contains non-struct pointer where struct pointer was expected."
+            ),
+            Self::MessageContainsNullCapabilityPointer => {
+                write!(fmt, "Message contains null capability pointer.")
+            }
+            Self::MessageContainsOutOfBoundsPointer => {
+                write!(fmt, "Message contains out-of-bounds pointer")
+            }
+            Self::MessageContainsTextThatIsNotNULTerminated => {
+                write!(fmt, "Message contains text that is not NUL-terminated")
+            }
+            Self::MessageEndsPrematurely(header, body) => write!(
+                fmt,
+                "Message ends prematurely. Header claimed {header} words, but message only has {body} words"
+            ),
             Self::MessageIsTooDeeplyNested => write!(fmt, "Message is too deeply nested."),
-            Self::MessageIsTooDeeplyNestedOrContainsCycles => write!(fmt, "Message is too deeply-nested or contains cycles."),
-            Self::MessageSizeOverflow => write!(fmt, "Message's size cannot be represented in usize"),
+            Self::MessageIsTooDeeplyNestedOrContainsCycles => {
+                write!(fmt, "Message is too deeply-nested or contains cycles.")
+            }
+            Self::MessageSizeOverflow => {
+                write!(fmt, "Message's size cannot be represented in usize")
+            }
             Self::MessageTooLarge(val) => write!(fmt, "Message is too large: {val}"),
-            Self::MessageNotAlignedBy8BytesBoundary => write!(fmt, "Message was not aligned by 8 bytes boundary. Either ensure that message is properly aligned or compile `capnp` crate with \"unaligned\" feature enabled."),
+            Self::MessageNotAlignedBy8BytesBoundary => write!(
+                fmt,
+                "Message was not aligned by 8 bytes boundary. Either ensure that message is properly aligned or compile `capnp` crate with \"unaligned\" feature enabled."
+            ),
             Self::NestingLimitExceeded => write!(fmt, "nesting limit exceeded"),
             Self::NotAStruct => write!(fmt, "not a struct"),
-            Self::OnlyOneOfTheSectionPointersIsPointingToOurself => write!(fmt, "Only one of the section pointers is pointing to ourself"),
-            Self::PackedInputDidNotEndCleanlyOnASegmentBoundary => write!(fmt, "Packed input did not end cleanly on a segment boundary."),
+            Self::OnlyOneOfTheSectionPointersIsPointingToOurself => write!(
+                fmt,
+                "Only one of the section pointers is pointing to ourself"
+            ),
+            Self::PackedInputDidNotEndCleanlyOnASegmentBoundary => write!(
+                fmt,
+                "Packed input did not end cleanly on a segment boundary."
+            ),
             Self::PrematureEndOfFile => write!(fmt, "Premature end of file"),
             Self::PrematureEndOfPackedInput => write!(fmt, "Premature end of packed input."),
             Self::ReadLimitExceeded => write!(fmt, "Read limit exceeded"),
-            Self::SettingDynamicCapabilitiesIsUnsupported => write!(fmt, "setting dynamic capabilities is unsupported"),
-            Self::StructReaderHadBitwidthOtherThan1 => write!(fmt, "struct reader had bitwidth other than 1"),
+            Self::SettingDynamicCapabilitiesIsUnsupported => {
+                write!(fmt, "setting dynamic capabilities is unsupported")
+            }
+            Self::StructReaderHadBitwidthOtherThan1 => {
+                write!(fmt, "struct reader had bitwidth other than 1")
+            }
             Self::TextBlobMissingNULTerminator => write!(fmt, "Text blob missing NUL terminator."),
             Self::TextContainsNonUtf8Data(e) => write!(fmt, "Text contains non-utf8 data: {e}"),
             Self::TriedToReadFromNullArena => write!(fmt, "Tried to read from null arena"),
             Self::TypeMismatch => write!(fmt, "type mismatch"),
-            Self::UnalignedSegment => write!(fmt, "Detected unaligned segment. You must either ensure all of your segments are 8-byte aligned, or you must enable the \"unaligned\" feature in the capnp crate"),
+            Self::UnalignedSegment => write!(
+                fmt,
+                "Detected unaligned segment. You must either ensure all of your segments are 8-byte aligned, or you must enable the \"unaligned\" feature in the capnp crate"
+            ),
             Self::UnexpectedFarPointer => write!(fmt, "Unexpected far pointer"),
             Self::UnknownPointerType => write!(fmt, "Unknown pointer type."),
         }

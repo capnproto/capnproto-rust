@@ -57,7 +57,7 @@ fn ptr_sub<T>(p1: *const T, p2: *const T) -> usize {
 }
 
 macro_rules! refresh_buffer(
-    ($this:expr, $size:ident, $in_ptr:ident, $in_end:ident, $out:ident,
+    ($this:expr_2021, $size:ident, $in_ptr:ident, $in_end:ident, $out:ident,
      $outBuf:ident, $buffer_begin:ident) => (
         {
             $this.inner.consume($size);
@@ -83,7 +83,10 @@ where
             return Ok(0);
         }
 
-        assert!(len % 8 == 0, "PackedRead reads must be word-aligned.");
+        assert!(
+            len.is_multiple_of(8),
+            "PackedRead reads must be word-aligned."
+        );
 
         unsafe {
             let out_buf_start = out_buf.as_mut_ptr();
@@ -457,13 +460,13 @@ where
 mod tests {
     use crate::io::{Read, Write};
 
-    use quickcheck::{quickcheck, TestResult};
+    use quickcheck::{TestResult, quickcheck};
 
     use super::read_message;
+    use crate::ErrorKind;
     use crate::message::ReaderOptions;
     use crate::serialize::test::write_message_segments;
     use crate::serialize_packed::{PackedRead, PackedWrite};
-    use crate::ErrorKind;
 
     #[test]
     pub(crate) fn premature_eof() {

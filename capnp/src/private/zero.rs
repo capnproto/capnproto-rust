@@ -26,7 +26,7 @@ pub trait Zero {
 }
 
 macro_rules! zero_impl(
-    ($t:ident, $e:expr) => (
+    ($t:ident, $e:expr_2021) => (
         impl Zero for $t {
             #[inline]
             fn zero() -> $t { $e }

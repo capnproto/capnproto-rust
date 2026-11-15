@@ -1,12 +1,12 @@
 //! Convenience wrappers of the datatypes defined in schema.capnp.
 
+use crate::Result;
 use crate::dynamic_value;
 use crate::introspect::{self, RawBrandedStructSchema, RawEnumSchema};
 use crate::private::layout;
 use crate::schema_capnp::{annotation, enumerant, field, node};
 use crate::struct_list;
 use crate::traits::{IndexMove, ListIter, ShortListIter};
-use crate::Result;
 
 /// A struct node, with generics applied.
 #[derive(Clone, Copy)]

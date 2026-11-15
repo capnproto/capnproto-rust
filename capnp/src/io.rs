@@ -45,8 +45,8 @@ pub trait Write {
 /// Blanket impls for when `std` is enabled.
 #[cfg(feature = "std")]
 mod std_impls {
-    use crate::io::{BufRead, Read, Write};
     use crate::Result;
+    use crate::io::{BufRead, Read, Write};
 
     impl<R> Read for R
     where
@@ -89,8 +89,8 @@ mod std_impls {
 /// Blanket impls for when `embedded-io` is enabled and `std` is not.
 #[cfg(all(feature = "embedded-io", not(feature = "std")))]
 mod embedded_io_impls {
-    use crate::io::{BufRead, Read, Write};
     use crate::Result;
+    use crate::io::{BufRead, Read, Write};
     use embedded_io::Error;
 
     impl<W: embedded_io::Write> Write for W {

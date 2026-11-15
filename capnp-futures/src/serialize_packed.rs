@@ -26,7 +26,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use capnp::serialize::OwnedSegments;
-use capnp::{message, Result};
+use capnp::{Result, message};
 use futures_util::{AsyncRead, AsyncWrite};
 
 use crate::serialize::AsOutputSegments;
@@ -160,7 +160,7 @@ where
                         Poll::Ready(0) => {
                             return Poll::Ready(Err(std::io::Error::from(
                                 std::io::ErrorKind::UnexpectedEof,
-                            )))
+                            )));
                         }
                         Poll::Ready(n) => {
                             *buf_pos += n;
@@ -426,7 +426,7 @@ where
                             let mut words_in_run = (inbuf.len() / 8).min(u8::MAX.into());
                             let mut zero_bytes_in_word = 0;
                             for (idx, inb) in inbuf[..words_in_run * 8].iter().enumerate() {
-                                if idx % 8 == 0 {
+                                if idx.is_multiple_of(8) {
                                     zero_bytes_in_word = 0;
                                 }
                                 if *inb == 0 {
@@ -555,10 +555,10 @@ where
 #[cfg(test)]
 pub mod test {
     use crate::serialize::test::{BlockingRead, BlockingWrite};
-    use crate::serialize_packed::{try_read_message, PackedRead, PackedWrite};
+    use crate::serialize_packed::{PackedRead, PackedWrite, try_read_message};
     use capnp::message::ReaderSegments;
     use futures::{AsyncReadExt, AsyncWriteExt};
-    use quickcheck::{quickcheck, TestResult};
+    use quickcheck::{TestResult, quickcheck};
 
     pub fn check_unpacks_to(blocking_period: usize, packed: &[u8], unpacked: &[u8]) {
         let mut packed_read = PackedRead::new(crate::serialize::test::BlockingRead::new(
@@ -708,15 +708,17 @@ pub mod test {
 
     #[test]
     fn check_packed_round_trip_async_bug() {
-        assert!(!round_trip(
-            1,
-            1,
-            vec![vec![
-                capnp::word(8, 14, 90, 7, 21, 13, 59, 17),
-                capnp::word(0, 31, 21, 73, 0, 54, 61, 12)
-            ]]
-        )
-        .is_failure());
+        assert!(
+            !round_trip(
+                1,
+                1,
+                vec![vec![
+                    capnp::word(8, 14, 90, 7, 21, 13, 59, 17),
+                    capnp::word(0, 31, 21, 73, 0, 54, 61, 12)
+                ]]
+            )
+            .is_failure()
+        );
     }
 
     #[cfg_attr(miri, ignore)]

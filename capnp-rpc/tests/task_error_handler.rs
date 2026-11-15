@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use capnp::capability::Promise;
-use futures::channel::oneshot;
 use futures::FutureExt;
+use futures::channel::oneshot;
 
 struct FailedNetwork {
     accept: Option<Promise<Box<dyn capnp_rpc::Connection<()>>, capnp::Error>>,

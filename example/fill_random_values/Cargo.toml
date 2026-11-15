@@ -4,7 +4,7 @@ name = "fill_random_values"
 version = "0.0.0"
 license = "MIT"
 description = "library for generating random capnp data"
-edition = "2021"
+edition = "2024"
 
 readme = "README.md"
 

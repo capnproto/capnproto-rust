@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use crate::{echo_capnp::echo, shared_secret_capnp::shared_secret_authenticated};
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use futures::AsyncReadExt;
 

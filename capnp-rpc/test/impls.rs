@@ -25,11 +25,11 @@ use crate::test_capnp::{
     test_streaming,
 };
 
-use capnp::capability::FromClientHook;
 use capnp::Error;
+use capnp::capability::FromClientHook;
 
-use futures::channel::oneshot;
 use futures::TryFutureExt;
+use futures::channel::oneshot;
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;

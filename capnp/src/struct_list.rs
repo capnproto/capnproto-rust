@@ -23,12 +23,12 @@
 
 use core::marker::PhantomData;
 
+use crate::Result;
 use crate::introspect;
 use crate::private::layout::{
     InlineComposite, ListBuilder, ListReader, PointerBuilder, PointerReader,
 };
 use crate::traits::{FromPointerBuilder, FromPointerReader, HasStructSize, IndexMove, ListIter};
-use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned<T>

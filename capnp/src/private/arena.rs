@@ -20,12 +20,12 @@
 
 use core::slice;
 
+use crate::OutputSegments;
 use crate::message;
 use crate::message::Allocator;
 use crate::message::ReaderSegments;
 use crate::private::read_limiter::ReadLimiter;
 use crate::private::units::*;
-use crate::OutputSegments;
 use crate::{Error, ErrorKind, Result};
 
 pub type SegmentId = u32;
@@ -159,7 +159,7 @@ where
             Some(seg) => {
                 #[cfg(not(feature = "unaligned"))]
                 {
-                    if seg.as_ptr() as usize % BYTES_PER_WORD != 0 {
+                    if !(seg.as_ptr() as usize).is_multiple_of(BYTES_PER_WORD) {
                         return Err(Error::from_kind(ErrorKind::UnalignedSegment));
                     }
                 }

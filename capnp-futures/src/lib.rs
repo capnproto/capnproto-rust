@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 pub use read_stream::ReadStream;
-pub use write_queue::{write_queue, Sender};
+pub use write_queue::{Sender, write_queue};
 
 mod read_stream;
 pub mod serialize;

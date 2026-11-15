@@ -156,7 +156,7 @@ where
 {
     /// Enqueues a message to be written. Returns the message once the write
     /// has completed. Dropping the returned future does *not* cancel the write.
-    pub fn send(&mut self, message: M) -> impl Future<Output = Result<M, Error>> + Unpin {
+    pub fn send(&mut self, message: M) -> impl Future<Output = Result<M, Error>> + Unpin + use<M> {
         self.in_flight
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let (complete, oneshot) = oneshot::channel();
@@ -183,7 +183,7 @@ where
     pub fn terminate(
         &mut self,
         result: Result<(), Error>,
-    ) -> impl Future<Output = Result<(), Error>> + Unpin {
+    ) -> impl Future<Output = Result<(), Error>> + Unpin + use<M> {
         let (complete, receiver) = oneshot::channel();
 
         let _ = self.sender.unbounded_send(Item::Done(result, complete));
@@ -205,7 +205,7 @@ mod tests {
     use futures::executor::block_on;
     use futures_util::{AsyncWrite, FutureExt};
 
-    use super::{write_queue, Sender};
+    use super::{Sender, write_queue};
 
     type Message = Builder<HeapAllocator>;
 

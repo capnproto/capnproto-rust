@@ -21,9 +21,9 @@
 
 //! List of sequences of bytes.
 
+use crate::Result;
 use crate::private::layout::*;
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
-use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned;

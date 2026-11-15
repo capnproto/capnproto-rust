@@ -23,11 +23,11 @@ use std::collections;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use capnp::schema_capnp;
 use capnp::Error;
+use capnp::schema_capnp;
 
 use self::FormattedText::{BlankLine, Branch, Indent, Line};
-use crate::codegen_types::{do_branding, Leaf, RustNodeInfo, RustTypeInfo, TypeParameterTexts};
+use crate::codegen_types::{Leaf, RustNodeInfo, RustTypeInfo, TypeParameterTexts, do_branding};
 use crate::convert_io_err;
 use crate::pointer_constants::generate_pointer_constant;
 
@@ -433,7 +433,7 @@ fn format_u64(value: u64) -> String {
     let mut later_loop = false;
 
     for ch in hex[2..].chars() {
-        if later_loop && place % 4 == 0 {
+        if later_loop && place.is_multiple_of(4) {
             separated.push('_');
         }
 
@@ -811,10 +811,13 @@ pub fn getter_text(
                 }
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
-                        format!("::core::convert::TryFrom::try_from(self.{member}.get_data_field::<u16>({offset}))")
+                        format!(
+                            "::core::convert::TryFrom::try_from(self.{member}.get_data_field::<u16>({offset}))"
+                        )
                     } else {
                         format!(
-                                "::core::convert::TryFrom::try_from(self.{member}.get_data_field_mask::<u16>({offset}, {d}))")
+                            "::core::convert::TryFrom::try_from(self.{member}.get_data_field_mask::<u16>({offset}, {d}))"
+                        )
                     }
                 }
 
@@ -837,23 +840,40 @@ pub fn getter_text(
                     };
 
                     if is_reader {
-                        fmt!(ctx,
-                            "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), {default})")
+                        fmt!(
+                            ctx,
+                            "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), {default})"
+                        )
                     } else {
-                        fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})")
+                        fmt!(
+                            ctx,
+                            "{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})"
+                        )
                     }
                 }
 
                 (type_::Interface(_), value::Interface(_)) => {
-                    fmt!(ctx,"match self.{member}.get_pointer_field({offset}).get_capability() {{ ::core::result::Result::Ok(c) => ::core::result::Result::Ok({capnp}::capability::FromClientHook::new(c)), ::core::result::Result::Err(e) => ::core::result::Result::Err(e)}}")
+                    fmt!(
+                        ctx,
+                        "match self.{member}.get_pointer_field({offset}).get_capability() {{ ::core::result::Result::Ok(c) => ::core::result::Result::Ok({capnp}::capability::FromClientHook::new(c)), ::core::result::Result::Err(e) => ::core::result::Result::Err(e)}}"
+                    )
                 }
                 (type_::AnyPointer(_), value::AnyPointer(_)) => {
                     if !raw_type.is_parameter()? {
-                        fmt!(ctx,"{capnp}::any_pointer::{module_string}::new(self.{member}.get_pointer_field({offset}))")
+                        fmt!(
+                            ctx,
+                            "{capnp}::any_pointer::{module_string}::new(self.{member}.get_pointer_field({offset}))"
+                        )
                     } else if is_reader {
-                        fmt!(ctx,"{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), ::core::option::Option::None)")
+                        fmt!(
+                            ctx,
+                            "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), ::core::option::Option::None)"
+                        )
                     } else {
-                        fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), ::core::option::Option::None)")
+                        fmt!(
+                            ctx,
+                            "{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), ::core::option::Option::None)"
+                        )
                     }
                 }
                 _ => return Err(Error::failed("default value was of wrong type".to_string())),
@@ -1498,7 +1518,8 @@ fn generate_union(
 
     let getter_result = Branch(vec![
         line("#[inline]"),
-        Line(fmt!(ctx,
+        Line(fmt!(
+            ctx,
             "pub fn which(self) -> ::core::result::Result<{concrete_type}, {capnp}::NotInSchema> {{"
         )),
         indent(vec![
@@ -1602,23 +1623,33 @@ fn generate_pipeline_getter(
         field::Slot(reg_field) => {
             let typ = reg_field.get_type()?;
             match typ.which()? {
-                type_::Struct(_) | type_::AnyPointer(_) => {
-                    Ok(Branch(vec![
-                        Line(format!("pub fn get_{}(&self) -> {} {{", camel_to_snake_case(name), typ.type_string(ctx, Leaf::Pipeline)?)),
-                        indent(Line(fmt!(ctx,"{capnp}::capability::FromTypelessPipeline::new(self._typeless.get_pointer_field({}))", reg_field.get_offset()))),
-                        line("}")
-                    ]))
-                }
-                type_::Interface(_) => {
-                    Ok(Branch(vec![
-                        Line(format!("pub fn get_{}(&self) -> {} {{", camel_to_snake_case(name), typ.type_string(ctx, Leaf::Client)?)),
-                        indent(Line(fmt!(ctx,"{capnp}::capability::FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())", reg_field.get_offset()))),
-                        line("}")
-                    ]))
-                }
-                _ => {
-                    Ok(Branch(Vec::new()))
-                }
+                type_::Struct(_) | type_::AnyPointer(_) => Ok(Branch(vec![
+                    Line(format!(
+                        "pub fn get_{}(&self) -> {} {{",
+                        camel_to_snake_case(name),
+                        typ.type_string(ctx, Leaf::Pipeline)?
+                    )),
+                    indent(Line(fmt!(
+                        ctx,
+                        "{capnp}::capability::FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
+                        reg_field.get_offset()
+                    ))),
+                    line("}"),
+                ])),
+                type_::Interface(_) => Ok(Branch(vec![
+                    Line(format!(
+                        "pub fn get_{}(&self) -> {} {{",
+                        camel_to_snake_case(name),
+                        typ.type_string(ctx, Leaf::Client)?
+                    )),
+                    indent(Line(fmt!(
+                        ctx,
+                        "{capnp}::capability::FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
+                        reg_field.get_offset()
+                    ))),
+                    line("}"),
+                ])),
+                _ => Ok(Branch(Vec::new())),
             }
         }
     }
@@ -1795,16 +1826,21 @@ fn generate_get_annotation_types(
 
     if !node_reader.get_is_generic() {
         Ok(Branch(vec![
-            Line(fmt!(ctx,"pub(crate) fn get_annotation_types(child_index: Option<u16>, index: u32) -> {capnp}::introspect::Type {{")),
+            Line(fmt!(
+                ctx,
+                "pub(crate) fn get_annotation_types(child_index: Option<u16>, index: u32) -> {capnp}::introspect::Type {{"
+            )),
             indent(body),
             Line("}".into()),
         ]))
     } else {
         let params = node_reader.parameters_texts(ctx);
         Ok(Branch(vec![
-            Line(fmt!(ctx,
+            Line(fmt!(
+                ctx,
                 "pub(crate) fn get_annotation_types<{0}>(child_index: Option<u16>, index: u32) -> {capnp}::introspect::Type {1} {{",
-                params.params, params.where_clause
+                params.params,
+                params.where_clause
             )),
             indent(body),
             Line("}".into()),
@@ -2161,32 +2197,57 @@ fn generate_node(
                 preamble.push(BlankLine);
             }
 
-            let builder_struct_size =
-                Branch(vec![
-                    Line(fmt!(ctx,"impl <{0}> {capnp}::traits::HasStructSize for Builder<'_,{0}> {1} {{",
-                                 params.params, params.where_clause)),
-                                 indent(Line(
-                        fmt!(ctx,"const STRUCT_SIZE: {capnp}::private::layout::StructSize = {capnp}::private::layout::StructSize {{ data: {}, pointers: {} }};", data_size as usize, pointer_size as usize))),
-                   line("}")]);
+            let builder_struct_size = Branch(vec![
+                Line(fmt!(
+                    ctx,
+                    "impl <{0}> {capnp}::traits::HasStructSize for Builder<'_,{0}> {1} {{",
+                    params.params,
+                    params.where_clause
+                )),
+                indent(Line(fmt!(
+                    ctx,
+                    "const STRUCT_SIZE: {capnp}::private::layout::StructSize = {capnp}::private::layout::StructSize {{ data: {}, pointers: {} }};",
+                    data_size as usize,
+                    pointer_size as usize
+                ))),
+                line("}"),
+            ]);
 
             private_mod_interior.push(Line(format!(
                 "pub(crate) const TYPE_ID: u64 = {};",
                 format_u64(node_id)
             )));
 
-            let from_pointer_builder_impl =
-                Branch(vec![
-                    Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::FromPointerBuilder<'a> for Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
-                    indent(vec![
-                        Line(fmt!(ctx,"fn init_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, _size: u32) -> Self {{")),
-                        indent(Line(fmt!(ctx,"builder.init_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE).into()"))),
-                        line("}"),
-                        Line(fmt!(ctx,"fn get_from_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [{capnp}::Word]>) -> {capnp}::Result<Self> {{")),
-                        indent(Line(fmt!(ctx,"::core::result::Result::Ok(builder.get_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE, default)?.into())"))),
-                        line("}")
-                    ]),
+            let from_pointer_builder_impl = Branch(vec![
+                Line(fmt!(
+                    ctx,
+                    "impl <'a,{0}> {capnp}::traits::FromPointerBuilder<'a> for Builder<'a,{0}> {1} {{",
+                    params.params,
+                    params.where_clause
+                )),
+                indent(vec![
+                    Line(fmt!(
+                        ctx,
+                        "fn init_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, _size: u32) -> Self {{"
+                    )),
+                    indent(Line(fmt!(
+                        ctx,
+                        "builder.init_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE).into()"
+                    ))),
                     line("}"),
-                    BlankLine]);
+                    Line(fmt!(
+                        ctx,
+                        "fn get_from_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [{capnp}::Word]>) -> {capnp}::Result<Self> {{"
+                    )),
+                    indent(Line(fmt!(
+                        ctx,
+                        "::core::result::Result::Ok(builder.get_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE, default)?.into())"
+                    ))),
+                    line("}"),
+                ]),
+                line("}"),
+                BlankLine,
+            ]);
 
             let accessors = vec![
                 Branch(preamble),

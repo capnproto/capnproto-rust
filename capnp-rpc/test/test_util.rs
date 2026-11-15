@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use crate::test_capnp::{test_all_types, TestEnum};
+use crate::test_capnp::{TestEnum, test_all_types};
 
 pub fn init_test_message(mut builder: test_all_types::Builder) {
     builder.set_void_field(());
