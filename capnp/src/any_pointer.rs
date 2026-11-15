@@ -213,9 +213,8 @@ impl<'a> crate::traits::ImbueMut<'a> for Builder<'a> {
 }
 
 pub struct Pipeline {
-    // XXX this should not be public
     #[cfg(feature = "alloc")]
-    pub hook: alloc::boxed::Box<dyn PipelineHook>,
+    hook: alloc::boxed::Box<dyn PipelineHook>,
 
     #[cfg(feature = "alloc")]
     ops: alloc::vec::Vec<PipelineOp>,
