@@ -242,6 +242,10 @@ struct BuilderSegmentArray {
 
 #[cfg(not(feature = "alloc"))]
 impl BuilderSegmentArray {
+    fn iter(&self) -> core::option::Iter<'_, BuilderSegment> {
+        self.segment.iter()
+    }
+
     fn len(&self) -> usize {
         match self.segment {
             Some(_) => 1,
