@@ -386,10 +386,10 @@ fn from_error(error: &Error, mut builder: exception::Builder) {
     if let Ok(len) = u32::try_from(details.len()) {
         if len > 0 {
             let mut details_builder = builder.init_details(len);
-            for (idx, (id, data)) in (0..len).zip(details.iter()) {
+            for (idx, detail) in (0..len).zip(details.iter()) {
                 let mut detail_builder = details_builder.reborrow().get(idx);
-                detail_builder.set_detail_id(*id);
-                detail_builder.set_data(data);
+                detail_builder.set_detail_id(detail.id);
+                detail_builder.set_data(&detail.data);
             }
         }
     }
