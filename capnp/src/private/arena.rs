@@ -412,8 +412,8 @@ where
 
     fn size_in_words(&self) -> usize {
         let mut result = 0;
-        for ii in 0..self.inner.segments.len() {
-            result += self.inner.segments[ii].allocated as usize
+        for seg in self.inner.segments.iter() {
+            result += seg.allocated as usize
         }
         result
     }
