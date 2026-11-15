@@ -4,6 +4,7 @@
 - Simplify `CapTable` management.
 - Remove deprecated Type::loose_equals() method.
 - Make fields private in `any_pointer::Pipeline` and `capability::Response`.
+- Change several `capnp::private` items from `pub` visibility to `pub(crate)` visibility.
 - Bump capnp schema files to the latest from the upstream v2 branch.
 - Bump minimium required rust version to 1.87.0.
 

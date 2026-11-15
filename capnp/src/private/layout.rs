@@ -67,7 +67,7 @@ impl ElementSize {
     }
 }
 
-pub fn data_bits_per_element(size: ElementSize) -> BitCount32 {
+pub(crate) fn data_bits_per_element(size: ElementSize) -> BitCount32 {
     match size {
         Void => 0,
         Bit => 1,
@@ -80,7 +80,7 @@ pub fn data_bits_per_element(size: ElementSize) -> BitCount32 {
     }
 }
 
-pub fn pointers_per_element(size: ElementSize) -> WirePointerCount32 {
+pub(crate) fn pointers_per_element(size: ElementSize) -> WirePointerCount32 {
     match size {
         Pointer => 1,
         _ => 0,
@@ -102,14 +102,14 @@ impl StructSize {
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
-pub enum WirePointerKind {
+pub(crate) enum WirePointerKind {
     Struct = 0,
     List = 1,
     Far = 2,
     Other = 3,
 }
 
-pub enum PointerType {
+pub(crate) enum PointerType {
     Null,
     Struct,
     List,
@@ -3134,7 +3134,7 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_pointer_type(&self) -> Result<PointerType> {
+    pub(crate) fn get_pointer_type(&self) -> Result<PointerType> {
         if self.is_null() {
             Ok(PointerType::Null)
         } else {
