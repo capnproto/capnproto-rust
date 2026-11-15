@@ -192,10 +192,10 @@ impl ::core::error::Error for NotInSchema {
 /// must be wrapped in a Result.
 pub type Result<T> = ::core::result::Result<T, Error>;
 
-/// An opaque detail payload attached to an [`Error`].
+/// Arbitrary extra detail attached to an [`Error`].
 ///
-/// Each detail has a unique 64-bit `id` (typically generated with `capnp id`) and an opaque
-/// byte `data` payload.
+/// Each detail has a unique 64-bit `id` (typically generated with `capnp id`) and a byte `data`
+/// payload whose encoding is defined by the application.
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorDetail {
@@ -505,7 +505,7 @@ impl Error {
         }
     }
 
-    /// Returns the opaque detail payload associated with `detail_id`, if present.
+    /// Returns the detail payload associated with `detail_id`, if present.
     ///
     /// Details can be attached to an error returned by an RPC server method and retrieved on the
     /// client after awaiting the call. Each detail type should use a unique 64-bit ID (typically
@@ -528,7 +528,7 @@ impl Error {
         }
     }
 
-    /// Attaches an opaque detail payload keyed by `detail_id` to this error, replacing any
+    /// Attaches a detail payload keyed by `detail_id` to this error, replacing any
     /// existing payload with the same `detail_id`.
     ///
     /// Each detail type should use a unique 64-bit ID (typically generated with `capnp id`).
