@@ -3092,8 +3092,8 @@ fn generate_node(
                                         capitalize_first_letter(get_enumerant_name(enumerant)?);
                                     let type_string = typ.type_string(ctx, Leaf::Owned)?;
                                     Line(format!(
-                                        "pub const {}: {} = {}::{};",
-                                        styled_name, &type_string, &type_string, variant
+                                        "pub const {}: {type_string} = {type_string}::{};",
+                                        styled_name, variant
                                     ))
                                 } else {
                                     return Err(Error::failed(format!(
