@@ -2200,8 +2200,7 @@ where
     fn resolve(state: &Rc<RefCell<Self>>, response: Result<Response<VatId>, Error>) {
         let to_resolve = {
             let tmp = state.borrow();
-            let r = tmp.promise_clients_to_resolve.borrow_mut().drain();
-            r
+            tmp.promise_clients_to_resolve.borrow_mut().drain()
         };
         for ((c, ops), _) in to_resolve {
             let resolved = match response.clone() {
