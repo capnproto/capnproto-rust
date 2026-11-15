@@ -1,3 +1,6 @@
+## v0.28.0
+- By default, log background errors to stderr instead of stdout.
+
 ## v0.27.5
 - Avoid possible "message loop outlived connection state?" panic on shutdown.
 
