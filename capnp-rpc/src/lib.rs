@@ -294,7 +294,7 @@ impl<VatId> RpcSystem<VatId> {
 
     /// Sets the callback used to log errors from this RpcSystem's background tasks.
     ///
-    /// The default handler prints errors to stdout, ignoring any I/O errors.
+    /// The default handler attempts to write errors to stderr.
     /// The replacement is called synchronously while polling this `RpcSystem`,
     /// including for tasks that were already running when the handler was set.
     /// Set the handler before spawning the system to handle errors from its first poll.
@@ -533,7 +533,7 @@ impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
         use std::io::Write;
         // Unlike println!, this does not panic on I/O errors, such as when
-        // nonblocking stdout's buffer is full. Reporting a background task
+        // nonblocking stderr's buffer is full. Reporting a background task
         // failure should not panic while the RpcSystem is being polled.
         let _ = writeln!(std::io::stderr().lock(), "ERROR: {error}");
     }
