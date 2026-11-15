@@ -170,6 +170,9 @@ struct Node {
     }
   }
 
+  startByte @34 :UInt32;
+  endByte @35 :UInt32;
+
   struct SourceInfo {
     # Additional information about a node which is not needed at runtime, but may be useful for
     # documentation or debugging purposes. This is kept in a separate struct to make sure it
@@ -192,9 +195,12 @@ struct Node {
     struct Member {
       docComment @0 :Text;
       # Doc comment on the member.
+      startByte @1 :UInt32;
+      endByte @2 :UInt32;
     }
 
-    # TODO(someday): Record location of the declaration in the original source code.
+    startByte @3 :UInt32;
+    endByte @4 :UInt32;
   }
 }
 
@@ -363,8 +369,8 @@ struct Type {
         # This is actually a reference to a type parameter defined within this scope.
 
         scopeId @19 :Id;
-        # ID of the generic type whose parameter we're referencing. This should be a parent of the
-        # current scope.
+        # ID of the generic type whose parameter we're referencing. This is always either the
+        # current scope's type ID or one of its ancestors' IDs.
 
         parameterIndex @20 :UInt16;
         # Index of the parameter within the generic type's parameter list.
@@ -447,10 +453,10 @@ struct Value {
     text @12 :Text;
     data @13 :Data;
 
-    list @14 :AnyPointer;
+    list @14 :AnyList;
 
     enum @15 :UInt16;
-    struct @16 :AnyPointer;
+    struct @16 :AnyStruct;
 
     interface @17 :Void;
     # The only interface value that can be represented statically is "null", whose methods always
@@ -537,6 +543,27 @@ struct CodeGeneratorRequest {
       # information is only meaningful at compile time anyway.
       #
       # (On Zooko's triangle, this is the import's petname according to the importing file.)
+    }
+    fileSourceInfo @3 :FileSourceInfo;
+
+    struct FileSourceInfo {
+      identifiers @0 :List(Identifier);
+
+      struct Identifier {
+        startByte @0 :UInt32;
+        endByte @1 :UInt32;
+
+        union {
+          typeId @2 :UInt64;
+          # Identifier refers to a type. This is the type ID.
+
+          member :group {
+            # Identifier refers to a member of a type.
+            parentTypeId @3 :UInt64;
+            ordinal @4 :UInt16;
+          }
+        }
+      }
     }
   }
 }
