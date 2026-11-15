@@ -28,11 +28,11 @@ use crate::{
         self, AuthenticateParams, AuthenticateResults,
     },
 };
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use capnp::{
-    traits::{Owned, SetterInput},
     Error,
+    traits::{Owned, SetterInput},
 };
 
 use futures::AsyncReadExt;

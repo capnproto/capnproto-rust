@@ -23,13 +23,13 @@
 
 use core::marker;
 
+use crate::Result;
 use crate::introspect;
 use crate::private::layout::{
-    data_bits_per_element, ElementSize, ListBuilder, ListReader, PointerBuilder, PointerReader,
-    PrimitiveElement,
+    ElementSize, ListBuilder, ListReader, PointerBuilder, PointerReader, PrimitiveElement,
+    data_bits_per_element,
 };
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
-use crate::Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned<T> {
@@ -156,10 +156,14 @@ impl<T: PrimitiveElement> Reader<'_, T> {
 const fn check_slice_supported<T: PrimitiveElement>() {
     if core::mem::size_of::<T>() > 1 {
         if !cfg!(target_endian = "little") {
-            panic!("cannot call as_slice on primitive list of multi-byte elements on non-little endian targets");
+            panic!(
+                "cannot call as_slice on primitive list of multi-byte elements on non-little endian targets"
+            );
         }
         if cfg!(feature = "unaligned") {
-            panic!("cannot call as_slice on primitive list of multi-byte elements when unaligned feature is enabled");
+            panic!(
+                "cannot call as_slice on primitive list of multi-byte elements when unaligned feature is enabled"
+            );
         }
     }
 }

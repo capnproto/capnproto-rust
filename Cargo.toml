@@ -1,5 +1,5 @@
 [workspace.package]
-rust-version = "1.81.0"
+rust-version = "1.87.0"
 
 [workspace]
 
@@ -20,6 +20,7 @@ members = [
     "capnpc/test-edition-2015",
     "capnpc/test-edition-2018",
     "capnpc/test-edition-2021",
+    "capnpc/test-edition-2024",
     "capnp-futures/test",
     "capnp-rpc/examples/hello-world",
     "capnp-rpc/examples/calculator",

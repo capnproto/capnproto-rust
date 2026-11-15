@@ -1,0 +1,22 @@
+[package]
+
+name = "capnpc-test-edition-2024"
+version = "0.0.0"
+build = "build.rs"
+edition = "2024"
+
+[lib]
+
+name = "capnpc_test_edition_2024"
+path = "test.rs"
+
+[build-dependencies]
+capnpc = { path = "../" }
+
+[dependencies]
+capnp = { path = "../../capnp" }
+capnpc = { path = "../" }
+external-crate = { path = "../test/external-crate" }
+
+[lints]
+workspace = true

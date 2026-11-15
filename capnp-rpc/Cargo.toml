@@ -9,7 +9,8 @@ repository = "https://github.com/capnproto/capnproto-rust"
 documentation = "https://docs.rs/capnp-rpc/"
 categories = ["network-programming"]
 autoexamples = false
-edition = "2021"
+edition = "2024"
+rust-version.workspace = true
 
 readme = "README.md"
 

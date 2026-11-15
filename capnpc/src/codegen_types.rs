@@ -19,9 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use crate::codegen::{fmt, GeneratorContext};
-use capnp::schema_capnp::{brand, node, type_};
+use crate::codegen::{GeneratorContext, fmt};
 use capnp::Error;
+use capnp::schema_capnp::{brand, node, type_};
 use std::collections::hash_map::HashMap;
 
 #[derive(Copy, Clone, PartialEq)]

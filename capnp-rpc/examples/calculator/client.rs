@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use crate::calculator_capnp::calculator;
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use futures::AsyncReadExt;
 

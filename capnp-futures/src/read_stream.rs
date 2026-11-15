@@ -22,9 +22,9 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use capnp::{message, Error};
-use futures_util::stream::Stream;
+use capnp::{Error, message};
 use futures_util::AsyncRead;
+use futures_util::stream::Stream;
 
 async fn read_next_message<R>(
     mut reader: R,

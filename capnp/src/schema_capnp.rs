@@ -7521,8 +7521,8 @@ pub mod method {
 
 pub mod type_ {
     pub use self::Which::{
-        AnyPointer, Bool, Data, Enum, Float32, Float64, Int16, Int32, Int64, Int8, Interface, List,
-        Struct, Text, Uint16, Uint32, Uint64, Uint8, Void,
+        AnyPointer, Bool, Data, Enum, Float32, Float64, Int8, Int16, Int32, Int64, Interface, List,
+        Struct, Text, Uint8, Uint16, Uint32, Uint64, Void,
     };
 
     #[derive(Copy, Clone)]
@@ -11958,8 +11958,8 @@ pub mod brand {
 
 pub mod value {
     pub use self::Which::{
-        AnyPointer, Bool, Data, Enum, Float32, Float64, Int16, Int32, Int64, Int8, Interface, List,
-        Struct, Text, Uint16, Uint32, Uint64, Uint8, Void,
+        AnyPointer, Bool, Data, Enum, Float32, Float64, Int8, Int16, Int32, Int64, Interface, List,
+        Struct, Text, Uint8, Uint16, Uint32, Uint64, Void,
     };
 
     #[derive(Copy, Clone)]

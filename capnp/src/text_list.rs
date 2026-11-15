@@ -21,9 +21,9 @@
 
 //! List of strings containing UTF-8 encoded text.
 
+use crate::Result;
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter, SetterInput};
-use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned;

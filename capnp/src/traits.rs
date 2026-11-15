@@ -19,11 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use crate::Result;
 use crate::private::layout::CapTable;
 use crate::private::layout::{
     ListReader, PointerBuilder, PointerReader, StructBuilder, StructReader, StructSize,
 };
-use crate::Result;
 
 use core::marker::PhantomData;
 

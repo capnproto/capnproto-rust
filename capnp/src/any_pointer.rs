@@ -21,13 +21,13 @@
 
 //! Untyped pointer that can be cast to any struct, list, or capability type.
 
+use crate::Result;
 #[cfg(feature = "alloc")]
 use crate::capability::FromClientHook;
 #[cfg(feature = "alloc")]
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
 use crate::private::layout::{PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, SetterInput};
-use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned(());

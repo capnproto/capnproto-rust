@@ -22,9 +22,9 @@
 #![cfg(test)]
 #![allow(clippy::bool_assert_comparison)]
 
-use capnp::capability::{FromClientHook, Promise};
 use capnp::Error;
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp::capability::{FromClientHook, Promise};
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use futures::channel::oneshot;
 use futures::{Future, FutureExt, TryFutureExt};

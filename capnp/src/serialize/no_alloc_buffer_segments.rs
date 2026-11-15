@@ -56,7 +56,7 @@ fn read_segment_table(slice: &[u8], options: ReaderOptions) -> Result<NoAllocSeg
 
     // If number of segments is even, header length will not be aligned by 8, we need to consume
     // padding from the remainder of the message
-    if segments_count % 2 == 0 {
+    if segments_count.is_multiple_of(2) {
         let _padding = read_u32_le(&mut remaining)?;
     }
 
@@ -348,23 +348,24 @@ fn calculate_data_offset(segments_count: usize) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "alloc")]
-    use quickcheck::{quickcheck, TestResult};
+    use quickcheck::{TestResult, quickcheck};
 
     use super::calculate_data_offset;
     #[cfg(feature = "alloc")]
     use crate::{
+        Word,
         message::{ReaderOptions, ReaderSegments},
-        serialize, word, Word,
+        serialize, word,
     };
 
     #[cfg(feature = "alloc")]
     use crate::OutputSegments;
 
+    #[cfg(feature = "alloc")]
+    use super::{NoAllocBufferSegmentType, NoAllocBufferSegments, NoAllocSliceSegments};
     use super::{
         read_u32_le, u32_to_segment_length_bytes, u32_to_segments_count, verify_alignment,
     };
-    #[cfg(feature = "alloc")]
-    use super::{NoAllocBufferSegmentType, NoAllocBufferSegments, NoAllocSliceSegments};
 
     #[repr(align(8))]
     struct Aligned([u8; 8]);

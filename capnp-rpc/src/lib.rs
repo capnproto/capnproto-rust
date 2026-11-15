@@ -58,9 +58,9 @@
 //!
 //! For a more complete example, see <https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator>
 
+use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::ClientHook;
-use capnp::Error;
 use futures::channel::oneshot;
 use futures::{Future, FutureExt, TryFutureExt};
 use std::cell::RefCell;
@@ -71,7 +71,7 @@ use std::task::{Context, Poll};
 pub use crate::rpc::Disconnector;
 use crate::task_set::TaskSet;
 
-pub use crate::reconnect::{auto_reconnect, lazy_auto_reconnect, SetTarget};
+pub use crate::reconnect::{SetTarget, auto_reconnect, lazy_auto_reconnect};
 
 /// Code generated from
 /// [rpc.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/rpc.capnp).
@@ -87,7 +87,7 @@ pub mod rpc_twoparty_capnp;
 /// enclosing function with `Promise::err(e)`.
 #[macro_export]
 macro_rules! pry {
-    ($expr:expr) => {
+    ($expr:expr_2021) => {
         match $expr {
             ::std::result::Result::Ok(val) => val,
             ::std::result::Result::Err(err) => {

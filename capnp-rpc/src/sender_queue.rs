@@ -25,8 +25,8 @@ use futures::{FutureExt, TryFutureExt};
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use capnp::capability::Promise;
 use capnp::Error;
+use capnp::capability::Promise;
 
 use std::collections::BTreeMap;
 
