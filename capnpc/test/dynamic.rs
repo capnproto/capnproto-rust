@@ -511,16 +511,6 @@ fn test_downcasts() {
 }
 
 #[test]
-#[allow(deprecated)]
-fn introspect_loose_equals() {
-    use capnp::introspect::Introspect;
-
-    assert!(test_all_types::Owned::introspect().loose_equals(test_all_types::Owned::introspect()));
-
-    assert!(!test_all_types::Owned::introspect().loose_equals(test_defaults::Owned::introspect()))
-}
-
-#[test]
 fn introspect_equals() {
     use capnp::introspect::Introspect;
 
