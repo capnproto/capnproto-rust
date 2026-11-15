@@ -192,6 +192,17 @@ impl ::core::error::Error for NotInSchema {
 /// must be wrapped in a Result.
 pub type Result<T> = ::core::result::Result<T, Error>;
 
+/// An opaque detail payload attached to an [`Error`].
+///
+/// Each detail has a unique 64-bit `id` (typically generated with `capnp id`) and an opaque
+/// byte `data` payload.
+#[cfg(feature = "alloc")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErrorDetail {
+    pub id: u64,
+    pub data: alloc::vec::Vec<u8>,
+}
+
 /// Describes an arbitrary error that prevented an operation from completing.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
@@ -204,7 +215,7 @@ pub struct Error {
     extra: alloc::string::String,
     // Keep the details vector out of line so errors without details pay for only a pointer.
     #[cfg(feature = "alloc")]
-    details: Option<alloc::boxed::Box<alloc::vec::Vec<(u64, alloc::vec::Vec<u8>)>>>,
+    details: Option<alloc::boxed::Box<alloc::vec::Vec<ErrorDetail>>>,
 }
 
 /// The general nature of an error. The purpose of this enum is not to describe the error itself,
@@ -504,13 +515,13 @@ impl Error {
         let details = self.details.as_ref()?;
         details
             .iter()
-            .find(|(id, _)| *id == detail_id)
-            .map(|(_, data)| data.as_slice())
+            .find(|detail| detail.id == detail_id)
+            .map(|detail| detail.data.as_slice())
     }
 
-    /// Returns all `(detail_id, data)` pairs attached to this error.
+    /// Returns all [`ErrorDetail`] entries attached to this error.
     #[cfg(feature = "alloc")]
-    pub fn get_details(&self) -> &[(u64, alloc::vec::Vec<u8>)] {
+    pub fn get_details(&self) -> &[ErrorDetail] {
         match &self.details {
             Some(details) => details.as_slice(),
             None => &[],
@@ -531,10 +542,13 @@ impl Error {
     #[cfg(feature = "alloc")]
     pub fn set_detail(&mut self, detail_id: u64, data: alloc::vec::Vec<u8>) {
         let details = self.details.get_or_insert_with(Default::default);
-        if let Some((_, existing)) = details.iter_mut().find(|(id, _)| *id == detail_id) {
-            *existing = data;
+        if let Some(existing) = details.iter_mut().find(|detail| detail.id == detail_id) {
+            existing.data = data;
         } else {
-            details.push((detail_id, data));
+            details.push(ErrorDetail {
+                id: detail_id,
+                data,
+            });
         }
     }
 
@@ -542,12 +556,12 @@ impl Error {
     #[cfg(feature = "alloc")]
     pub fn release_detail(&mut self, detail_id: u64) -> Option<alloc::vec::Vec<u8>> {
         let details = self.details.as_mut()?;
-        let idx = details.iter().position(|(id, _)| *id == detail_id)?;
-        let (_, data) = details.remove(idx);
+        let idx = details.iter().position(|detail| detail.id == detail_id)?;
+        let detail = details.remove(idx);
         if details.is_empty() {
             self.details = None;
         }
-        Some(data)
+        Some(detail.data)
     }
 }
 
@@ -783,7 +797,19 @@ mod tests {
         // Overwriting an existing detail ID updates it in place without duplicating.
         e.set_detail(123, b"baz".to_vec());
         assert_eq!(e.get_detail(123), Some(&b"baz"[..]));
-        assert_eq!(e.get_details().len(), 2);
+        assert_eq!(
+            e.get_details(),
+            &[
+                ErrorDetail {
+                    id: 123,
+                    data: b"baz".to_vec(),
+                },
+                ErrorDetail {
+                    id: 456,
+                    data: b"bar".to_vec(),
+                },
+            ]
+        );
 
         let mut e2 = e.clone();
         assert_eq!(e2.extra(), "foo");
