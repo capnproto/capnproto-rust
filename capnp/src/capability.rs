@@ -158,8 +158,8 @@ where
 /// A response from a method call, as seen by the client.
 #[cfg(feature = "alloc")]
 pub struct Response<Results> {
-    pub marker: PhantomData<Results>,
-    pub hook: alloc::boxed::Box<dyn ResponseHook>,
+    marker: PhantomData<Results>,
+    hook: alloc::boxed::Box<dyn ResponseHook>,
 }
 
 #[cfg(feature = "alloc")]
