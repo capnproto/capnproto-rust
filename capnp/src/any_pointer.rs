@@ -125,8 +125,7 @@ impl<'a> crate::traits::SetterInput<Owned> for Reader<'a> {
 #[cfg(feature = "alloc")]
 impl<'a> crate::traits::Imbue<'a> for Reader<'a> {
     fn imbue(&mut self, cap_table: &'a crate::private::layout::CapTable) {
-        self.reader
-            .imbue(crate::private::layout::CapTableReader::from_ref(cap_table));
+        self.reader.imbue(cap_table);
     }
 }
 
@@ -209,8 +208,7 @@ impl<'a> FromPointerBuilder<'a> for Builder<'a> {
 #[cfg(feature = "alloc")]
 impl<'a> crate::traits::ImbueMut<'a> for Builder<'a> {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
-        self.builder
-            .imbue(crate::private::layout::CapTableBuilder::from_ref(cap_table));
+        self.builder.imbue(cap_table);
     }
 }
 
