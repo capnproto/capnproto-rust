@@ -215,6 +215,7 @@ pub struct Error {
     extra: alloc::string::String,
     // Keep the details vector out of line so errors without details pay for only a pointer.
     #[cfg(feature = "alloc")]
+    #[allow(clippy::box_collection)]
     details: Option<alloc::boxed::Box<alloc::vec::Vec<ErrorDetail>>>,
 }
 
