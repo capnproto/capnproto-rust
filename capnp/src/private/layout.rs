@@ -361,15 +361,15 @@ mod wire_helpers {
     use crate::private::arena::*;
     #[cfg(feature = "alloc")]
     use crate::private::capability::ClientHook;
+    use crate::private::layout::CapTable;
     use crate::private::layout::ElementSize::*;
-    #[cfg(feature = "alloc")]
-    use crate::private::layout::extract_cap;
-    use crate::private::layout::{CapTable, CapTableBuilder};
     use crate::private::layout::{
         ElementSize, ListBuilder, ListReader, PointerReader, StructBuilder, StructReader,
         StructSize, WirePointer, WirePointerKind,
     };
     use crate::private::layout::{data_bits_per_element, pointers_per_element};
+    #[cfg(feature = "alloc")]
+    use crate::private::layout::{extract_cap, inject_cap};
     use crate::private::units::*;
     use crate::text;
     use crate::{Error, ErrorKind, MessageSize, Result};
@@ -874,7 +874,7 @@ mod wire_helpers {
     unsafe fn copy_struct(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&mut CapTable>,
         dst: *mut u8,
         src: *const u8,
         data_size: usize,
@@ -890,7 +890,7 @@ mod wire_helpers {
                 copy_message(
                     arena,
                     segment_id,
-                    cap_table,
+                    cap_table.as_deref_mut(),
                     dst_refs.add(ii),
                     src_refs.add(ii),
                 );
@@ -903,7 +903,7 @@ mod wire_helpers {
     pub(crate) unsafe fn copy_message(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&mut CapTable>,
         dst: *mut WirePointer,
         src: *const WirePointer,
     ) -> (*mut u8, *mut WirePointer, u32) {
@@ -977,7 +977,7 @@ mod wire_helpers {
                             copy_message(
                                 arena,
                                 segment_id,
-                                cap_table,
+                                cap_table.as_deref_mut(),
                                 dst_refs.add(ii * BYTES_PER_WORD) as *mut WirePointer,
                                 src_refs.add(ii),
                             );
@@ -1013,7 +1013,7 @@ mod wire_helpers {
                             copy_struct(
                                 arena,
                                 segment_id,
-                                cap_table,
+                                cap_table.as_deref_mut(),
                                 dst_element,
                                 src_element,
                                 (*src_tag).struct_data_size() as usize,
@@ -1156,13 +1156,13 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub(crate) unsafe fn init_struct_pointer(
-        arena: &mut dyn BuilderArena,
+    pub(crate) unsafe fn init_struct_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        cap_table: Option<&'a mut CapTable>,
         size: StructSize,
-    ) -> StructBuilder<'_> {
+    ) -> StructBuilder<'a> {
         unsafe {
             let (ptr, reff, segment_id) = allocate(
                 arena,
@@ -1190,7 +1190,7 @@ mod wire_helpers {
         arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&'a mut CapTable>,
         size: StructSize,
         default: Option<&'a [crate::Word]>,
     ) -> Result<StructBuilder<'a>> {
@@ -1213,7 +1213,7 @@ mod wire_helpers {
                         let (new_ref_target, new_reff, new_segment_id) = copy_message(
                             arena,
                             segment_id,
-                            cap_table,
+                            cap_table.as_deref_mut(),
                             reff,
                             d.as_ptr() as *const WirePointer,
                         );
@@ -1307,14 +1307,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub(crate) unsafe fn init_list_pointer(
-        arena: &mut dyn BuilderArena,
+    pub(crate) unsafe fn init_list_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        cap_table: Option<&'a mut CapTable>,
         element_count: ElementCount32,
         element_size: ElementSize,
-    ) -> ListBuilder<'_> {
+    ) -> ListBuilder<'a> {
         unsafe {
             assert!(
                 element_size != InlineComposite,
@@ -1345,14 +1345,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub(crate) unsafe fn init_struct_list_pointer(
-        arena: &mut dyn BuilderArena,
+    pub(crate) unsafe fn init_struct_list_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        cap_table: Option<&'a mut CapTable>,
         element_count: ElementCount32,
         element_size: StructSize,
-    ) -> ListBuilder<'_> {
+    ) -> ListBuilder<'a> {
         unsafe {
             let words_per_element = element_size.total();
 
@@ -1398,14 +1398,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub(crate) unsafe fn get_writable_list_pointer(
-        arena: &mut dyn BuilderArena,
+    pub(crate) unsafe fn get_writable_list_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&'a mut CapTable>,
         element_size: ElementSize,
         default_value: *const u8,
-    ) -> Result<ListBuilder<'_>> {
+    ) -> Result<ListBuilder<'a>> {
         unsafe {
             assert!(
                 element_size != InlineComposite,
@@ -1421,7 +1421,7 @@ mod wire_helpers {
                 let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                     arena,
                     orig_segment_id,
-                    cap_table,
+                    cap_table.as_deref_mut(),
                     orig_ref,
                     default_value as *const WirePointer,
                 );
@@ -1535,14 +1535,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub(crate) unsafe fn get_writable_struct_list_pointer(
-        arena: &mut dyn BuilderArena,
+    pub(crate) unsafe fn get_writable_struct_list_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&'a mut CapTable>,
         element_size: StructSize,
         default_value: *const u8,
-    ) -> Result<ListBuilder<'_>> {
+    ) -> Result<ListBuilder<'a>> {
         unsafe {
             let mut orig_ref_target = WirePointer::mut_target(orig_ref);
 
@@ -1553,7 +1553,7 @@ mod wire_helpers {
                 let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                     arena,
                     orig_segment_id,
-                    cap_table,
+                    cap_table.as_deref_mut(),
                     orig_ref,
                     default_value as *const WirePointer,
                 );
@@ -2012,7 +2012,7 @@ mod wire_helpers {
     pub(crate) unsafe fn set_struct_pointer(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&mut CapTable>,
         reff: *mut WirePointer,
         value: StructReader,
         canonicalize: bool,
@@ -2083,7 +2083,7 @@ mod wire_helpers {
                 deep_copy_pointee(
                     arena,
                     segment_id,
-                    cap_table,
+                    cap_table.as_deref_mut(),
                     pointer_section.add(i),
                     value.get_pointer_field(i),
                     canonicalize,
@@ -2101,20 +2101,20 @@ mod wire_helpers {
     pub(crate) unsafe fn set_capability_pointer(
         _arena: &mut dyn BuilderArena,
         _segment_id: u32,
-        mut cap_table: CapTableBuilder,
+        cap_table: Option<&mut CapTable>,
         reff: *mut WirePointer,
         cap: alloc::boxed::Box<dyn ClientHook>,
     ) {
         unsafe {
             // TODO if ref is not null, zero object.
-            (*reff).set_cap(u32::try_from(cap_table.inject_cap(cap)).unwrap());
+            (*reff).set_cap(u32::try_from(inject_cap(cap_table, cap)).unwrap());
         }
     }
 
     pub(crate) unsafe fn set_list_pointer(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&mut CapTable>,
         reff: *mut WirePointer,
         value: ListReader,
         canonicalize: bool,
@@ -2135,7 +2135,7 @@ mod wire_helpers {
                         deep_copy_pointee(
                             arena,
                             segment_id,
-                            cap_table,
+                            cap_table.as_deref_mut(),
                             (ptr as *mut WirePointer).add(i as usize),
                             value.get_pointer_element(i),
                             canonicalize,
@@ -2265,7 +2265,7 @@ mod wire_helpers {
                         deep_copy_pointee(
                             arena,
                             segment_id,
-                            cap_table,
+                            cap_table.as_deref_mut(),
                             dst as *mut _,
                             src_pr,
                             canonicalize,
@@ -2290,7 +2290,7 @@ mod wire_helpers {
     pub(crate) unsafe fn deep_copy_pointee(
         dst_arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
-        dst_cap_table: CapTableBuilder,
+        dst_cap_table: Option<&mut CapTable>,
         dst: *mut WirePointer,
         src: PointerReader,
         canonicalize: bool,
@@ -2912,50 +2912,16 @@ fn extract_cap(cap_table: &CapTable, index: usize) -> Option<alloc::boxed::Box<d
         .map(|hook| hook.add_ref())
 }
 
-/// A lifetime-erased pointer to a `CapTable`. Only constructed by the `imbue()`
-/// methods below, which tie the table's lifetime to that of the builder.
-#[derive(Copy, Clone, Default)]
-pub(crate) enum CapTableBuilder {
-    #[default]
-    Dummy,
-    Plain(core::ptr::NonNull<CapTable>),
-}
-
-const _: () =
-    assert!(core::mem::size_of::<CapTableBuilder>() == core::mem::size_of::<*mut CapTable>());
-
-impl CapTableBuilder {
-    /// # Safety
-    /// The table that this `CapTableBuilder` points to must remain valid, and must not
-    /// be mutated, for the lifetime `'b`.
-    pub(crate) unsafe fn into_reader<'b>(self) -> &'b CapTable {
-        match self {
-            Self::Dummy => EMPTY_CAP_TABLE,
-            Self::Plain(hooks) => unsafe { hooks.as_ref() },
-        }
-    }
-
-    pub(crate) fn from_ref(cap_table: &mut CapTable) -> Self {
-        Self::Plain(core::ptr::NonNull::from(cap_table))
-    }
-
-    #[cfg(feature = "alloc")]
-    pub(crate) fn inject_cap(&mut self, cap: alloc::boxed::Box<dyn ClientHook>) -> usize {
-        match *self {
-            Self::Dummy => {
-                panic!(
-                    "Called inject_cap() on a null capability table. You need \
-                     to call imbue_mut() on this message before adding capabilities."
-                );
-            }
-            Self::Plain(mut hooks) => {
-                let hooks: &mut alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { hooks.as_mut() };
-                hooks.push(Some(cap));
-                hooks.len() - 1
-            }
-        }
-    }
+#[cfg(feature = "alloc")]
+fn inject_cap(cap_table: Option<&mut CapTable>, cap: alloc::boxed::Box<dyn ClientHook>) -> usize {
+    let Some(cap_table) = cap_table else {
+        panic!(
+            "Called inject_cap() on a null capability table. You need \
+             to call imbue_mut() on this message before adding capabilities."
+        );
+    };
+    cap_table.push(Some(cap));
+    cap_table.len() - 1
 }
 
 #[derive(Clone, Copy)]
@@ -3223,7 +3189,7 @@ impl<'a> PointerReader<'a> {
 pub struct PointerBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
     segment_id: u32,
-    cap_table: CapTableBuilder,
+    cap_table: Option<&'a mut CapTable>,
     pointer: *mut WirePointer,
 }
 
@@ -3249,12 +3215,13 @@ impl<'a> PointerBuilder<'a> {
     pub fn reborrow(&mut self) -> PointerBuilder<'_> {
         PointerBuilder {
             arena: self.arena,
+            cap_table: self.cap_table.as_deref_mut(),
             ..*self
         }
     }
 
     pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
-        self.cap_table = CapTableBuilder::from_ref(cap_table);
+        self.cap_table = Some(cap_table);
     }
 
     #[inline]
@@ -3349,7 +3316,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::read_capability_pointer(
                 self.arena.as_reader(),
                 self.segment_id,
-                self.cap_table.into_reader(),
+                self.cap_table.as_deref().unwrap_or(EMPTY_CAP_TABLE),
                 self.pointer,
                 i32::MAX,
             )
@@ -3419,7 +3386,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::set_struct_pointer(
                 self.arena,
                 self.segment_id,
-                self.cap_table,
+                self.cap_table.as_deref_mut(),
                 self.pointer,
                 *value,
                 canonicalize,
@@ -3433,7 +3400,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::set_list_pointer(
                 self.arena,
                 self.segment_id,
-                self.cap_table,
+                self.cap_table.as_deref_mut(),
                 self.pointer,
                 *value,
                 canonicalize,
@@ -3460,7 +3427,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::set_capability_pointer(
                 self.arena,
                 self.segment_id,
-                self.cap_table,
+                self.cap_table.as_deref_mut(),
                 self.pointer,
                 cap,
             );
@@ -3480,7 +3447,7 @@ impl<'a> PointerBuilder<'a> {
                 wire_helpers::deep_copy_pointee(
                     self.arena,
                     self.segment_id,
-                    self.cap_table,
+                    self.cap_table.as_deref_mut(),
                     self.pointer,
                     other,
                     canonicalize,
@@ -3498,24 +3465,20 @@ impl<'a> PointerBuilder<'a> {
     }
 
     pub fn as_reader(&self) -> PointerReader<'_> {
-        // SAFETY (cap_table): the table was imbued as `&'a mut`, so it outlives `'_`,
-        // and mutating it requires `&mut self`, which is excluded while we borrow `self`.
         PointerReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: unsafe { self.cap_table.into_reader() },
+            cap_table: self.cap_table.as_deref().unwrap_or(EMPTY_CAP_TABLE),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff,
         }
     }
 
     pub fn into_reader(self) -> PointerReader<'a> {
-        // SAFETY (cap_table): the table was imbued as `&'a mut`, so it outlives `'a`,
-        // and `self` is consumed, so it can no longer be mutated through this builder.
         PointerReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: unsafe { self.cap_table.into_reader() },
+            cap_table: self.cap_table.map_or(EMPTY_CAP_TABLE, |t| t),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff,
         }
@@ -3739,7 +3702,7 @@ impl<'a> StructReader<'a> {
 
 pub struct StructBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
-    cap_table: CapTableBuilder,
+    cap_table: Option<&'a mut CapTable>,
     data: *mut u8,
     pointers: *mut WirePointer,
     segment_id: u32,
@@ -3752,15 +3715,15 @@ impl<'a> StructBuilder<'a> {
     pub fn reborrow(&mut self) -> StructBuilder<'_> {
         StructBuilder {
             arena: self.arena,
+            cap_table: self.cap_table.as_deref_mut(),
             ..*self
         }
     }
 
     pub fn as_reader(&self) -> StructReader<'_> {
-        // SAFETY (cap_table): see `PointerBuilder::as_reader()`.
         StructReader {
             arena: self.arena.as_reader(),
-            cap_table: unsafe { self.cap_table.into_reader() },
+            cap_table: self.cap_table.as_deref().unwrap_or(EMPTY_CAP_TABLE),
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
@@ -3771,10 +3734,9 @@ impl<'a> StructBuilder<'a> {
     }
 
     pub fn into_reader(self) -> StructReader<'a> {
-        // SAFETY (cap_table): see `PointerBuilder::into_reader()`.
         StructReader {
             arena: self.arena.as_reader(),
-            cap_table: unsafe { self.cap_table.into_reader() },
+            cap_table: self.cap_table.map_or(EMPTY_CAP_TABLE, |t| t),
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
@@ -3785,7 +3747,7 @@ impl<'a> StructBuilder<'a> {
     }
 
     pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
-        self.cap_table = CapTableBuilder::from_ref(cap_table)
+        self.cap_table = Some(cap_table)
     }
 
     #[inline]
@@ -3932,7 +3894,7 @@ impl<'a> StructBuilder<'a> {
                 wire_helpers::deep_copy_pointee(
                     self.arena,
                     self.segment_id,
-                    self.cap_table,
+                    self.cap_table.as_deref_mut(),
                     self.pointers.add(i),
                     other.get_pointer_field(i),
                     false,
@@ -4169,7 +4131,7 @@ impl<'a> ListReader<'a> {
 
 pub struct ListBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
-    cap_table: CapTableBuilder,
+    cap_table: Option<&'a mut CapTable>,
     ptr: *mut u8,
     segment_id: u32,
     element_count: ElementCount32,
@@ -4196,11 +4158,10 @@ impl<'a> ListBuilder<'a> {
     }
 
     pub fn into_reader(self) -> ListReader<'a> {
-        // SAFETY (cap_table): see `PointerBuilder::into_reader()`.
         ListReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: unsafe { self.cap_table.into_reader() },
+            cap_table: self.cap_table.map_or(EMPTY_CAP_TABLE, |t| t),
             ptr: self.ptr as *const _,
             element_count: self.element_count,
             element_size: self.element_size,
@@ -4215,12 +4176,13 @@ impl<'a> ListBuilder<'a> {
     pub fn reborrow(&mut self) -> ListBuilder<'_> {
         ListBuilder {
             arena: self.arena,
+            cap_table: self.cap_table.as_deref_mut(),
             ..*self
         }
     }
 
     pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
-        self.cap_table = CapTableBuilder::from_ref(cap_table)
+        self.cap_table = Some(cap_table)
     }
 
     #[inline]
