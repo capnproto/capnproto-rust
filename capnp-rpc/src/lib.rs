@@ -535,8 +535,7 @@ impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
         // Unlike println!, this does not panic on I/O errors, such as when
         // nonblocking stdout's buffer is full. Reporting a background task
         // failure should not panic while the RpcSystem is being polled.
-        // TODO(apibump): log to stderr instead of stdout.
-        let _ = writeln!(std::io::stdout().lock(), "ERROR: {error}");
+        let _ = writeln!(std::io::stderr().lock(), "ERROR: {error}");
     }
 }
 
