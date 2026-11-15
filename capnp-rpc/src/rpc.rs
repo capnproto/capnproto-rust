@@ -938,9 +938,9 @@ impl<VatId> ConnectionState<VatId> {
                 }
                 connection_state.embargoes.borrow_mut().erase(embargo_id);
             }
-            disembargo::context::Accept(_) | disembargo::context::Provide(_) => {
+            disembargo::context::Accept(_) => {
                 return Err(Error::unimplemented(
-                    "Disembargo::Context::Provide/Accept not implemented".to_string(),
+                    "Disembargo::Context::Accept not implemented".to_string(),
                 ));
             }
         }
@@ -1136,7 +1136,7 @@ impl<VatId> ConnectionState<VatId> {
                                         ));
                                     }
                                 }
-                                return_::AcceptFromThirdParty(_) => {
+                                return_::AwaitFromThirdParty(_) => {
                                     drop(questions);
                                     Self::send_unimplemented(&connection_state, message.as_ref())?;
                                 }
@@ -1175,6 +1175,7 @@ impl<VatId> ConnectionState<VatId> {
             Ok(
                 message::Provide(_)
                 | message::Accept(_)
+                | message::ThirdPartyAnswer(_)
                 | message::Join(_)
                 | message::ObsoleteSave(_)
                 | message::ObsoleteDelete(_),
