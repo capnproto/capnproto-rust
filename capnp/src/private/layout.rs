@@ -362,7 +362,9 @@ mod wire_helpers {
     #[cfg(feature = "alloc")]
     use crate::private::capability::ClientHook;
     use crate::private::layout::ElementSize::*;
-    use crate::private::layout::{CapTableBuilder, CapTableReader};
+    #[cfg(feature = "alloc")]
+    use crate::private::layout::extract_cap;
+    use crate::private::layout::{CapTable, CapTableBuilder};
     use crate::private::layout::{
         ElementSize, ListBuilder, ListReader, PointerReader, StructBuilder, StructReader,
         StructSize, WirePointer, WirePointerKind,
@@ -2466,7 +2468,7 @@ mod wire_helpers {
                         ));
                     }
                     #[cfg(feature = "alloc")]
-                    match src.cap_table.extract_cap((*src_ptr).cap_index() as usize) {
+                    match extract_cap(src.cap_table, (*src_ptr).cap_index() as usize) {
                         Some(cap) => {
                             set_capability_pointer(
                                 dst_arena,
@@ -2495,7 +2497,7 @@ mod wire_helpers {
     pub(crate) unsafe fn read_struct_pointer<'a>(
         mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
-        cap_table: CapTableReader,
+        cap_table: &'a CapTable,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>,
         nesting_limit: i32,
@@ -2557,7 +2559,7 @@ mod wire_helpers {
     pub(crate) unsafe fn read_capability_pointer(
         _arena: &dyn ReaderArena,
         _segment_id: u32,
-        cap_table: CapTableReader,
+        cap_table: &CapTable,
         reff: *const WirePointer,
         _nesting_limit: i32,
     ) -> Result<alloc::boxed::Box<dyn ClientHook>> {
@@ -2572,7 +2574,7 @@ mod wire_helpers {
                 ))
             } else {
                 let n = (*reff).cap_index() as usize;
-                match cap_table.extract_cap(n) {
+                match extract_cap(cap_table, n) {
                     Some(client_hook) => Ok(client_hook),
                     None => Err(Error::from_kind(
                         ErrorKind::MessageContainsInvalidCapabilityPointer,
@@ -2583,15 +2585,15 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub(crate) unsafe fn read_list_pointer(
-        mut arena: &dyn ReaderArena,
+    pub(crate) unsafe fn read_list_pointer<'a>(
+        mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
-        cap_table: CapTableReader,
+        cap_table: &'a CapTable,
         mut reff: *const WirePointer,
         default_value: *const u8,
         expected_element_size: Option<ElementSize>,
         nesting_limit: i32,
-    ) -> Result<ListReader<'_>> {
+    ) -> Result<ListReader<'a>> {
         unsafe {
             if (*reff).is_null() {
                 if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
@@ -2895,40 +2897,25 @@ pub type CapTable = alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>>;
 #[cfg(not(feature = "alloc"))]
 pub struct CapTable;
 
-#[derive(Copy, Clone, Default)]
-pub enum CapTableReader {
-    #[default]
-    Dummy,
-    Plain(core::ptr::NonNull<CapTable>),
+/// The capability table of a reader that has not been imbued with one.
+#[cfg(feature = "alloc")]
+const EMPTY_CAP_TABLE: &CapTable = &CapTable::new();
+
+#[cfg(not(feature = "alloc"))]
+const EMPTY_CAP_TABLE: &CapTable = &CapTable;
+
+#[cfg(feature = "alloc")]
+fn extract_cap(cap_table: &CapTable, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
+    cap_table
+        .get(index)
+        .and_then(Option::as_ref)
+        .map(|hook| hook.add_ref())
 }
 
-const _: () =
-    assert!(core::mem::size_of::<CapTableReader>() == core::mem::size_of::<*const CapTable>());
-
-impl CapTableReader {
-    pub fn from_ref(cap_table: &CapTable) -> Self {
-        Self::Plain(core::ptr::NonNull::from(cap_table))
-    }
-
-    #[cfg(feature = "alloc")]
-    pub(crate) fn extract_cap(&self, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
-        match *self {
-            Self::Dummy => None,
-            Self::Plain(hooks) => {
-                let hooks: &alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { hooks.as_ref() };
-                if index >= hooks.len() {
-                    None
-                } else {
-                    hooks[index].as_ref().map(|hook| hook.add_ref())
-                }
-            }
-        }
-    }
-}
-
+/// A lifetime-erased pointer to a `CapTable`. Only constructed by the `imbue()`
+/// methods below, which tie the table's lifetime to that of the builder.
 #[derive(Copy, Clone, Default)]
-pub enum CapTableBuilder {
+pub(crate) enum CapTableBuilder {
     #[default]
     Dummy,
     Plain(core::ptr::NonNull<CapTable>),
@@ -2938,14 +2925,17 @@ const _: () =
     assert!(core::mem::size_of::<CapTableBuilder>() == core::mem::size_of::<*mut CapTable>());
 
 impl CapTableBuilder {
-    pub fn into_reader(self) -> CapTableReader {
+    /// # Safety
+    /// The table that this `CapTableBuilder` points to must remain valid, and must not
+    /// be mutated, for the lifetime `'b`.
+    pub(crate) unsafe fn into_reader<'b>(self) -> &'b CapTable {
         match self {
-            Self::Dummy => CapTableReader::Dummy,
-            Self::Plain(hooks) => CapTableReader::Plain(hooks),
+            Self::Dummy => EMPTY_CAP_TABLE,
+            Self::Plain(hooks) => unsafe { hooks.as_ref() },
         }
     }
 
-    pub fn from_ref(cap_table: &mut CapTable) -> Self {
+    pub(crate) fn from_ref(cap_table: &mut CapTable) -> Self {
         Self::Plain(core::ptr::NonNull::from(cap_table))
     }
 
@@ -2966,31 +2956,12 @@ impl CapTableBuilder {
             }
         }
     }
-
-    #[cfg(feature = "alloc")]
-    pub fn drop_cap(&mut self, index: usize) {
-        match *self {
-            Self::Dummy => {
-                panic!(
-                    "Called drop_cap() on a null capability table. You need \
-                     to call imbue_mut() on this message before adding capabilities."
-                );
-            }
-            Self::Plain(mut hooks) => {
-                let hooks: &mut alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { hooks.as_mut() };
-                if index < hooks.len() {
-                    hooks[index] = None;
-                }
-            }
-        }
-    }
 }
 
 #[derive(Clone, Copy)]
 pub struct PointerReader<'a> {
     arena: &'a dyn ReaderArena,
-    cap_table: CapTableReader,
+    cap_table: &'a CapTable,
     pointer: *const WirePointer,
     segment_id: u32,
     nesting_limit: i32,
@@ -3001,7 +2972,7 @@ impl<'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             pointer: ptr::null(),
             nesting_limit: 0x7fffffff,
         }
@@ -3024,7 +2995,7 @@ impl<'a> PointerReader<'a> {
         Ok(PointerReader {
             arena,
             segment_id,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             pointer: location as *const _,
             nesting_limit,
         })
@@ -3042,7 +3013,7 @@ impl<'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             pointer: location as *const _,
             nesting_limit: 0x7fffffff,
         }
@@ -3062,13 +3033,13 @@ impl<'a> PointerReader<'a> {
         Ok(PointerReader {
             arena,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             pointer: segment_start as *const _,
             nesting_limit: arena.nesting_limit(),
         })
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableReader) {
+    pub fn imbue(&mut self, cap_table: &'a CapTable) {
         self.cap_table = cap_table;
     }
 
@@ -3282,8 +3253,8 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableBuilder) {
-        self.cap_table = cap_table;
+    pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
+        self.cap_table = CapTableBuilder::from_ref(cap_table);
     }
 
     #[inline]
@@ -3527,20 +3498,24 @@ impl<'a> PointerBuilder<'a> {
     }
 
     pub fn as_reader(&self) -> PointerReader<'_> {
+        // SAFETY (cap_table): the table was imbued as `&'a mut`, so it outlives `'_`,
+        // and mutating it requires `&mut self`, which is excluded while we borrow `self`.
         PointerReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: self.cap_table.into_reader(),
+            cap_table: unsafe { self.cap_table.into_reader() },
             pointer: self.pointer,
             nesting_limit: 0x7fffffff,
         }
     }
 
     pub fn into_reader(self) -> PointerReader<'a> {
+        // SAFETY (cap_table): the table was imbued as `&'a mut`, so it outlives `'a`,
+        // and `self` is consumed, so it can no longer be mutated through this builder.
         PointerReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: self.cap_table.into_reader(),
+            cap_table: unsafe { self.cap_table.into_reader() },
             pointer: self.pointer,
             nesting_limit: 0x7fffffff,
         }
@@ -3550,7 +3525,7 @@ impl<'a> PointerBuilder<'a> {
 #[derive(Clone, Copy)]
 pub struct StructReader<'a> {
     arena: &'a dyn ReaderArena,
-    cap_table: CapTableReader,
+    cap_table: &'a CapTable,
     data: *const u8,
     pointers: *const WirePointer,
     segment_id: u32,
@@ -3564,7 +3539,7 @@ impl<'a> StructReader<'a> {
         StructReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             data: ptr::null(),
             pointers: ptr::null(),
             data_size: 0,
@@ -3573,7 +3548,7 @@ impl<'a> StructReader<'a> {
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableReader) {
+    pub fn imbue(&mut self, cap_table: &'a CapTable) {
         self.cap_table = cap_table
     }
 
@@ -3782,9 +3757,10 @@ impl<'a> StructBuilder<'a> {
     }
 
     pub fn as_reader(&self) -> StructReader<'_> {
+        // SAFETY (cap_table): see `PointerBuilder::as_reader()`.
         StructReader {
             arena: self.arena.as_reader(),
-            cap_table: self.cap_table.into_reader(),
+            cap_table: unsafe { self.cap_table.into_reader() },
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
@@ -3795,9 +3771,10 @@ impl<'a> StructBuilder<'a> {
     }
 
     pub fn into_reader(self) -> StructReader<'a> {
+        // SAFETY (cap_table): see `PointerBuilder::into_reader()`.
         StructReader {
             arena: self.arena.as_reader(),
-            cap_table: self.cap_table.into_reader(),
+            cap_table: unsafe { self.cap_table.into_reader() },
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
@@ -3807,8 +3784,8 @@ impl<'a> StructBuilder<'a> {
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableBuilder) {
-        self.cap_table = cap_table
+    pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
+        self.cap_table = CapTableBuilder::from_ref(cap_table)
     }
 
     #[inline]
@@ -3970,7 +3947,7 @@ impl<'a> StructBuilder<'a> {
 #[derive(Clone, Copy)]
 pub struct ListReader<'a> {
     arena: &'a dyn ReaderArena,
-    cap_table: CapTableReader,
+    cap_table: &'a CapTable,
     ptr: *const u8,
     segment_id: u32,
     element_count: ElementCount32,
@@ -3986,7 +3963,7 @@ impl<'a> ListReader<'a> {
         ListReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             ptr: ptr::null(),
             element_count: 0,
             element_size: ElementSize::Void,
@@ -3997,7 +3974,7 @@ impl<'a> ListReader<'a> {
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableReader) {
+    pub fn imbue(&mut self, cap_table: &'a CapTable) {
         self.cap_table = cap_table
     }
 
@@ -4219,10 +4196,11 @@ impl<'a> ListBuilder<'a> {
     }
 
     pub fn into_reader(self) -> ListReader<'a> {
+        // SAFETY (cap_table): see `PointerBuilder::into_reader()`.
         ListReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: self.cap_table.into_reader(),
+            cap_table: unsafe { self.cap_table.into_reader() },
             ptr: self.ptr as *const _,
             element_count: self.element_count,
             element_size: self.element_size,
@@ -4241,8 +4219,8 @@ impl<'a> ListBuilder<'a> {
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableBuilder) {
-        self.cap_table = cap_table
+    pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
+        self.cap_table = CapTableBuilder::from_ref(cap_table)
     }
 
     #[inline]

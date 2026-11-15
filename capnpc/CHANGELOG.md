@@ -1,3 +1,6 @@
+## v0.28.0
+- Adjust generated code for updated `imbue()` API in base crate.
+
 ## v0.27.0
 - Adjust generated code for updated base crate API.
 
