@@ -3217,7 +3217,10 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub fn is_canonical(&self, read_head: &Cell<*const u8>) -> Result<bool> {
+    /// # Safety
+    /// `read_head` must point into (or one past the end of) the segment that
+    /// this pointer lives in.
+    pub(crate) unsafe fn is_canonical(&self, read_head: &Cell<*const u8>) -> Result<bool> {
         if self.pointer.is_null() || unsafe { !(*self.pointer).is_positional() } {
             return Ok(false);
         }
@@ -3231,8 +3234,9 @@ impl<'a> PointerReader<'a> {
                 if st.get_data_section_size() == 0 && st.get_pointer_section_size() == 0 {
                     Ok(self.pointer as *const _ == st.get_location())
                 } else {
-                    let result =
-                        st.is_canonical(read_head, read_head, &mut data_trunc, &mut ptr_trunc)?;
+                    let result = unsafe {
+                        st.is_canonical(read_head, read_head, &mut data_trunc, &mut ptr_trunc)?
+                    };
                     Ok(result && data_trunc && ptr_trunc)
                 }
             }
@@ -3253,8 +3257,15 @@ pub struct PointerBuilder<'a> {
 }
 
 impl<'a> PointerBuilder<'a> {
+    /// # Safety
+    /// `location` must point to a valid, word-aligned `WirePointer` within segment
+    /// `segment_id` of `arena`.
     #[inline]
-    pub fn get_root(arena: &'a mut dyn BuilderArena, segment_id: u32, location: *mut u8) -> Self {
+    pub(crate) unsafe fn get_root(
+        arena: &'a mut dyn BuilderArena,
+        segment_id: u32,
+        location: *mut u8,
+    ) -> Self {
         PointerBuilder {
             arena,
             cap_table: Default::default(),
@@ -3693,7 +3704,10 @@ impl<'a> StructReader<'a> {
         self.data
     }
 
-    pub fn is_canonical(
+    /// # Safety
+    /// `read_head` and `ptr_head` must point into (or one past the end of) the
+    /// segment that this struct lives in.
+    pub(crate) unsafe fn is_canonical(
         &self,
         read_head: &Cell<*const u8>,
         ptr_head: &Cell<*const u8>,
@@ -3736,10 +3750,10 @@ impl<'a> StructReader<'a> {
         });
 
         for ptr_idx in 0..self.pointer_count {
-            if !self
-                .get_pointer_field(ptr_idx as usize)
-                .is_canonical(ptr_head)?
-            {
+            if !unsafe {
+                self.get_pointer_field(ptr_idx as usize)
+                    .is_canonical(ptr_head)?
+            } {
                 return Ok(false);
             }
         }
@@ -4098,12 +4112,14 @@ impl<'a> ListReader<'a> {
                 for idx in 0..self.element_count {
                     let mut data_trunc = false;
                     let mut ptr_trunc = false;
-                    if !self.get_struct_element(idx).is_canonical(
-                        read_head,
-                        &pointer_head,
-                        &mut data_trunc,
-                        &mut ptr_trunc,
-                    )? {
+                    if !unsafe {
+                        self.get_struct_element(idx).is_canonical(
+                            read_head,
+                            &pointer_head,
+                            &mut data_trunc,
+                            &mut ptr_trunc,
+                        )?
+                    } {
                         return Ok(false);
                     }
                     list_data_trunc |= data_trunc;
@@ -4123,7 +4139,7 @@ impl<'a> ListReader<'a> {
                         .add(self.element_count as usize * BYTES_PER_WORD)
                 });
                 for idx in 0..self.element_count {
-                    if !self.get_pointer_element(idx).is_canonical(read_head)? {
+                    if !unsafe { self.get_pointer_element(idx).is_canonical(read_head)? } {
                         return Ok(false);
                     }
                 }

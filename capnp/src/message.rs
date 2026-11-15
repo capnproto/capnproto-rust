@@ -317,7 +317,7 @@ where
             )
         }?;
         let read_head = ::core::cell::Cell::new(unsafe { segment_start.add(BYTES_PER_WORD) });
-        let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
+        let root_is_canonical = unsafe { pointer_reader.is_canonical(&read_head)? };
         let all_words_consumed = (read_head.get() as usize - segment_start as usize)
             / BYTES_PER_WORD
             == seg_len as usize;
@@ -510,7 +510,7 @@ where
         let location: *mut u8 = seg_start;
         let Self { arena } = self;
 
-        any_pointer::Builder::new(layout::PointerBuilder::get_root(arena, 0, location))
+        any_pointer::Builder::new(unsafe { layout::PointerBuilder::get_root(arena, 0, location) })
     }
 
     /// Initializes the root as a value of the given type.
@@ -566,7 +566,7 @@ where
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
-        let pointer = layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start);
+        let pointer = unsafe { layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start) };
         SetterInput::set_pointer_builder(pointer, value, true)?;
         assert_eq!(self.get_segments_for_output().len(), 1);
         Ok(())
