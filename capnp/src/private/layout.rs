@@ -268,6 +268,7 @@ impl WirePointer {
     }
 
     #[inline]
+    #[cfg(feature = "alloc")]
     pub(crate) fn set_cap(&mut self, index: u32) {
         self.offset_and_kind.set(WirePointerKind::Other as u32);
         self.upper32bits.set(index);
@@ -344,6 +345,7 @@ impl WirePointer {
     }
 
     #[inline]
+    #[cfg(feature = "alloc")]
     pub(crate) fn cap_index(&self) -> u32 {
         self.upper32bits.get()
     }
