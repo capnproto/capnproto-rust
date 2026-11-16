@@ -855,7 +855,7 @@ pub fn getter_text(
                 (type_::Interface(_), value::Interface(_)) => {
                     fmt!(
                         ctx,
-                        "match self.{member}.get_pointer_field({offset}).get_capability() {{ ::core::result::Result::Ok(c) => ::core::result::Result::Ok({capnp}::capability::FromClientHook::new(c)), ::core::result::Result::Err(e) => ::core::result::Result::Err(e)}}"
+                        "self.{member}.get_pointer_field({offset}).get_capability().map({capnp}::capability::FromClientHook::new)"
                     )
                 }
                 (type_::AnyPointer(_), value::AnyPointer(_)) => {
