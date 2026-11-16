@@ -1303,23 +1303,16 @@ fn used_params_of_type(
     use capnp::schema_capnp::type_;
     match ty.which()? {
         type_::List(ls) => {
-            let et = ls.get_element_type()?;
-            used_params_of_type(ctx, et, used_params)?;
+            used_params_of_type(ctx, ls.get_element_type()?, used_params)?;
         }
         type_::Enum(e) => {
-            let node_id = e.get_type_id();
-            let brand = e.get_brand()?;
-            used_params_of_brand(ctx, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, e.get_brand()?, used_params)?;
         }
         type_::Struct(s) => {
-            let node_id = s.get_type_id();
-            let brand = s.get_brand()?;
-            used_params_of_brand(ctx, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, s.get_brand()?, used_params)?;
         }
         type_::Interface(i) => {
-            let node_id = i.get_type_id();
-            let brand = i.get_brand()?;
-            used_params_of_brand(ctx, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, i.get_brand()?, used_params)?;
         }
 
         type_::AnyPointer(ap) => {
@@ -1336,47 +1329,55 @@ fn used_params_of_type(
     Ok(())
 }
 
+// We need `used_params_of_*` to work around the fact that Rust does not allow
+// typedefs with unused type parameters.
 fn used_params_of_brand(
     ctx: &GeneratorContext,
-    node_id: u64,
     brand: schema_capnp::brand::Reader,
     used_params: &mut HashSet<String>,
 ) -> capnp::Result<()> {
     use schema_capnp::brand;
-    let scopes = brand.get_scopes()?;
-    let mut brand_scopes = HashMap::new();
-    for scope in scopes {
-        brand_scopes.insert(scope.get_scope_id(), scope);
-    }
-    let brand_scopes = brand_scopes; // freeze
-    let mut current_node_id = node_id;
-    while let Some(current_node) = ctx.node_map.get(&current_node_id) {
-        let params = current_node.get_parameters()?;
-        match brand_scopes.get(&current_node_id) {
-            None => (),
-            Some(scope) => match scope.which()? {
-                brand::scope::Inherit(()) => {
-                    for param in params {
-                        used_params.insert(param.get_name()?.to_string()?);
-                    }
+    for scope in brand.get_scopes()? {
+        match scope.which()? {
+            brand::scope::Inherit(()) => {
+                let scope_id = scope.get_scope_id();
+                for param in ctx.node_map[&scope_id].get_parameters()? {
+                    used_params.insert(param.get_name()?.to_string()?);
                 }
-                brand::scope::Bind(bindings_list_opt) => {
-                    let bindings_list = bindings_list_opt?;
-                    assert_eq!(bindings_list.len(), params.len());
-                    for binding in bindings_list {
-                        match binding.which()? {
-                            brand::binding::Unbound(()) => (),
-                            brand::binding::Type(t) => {
-                                used_params_of_type(ctx, t?, used_params)?;
-                            }
+            }
+            brand::scope::Bind(bindings_list) => {
+                for binding in bindings_list? {
+                    match binding.which()? {
+                        brand::binding::Unbound(()) => (),
+                        brand::binding::Type(t) => {
+                            used_params_of_type(ctx, t?, used_params)?;
                         }
                     }
                 }
-            },
+            }
         }
-        current_node_id = current_node.get_scope_id();
     }
     Ok(())
+}
+
+fn filter_used_params(params: &TypeParameterTexts, used_params: &HashSet<String>) -> String {
+    params
+        .expanded_list
+        .iter()
+        .filter(|s| used_params.contains(*s))
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn get_ty_params_of_brand(
+    ctx: &GeneratorContext,
+    brand: schema_capnp::brand::Reader,
+    params: &TypeParameterTexts,
+) -> ::capnp::Result<String> {
+    let mut used_params = HashSet::new();
+    used_params_of_brand(ctx, brand, &mut used_params)?;
+    Ok(filter_used_params(params, &used_params))
 }
 
 // return (the 'Which' enum, the 'which()' accessor, typedef, default_decls)
@@ -1492,16 +1493,7 @@ fn generate_union(
         "Which{}{}",
         if is_reader { "Reader" } else { "Builder" },
         if !ty_params.is_empty() {
-            format!(
-                "<'a,{}>",
-                params
-                    .expanded_list
-                    .iter()
-                    .filter(|s: &&String| used_params.contains(*s))
-                    .cloned()
-                    .collect::<Vec<String>>()
-                    .join(",")
-            )
+            format!("<'a,{}>", filter_used_params(params, &used_params))
         } else {
             "".to_string()
         }
@@ -1919,102 +1911,6 @@ fn generate_members_by_name(
     members_by_name_string += "];";
 
     Ok(Branch(vec![Line(members_by_name_string)]))
-}
-
-// We need this to work around the fact that Rust does not allow typedefs
-// with unused type parameters.
-fn get_ty_params_of_brand(
-    ctx: &GeneratorContext,
-    brand: schema_capnp::brand::Reader,
-) -> ::capnp::Result<String> {
-    let mut acc = HashSet::new();
-    get_ty_params_of_brand_helper(ctx, &mut acc, brand)?;
-    let mut result = String::new();
-    for (scope_id, parameter_index) in acc.into_iter() {
-        let node = ctx.node_map[&scope_id];
-        let p = node.get_parameters()?.get(u32::from(parameter_index));
-        result.push_str(p.get_name()?.to_str()?);
-        result.push(',');
-    }
-
-    Ok(result)
-}
-
-fn get_ty_params_of_type_helper(
-    ctx: &GeneratorContext,
-    accumulator: &mut HashSet<(u64, u16)>,
-    typ: schema_capnp::type_::Reader,
-) -> ::capnp::Result<()> {
-    use capnp::schema_capnp::type_;
-    match typ.which()? {
-        type_::Void(())
-        | type_::Bool(())
-        | type_::Int8(())
-        | type_::Int16(())
-        | type_::Int32(())
-        | type_::Int64(())
-        | type_::Uint8(())
-        | type_::Uint16(())
-        | type_::Uint32(())
-        | type_::Uint64(())
-        | type_::Float32(())
-        | type_::Float64(())
-        | type_::Text(_)
-        | type_::Data(_) => {}
-        type_::AnyPointer(p) => {
-            match p.which()? {
-                type_::any_pointer::Unconstrained(_) => (),
-                type_::any_pointer::Parameter(p) => {
-                    accumulator.insert((p.get_scope_id(), p.get_parameter_index()));
-                }
-                type_::any_pointer::ImplicitMethodParameter(_) => {
-                    // XXX
-                }
-            }
-        }
-        type_::List(list) => {
-            get_ty_params_of_type_helper(ctx, accumulator, list.get_element_type()?)?
-        }
-        type_::Enum(e) => {
-            get_ty_params_of_brand_helper(ctx, accumulator, e.get_brand()?)?;
-        }
-        type_::Struct(s) => {
-            get_ty_params_of_brand_helper(ctx, accumulator, s.get_brand()?)?;
-        }
-        type_::Interface(interf) => {
-            get_ty_params_of_brand_helper(ctx, accumulator, interf.get_brand()?)?;
-        }
-    }
-    Ok(())
-}
-
-fn get_ty_params_of_brand_helper(
-    ctx: &GeneratorContext,
-    accumulator: &mut HashSet<(u64, u16)>,
-    brand: schema_capnp::brand::Reader,
-) -> ::capnp::Result<()> {
-    for scope in brand.get_scopes()? {
-        let scope_id = scope.get_scope_id();
-        match scope.which()? {
-            schema_capnp::brand::scope::Bind(bind) => {
-                for binding in bind? {
-                    match binding.which()? {
-                        schema_capnp::brand::binding::Unbound(()) => {}
-                        schema_capnp::brand::binding::Type(t) => {
-                            get_ty_params_of_type_helper(ctx, accumulator, t?)?
-                        }
-                    }
-                }
-            }
-            schema_capnp::brand::scope::Inherit(()) => {
-                let parameters = ctx.node_map[&scope_id].get_parameters()?;
-                for idx in 0..parameters.len() {
-                    accumulator.insert((scope_id, idx as u16));
-                }
-            }
-        }
-    }
-    Ok(())
 }
 
 fn generate_node(
@@ -2633,7 +2529,7 @@ fn generate_node(
                 } else {
                     (
                         ctx.scope_map[&param_node.get_id()].clone(),
-                        get_ty_params_of_brand(ctx, method.get_param_brand()?)?,
+                        get_ty_params_of_brand(ctx, method.get_param_brand()?, &params)?,
                     )
                 };
                 let param_type = do_branding(
@@ -2669,7 +2565,7 @@ fn generate_node(
                     } else {
                         (
                             ctx.scope_map[&result_node.get_id()].clone(),
-                            get_ty_params_of_brand(ctx, method.get_result_brand()?)?,
+                            get_ty_params_of_brand(ctx, method.get_result_brand()?, &params)?,
                         )
                     };
                     let result_type = do_branding(

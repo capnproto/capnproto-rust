@@ -921,6 +921,43 @@ mod tests {
         assert_eq!(bar_reader.get(0), 11);
     }
 
+    // Checks that generated method `Params` and `Results` type aliases preserve
+    // outer-to-inner generic parameter declaration order when filtering out
+    // unused type parameters (e.g. `Qux` in `CallParams<Foo, Bar>`).
+    #[test]
+    fn test_generic_interface_params_order() {
+        use crate::test_capnp::{test_all_types, test_generics};
+        use capnp::{capability, data, text};
+
+        struct DummyServer;
+
+        impl test_generics::interface::Server<text::Owned, data::Owned, test_all_types::Owned>
+            for DummyServer
+        {
+            async fn call(
+                self: capability::Rc<Self>,
+                _params: test_generics::interface::CallParams<text::Owned, data::Owned>,
+                _results: test_generics::interface::CallResults<
+                    text::Owned,
+                    data::Owned,
+                    test_all_types::Owned,
+                >,
+            ) -> Result<(), capnp::Error> {
+                Ok(())
+            }
+
+            async fn other_call(
+                self: capability::Rc<Self>,
+                _params: test_generics::interface::OtherCallParams<text::Owned, data::Owned>,
+                _results: test_generics::interface::OtherCallResults<text::Owned, data::Owned>,
+            ) -> Result<(), capnp::Error> {
+                Ok(())
+            }
+        }
+
+        let _ = DummyServer;
+    }
+
     #[test]
     fn test_generic_union() {
         use crate::test_capnp::{test_all_types, test_generics_union};
