@@ -95,6 +95,10 @@ where
         (handle, set)
     }
 
+    pub(crate) fn set_reaper(&mut self, reaper: Box<dyn TaskReaper<E>>) {
+        *self.reaper.borrow_mut() = reaper;
+    }
+
     fn update_on_empty_fulfillers(&mut self) {
         // There is always the one pending() future that we added in `new()`.
         if self.in_progress.len() <= 1 {
@@ -152,7 +156,7 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         let mut enqueued_stream_complete = false;
-        if let Self {
+        if let &mut Self {
             enqueued: Some(ref mut enqueued),
             ref mut in_progress,
             ref reaper,

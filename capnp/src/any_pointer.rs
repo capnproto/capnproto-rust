@@ -21,13 +21,13 @@
 
 //! Untyped pointer that can be cast to any struct, list, or capability type.
 
+use crate::Result;
 #[cfg(feature = "alloc")]
 use crate::capability::FromClientHook;
 #[cfg(feature = "alloc")]
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
 use crate::private::layout::{PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, SetterInput};
-use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
@@ -125,8 +125,7 @@ impl<'a> crate::traits::SetterInput<Owned> for Reader<'a> {
 #[cfg(feature = "alloc")]
 impl<'a> crate::traits::Imbue<'a> for Reader<'a> {
     fn imbue(&mut self, cap_table: &'a crate::private::layout::CapTable) {
-        self.reader
-            .imbue(crate::private::layout::CapTableReader::from_ref(cap_table));
+        self.reader.imbue(cap_table);
     }
 }
 
@@ -209,15 +208,13 @@ impl<'a> FromPointerBuilder<'a> for Builder<'a> {
 #[cfg(feature = "alloc")]
 impl<'a> crate::traits::ImbueMut<'a> for Builder<'a> {
     fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
-        self.builder
-            .imbue(crate::private::layout::CapTableBuilder::from_ref(cap_table));
+        self.builder.imbue(cap_table);
     }
 }
 
 pub struct Pipeline {
-    // XXX this should not be public
     #[cfg(feature = "alloc")]
-    pub hook: alloc::boxed::Box<dyn PipelineHook>,
+    hook: alloc::boxed::Box<dyn PipelineHook>,
 
     #[cfg(feature = "alloc")]
     ops: alloc::vec::Vec<PipelineOp>,

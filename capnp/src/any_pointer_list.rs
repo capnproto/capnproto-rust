@@ -23,9 +23,9 @@
 //! Note: this cannot be used for a list of structs, since such lists are not encoded
 //! as pointer lists.
 
+use crate::Result;
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
-use crate::Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned;

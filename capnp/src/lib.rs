@@ -84,7 +84,7 @@ pub mod traits;
 /// ```
 #[macro_export]
 macro_rules! generated_code {
-    ($vis:vis mod $mod_name:ident, $file_name:expr) => {
+    ($vis:vis mod $mod_name:ident, $file_name:expr_2021) => {
         $vis mod $mod_name {
             #![allow(clippy::all)]
             include!(concat!(env!("OUT_DIR"), "/", $file_name));
@@ -192,16 +192,31 @@ impl ::core::error::Error for NotInSchema {
 /// must be wrapped in a Result.
 pub type Result<T> = ::core::result::Result<T, Error>;
 
+/// Arbitrary extra detail attached to an [`Error`].
+///
+/// Each detail has a unique 64-bit `id` (typically generated with `capnp id`) and a byte `data`
+/// payload whose encoding is defined by the application.
+#[cfg(feature = "alloc")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErrorDetail {
+    pub id: u64,
+    pub data: alloc::vec::Vec<u8>,
+}
+
 /// Describes an arbitrary error that prevented an operation from completing.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Error {
     /// The general kind of the error. Code that decides how to respond to an error
     /// should read only this field in making its decision.
     pub kind: ErrorKind,
 
-    /// Extra context about error
     #[cfg(feature = "alloc")]
-    pub extra: alloc::string::String,
+    extra: alloc::string::String,
+    // Keep the details vector out of line so errors without details pay for only a pointer.
+    #[cfg(feature = "alloc")]
+    #[allow(clippy::box_collection)]
+    details: Option<alloc::boxed::Box<alloc::vec::Vec<ErrorDetail>>>,
 }
 
 /// The general nature of an error. The purpose of this enum is not to describe the error itself,
@@ -426,55 +441,128 @@ pub enum ErrorKind {
 }
 
 impl Error {
-    /// Writes to the `extra` field. Does nothing if the "alloc" feature is not enabled.
-    /// This is intended to be used with the `write!()` macro from core.
+    #[cfg(feature = "alloc")]
+    pub fn new(kind: ErrorKind, extra: alloc::string::String) -> Self {
+        Self {
+            kind,
+            extra,
+            details: None,
+        }
+    }
+
+    pub fn from_kind(kind: ErrorKind) -> Self {
+        Self {
+            kind,
+            #[cfg(feature = "alloc")]
+            extra: alloc::string::String::new(),
+            #[cfg(feature = "alloc")]
+            details: None,
+        }
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn failed(description: alloc::string::String) -> Self {
+        Self::new(ErrorKind::Failed, description)
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn overloaded(description: alloc::string::String) -> Self {
+        Self::new(ErrorKind::Overloaded, description)
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn disconnected(description: alloc::string::String) -> Self {
+        Self::new(ErrorKind::Disconnected, description)
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn unimplemented(description: alloc::string::String) -> Self {
+        Self::new(ErrorKind::Unimplemented, description)
+    }
+
+    /// Returns any extra human-readable context attached to this error, or `""` if none.
+    pub fn extra(&self) -> &str {
+        #[cfg(feature = "alloc")]
+        {
+            &self.extra
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            ""
+        }
+    }
+
+    /// Appends formatted text to this error's `extra` context. Does nothing if the `"alloc"`
+    /// feature is not enabled. This is intended to be used with the `write!()` macro from `core`.
     pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) {
         #[cfg(feature = "alloc")]
         {
             use core::fmt::Write;
             let _ = self.extra.write_fmt(fmt);
         }
-    }
-
-    #[cfg(feature = "alloc")]
-    pub fn failed(description: alloc::string::String) -> Self {
-        Self {
-            extra: description,
-            kind: ErrorKind::Failed,
-        }
-    }
-
-    pub fn from_kind(kind: ErrorKind) -> Self {
         #[cfg(not(feature = "alloc"))]
-        return Self { kind };
-        #[cfg(feature = "alloc")]
-        return Self {
-            kind,
-            extra: alloc::string::String::new(),
-        };
-    }
-
-    #[cfg(feature = "alloc")]
-    pub fn overloaded(description: alloc::string::String) -> Self {
-        Self {
-            extra: description,
-            kind: ErrorKind::Overloaded,
-        }
-    }
-    #[cfg(feature = "alloc")]
-    pub fn disconnected(description: alloc::string::String) -> Self {
-        Self {
-            extra: description,
-            kind: ErrorKind::Disconnected,
+        {
+            let _ = fmt;
         }
     }
 
+    /// Returns the detail payload associated with `detail_id`, if present.
+    ///
+    /// Details can be attached to an error returned by an RPC server method and retrieved on the
+    /// client after awaiting the call. Each detail type should use a unique 64-bit ID (typically
+    /// generated with `capnp id`).
     #[cfg(feature = "alloc")]
-    pub fn unimplemented(description: alloc::string::String) -> Self {
-        Self {
-            extra: description,
-            kind: ErrorKind::Unimplemented,
+    pub fn get_detail(&self, detail_id: u64) -> Option<&[u8]> {
+        let details = self.details.as_ref()?;
+        details
+            .iter()
+            .find(|detail| detail.id == detail_id)
+            .map(|detail| detail.data.as_slice())
+    }
+
+    /// Returns all [`ErrorDetail`] entries attached to this error.
+    #[cfg(feature = "alloc")]
+    pub fn get_details(&self) -> &[ErrorDetail] {
+        match &self.details {
+            Some(details) => details.as_slice(),
+            None => &[],
         }
+    }
+
+    /// Attaches a detail payload keyed by `detail_id` to this error, replacing any
+    /// existing payload with the same `detail_id`.
+    ///
+    /// Each detail type should use a unique 64-bit ID (typically generated with `capnp id`).
+    ///
+    /// ```
+    /// const VALIDATION_ERROR: u64 = 0x9935_c2b4_7d94_809c;
+    /// let mut err = capnp::Error::failed("invalid".into());
+    /// err.set_detail(VALIDATION_ERROR, b"field x must be positive".to_vec());
+    /// assert_eq!(err.get_detail(VALIDATION_ERROR), Some(&b"field x must be positive"[..]));
+    /// ```
+    #[cfg(feature = "alloc")]
+    pub fn set_detail(&mut self, detail_id: u64, data: alloc::vec::Vec<u8>) {
+        let details = self.details.get_or_insert_with(Default::default);
+        if let Some(existing) = details.iter_mut().find(|detail| detail.id == detail_id) {
+            existing.data = data;
+        } else {
+            details.push(ErrorDetail {
+                id: detail_id,
+                data,
+            });
+        }
+    }
+
+    /// Removes and returns the detail payload associated with `detail_id`, if present.
+    #[cfg(feature = "alloc")]
+    pub fn release_detail(&mut self, detail_id: u64) -> Option<alloc::vec::Vec<u8>> {
+        let details = self.details.as_mut()?;
+        let idx = details.iter().position(|detail| detail.id == detail_id)?;
+        let detail = details.remove(idx);
+        if details.is_empty() {
+            self.details = None;
+        }
+        Some(detail.data)
     }
 }
 
@@ -493,12 +581,9 @@ impl core::convert::From<::std::io::Error> for Error {
             _ => ErrorKind::Failed,
         };
         #[cfg(feature = "alloc")]
-        return Self {
-            kind,
-            extra: format!("{err}"),
-        };
+        return Self::new(kind, format!("{err}"));
         #[cfg(not(feature = "alloc"))]
-        return Self { kind };
+        return Self::from_kind(kind);
     }
 }
 
@@ -555,68 +640,172 @@ impl core::fmt::Display for ErrorKind {
             Self::Disconnected => write!(fmt, "Disconnected"),
             Self::Unimplemented => write!(fmt, "Unimplemented"),
             Self::BufferNotLargeEnough => write!(fmt, "buffer is not large enough"),
-            Self::ExistingListPointerIsNotByteSized => write!(fmt, "Called get_writable_{{data|text}}_pointer() but existing list pointer is not byte-sized."),
-            Self::ExistingPointerIsNotAList => write!(fmt, "Called get_writable_{{data|text|list|struct_list}}_pointer() but existing pointer is not a list."),
-            Self::CannotCreateACanonicalMessageWithACapability => write!(fmt, "Cannot create a canonical message with a capability"),
-            Self::FourByteLengthTooBigForUSize => write!(fmt, "Cannot represent 4 byte length as `usize`. This may indicate that you are running on 8 or 16 bit platform or message is too large."),
-            Self::FourByteSegmentLengthTooBigForUSize => write!(fmt, "Cannot represent 4 byte segment length as usize. This may indicate that you are running on 8 or 16 bit platform or segment is too large"),
-            Self::CannotSetAnyPointerFieldToAPrimitiveValue => write!(fmt, "cannot set AnyPointer field to a primitive value"),
-            Self::CantHandleNonStructInlineComposite => write!(fmt, "Don't know how to handle non-STRUCT inline composite."),
+            Self::ExistingListPointerIsNotByteSized => write!(
+                fmt,
+                "Called get_writable_{{data|text}}_pointer() but existing list pointer is not byte-sized."
+            ),
+            Self::ExistingPointerIsNotAList => write!(
+                fmt,
+                "Called get_writable_{{data|text|list|struct_list}}_pointer() but existing pointer is not a list."
+            ),
+            Self::CannotCreateACanonicalMessageWithACapability => {
+                write!(fmt, "Cannot create a canonical message with a capability")
+            }
+            Self::FourByteLengthTooBigForUSize => write!(
+                fmt,
+                "Cannot represent 4 byte length as `usize`. This may indicate that you are running on 8 or 16 bit platform or message is too large."
+            ),
+            Self::FourByteSegmentLengthTooBigForUSize => write!(
+                fmt,
+                "Cannot represent 4 byte segment length as usize. This may indicate that you are running on 8 or 16 bit platform or segment is too large"
+            ),
+            Self::CannotSetAnyPointerFieldToAPrimitiveValue => {
+                write!(fmt, "cannot set AnyPointer field to a primitive value")
+            }
+            Self::CantHandleNonStructInlineComposite => {
+                write!(fmt, "Don't know how to handle non-STRUCT inline composite.")
+            }
             Self::EmptyBuffer => write!(fmt, "empty buffer"),
             Self::EmptySlice => write!(fmt, "empty slice"),
-            Self::EnumValueOrUnionDiscriminantNotPresent(val) => write!(fmt, "Enum value or union discriminant {val} was not present in schema"),
-            Self::ExistingListValueIsIncompatibleWithExpectedType => write!(fmt, "Existing list value is incompatible with expected type."),
+            Self::EnumValueOrUnionDiscriminantNotPresent(val) => write!(
+                fmt,
+                "Enum value or union discriminant {val} was not present in schema"
+            ),
+            Self::ExistingListValueIsIncompatibleWithExpectedType => write!(
+                fmt,
+                "Existing list value is incompatible with expected type."
+            ),
             Self::ExpectedAListOrBlob => write!(fmt, "Expected a list or blob."),
-            Self::ExpectedAPointerListButGotAListOfDataOnlyStructs => write!(fmt, "Expected a pointer list, but got a list of data-only structs"),
-            Self::ExpectedAPrimitiveListButGotAListOfPointerOnlyStructs => write!(fmt, "Expected a primitive list, but got a list of pointer-only structs"),
+            Self::ExpectedAPointerListButGotAListOfDataOnlyStructs => write!(
+                fmt,
+                "Expected a pointer list, but got a list of data-only structs"
+            ),
+            Self::ExpectedAPrimitiveListButGotAListOfPointerOnlyStructs => write!(
+                fmt,
+                "Expected a primitive list, but got a list of pointer-only structs"
+            ),
             Self::FailedToFillTheWholeBuffer => write!(fmt, "failed to fill the whole buffer"),
             Self::FieldAndDefaultMismatch => write!(fmt, "field and default mismatch"),
             Self::FieldNotFound => write!(fmt, "field not found"),
-            Self::FoundBitListWhereStructListWasExpected => write!(fmt, "Found bit list where struct list was expected; upgrading boolean lists to struct lists is no longer supported."),
-            Self::FoundStructListWhereBitListWasExpected => write!(fmt, "Found struct list where bit list was expected."),
+            Self::FoundBitListWhereStructListWasExpected => write!(
+                fmt,
+                "Found bit list where struct list was expected; upgrading boolean lists to struct lists is no longer supported."
+            ),
+            Self::FoundStructListWhereBitListWasExpected => {
+                write!(fmt, "Found struct list where bit list was expected.")
+            }
             Self::GroupFieldButTypeIsNotStruct => write!(fmt, "group field but type is not Struct"),
-            Self::InitIsOnlyValidForStructAndAnyPointerFields => write!(fmt, "init() is only valid for struct and AnyPointer fields"),
-            Self::InitnIsOnlyValidForListTextOrDataFields => write!(fmt, "initn() is only valid for list, text, or data fields"),
-            Self::InlineCompositeListWithNonStructElementsNotSupported => write!(fmt, "InlineComposite list with non-STRUCT elements not supported."),
-            Self::InlineCompositeListsElementsOverrunItsWordCount => write!(fmt, "InlineComposite list's elements overrun its word count."),
-            Self::InlineCompositeListsOfNonStructTypeAreNotSupported => write!(fmt, "InlineComposite lists of non-STRUCT type are not supported."),
-            Self::InvalidNumberOfSegments(segment_count) => write!(fmt, "Too many or too few segments {segment_count}"),
+            Self::InitIsOnlyValidForStructAndAnyPointerFields => {
+                write!(fmt, "init() is only valid for struct and AnyPointer fields")
+            }
+            Self::InitnIsOnlyValidForListTextOrDataFields => {
+                write!(fmt, "initn() is only valid for list, text, or data fields")
+            }
+            Self::InlineCompositeListWithNonStructElementsNotSupported => write!(
+                fmt,
+                "InlineComposite list with non-STRUCT elements not supported."
+            ),
+            Self::InlineCompositeListsElementsOverrunItsWordCount => write!(
+                fmt,
+                "InlineComposite list's elements overrun its word count."
+            ),
+            Self::InlineCompositeListsOfNonStructTypeAreNotSupported => write!(
+                fmt,
+                "InlineComposite lists of non-STRUCT type are not supported."
+            ),
+            Self::InvalidNumberOfSegments(segment_count) => {
+                write!(fmt, "Too many or too few segments {segment_count}")
+            }
             Self::InvalidSegmentId(id) => write!(fmt, "Invalid segment id {id}"),
             Self::ListAnyPointerNotSupported => write!(fmt, "List(AnyPointer) not supported."),
             Self::ListCapabilityNotSupported => write!(fmt, "List(Capability) not supported"),
             Self::MalformedDoubleFarPointer => write!(fmt, "Malformed double-far pointer."),
-            Self::MessageContainsInvalidCapabilityPointer => write!(fmt, "Message contained invalid capability pointer."),
-            Self::MessageContainsListPointerOfNonBytesWhereDataWasExpected => write!(fmt, "Message contains list pointer of non-bytes where data was expected."),
-            Self::MessageContainsListPointerOfNonBytesWhereTextWasExpected => write!(fmt, "Message contains list pointer of non-bytes where text was expected."),
-            Self::MessageContainsListWithIncompatibleElementType => write!(fmt, "Message contains list with incompatible element type."),
-            Self::MessageContainsNonCapabilityPointerWhereCapabilityPointerWasExpected => write!(fmt, "Message contains non-capability pointer where capability pointer was expected."),
-            Self::MessageContainsNonListPointerWhereDataWasExpected => write!(fmt, "Message contains non-list pointer where data was expected."),
-            Self::MessageContainsNonListPointerWhereListPointerWasExpected => write!(fmt, "Message contains non-list pointer where list pointer was expected"),
-            Self::MessageContainsNonListPointerWhereTextWasExpected => write!(fmt, "Message contains non-list pointer where text was expected."),
-            Self::MessageContainsNonStructPointerWhereStructPointerWasExpected => write!(fmt, "Message contains non-struct pointer where struct pointer was expected."),
-            Self::MessageContainsNullCapabilityPointer => write!(fmt, "Message contains null capability pointer."),
-            Self::MessageContainsOutOfBoundsPointer => write!(fmt, "Message contains out-of-bounds pointer"),
-            Self::MessageContainsTextThatIsNotNULTerminated => write!(fmt, "Message contains text that is not NUL-terminated"),
-            Self::MessageEndsPrematurely(header, body) => write!(fmt, "Message ends prematurely. Header claimed {header} words, but message only has {body} words"),
+            Self::MessageContainsInvalidCapabilityPointer => {
+                write!(fmt, "Message contained invalid capability pointer.")
+            }
+            Self::MessageContainsListPointerOfNonBytesWhereDataWasExpected => write!(
+                fmt,
+                "Message contains list pointer of non-bytes where data was expected."
+            ),
+            Self::MessageContainsListPointerOfNonBytesWhereTextWasExpected => write!(
+                fmt,
+                "Message contains list pointer of non-bytes where text was expected."
+            ),
+            Self::MessageContainsListWithIncompatibleElementType => {
+                write!(fmt, "Message contains list with incompatible element type.")
+            }
+            Self::MessageContainsNonCapabilityPointerWhereCapabilityPointerWasExpected => write!(
+                fmt,
+                "Message contains non-capability pointer where capability pointer was expected."
+            ),
+            Self::MessageContainsNonListPointerWhereDataWasExpected => write!(
+                fmt,
+                "Message contains non-list pointer where data was expected."
+            ),
+            Self::MessageContainsNonListPointerWhereListPointerWasExpected => write!(
+                fmt,
+                "Message contains non-list pointer where list pointer was expected"
+            ),
+            Self::MessageContainsNonListPointerWhereTextWasExpected => write!(
+                fmt,
+                "Message contains non-list pointer where text was expected."
+            ),
+            Self::MessageContainsNonStructPointerWhereStructPointerWasExpected => write!(
+                fmt,
+                "Message contains non-struct pointer where struct pointer was expected."
+            ),
+            Self::MessageContainsNullCapabilityPointer => {
+                write!(fmt, "Message contains null capability pointer.")
+            }
+            Self::MessageContainsOutOfBoundsPointer => {
+                write!(fmt, "Message contains out-of-bounds pointer")
+            }
+            Self::MessageContainsTextThatIsNotNULTerminated => {
+                write!(fmt, "Message contains text that is not NUL-terminated")
+            }
+            Self::MessageEndsPrematurely(header, body) => write!(
+                fmt,
+                "Message ends prematurely. Header claimed {header} words, but message only has {body} words"
+            ),
             Self::MessageIsTooDeeplyNested => write!(fmt, "Message is too deeply nested."),
-            Self::MessageIsTooDeeplyNestedOrContainsCycles => write!(fmt, "Message is too deeply-nested or contains cycles."),
-            Self::MessageSizeOverflow => write!(fmt, "Message's size cannot be represented in usize"),
+            Self::MessageIsTooDeeplyNestedOrContainsCycles => {
+                write!(fmt, "Message is too deeply-nested or contains cycles.")
+            }
+            Self::MessageSizeOverflow => {
+                write!(fmt, "Message's size cannot be represented in usize")
+            }
             Self::MessageTooLarge(val) => write!(fmt, "Message is too large: {val}"),
-            Self::MessageNotAlignedBy8BytesBoundary => write!(fmt, "Message was not aligned by 8 bytes boundary. Either ensure that message is properly aligned or compile `capnp` crate with \"unaligned\" feature enabled."),
+            Self::MessageNotAlignedBy8BytesBoundary => write!(
+                fmt,
+                "Message was not aligned by 8 bytes boundary. Either ensure that message is properly aligned or compile `capnp` crate with \"unaligned\" feature enabled."
+            ),
             Self::NestingLimitExceeded => write!(fmt, "nesting limit exceeded"),
             Self::NotAStruct => write!(fmt, "not a struct"),
-            Self::OnlyOneOfTheSectionPointersIsPointingToOurself => write!(fmt, "Only one of the section pointers is pointing to ourself"),
-            Self::PackedInputDidNotEndCleanlyOnASegmentBoundary => write!(fmt, "Packed input did not end cleanly on a segment boundary."),
+            Self::OnlyOneOfTheSectionPointersIsPointingToOurself => write!(
+                fmt,
+                "Only one of the section pointers is pointing to ourself"
+            ),
+            Self::PackedInputDidNotEndCleanlyOnASegmentBoundary => write!(
+                fmt,
+                "Packed input did not end cleanly on a segment boundary."
+            ),
             Self::PrematureEndOfFile => write!(fmt, "Premature end of file"),
             Self::PrematureEndOfPackedInput => write!(fmt, "Premature end of packed input."),
             Self::ReadLimitExceeded => write!(fmt, "Read limit exceeded"),
-            Self::SettingDynamicCapabilitiesIsUnsupported => write!(fmt, "setting dynamic capabilities is unsupported"),
-            Self::StructReaderHadBitwidthOtherThan1 => write!(fmt, "struct reader had bitwidth other than 1"),
+            Self::SettingDynamicCapabilitiesIsUnsupported => {
+                write!(fmt, "setting dynamic capabilities is unsupported")
+            }
+            Self::StructReaderHadBitwidthOtherThan1 => {
+                write!(fmt, "struct reader had bitwidth other than 1")
+            }
             Self::TextBlobMissingNULTerminator => write!(fmt, "Text blob missing NUL terminator."),
             Self::TextContainsNonUtf8Data(e) => write!(fmt, "Text contains non-utf8 data: {e}"),
             Self::TriedToReadFromNullArena => write!(fmt, "Tried to read from null arena"),
             Self::TypeMismatch => write!(fmt, "type mismatch"),
-            Self::UnalignedSegment => write!(fmt, "Detected unaligned segment. You must either ensure all of your segments are 8-byte aligned, or you must enable the \"unaligned\" feature in the capnp crate"),
+            Self::UnalignedSegment => write!(
+                fmt,
+                "Detected unaligned segment. You must either ensure all of your segments are 8-byte aligned, or you must enable the \"unaligned\" feature in the capnp crate"
+            ),
             Self::UnexpectedFarPointer => write!(fmt, "Unexpected far pointer"),
             Self::UnknownPointerType => write!(fmt, "Unknown pointer type."),
         }
@@ -625,22 +814,18 @@ impl core::fmt::Display for ErrorKind {
 
 impl core::fmt::Display for Error {
     fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
-        #[cfg(feature = "alloc")]
-        let result = if self.extra.is_empty() {
+        let extra = self.extra();
+        if extra.is_empty() {
             write!(fmt, "{}", self.kind)
         } else {
-            write!(fmt, "{}: {}", self.kind, self.extra)
-        };
-        #[cfg(not(feature = "alloc"))]
-        let result = write!(fmt, "{}", self.kind);
-        result
+            write!(fmt, "{}: {extra}", self.kind)
+        }
     }
 }
 
 impl core::error::Error for Error {
-    #[cfg(feature = "alloc")]
     fn description(&self) -> &str {
-        &self.extra
+        self.extra()
     }
     fn cause(&self) -> Option<&dyn ::core::error::Error> {
         None
@@ -676,5 +861,81 @@ impl message::ReaderSegments for OutputSegments<'_> {
             #[cfg(feature = "alloc")]
             OutputSegments::MultiSegment(v) => v.get(id as usize).copied(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn error_size() {
+        assert_eq!(core::mem::size_of::<ErrorKind>(), 24);
+        #[cfg(feature = "alloc")]
+        assert_eq!(core::mem::size_of::<Error>(), 56);
+        #[cfg(not(feature = "alloc"))]
+        assert_eq!(core::mem::size_of::<Error>(), 24);
+    }
+
+    #[test]
+    fn error_from_kind_extra_is_empty() {
+        let e = Error::from_kind(ErrorKind::NotAStruct);
+        assert_eq!(e.extra(), "");
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn error_details() {
+        let mut e = Error::failed("foo".into());
+        assert_eq!(e.extra(), "foo");
+        assert!(e.get_details().is_empty());
+        assert_eq!(e.get_detail(123), None);
+
+        e.set_detail(123, b"foo".to_vec());
+        e.set_detail(456, b"bar".to_vec());
+        assert_eq!(e.get_detail(123), Some(&b"foo"[..]));
+        assert_eq!(e.get_detail(456), Some(&b"bar"[..]));
+        assert_eq!(e.get_detail(789), None);
+        assert_eq!(e.get_details().len(), 2);
+
+        // Overwriting an existing detail ID updates it in place without duplicating.
+        e.set_detail(123, b"baz".to_vec());
+        assert_eq!(e.get_detail(123), Some(&b"baz"[..]));
+        assert_eq!(
+            e.get_details(),
+            &[
+                ErrorDetail {
+                    id: 123,
+                    data: b"baz".to_vec(),
+                },
+                ErrorDetail {
+                    id: 456,
+                    data: b"bar".to_vec(),
+                },
+            ]
+        );
+
+        let mut e2 = e.clone();
+        assert_eq!(e2.extra(), "foo");
+        assert_eq!(e2.get_detail(123), Some(&b"baz"[..]));
+        assert_eq!(e2.get_detail(456), Some(&b"bar"[..]));
+
+        assert_eq!(e2.release_detail(123), Some(b"baz".to_vec()));
+        assert_eq!(e2.get_detail(123), None);
+        assert_eq!(e2.get_detail(456), Some(&b"bar"[..]));
+        assert_eq!(e2.release_detail(123), None);
+
+        // Releasing the last detail frees its box while preserving the textual context.
+        assert_eq!(e2.release_detail(456), Some(b"bar".to_vec()));
+        assert!(e2.details.is_none());
+        assert_eq!(e2.extra(), "foo");
+
+        // Details on a `from_kind` error also clean up the box when released.
+        let mut e3 = Error::from_kind(ErrorKind::NotAStruct);
+        e3.set_detail(1, vec![]);
+        assert_eq!(e3.get_detail(1), Some(&b""[..]));
+        assert_eq!(e3.release_detail(1), Some(vec![]));
+        assert!(e3.details.is_none());
     }
 }

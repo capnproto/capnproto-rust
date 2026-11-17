@@ -1,8 +1,8 @@
 //! Dynamically typed values.
 
+use crate::Result;
 use crate::introspect::{self, TypeVariant};
 use crate::schema_capnp::value;
-use crate::Result;
 use crate::{dynamic_list, dynamic_struct};
 
 /// A dynamically-typed read-only value.
@@ -122,7 +122,7 @@ impl<'a> DowncastReader<'a> for () {
 }
 
 macro_rules! downcast_reader_impl(
-    ($t:ty, $v:ident, $s:expr) => (
+    ($t:ty, $v:ident, $s:expr_2021) => (
         impl <'a> DowncastReader<'a> for $t {
             fn downcast_reader(value: Reader<'a>) -> Self {
                 let Reader::$v(x) = value else { panic!("error downcasting to {}", $s) };
@@ -191,9 +191,9 @@ impl<'a> Builder<'a> {
             Builder::Enum(e) => Builder::Enum(*e),
             Builder::Text(t) => Builder::Text(t.reborrow()),
             Builder::Data(d) => Builder::Data(d),
-            Builder::Struct(ref mut s) => Builder::Struct(s.reborrow()),
-            Builder::List(ref mut l) => Builder::List(l.reborrow()),
-            Builder::AnyPointer(ref mut a) => Builder::AnyPointer(a.reborrow()),
+            Builder::Struct(s) => Builder::Struct(s.reborrow()),
+            Builder::List(l) => Builder::List(l.reborrow()),
+            Builder::AnyPointer(a) => Builder::AnyPointer(a.reborrow()),
             Builder::Capability(c) => Builder::Capability(*c),
         }
     }
@@ -255,7 +255,7 @@ impl<'a> DowncastBuilder<'a> for () {
 }
 
 macro_rules! downcast_builder_impl(
-    ($t:ty, $v:ident, $s:expr) => (
+    ($t:ty, $v:ident, $s:expr_2021) => (
         impl <'a> DowncastBuilder<'a> for $t {
             fn downcast_builder(value: Builder<'a>) -> Self {
                 let Builder::$v(x) = value else { panic!("error downcasting to {}", $s) };

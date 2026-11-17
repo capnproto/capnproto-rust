@@ -4,8 +4,8 @@ use crate::introspect::TypeVariant;
 use crate::private::layout;
 use crate::schema::{Field, StructSchema};
 use crate::schema_capnp::{field, node, value};
-use crate::{dynamic_list, dynamic_value};
 use crate::{Error, ErrorKind, Result};
+use crate::{dynamic_list, dynamic_value};
 
 fn has_discriminant_value(reader: field::Reader) -> bool {
     reader.get_discriminant_value() != field::NO_DISCRIMINANT

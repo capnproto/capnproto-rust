@@ -3,7 +3,7 @@
 name = "shared-secret-capability"
 version = "0.0.0"
 authors = [ "Adam Schwab <aschwab@cloudflare.com>"  ]
-edition = "2021"
+edition = "2024"
 
 build = "build.rs"
 

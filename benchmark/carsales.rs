@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use crate::carsales_capnp::{car, parking_lot, total_value, Color};
+use crate::carsales_capnp::{Color, car, parking_lot, total_value};
 use crate::common::*;
 
 trait CarValue {

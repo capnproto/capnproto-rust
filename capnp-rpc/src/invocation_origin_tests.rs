@@ -144,7 +144,7 @@ fn typed_delegated_origin_survives_private_copy_and_redirect() {
             .send()
             .promise,
     );
-    assert_eq!(denied.err().unwrap().extra, "denied method");
+    assert_eq!(denied.err().unwrap().extra(), "denied method");
     assert_eq!(seen.borrow().len(), 3);
     state.disconnect(Error::disconnected("done".into()));
 }
@@ -179,17 +179,19 @@ fn typed_conflict_remains_poisoned_when_setter_errors_are_ignored() {
         let origin = InvocationOrigin::new();
         let mut request = tagged_request(&grant, &origin, if streaming { 2 } else { 0 });
         request.hook.set_invocation_origin(origin.clone()).unwrap();
-        assert!(request
-            .hook
-            .set_invocation_origin(InvocationOrigin::new())
-            .is_err());
+        assert!(
+            request
+                .hook
+                .set_invocation_origin(InvocationOrigin::new())
+                .is_err()
+        );
         assert!(request.hook.set_invocation_origin(origin).is_err());
         let error = if streaming {
             complete_origin_call(request.hook.send_streaming()).unwrap_err()
         } else {
             complete_origin_call(request.send().promise).err().unwrap()
         };
-        assert_eq!(error.extra, "conflicting local call context");
+        assert_eq!(error.extra(), "conflicting local call context");
         assert!(seen.borrow().is_empty());
     }
 }
@@ -214,9 +216,11 @@ fn typed_queued_pipeline_calls_keep_independent_origins() {
     assert!(seen.borrow().is_empty());
     drop(client);
     drop(pipelined);
-    assert!(resolve
-        .send(Box::new(local::Client::new(OriginRecorder(seen.clone()))))
-        .is_ok());
+    assert!(
+        resolve
+            .send(Box::new(local::Client::new(OriginRecorder(seen.clone()))))
+            .is_ok()
+    );
     complete_origin_call(calls).unwrap();
     assert_eq!(*seen.borrow(), [a, b]);
 }
@@ -320,7 +324,7 @@ fn typed_origin_defaults_reject_unsupported_or_absent_provenance() {
     let error = complete_origin_call(target.new_call(0, 0, None).send().promise)
         .err()
         .unwrap();
-    assert_eq!(error.extra, "missing origin");
+    assert_eq!(error.extra(), "missing origin");
     assert!(seen.borrow().is_empty());
 
     // Reconstruction must not synthesize an origin for untagged Params either.
@@ -331,7 +335,7 @@ fn typed_origin_defaults_reject_unsupported_or_absent_provenance() {
     let error =
         complete_origin_call(imported.call(0, 0, Box::new(params), Box::new(UnusedResults)))
             .unwrap_err();
-    assert_eq!(error.extra, "missing origin");
+    assert_eq!(error.extra(), "missing origin");
     assert!(seen.borrow().is_empty());
     assert_eq!(state.questions.borrow().iter().count(), 0);
     state.disconnect(Error::disconnected("done".into()));
@@ -352,9 +356,9 @@ fn typed_broken_request_preserves_original_error() {
             .set_invocation_origin(InvocationOrigin::new())
             .unwrap_err();
         assert_eq!(error.kind, original.kind);
-        assert_eq!(error.extra, original.extra);
+        assert_eq!(error.extra(), original.extra());
         let error = complete_origin_call(request.send().promise).err().unwrap();
         assert_eq!(error.kind, original.kind);
-        assert_eq!(error.extra, original.extra);
+        assert_eq!(error.extra(), original.extra());
     }
 }

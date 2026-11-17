@@ -29,10 +29,12 @@ fn typed_conflict_does_not_mask_an_existing_disconnect() {
             .hook
             .set_invocation_origin(InvocationOrigin::new())
             .unwrap();
-        assert!(request
-            .hook
-            .set_invocation_origin(InvocationOrigin::new())
-            .is_err());
+        assert!(
+            request
+                .hook
+                .set_invocation_origin(InvocationOrigin::new())
+                .is_err()
+        );
         if disconnected {
             state.disconnect(Error::disconnected("original disconnect".into()));
         }
@@ -49,7 +51,7 @@ fn typed_conflict_does_not_mask_an_existing_disconnect() {
                     assert_disconnected_with(error, "original disconnect");
                 } else {
                     assert_eq!(error.kind, capnp::ErrorKind::Failed);
-                    assert_eq!(error.extra, "conflicting local call context");
+                    assert_eq!(error.extra(), "conflicting local call context");
                     assert!(state.connection.borrow().is_ok());
                 }
             }
@@ -276,7 +278,7 @@ fn typed_redirect_callback_disconnect_prevents_local_send() {
                 }
                 OriginRedirectFailure::Rejected => {
                     assert_eq!(error.kind, capnp::ErrorKind::Unimplemented);
-                    assert_eq!(error.extra, "origin transfer rejected");
+                    assert_eq!(error.extra(), "origin transfer rejected");
                     assert!(state.connection.borrow().is_ok());
                 }
             }

@@ -1,13 +1,14 @@
 [package]
 
 name = "capnpc"
-version = "0.27.0"
+version = "0.28.1"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 license = "MIT"
 description = "Cap'n Proto code generation"
 repository = "https://github.com/capnproto/capnproto-rust"
 documentation = "https://docs.rs/capnpc/"
-edition = "2021"
+edition = "2024"
+rust-version.workspace = true
 
 readme = "README.md"
 
@@ -25,7 +26,7 @@ path = "src/capnpc-rust-bootstrap.rs"
 
 
 [dependencies.capnp]
-version = "0.27.0"
+version = "0.28.0"
 path = "../capnp"
 
 [lints]

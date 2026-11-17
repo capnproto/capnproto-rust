@@ -70,6 +70,8 @@
 //!
 //! ```
 
+use crate::OutputSegments;
+use crate::Result;
 use crate::any_pointer;
 use crate::private::arena::{BuilderArena, BuilderArenaImpl};
 use crate::private::arena::{ReaderArena, ReaderArenaImpl};
@@ -77,8 +79,6 @@ use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
 use crate::traits::{FromPointerBuilder, SetterInput};
 use crate::traits::{FromPointerReader, Owned};
-use crate::OutputSegments;
-use crate::Result;
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy, Debug)]
@@ -317,7 +317,7 @@ where
             )
         }?;
         let read_head = ::core::cell::Cell::new(unsafe { segment_start.add(BYTES_PER_WORD) });
-        let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
+        let root_is_canonical = unsafe { pointer_reader.is_canonical(&read_head)? };
         let all_words_consumed = (read_head.get() as usize - segment_start as usize)
             / BYTES_PER_WORD
             == seg_len as usize;
@@ -510,7 +510,7 @@ where
         let location: *mut u8 = seg_start;
         let Self { arena } = self;
 
-        any_pointer::Builder::new(layout::PointerBuilder::get_root(arena, 0, location))
+        any_pointer::Builder::new(unsafe { layout::PointerBuilder::get_root(arena, 0, location) })
     }
 
     /// Initializes the root as a value of the given type.
@@ -566,7 +566,7 @@ where
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
-        let pointer = layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start);
+        let pointer = unsafe { layout::PointerBuilder::get_root(&mut self.arena, 0, seg_start) };
         SetterInput::set_pointer_builder(pointer, value, true)?;
         assert_eq!(self.get_segments_for_output().len(), 1);
         Ok(())
@@ -901,7 +901,7 @@ impl<'a> ScratchSpaceHeapAllocator<'a> {
     pub fn new(scratch_space: &'a mut [u8]) -> ScratchSpaceHeapAllocator<'a> {
         #[cfg(not(feature = "unaligned"))]
         {
-            if scratch_space.as_ptr() as usize % BYTES_PER_WORD != 0 {
+            if !(scratch_space.as_ptr() as usize).is_multiple_of(BYTES_PER_WORD) {
                 panic!(
                     "Scratch space must be 8-byte aligned, or you must enable the \"unaligned\" \
                         feature in the capnp crate"
@@ -973,8 +973,10 @@ unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
             }
             self.scratch_space_allocated = false;
         } else {
-            self.allocator
-                .deallocate_segment(ptr, word_size, words_used);
+            unsafe {
+                self.allocator
+                    .deallocate_segment(ptr, word_size, words_used);
+            }
         }
     }
 }
@@ -1007,7 +1009,7 @@ impl<'a> SingleSegmentAllocator<'a> {
     pub fn new(segment: &'a mut [u8]) -> SingleSegmentAllocator<'a> {
         #[cfg(not(feature = "unaligned"))]
         {
-            if segment.as_ptr() as usize % BYTES_PER_WORD != 0 {
+            if !(segment.as_ptr() as usize).is_multiple_of(BYTES_PER_WORD) {
                 panic!(
                     "Segment must be 8-byte aligned, or you must enable the \"unaligned\" \
                         feature in the capnp crate"
@@ -1081,6 +1083,6 @@ where
         word_size: u32,
         words_used: u32,
     ) {
-        (*self).deallocate_segment(ptr, word_size, words_used)
+        unsafe { (*self).deallocate_segment(ptr, word_size, words_used) }
     }
 }

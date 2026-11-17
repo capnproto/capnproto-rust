@@ -18,16 +18,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use capnp::Error;
 use capnp::capability::{self, Promise};
 use capnp::private::capability::{
     ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResponseHook, ResultsHook,
 };
 use capnp::traits::{Imbue, ImbueMut};
-use capnp::Error;
 use capnp::{any_pointer, message};
 
-use futures::channel::oneshot;
 use futures::TryFutureExt;
+use futures::channel::oneshot;
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -118,13 +118,14 @@ impl Results {
 
 impl Drop for Results {
     fn drop(&mut self) {
-        if let (Some(message), Some(fulfiller)) =
-            (self.message.take(), self.results_done_fulfiller.take())
-        {
-            let cap_table = ::std::mem::take(&mut self.cap_table);
-            let _ = fulfiller.send(Box::new(ResultsDone::new(message, cap_table)));
-        } else {
-            unreachable!()
+        match (self.message.take(), self.results_done_fulfiller.take()) {
+            (Some(message), Some(fulfiller)) => {
+                let cap_table = ::std::mem::take(&mut self.cap_table);
+                let _ = fulfiller.send(Box::new(ResultsDone::new(message, cap_table)));
+            }
+            _ => {
+                unreachable!()
+            }
         }
     }
 }

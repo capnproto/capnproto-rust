@@ -1,3 +1,14 @@
+## v0.28.0
+- By default, log background errors to stderr instead of stdout.
+
+## v0.27.5
+- Avoid possible "message loop outlived connection state?" panic on shutdown.
+
+## v0.27.4
+- Add RpcSystem::set_background_error_handler().
+- In default background error handler, use writeln!() instead of println!(), to
+  avoid panics.
+
 ## v0.27.3
 - Add disconnect() error propagation to prevent possible never-resolving promises.
 

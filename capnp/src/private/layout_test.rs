@@ -63,7 +63,7 @@ fn simple_raw_data_struct() {
         assert_eq!(0xab89u16, reader.get_data_field::<u16>(2));
         assert_eq!(0xefcdu16, reader.get_data_field::<u16>(3));
         assert_eq!(0u16, reader.get_data_field::<u16>(4)); // past end of struct --> default value
-                                                           // TODO the rest of uints.
+        // TODO the rest of uints.
 
         // Bits.
         assert_eq!(reader.get_bool_field(0), true);

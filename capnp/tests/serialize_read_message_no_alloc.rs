@@ -1,4 +1,4 @@
-use capnp::{message, serialize, Word};
+use capnp::{Word, message, serialize};
 
 #[test]
 pub fn serialize_read_message_no_alloc() {

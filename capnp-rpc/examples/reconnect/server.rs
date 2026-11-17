@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 use std::cell::RefCell;
 
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 use futures::channel::oneshot;
 
 use crate::foo_capnp::foo;

@@ -236,7 +236,7 @@ fn test_complex_list() {
 
 #[test]
 fn test_stringify() {
-    use crate::test_capnp::{test_all_types, TestEnum};
+    use crate::test_capnp::{TestEnum, test_all_types};
     let mut message = message::Builder::new_default();
     let mut root: test_all_types::Builder<'_> = message.init_root();
     root.set_int8_field(3);
@@ -249,7 +249,10 @@ fn test_stringify() {
     let mut inner = root.reborrow().init_struct_field();
     inner.set_u_int32_field(123456);
     let stringified = format!("{:?}", root.into_reader());
-    assert_eq!(stringified, "(voidField = (), boolField = false, int8Field = 3, int16Field = 0, int32Field = 0, int64Field = 0, uInt8Field = 0, uInt16Field = 0, uInt32Field = 0, uInt64Field = 0, float32Field = 0, float64Field = 0, textField = \"hello world\", dataField = 0x\"01020304057fff\", structField = (voidField = (), boolField = false, int8Field = 0, int16Field = 0, int32Field = 0, int64Field = 0, uInt8Field = 0, uInt16Field = 0, uInt32Field = 123456, uInt64Field = 0, float32Field = 0, float64Field = 0, enumField = foo), enumField = bar, boolList = [false, true])");
+    assert_eq!(
+        stringified,
+        "(voidField = (), boolField = false, int8Field = 3, int16Field = 0, int32Field = 0, int64Field = 0, uInt8Field = 0, uInt16Field = 0, uInt32Field = 0, uInt64Field = 0, float32Field = 0, float64Field = 0, textField = \"hello world\", dataField = 0x\"01020304057fff\", structField = (voidField = (), boolField = false, int8Field = 0, int16Field = 0, int32Field = 0, int64Field = 0, uInt8Field = 0, uInt16Field = 0, uInt32Field = 123456, uInt64Field = 0, float32Field = 0, float64Field = 0, enumField = foo), enumField = bar, boolList = [false, true])"
+    );
 }
 
 #[test]
@@ -505,16 +508,6 @@ fn test_downcasts() {
             root_struct.get_named("dataList").unwrap().downcast();
         assert_eq!(data_list.len(), 3);
     }
-}
-
-#[test]
-#[allow(deprecated)]
-fn introspect_loose_equals() {
-    use capnp::introspect::Introspect;
-
-    assert!(test_all_types::Owned::introspect().loose_equals(test_all_types::Owned::introspect()));
-
-    assert!(!test_all_types::Owned::introspect().loose_equals(test_defaults::Owned::introspect()))
 }
 
 #[test]

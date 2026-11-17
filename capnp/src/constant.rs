@@ -25,10 +25,10 @@
 
 use core::marker::PhantomData;
 
+use crate::Result;
 use crate::any_pointer;
 use crate::private::layout::PointerReader;
 use crate::traits::Owned;
-use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Reader<T> {

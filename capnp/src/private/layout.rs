@@ -67,7 +67,7 @@ impl ElementSize {
     }
 }
 
-pub fn data_bits_per_element(size: ElementSize) -> BitCount32 {
+pub(crate) fn data_bits_per_element(size: ElementSize) -> BitCount32 {
     match size {
         Void => 0,
         Bit => 1,
@@ -80,7 +80,7 @@ pub fn data_bits_per_element(size: ElementSize) -> BitCount32 {
     }
 }
 
-pub fn pointers_per_element(size: ElementSize) -> WirePointerCount32 {
+pub(crate) fn pointers_per_element(size: ElementSize) -> WirePointerCount32 {
     match size {
         Pointer => 1,
         _ => 0,
@@ -102,14 +102,14 @@ impl StructSize {
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq)]
-pub enum WirePointerKind {
+pub(crate) enum WirePointerKind {
     Struct = 0,
     List = 1,
     Far = 2,
     Other = 3,
 }
 
-pub enum PointerType {
+pub(crate) enum PointerType {
     Null,
     Struct,
     List,
@@ -170,10 +170,8 @@ impl WirePointer {
     }
 
     #[inline]
-    #[allow(clippy::cast_possible_wrap)]
     fn offset_in_words(&self) -> i32 {
-        // Use `.cast_signed()` when MSRV >= 1.87.
-        1 + ((self.offset_and_kind.get() as i32) >> 2)
+        1 + (self.offset_and_kind.get().cast_signed() >> 2)
     }
 
     #[inline]
@@ -270,6 +268,7 @@ impl WirePointer {
     }
 
     #[inline]
+    #[cfg(feature = "alloc")]
     pub(crate) fn set_cap(&mut self, index: u32) {
         self.offset_and_kind.set(WirePointerKind::Other as u32);
         self.upper32bits.set(index);
@@ -346,6 +345,7 @@ impl WirePointer {
     }
 
     #[inline]
+    #[cfg(feature = "alloc")]
     pub(crate) fn cap_index(&self) -> u32 {
         self.upper32bits.get()
     }
@@ -363,13 +363,15 @@ mod wire_helpers {
     use crate::private::arena::*;
     #[cfg(feature = "alloc")]
     use crate::private::capability::ClientHook;
+    use crate::private::layout::CapTable;
     use crate::private::layout::ElementSize::*;
-    use crate::private::layout::{data_bits_per_element, pointers_per_element};
-    use crate::private::layout::{CapTableBuilder, CapTableReader};
     use crate::private::layout::{
         ElementSize, ListBuilder, ListReader, PointerReader, StructBuilder, StructReader,
         StructSize, WirePointer, WirePointerKind,
     };
+    use crate::private::layout::{data_bits_per_element, pointers_per_element};
+    #[cfg(feature = "alloc")]
+    use crate::private::layout::{extract_cap, inject_cap};
     use crate::private::units::*;
     use crate::text;
     use crate::{Error, ErrorKind, MessageSize, Result};
@@ -423,8 +425,10 @@ mod wire_helpers {
         dst: *mut T,
         count: usize,
     ) {
-        if count > 0 {
-            ptr::copy_nonoverlapping(src, dst, count);
+        unsafe {
+            if count > 0 {
+                ptr::copy_nonoverlapping(src, dst, count);
+            }
         }
     }
 
@@ -436,45 +440,47 @@ mod wire_helpers {
         amount: WordCount32,
         kind: WirePointerKind,
     ) -> (*mut u8, *mut WirePointer, u32) {
-        let is_null = (*reff).is_null();
-        if !is_null {
-            zero_object(arena, segment_id, reff)
-        }
-
-        if amount == 0 && kind == WirePointerKind::Struct {
-            (*reff).set_kind_and_target_for_empty_struct();
-            return (reff as *mut _, reff, segment_id);
-        }
-
-        match arena.allocate(segment_id, amount) {
-            None => {
-                //# Need to allocate in a different segment. We'll need to
-                //# allocate an extra pointer worth of space to act as
-                //# the landing pad for a far pointer.
-
-                let amount_plus_ref = amount + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap();
-                let (segment_id, word_idx) = arena.allocate_anywhere(amount_plus_ref);
-                let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
-                let ptr = seg_start.add(word_idx as usize * BYTES_PER_WORD);
-
-                //# Set up the original pointer to be a far pointer to
-                //# the new segment.
-                (*reff).set_far(false, word_idx);
-                (*reff).set_far_segment_id(segment_id);
-
-                //# Initialize the landing pad to indicate that the
-                //# data immediately follows the pad.
-                let reff = ptr as *mut WirePointer;
-
-                let ptr1 = ptr.add(BYTES_PER_WORD);
-                (*reff).set_kind_and_target(kind, ptr1);
-                (ptr1, reff, segment_id)
+        unsafe {
+            let is_null = (*reff).is_null();
+            if !is_null {
+                zero_object(arena, segment_id, reff)
             }
-            Some(idx) => {
-                let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
-                let ptr = seg_start.add(idx as usize * BYTES_PER_WORD);
-                (*reff).set_kind_and_target(kind, ptr);
-                (ptr, reff, segment_id)
+
+            if amount == 0 && kind == WirePointerKind::Struct {
+                (*reff).set_kind_and_target_for_empty_struct();
+                return (reff as *mut _, reff, segment_id);
+            }
+
+            match arena.allocate(segment_id, amount) {
+                None => {
+                    //# Need to allocate in a different segment. We'll need to
+                    //# allocate an extra pointer worth of space to act as
+                    //# the landing pad for a far pointer.
+
+                    let amount_plus_ref = amount + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap();
+                    let (segment_id, word_idx) = arena.allocate_anywhere(amount_plus_ref);
+                    let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
+                    let ptr = seg_start.add(word_idx as usize * BYTES_PER_WORD);
+
+                    //# Set up the original pointer to be a far pointer to
+                    //# the new segment.
+                    (*reff).set_far(false, word_idx);
+                    (*reff).set_far_segment_id(segment_id);
+
+                    //# Initialize the landing pad to indicate that the
+                    //# data immediately follows the pad.
+                    let reff = ptr as *mut WirePointer;
+
+                    let ptr1 = ptr.add(BYTES_PER_WORD);
+                    (*reff).set_kind_and_target(kind, ptr1);
+                    (ptr1, reff, segment_id)
+                }
+                Some(idx) => {
+                    let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
+                    let ptr = seg_start.add(idx as usize * BYTES_PER_WORD);
+                    (*reff).set_kind_and_target(kind, ptr);
+                    (ptr, reff, segment_id)
+                }
             }
         }
     }
@@ -486,35 +492,37 @@ mod wire_helpers {
         ref_target: *mut u8,
         segment_id: u32,
     ) -> Result<(*mut u8, *mut WirePointer, u32)> {
-        // If `ref` is a far pointer, follow it. On return, `ref` will have been updated to point at
-        // a WirePointer that contains the type information about the target object, and a pointer
-        // to the object contents is returned. The caller must NOT use `ref->target()` as this may
-        // or may not actually return a valid pointer. `segment` is also updated to point at the
-        // segment which actually contains the object.
-        //
-        // If `ref` is not a far pointer, this simply returns `ref_target`. Usually, `ref_target`
-        // should be the same as `ref->target()`, but may not be in cases where `ref` is only a tag.
+        unsafe {
+            // If `ref` is a far pointer, follow it. On return, `ref` will have been updated to point at
+            // a WirePointer that contains the type information about the target object, and a pointer
+            // to the object contents is returned. The caller must NOT use `ref->target()` as this may
+            // or may not actually return a valid pointer. `segment` is also updated to point at the
+            // segment which actually contains the object.
+            //
+            // If `ref` is not a far pointer, this simply returns `ref_target`. Usually, `ref_target`
+            // should be the same as `ref->target()`, but may not be in cases where `ref` is only a tag.
 
-        if (*reff).kind() == WirePointerKind::Far {
-            let segment_id = (*reff).far_segment_id();
-            let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
-            let pad: *mut WirePointer =
-                (seg_start as *mut WirePointer).add((*reff).far_position_in_segment() as usize);
-            if !(*reff).is_double_far() {
-                Ok((WirePointer::mut_target(pad), pad, segment_id))
+            if (*reff).kind() == WirePointerKind::Far {
+                let segment_id = (*reff).far_segment_id();
+                let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
+                let pad: *mut WirePointer =
+                    (seg_start as *mut WirePointer).add((*reff).far_position_in_segment() as usize);
+                if !(*reff).is_double_far() {
+                    Ok((WirePointer::mut_target(pad), pad, segment_id))
+                } else {
+                    //# Landing pad is another far pointer. It is followed by a
+                    //# tag describing the pointed-to object.
+                    let reff = pad.add(1);
+
+                    let segment_id = (*pad).far_segment_id();
+                    let (segment_start, _segment_len) = arena.get_segment_mut(segment_id);
+                    let ptr = segment_start
+                        .add((*pad).far_position_in_segment() as usize * BYTES_PER_WORD);
+                    Ok((ptr, reff, segment_id))
+                }
             } else {
-                //# Landing pad is another far pointer. It is followed by a
-                //# tag describing the pointed-to object.
-                let reff = pad.add(1);
-
-                let segment_id = (*pad).far_segment_id();
-                let (segment_start, _segment_len) = arena.get_segment_mut(segment_id);
-                let ptr =
-                    segment_start.add((*pad).far_position_in_segment() as usize * BYTES_PER_WORD);
-                Ok((ptr, reff, segment_id))
+                Ok((ref_target, reff, segment_id))
             }
-        } else {
-            Ok((ref_target, reff, segment_id))
         }
     }
 
@@ -528,47 +536,49 @@ mod wire_helpers {
         reff: *const WirePointer,
         segment_id: u32,
     ) -> Result<(*const u8, *const WirePointer, u32)> {
-        if (*reff).kind() == WirePointerKind::Far {
-            let far_segment_id = (*reff).far_segment_id();
+        unsafe {
+            if (*reff).kind() == WirePointerKind::Far {
+                let far_segment_id = (*reff).far_segment_id();
 
-            let (seg_start, _seg_len) = arena.get_segment(far_segment_id)?;
-            // Use wrapping arithmetic (as in `mut_target`): `far_position_in_segment()`
-            // is attacker-controlled and may point outside this segment's allocation.
-            // The `bounds_check` below validates `ptr` before it is dereferenced.
-            let ptr =
-                seg_start.wrapping_add((*reff).far_position_in_segment() as usize * BYTES_PER_WORD);
+                let (seg_start, _seg_len) = arena.get_segment(far_segment_id)?;
+                // Use wrapping arithmetic (as in `mut_target`): `far_position_in_segment()`
+                // is attacker-controlled and may point outside this segment's allocation.
+                // The `bounds_check` below validates `ptr` before it is dereferenced.
+                let ptr = seg_start
+                    .wrapping_add((*reff).far_position_in_segment() as usize * BYTES_PER_WORD);
 
-            let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
-            bounds_check(arena, far_segment_id, ptr, pad_words, WirePointerKind::Far)?;
+                let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
+                bounds_check(arena, far_segment_id, ptr, pad_words, WirePointerKind::Far)?;
 
-            let pad: *const WirePointer = ptr as *const _;
+                let pad: *const WirePointer = ptr as *const _;
 
-            if !(*reff).is_double_far() {
-                Ok((
-                    WirePointer::target_from_segment(pad, arena, far_segment_id)?,
-                    pad,
-                    far_segment_id,
-                ))
+                if !(*reff).is_double_far() {
+                    Ok((
+                        WirePointer::target_from_segment(pad, arena, far_segment_id)?,
+                        pad,
+                        far_segment_id,
+                    ))
+                } else {
+                    // Landing pad is another far pointer. It is followed by a tag describing the
+                    // pointed-to object.
+
+                    let tag = pad.add(1);
+                    let double_far_segment_id = (*pad).far_segment_id();
+                    let (segment_start, _segment_len) = arena.get_segment(double_far_segment_id)?;
+                    // Wrapping arithmetic: `far_position_in_segment()` is attacker-controlled
+                    // and may point outside the allocation. Callers bounds-check `ptr` before
+                    // dereferencing it.
+                    let ptr = segment_start
+                        .wrapping_add((*pad).far_position_in_segment() as usize * BYTES_PER_WORD);
+                    Ok((ptr, tag, double_far_segment_id))
+                }
             } else {
-                // Landing pad is another far pointer. It is followed by a tag describing the
-                // pointed-to object.
-
-                let tag = pad.add(1);
-                let double_far_segment_id = (*pad).far_segment_id();
-                let (segment_start, _segment_len) = arena.get_segment(double_far_segment_id)?;
-                // Wrapping arithmetic: `far_position_in_segment()` is attacker-controlled
-                // and may point outside the allocation. Callers bounds-check `ptr` before
-                // dereferencing it.
-                let ptr = segment_start
-                    .wrapping_add((*pad).far_position_in_segment() as usize * BYTES_PER_WORD);
-                Ok((ptr, tag, double_far_segment_id))
+                Ok((
+                    WirePointer::target_from_segment(reff, arena, segment_id)?,
+                    reff,
+                    segment_id,
+                ))
             }
-        } else {
-            Ok((
-                WirePointer::target_from_segment(reff, arena, segment_id)?,
-                reff,
-                segment_id,
-            ))
         }
     }
 
@@ -577,32 +587,34 @@ mod wire_helpers {
         segment_id: u32,
         reff: *mut WirePointer,
     ) {
-        //# Zero out the pointed-to object. Use when the pointer is
-        //# about to be overwritten making the target object no longer
-        //# reachable.
+        unsafe {
+            //# Zero out the pointed-to object. Use when the pointer is
+            //# about to be overwritten making the target object no longer
+            //# reachable.
 
-        match (*reff).kind() {
-            WirePointerKind::Struct | WirePointerKind::List | WirePointerKind::Other => {
-                zero_object_helper(arena, segment_id, reff, WirePointer::mut_target(reff))
-            }
-            WirePointerKind::Far => {
-                let segment_id = (*reff).far_segment_id();
-                let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
-                let pad: *mut WirePointer =
-                    (seg_start as *mut WirePointer).add((*reff).far_position_in_segment() as usize);
-
-                if (*reff).is_double_far() {
-                    let segment_id = (*pad).far_segment_id();
-
+            match (*reff).kind() {
+                WirePointerKind::Struct | WirePointerKind::List | WirePointerKind::Other => {
+                    zero_object_helper(arena, segment_id, reff, WirePointer::mut_target(reff))
+                }
+                WirePointerKind::Far => {
+                    let segment_id = (*reff).far_segment_id();
                     let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
-                    let ptr =
-                        seg_start.add((*pad).far_position_in_segment() as usize * BYTES_PER_WORD);
-                    zero_object_helper(arena, segment_id, pad.add(1), ptr);
+                    let pad: *mut WirePointer = (seg_start as *mut WirePointer)
+                        .add((*reff).far_position_in_segment() as usize);
 
-                    ptr::write_bytes(pad, 0u8, 2);
-                } else {
-                    zero_object(arena, segment_id, pad);
-                    ptr::write_bytes(pad, 0u8, 1);
+                    if (*reff).is_double_far() {
+                        let segment_id = (*pad).far_segment_id();
+
+                        let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
+                        let ptr = seg_start
+                            .add((*pad).far_position_in_segment() as usize * BYTES_PER_WORD);
+                        zero_object_helper(arena, segment_id, pad.add(1), ptr);
+
+                        ptr::write_bytes(pad, 0u8, 2);
+                    } else {
+                        zero_object(arena, segment_id, pad);
+                        ptr::write_bytes(pad, 0u8, 1);
+                    }
                 }
             }
         }
@@ -614,72 +626,75 @@ mod wire_helpers {
         tag: *mut WirePointer,
         ptr: *mut u8,
     ) {
-        match (*tag).kind() {
-            WirePointerKind::Other => {
-                panic!("Don't know how to handle OTHER")
-            }
-            WirePointerKind::Struct => {
-                let pointer_section: *mut WirePointer =
-                    ptr.add((*tag).struct_data_size() as usize * BYTES_PER_WORD) as *mut _;
-
-                let count = (*tag).struct_ptr_count();
-                for i in 0..count {
-                    zero_object(arena, segment_id, pointer_section.add(i as usize));
+        unsafe {
+            match (*tag).kind() {
+                WirePointerKind::Other => {
+                    panic!("Don't know how to handle OTHER")
                 }
-                ptr::write_bytes(
-                    ptr,
-                    0u8,
-                    (*tag).struct_word_size() as usize * BYTES_PER_WORD,
-                );
-            }
-            WirePointerKind::List => match (*tag).list_element_size() {
-                Void => {}
-                Bit | Byte | TwoBytes | FourBytes | EightBytes => ptr::write_bytes(
-                    ptr,
-                    0u8,
-                    BYTES_PER_WORD
-                        * round_bits_up_to_words(
-                            u64::from((*tag).list_element_count())
-                                * u64::from(data_bits_per_element((*tag).list_element_size())),
-                        ) as usize,
-                ),
-                Pointer => {
-                    let count = (*tag).list_element_count() as usize;
+                WirePointerKind::Struct => {
+                    let pointer_section: *mut WirePointer =
+                        ptr.add((*tag).struct_data_size() as usize * BYTES_PER_WORD) as *mut _;
+
+                    let count = (*tag).struct_ptr_count();
                     for i in 0..count {
-                        zero_object(arena, segment_id, ptr.add(i * BYTES_PER_WORD) as *mut _);
-                    }
-                    ptr::write_bytes(ptr, 0u8, count * BYTES_PER_WORD);
-                }
-                InlineComposite => {
-                    let element_tag: *mut WirePointer = ptr as *mut _;
-
-                    assert!(
-                        (*element_tag).kind() == WirePointerKind::Struct,
-                        "Don't know how to handle non-STRUCT inline composite"
-                    );
-
-                    let data_size = (*element_tag).struct_data_size();
-                    let pointer_count = (*element_tag).struct_ptr_count();
-                    let mut pos = ptr.add(BYTES_PER_WORD);
-                    let count = (*element_tag).inline_composite_list_element_count();
-                    if pointer_count > 0 {
-                        for _ in 0..count {
-                            pos = pos.add(data_size as usize * BYTES_PER_WORD);
-                            for _ in 0..pointer_count {
-                                zero_object(arena, segment_id, pos as *mut WirePointer);
-                                pos = pos.add(BYTES_PER_WORD);
-                            }
-                        }
+                        zero_object(arena, segment_id, pointer_section.add(i as usize));
                     }
                     ptr::write_bytes(
                         ptr,
                         0u8,
-                        BYTES_PER_WORD * ((*element_tag).struct_word_size() * count + 1) as usize,
+                        (*tag).struct_word_size() as usize * BYTES_PER_WORD,
                     );
                 }
-            },
-            WirePointerKind::Far => {
-                panic!("Unexpected FAR pointer")
+                WirePointerKind::List => match (*tag).list_element_size() {
+                    Void => {}
+                    Bit | Byte | TwoBytes | FourBytes | EightBytes => ptr::write_bytes(
+                        ptr,
+                        0u8,
+                        BYTES_PER_WORD
+                            * round_bits_up_to_words(
+                                u64::from((*tag).list_element_count())
+                                    * u64::from(data_bits_per_element((*tag).list_element_size())),
+                            ) as usize,
+                    ),
+                    Pointer => {
+                        let count = (*tag).list_element_count() as usize;
+                        for i in 0..count {
+                            zero_object(arena, segment_id, ptr.add(i * BYTES_PER_WORD) as *mut _);
+                        }
+                        ptr::write_bytes(ptr, 0u8, count * BYTES_PER_WORD);
+                    }
+                    InlineComposite => {
+                        let element_tag: *mut WirePointer = ptr as *mut _;
+
+                        assert!(
+                            (*element_tag).kind() == WirePointerKind::Struct,
+                            "Don't know how to handle non-STRUCT inline composite"
+                        );
+
+                        let data_size = (*element_tag).struct_data_size();
+                        let pointer_count = (*element_tag).struct_ptr_count();
+                        let mut pos = ptr.add(BYTES_PER_WORD);
+                        let count = (*element_tag).inline_composite_list_element_count();
+                        if pointer_count > 0 {
+                            for _ in 0..count {
+                                pos = pos.add(data_size as usize * BYTES_PER_WORD);
+                                for _ in 0..pointer_count {
+                                    zero_object(arena, segment_id, pos as *mut WirePointer);
+                                    pos = pos.add(BYTES_PER_WORD);
+                                }
+                            }
+                        }
+                        ptr::write_bytes(
+                            ptr,
+                            0u8,
+                            BYTES_PER_WORD
+                                * ((*element_tag).struct_word_size() * count + 1) as usize,
+                        );
+                    }
+                },
+                WirePointerKind::Far => {
+                    panic!("Unexpected FAR pointer")
+                }
             }
         }
     }
@@ -690,18 +705,21 @@ mod wire_helpers {
         _segment_id: u32,
         reff: *mut WirePointer,
     ) -> Result<()> {
-        // Zero out the pointer itself and, if it is a far pointer, zero the landing pad as well,
-        // but do not zero the object body. Used when upgrading.
+        unsafe {
+            // Zero out the pointer itself and, if it is a far pointer, zero the landing pad as well,
+            // but do not zero the object body. Used when upgrading.
 
-        if (*reff).kind() == WirePointerKind::Far {
-            let far_segment_id = (*reff).far_segment_id();
-            let (seg_start, _seg_len) = arena.get_segment_mut(far_segment_id);
-            let pad = seg_start.add((*reff).far_position_in_segment() as usize * BYTES_PER_WORD);
-            let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
-            ptr::write_bytes(pad, 0, num_elements * BYTES_PER_WORD);
+            if (*reff).kind() == WirePointerKind::Far {
+                let far_segment_id = (*reff).far_segment_id();
+                let (seg_start, _seg_len) = arena.get_segment_mut(far_segment_id);
+                let pad =
+                    seg_start.add((*reff).far_position_in_segment() as usize * BYTES_PER_WORD);
+                let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
+                ptr::write_bytes(pad, 0, num_elements * BYTES_PER_WORD);
+            }
+            ptr::write_bytes(reff, 0, 1);
+            Ok(())
         }
-        ptr::write_bytes(reff, 0, 1);
-        Ok(())
     }
 
     pub(crate) unsafe fn total_size(
@@ -710,170 +728,175 @@ mod wire_helpers {
         reff: *const WirePointer,
         mut nesting_limit: i32,
     ) -> Result<MessageSize> {
-        let mut result = MessageSize {
-            word_count: 0,
-            cap_count: 0,
-        };
+        unsafe {
+            let mut result = MessageSize {
+                word_count: 0,
+                cap_count: 0,
+            };
 
-        if (*reff).is_null() {
-            return Ok(result);
-        };
+            if (*reff).is_null() {
+                return Ok(result);
+            };
 
-        if nesting_limit <= 0 {
-            return Err(Error::from_kind(ErrorKind::MessageIsTooDeeplyNested));
-        }
-
-        nesting_limit -= 1;
-
-        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
-
-        match (*reff).kind() {
-            WirePointerKind::Struct => {
-                bounds_check(
-                    arena,
-                    segment_id,
-                    ptr,
-                    (*reff).struct_word_size() as usize,
-                    WirePointerKind::Struct,
-                )?;
-                result.word_count += u64::from((*reff).struct_word_size());
-
-                let pointer_section: *const WirePointer =
-                    ptr.add((*reff).struct_data_size() as usize * BYTES_PER_WORD) as *const _;
-                let count: usize = (*reff).struct_ptr_count() as usize;
-                for i in 0..count {
-                    result += total_size(arena, segment_id, pointer_section.add(i), nesting_limit)?;
-                }
+            if nesting_limit <= 0 {
+                return Err(Error::from_kind(ErrorKind::MessageIsTooDeeplyNested));
             }
-            WirePointerKind::List => {
-                match (*reff).list_element_size() {
-                    Void => {}
-                    Bit | Byte | TwoBytes | FourBytes | EightBytes => {
-                        let total_words = round_bits_up_to_words(
-                            u64::from((*reff).list_element_count())
-                                * u64::from(data_bits_per_element((*reff).list_element_size())),
-                        );
-                        bounds_check(
-                            arena,
-                            segment_id,
-                            ptr,
-                            total_words as usize,
-                            WirePointerKind::List,
-                        )?;
-                        result.word_count += u64::from(total_words);
+
+            nesting_limit -= 1;
+
+            let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+
+            match (*reff).kind() {
+                WirePointerKind::Struct => {
+                    bounds_check(
+                        arena,
+                        segment_id,
+                        ptr,
+                        (*reff).struct_word_size() as usize,
+                        WirePointerKind::Struct,
+                    )?;
+                    result.word_count += u64::from((*reff).struct_word_size());
+
+                    let pointer_section: *const WirePointer =
+                        ptr.add((*reff).struct_data_size() as usize * BYTES_PER_WORD) as *const _;
+                    let count: usize = (*reff).struct_ptr_count() as usize;
+                    for i in 0..count {
+                        result +=
+                            total_size(arena, segment_id, pointer_section.add(i), nesting_limit)?;
                     }
-                    Pointer => {
-                        let count = (*reff).list_element_count();
-                        bounds_check(
-                            arena,
-                            segment_id,
-                            ptr,
-                            count as usize * WORDS_PER_POINTER,
-                            WirePointerKind::List,
-                        )?;
-
-                        result.word_count += u64::from(count) * WORDS_PER_POINTER as u64;
-
-                        for i in 0..count as usize {
-                            result += total_size(
+                }
+                WirePointerKind::List => {
+                    match (*reff).list_element_size() {
+                        Void => {}
+                        Bit | Byte | TwoBytes | FourBytes | EightBytes => {
+                            let total_words = round_bits_up_to_words(
+                                u64::from((*reff).list_element_count())
+                                    * u64::from(data_bits_per_element((*reff).list_element_size())),
+                            );
+                            bounds_check(
                                 arena,
                                 segment_id,
-                                (ptr as *const WirePointer).add(i),
-                                nesting_limit,
+                                ptr,
+                                total_words as usize,
+                                WirePointerKind::List,
                             )?;
+                            result.word_count += u64::from(total_words);
                         }
-                    }
-                    InlineComposite => {
-                        let word_count = (*reff).list_inline_composite_word_count();
-                        bounds_check(
-                            arena,
-                            segment_id,
-                            ptr,
-                            word_count as usize + POINTER_SIZE_IN_WORDS,
-                            WirePointerKind::List,
-                        )?;
+                        Pointer => {
+                            let count = (*reff).list_element_count();
+                            bounds_check(
+                                arena,
+                                segment_id,
+                                ptr,
+                                count as usize * WORDS_PER_POINTER,
+                                WirePointerKind::List,
+                            )?;
 
-                        let element_tag: *const WirePointer = ptr as *const _;
-                        let count = (*element_tag).inline_composite_list_element_count();
+                            result.word_count += u64::from(count) * WORDS_PER_POINTER as u64;
 
-                        if (*element_tag).kind() != WirePointerKind::Struct {
-                            return Err(Error::from_kind(
-                                ErrorKind::CantHandleNonStructInlineComposite,
-                            ));
+                            for i in 0..count as usize {
+                                result += total_size(
+                                    arena,
+                                    segment_id,
+                                    (ptr as *const WirePointer).add(i),
+                                    nesting_limit,
+                                )?;
+                            }
                         }
+                        InlineComposite => {
+                            let word_count = (*reff).list_inline_composite_word_count();
+                            bounds_check(
+                                arena,
+                                segment_id,
+                                ptr,
+                                word_count as usize + POINTER_SIZE_IN_WORDS,
+                                WirePointerKind::List,
+                            )?;
 
-                        let actual_size =
-                            u64::from((*element_tag).struct_word_size()) * u64::from(count);
-                        if actual_size > u64::from(word_count) {
-                            return Err(Error::from_kind(
-                                ErrorKind::InlineCompositeListsElementsOverrunItsWordCount,
-                            ));
-                        }
+                            let element_tag: *const WirePointer = ptr as *const _;
+                            let count = (*element_tag).inline_composite_list_element_count();
 
-                        // Count the actual size rather than the claimed word count because
-                        // that's what we end up with if we make a copy.
-                        result.word_count += actual_size + POINTER_SIZE_IN_WORDS as u64;
+                            if (*element_tag).kind() != WirePointerKind::Struct {
+                                return Err(Error::from_kind(
+                                    ErrorKind::CantHandleNonStructInlineComposite,
+                                ));
+                            }
 
-                        let data_size = (*element_tag).struct_data_size();
-                        let pointer_count = (*element_tag).struct_ptr_count();
+                            let actual_size =
+                                u64::from((*element_tag).struct_word_size()) * u64::from(count);
+                            if actual_size > u64::from(word_count) {
+                                return Err(Error::from_kind(
+                                    ErrorKind::InlineCompositeListsElementsOverrunItsWordCount,
+                                ));
+                            }
 
-                        if pointer_count > 0 {
-                            let mut pos = ptr.add(BYTES_PER_WORD);
-                            for _ in 0..count {
-                                pos = pos.add(data_size as usize * BYTES_PER_WORD);
+                            // Count the actual size rather than the claimed word count because
+                            // that's what we end up with if we make a copy.
+                            result.word_count += actual_size + POINTER_SIZE_IN_WORDS as u64;
 
-                                for _ in 0..pointer_count {
-                                    result += total_size(
-                                        arena,
-                                        segment_id,
-                                        pos as *const WirePointer,
-                                        nesting_limit,
-                                    )?;
-                                    pos = pos.add(BYTES_PER_WORD);
+                            let data_size = (*element_tag).struct_data_size();
+                            let pointer_count = (*element_tag).struct_ptr_count();
+
+                            if pointer_count > 0 {
+                                let mut pos = ptr.add(BYTES_PER_WORD);
+                                for _ in 0..count {
+                                    pos = pos.add(data_size as usize * BYTES_PER_WORD);
+
+                                    for _ in 0..pointer_count {
+                                        result += total_size(
+                                            arena,
+                                            segment_id,
+                                            pos as *const WirePointer,
+                                            nesting_limit,
+                                        )?;
+                                        pos = pos.add(BYTES_PER_WORD);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            WirePointerKind::Far => {
-                return Err(Error::from_kind(ErrorKind::MalformedDoubleFarPointer));
-            }
-            WirePointerKind::Other => {
-                if (*reff).is_capability() {
-                    result.cap_count += 1;
-                } else {
-                    return Err(Error::from_kind(ErrorKind::UnknownPointerType));
+                WirePointerKind::Far => {
+                    return Err(Error::from_kind(ErrorKind::MalformedDoubleFarPointer));
+                }
+                WirePointerKind::Other => {
+                    if (*reff).is_capability() {
+                        result.cap_count += 1;
+                    } else {
+                        return Err(Error::from_kind(ErrorKind::UnknownPointerType));
+                    }
                 }
             }
-        }
 
-        Ok(result)
+            Ok(result)
+        }
     }
 
     // Helper for copy_message().
     unsafe fn copy_struct(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&mut CapTable>,
         dst: *mut u8,
         src: *const u8,
         data_size: usize,
         pointer_count: usize,
     ) {
-        copy_nonoverlapping_check_zero(src, dst, data_size * BYTES_PER_WORD);
+        unsafe {
+            copy_nonoverlapping_check_zero(src, dst, data_size * BYTES_PER_WORD);
 
-        let src_refs: *const WirePointer = (src as *const WirePointer).add(data_size);
-        let dst_refs: *mut WirePointer = (dst as *mut WirePointer).add(data_size);
+            let src_refs: *const WirePointer = (src as *const WirePointer).add(data_size);
+            let dst_refs: *mut WirePointer = (dst as *mut WirePointer).add(data_size);
 
-        for ii in 0..pointer_count {
-            copy_message(
-                arena,
-                segment_id,
-                cap_table,
-                dst_refs.add(ii),
-                src_refs.add(ii),
-            );
+            for ii in 0..pointer_count {
+                copy_message(
+                    arena,
+                    segment_id,
+                    cap_table.as_deref_mut(),
+                    dst_refs.add(ii),
+                    src_refs.add(ii),
+                );
+            }
         }
     }
 
@@ -882,132 +905,136 @@ mod wire_helpers {
     pub(crate) unsafe fn copy_message(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&mut CapTable>,
         dst: *mut WirePointer,
         src: *const WirePointer,
     ) -> (*mut u8, *mut WirePointer, u32) {
-        match (*src).kind() {
-            WirePointerKind::Struct => {
-                if (*src).is_null() {
-                    ptr::write_bytes(dst, 0, 1);
-                    (ptr::null_mut(), dst, segment_id)
-                } else {
-                    let src_ptr = WirePointer::target(src);
-                    let (dst_ptr, dst, segment_id) = allocate(
-                        arena,
-                        dst,
-                        segment_id,
-                        (*src).struct_word_size(),
-                        WirePointerKind::Struct,
-                    );
-                    copy_struct(
-                        arena,
-                        segment_id,
-                        cap_table,
-                        dst_ptr,
-                        src_ptr,
-                        (*src).struct_data_size() as usize,
-                        (*src).struct_ptr_count() as usize,
-                    );
-                    (*dst).set_struct_size_from_pieces(
-                        (*src).struct_data_size(),
-                        (*src).struct_ptr_count(),
-                    );
-                    (dst_ptr, dst, segment_id)
-                }
-            }
-            WirePointerKind::List => match (*src).list_element_size() {
-                ElementSize::Void
-                | ElementSize::Bit
-                | ElementSize::Byte
-                | ElementSize::TwoBytes
-                | ElementSize::FourBytes
-                | ElementSize::EightBytes => {
-                    let word_count = round_bits_up_to_words(
-                        u64::from((*src).list_element_count())
-                            * u64::from(data_bits_per_element((*src).list_element_size())),
-                    );
-                    let src_ptr = WirePointer::target(src);
-                    let (dst_ptr, dst, segment_id) =
-                        allocate(arena, dst, segment_id, word_count, WirePointerKind::List);
-                    copy_nonoverlapping_check_zero(
-                        src_ptr,
-                        dst_ptr,
-                        word_count as usize * BYTES_PER_WORD,
-                    );
-                    (*dst).set_list_size_and_count(
-                        (*src).list_element_size(),
-                        (*src).list_element_count(),
-                    );
-                    (dst_ptr, dst, segment_id)
-                }
-
-                ElementSize::Pointer => {
-                    let src_refs: *const WirePointer = WirePointer::target(src) as _;
-                    let (dst_refs, dst, segment_id) = allocate(
-                        arena,
-                        dst,
-                        segment_id,
-                        (*src).list_element_count(),
-                        WirePointerKind::List,
-                    );
-                    for ii in 0..((*src).list_element_count() as usize) {
-                        copy_message(
+        unsafe {
+            match (*src).kind() {
+                WirePointerKind::Struct => {
+                    if (*src).is_null() {
+                        ptr::write_bytes(dst, 0, 1);
+                        (ptr::null_mut(), dst, segment_id)
+                    } else {
+                        let src_ptr = WirePointer::target(src);
+                        let (dst_ptr, dst, segment_id) = allocate(
                             arena,
+                            dst,
                             segment_id,
-                            cap_table,
-                            dst_refs.add(ii * BYTES_PER_WORD) as *mut WirePointer,
-                            src_refs.add(ii),
+                            (*src).struct_word_size(),
+                            WirePointerKind::Struct,
                         );
-                    }
-                    (*dst)
-                        .set_list_size_and_count(ElementSize::Pointer, (*src).list_element_count());
-                    (dst_refs, dst, segment_id)
-                }
-                ElementSize::InlineComposite => {
-                    let src_ptr = WirePointer::target(src);
-                    let (dst_ptr, dst, segment_id) = allocate(
-                        arena,
-                        dst,
-                        segment_id,
-                        (*src).list_inline_composite_word_count() + 1,
-                        WirePointerKind::List,
-                    );
-
-                    (*dst).set_list_inline_composite((*src).list_inline_composite_word_count());
-
-                    let src_tag: *const WirePointer = src_ptr as _;
-                    ptr::copy_nonoverlapping(src_tag, dst_ptr as *mut WirePointer, 1);
-
-                    let mut src_element = src_ptr.add(BYTES_PER_WORD);
-                    let mut dst_element = dst_ptr.add(BYTES_PER_WORD);
-
-                    if (*src_tag).kind() != WirePointerKind::Struct {
-                        panic!("unsupported INLINE_COMPOSITE list");
-                    }
-                    for _ in 0..(*src_tag).inline_composite_list_element_count() {
                         copy_struct(
                             arena,
                             segment_id,
                             cap_table,
-                            dst_element,
-                            src_element,
-                            (*src_tag).struct_data_size() as usize,
-                            (*src_tag).struct_ptr_count() as usize,
+                            dst_ptr,
+                            src_ptr,
+                            (*src).struct_data_size() as usize,
+                            (*src).struct_ptr_count() as usize,
                         );
-                        src_element = src_element
-                            .add(BYTES_PER_WORD * (*src_tag).struct_word_size() as usize);
-                        dst_element = dst_element
-                            .add(BYTES_PER_WORD * (*src_tag).struct_word_size() as usize);
+                        (*dst).set_struct_size_from_pieces(
+                            (*src).struct_data_size(),
+                            (*src).struct_ptr_count(),
+                        );
+                        (dst_ptr, dst, segment_id)
                     }
-                    (dst_ptr, dst, segment_id)
                 }
-            },
-            WirePointerKind::Other => {
-                panic!("Unchecked message contained an OTHER pointer.")
-            }
-            WirePointerKind::Far => {
-                panic!("Unchecked message contained a far pointer.")
+                WirePointerKind::List => match (*src).list_element_size() {
+                    ElementSize::Void
+                    | ElementSize::Bit
+                    | ElementSize::Byte
+                    | ElementSize::TwoBytes
+                    | ElementSize::FourBytes
+                    | ElementSize::EightBytes => {
+                        let word_count = round_bits_up_to_words(
+                            u64::from((*src).list_element_count())
+                                * u64::from(data_bits_per_element((*src).list_element_size())),
+                        );
+                        let src_ptr = WirePointer::target(src);
+                        let (dst_ptr, dst, segment_id) =
+                            allocate(arena, dst, segment_id, word_count, WirePointerKind::List);
+                        copy_nonoverlapping_check_zero(
+                            src_ptr,
+                            dst_ptr,
+                            word_count as usize * BYTES_PER_WORD,
+                        );
+                        (*dst).set_list_size_and_count(
+                            (*src).list_element_size(),
+                            (*src).list_element_count(),
+                        );
+                        (dst_ptr, dst, segment_id)
+                    }
+
+                    ElementSize::Pointer => {
+                        let src_refs: *const WirePointer = WirePointer::target(src) as _;
+                        let (dst_refs, dst, segment_id) = allocate(
+                            arena,
+                            dst,
+                            segment_id,
+                            (*src).list_element_count(),
+                            WirePointerKind::List,
+                        );
+                        for ii in 0..((*src).list_element_count() as usize) {
+                            copy_message(
+                                arena,
+                                segment_id,
+                                cap_table.as_deref_mut(),
+                                dst_refs.add(ii * BYTES_PER_WORD) as *mut WirePointer,
+                                src_refs.add(ii),
+                            );
+                        }
+                        (*dst).set_list_size_and_count(
+                            ElementSize::Pointer,
+                            (*src).list_element_count(),
+                        );
+                        (dst_refs, dst, segment_id)
+                    }
+                    ElementSize::InlineComposite => {
+                        let src_ptr = WirePointer::target(src);
+                        let (dst_ptr, dst, segment_id) = allocate(
+                            arena,
+                            dst,
+                            segment_id,
+                            (*src).list_inline_composite_word_count() + 1,
+                            WirePointerKind::List,
+                        );
+
+                        (*dst).set_list_inline_composite((*src).list_inline_composite_word_count());
+
+                        let src_tag: *const WirePointer = src_ptr as _;
+                        ptr::copy_nonoverlapping(src_tag, dst_ptr as *mut WirePointer, 1);
+
+                        let mut src_element = src_ptr.add(BYTES_PER_WORD);
+                        let mut dst_element = dst_ptr.add(BYTES_PER_WORD);
+
+                        if (*src_tag).kind() != WirePointerKind::Struct {
+                            panic!("unsupported INLINE_COMPOSITE list");
+                        }
+                        for _ in 0..(*src_tag).inline_composite_list_element_count() {
+                            copy_struct(
+                                arena,
+                                segment_id,
+                                cap_table.as_deref_mut(),
+                                dst_element,
+                                src_element,
+                                (*src_tag).struct_data_size() as usize,
+                                (*src_tag).struct_ptr_count() as usize,
+                            );
+                            src_element = src_element
+                                .add(BYTES_PER_WORD * (*src_tag).struct_word_size() as usize);
+                            dst_element = dst_element
+                                .add(BYTES_PER_WORD * (*src_tag).struct_word_size() as usize);
+                        }
+                        (dst_ptr, dst, segment_id)
+                    }
+                },
+                WirePointerKind::Other => {
+                    panic!("Unchecked message contained an OTHER pointer.")
+                }
+                WirePointerKind::Far => {
+                    panic!("Unchecked message contained a far pointer.")
+                }
             }
         }
     }
@@ -1019,32 +1046,34 @@ mod wire_helpers {
         src_segment_id: u32,
         src: *mut WirePointer,
     ) {
-        //# Make *dst point to the same object as *src. Both must
-        //# reside in the same message, but can be in different
-        //# segments. Not always-inline because this is rarely used.
-        //
-        //# Caller MUST zero out the source pointer after calling this,
-        //# to make sure no later code mistakenly thinks the source
-        //# location still owns the object. transferPointer() doesn't
-        //# do this zeroing itself because many callers transfer
-        //# several pointers in a loop then zero out the whole section.
+        unsafe {
+            //# Make *dst point to the same object as *src. Both must
+            //# reside in the same message, but can be in different
+            //# segments. Not always-inline because this is rarely used.
+            //
+            //# Caller MUST zero out the source pointer after calling this,
+            //# to make sure no later code mistakenly thinks the source
+            //# location still owns the object. transferPointer() doesn't
+            //# do this zeroing itself because many callers transfer
+            //# several pointers in a loop then zero out the whole section.
 
-        assert!((*dst).is_null());
-        // We expect the caller to ensure the target is already null so won't leak.
+            assert!((*dst).is_null());
+            // We expect the caller to ensure the target is already null so won't leak.
 
-        if (*src).is_null() {
-            ptr::write_bytes(dst, 0, 1);
-        } else if (*src).is_positional() {
-            transfer_pointer_split(
-                arena,
-                dst_segment_id,
-                dst,
-                src_segment_id,
-                src,
-                WirePointer::mut_target(src),
-            );
-        } else {
-            ptr::copy_nonoverlapping(src, dst, 1);
+            if (*src).is_null() {
+                ptr::write_bytes(dst, 0, 1);
+            } else if (*src).is_positional() {
+                transfer_pointer_split(
+                    arena,
+                    dst_segment_id,
+                    dst,
+                    src_segment_id,
+                    src,
+                    WirePointer::mut_target(src),
+                );
+            } else {
+                ptr::copy_nonoverlapping(src, dst, 1);
+            }
         }
     }
 
@@ -1056,97 +1085,105 @@ mod wire_helpers {
         src_tag: *mut WirePointer,
         src_ptr: *mut u8,
     ) {
-        // Like the other transfer_pointer, but splits src into a tag and a
-        // target. Particularly useful for OrphanBuilder.
+        unsafe {
+            // Like the other transfer_pointer, but splits src into a tag and a
+            // target. Particularly useful for OrphanBuilder.
 
-        if dst_segment_id == src_segment_id {
-            // Same segment, so create a direct pointer.
+            if dst_segment_id == src_segment_id {
+                // Same segment, so create a direct pointer.
 
-            if (*src_tag).kind() == WirePointerKind::Struct && (*src_tag).struct_word_size() == 0 {
-                (*dst).set_kind_and_target_for_empty_struct();
-            } else {
-                (*dst).set_kind_and_target((*src_tag).kind(), src_ptr);
-            }
-            // We can just copy the upper 32 bits. (Use memcpy() to comply with aliasing rules.)
-            ptr::copy_nonoverlapping(&(*src_tag).upper32bits, &mut (*dst).upper32bits, 1);
-        } else {
-            // Need to create a far pointer. Try to allocate it in the same segment as the source,
-            // so that it doesn't need to be a double-far.
-
-            match arena.allocate(src_segment_id, 1) {
-                None => {
-                    //# Darn, need a double-far.
-                    let (far_segment_id, word_idx) = arena.allocate_anywhere(2);
-                    let (seg_start, _seg_len) = arena.get_segment_mut(far_segment_id);
-                    let landing_pad: *mut WirePointer =
-                        (seg_start as *mut WirePointer).add(word_idx as usize);
-
-                    let (src_seg_start, _seg_len) = arena.get_segment_mut(src_segment_id);
-
-                    (*landing_pad).set_far(
-                        false,
-                        u32::try_from((src_ptr as usize - src_seg_start as usize) / BYTES_PER_WORD)
-                            .unwrap(),
-                    );
-                    (*landing_pad).set_far_segment_id(src_segment_id);
-
-                    let landing_pad1 = landing_pad.add(1);
-                    (*landing_pad1).set_kind_with_zero_offset((*src_tag).kind());
-
-                    ptr::copy_nonoverlapping(
-                        &(*src_tag).upper32bits,
-                        &mut (*landing_pad1).upper32bits,
-                        1,
-                    );
-
-                    (*dst).set_far(true, word_idx);
-                    (*dst).set_far_segment_id(far_segment_id);
+                if (*src_tag).kind() == WirePointerKind::Struct
+                    && (*src_tag).struct_word_size() == 0
+                {
+                    (*dst).set_kind_and_target_for_empty_struct();
+                } else {
+                    (*dst).set_kind_and_target((*src_tag).kind(), src_ptr);
                 }
-                Some(landing_pad_word) => {
-                    //# Simple landing pad is just a pointer.
-                    let (seg_start, seg_len) = arena.get_segment_mut(src_segment_id);
-                    assert!(landing_pad_word < seg_len);
-                    let landing_pad: *mut WirePointer =
-                        (seg_start as *mut WirePointer).add(landing_pad_word as usize);
-                    (*landing_pad).set_kind_and_target((*src_tag).kind(), src_ptr);
-                    ptr::copy_nonoverlapping(
-                        &(*src_tag).upper32bits,
-                        &mut (*landing_pad).upper32bits,
-                        1,
-                    );
+                // We can just copy the upper 32 bits. (Use memcpy() to comply with aliasing rules.)
+                ptr::copy_nonoverlapping(&(*src_tag).upper32bits, &mut (*dst).upper32bits, 1);
+            } else {
+                // Need to create a far pointer. Try to allocate it in the same segment as the source,
+                // so that it doesn't need to be a double-far.
 
-                    (*dst).set_far(false, landing_pad_word);
-                    (*dst).set_far_segment_id(src_segment_id);
+                match arena.allocate(src_segment_id, 1) {
+                    None => {
+                        //# Darn, need a double-far.
+                        let (far_segment_id, word_idx) = arena.allocate_anywhere(2);
+                        let (seg_start, _seg_len) = arena.get_segment_mut(far_segment_id);
+                        let landing_pad: *mut WirePointer =
+                            (seg_start as *mut WirePointer).add(word_idx as usize);
+
+                        let (src_seg_start, _seg_len) = arena.get_segment_mut(src_segment_id);
+
+                        (*landing_pad).set_far(
+                            false,
+                            u32::try_from(
+                                (src_ptr as usize - src_seg_start as usize) / BYTES_PER_WORD,
+                            )
+                            .unwrap(),
+                        );
+                        (*landing_pad).set_far_segment_id(src_segment_id);
+
+                        let landing_pad1 = landing_pad.add(1);
+                        (*landing_pad1).set_kind_with_zero_offset((*src_tag).kind());
+
+                        ptr::copy_nonoverlapping(
+                            &(*src_tag).upper32bits,
+                            &mut (*landing_pad1).upper32bits,
+                            1,
+                        );
+
+                        (*dst).set_far(true, word_idx);
+                        (*dst).set_far_segment_id(far_segment_id);
+                    }
+                    Some(landing_pad_word) => {
+                        //# Simple landing pad is just a pointer.
+                        let (seg_start, seg_len) = arena.get_segment_mut(src_segment_id);
+                        assert!(landing_pad_word < seg_len);
+                        let landing_pad: *mut WirePointer =
+                            (seg_start as *mut WirePointer).add(landing_pad_word as usize);
+                        (*landing_pad).set_kind_and_target((*src_tag).kind(), src_ptr);
+                        ptr::copy_nonoverlapping(
+                            &(*src_tag).upper32bits,
+                            &mut (*landing_pad).upper32bits,
+                            1,
+                        );
+
+                        (*dst).set_far(false, landing_pad_word);
+                        (*dst).set_far_segment_id(src_segment_id);
+                    }
                 }
             }
         }
     }
 
     #[inline]
-    pub(crate) unsafe fn init_struct_pointer(
-        arena: &mut dyn BuilderArena,
+    pub(crate) unsafe fn init_struct_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        cap_table: Option<&'a mut CapTable>,
         size: StructSize,
-    ) -> StructBuilder<'_> {
-        let (ptr, reff, segment_id) = allocate(
-            arena,
-            reff,
-            segment_id,
-            size.total(),
-            WirePointerKind::Struct,
-        );
-        (*reff).set_struct_size(size);
+    ) -> StructBuilder<'a> {
+        unsafe {
+            let (ptr, reff, segment_id) = allocate(
+                arena,
+                reff,
+                segment_id,
+                size.total(),
+                WirePointerKind::Struct,
+            );
+            (*reff).set_struct_size(size);
 
-        StructBuilder {
-            arena,
-            segment_id,
-            cap_table,
-            data: ptr as *mut _,
-            pointers: ptr.add(size.data as usize * BYTES_PER_WORD) as *mut _,
-            data_size: u32::from(size.data) * BitCount32::try_from(BITS_PER_WORD).unwrap(),
-            pointer_count: size.pointers,
+            StructBuilder {
+                arena,
+                segment_id,
+                cap_table,
+                data: ptr as *mut _,
+                pointers: ptr.add(size.data as usize * BYTES_PER_WORD) as *mut _,
+                data_size: u32::from(size.data) * BitCount32::try_from(BITS_PER_WORD).unwrap(),
+                pointer_count: size.pointers,
+            }
         }
     }
 
@@ -1155,536 +1192,438 @@ mod wire_helpers {
         arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&'a mut CapTable>,
         size: StructSize,
         default: Option<&'a [crate::Word]>,
     ) -> Result<StructBuilder<'a>> {
-        let mut ref_target = WirePointer::mut_target(reff);
+        unsafe {
+            let mut ref_target = WirePointer::mut_target(reff);
 
-        if (*reff).is_null() {
-            match default {
-                None => {
-                    return Ok(init_struct_pointer(
-                        arena, reff, segment_id, cap_table, size,
-                    ))
+            if (*reff).is_null() {
+                match default {
+                    None => {
+                        return Ok(init_struct_pointer(
+                            arena, reff, segment_id, cap_table, size,
+                        ));
+                    }
+                    Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() => {
+                        return Ok(init_struct_pointer(
+                            arena, reff, segment_id, cap_table, size,
+                        ));
+                    }
+                    Some(d) => {
+                        let (new_ref_target, new_reff, new_segment_id) = copy_message(
+                            arena,
+                            segment_id,
+                            cap_table.as_deref_mut(),
+                            reff,
+                            d.as_ptr() as *const WirePointer,
+                        );
+                        reff = new_reff;
+                        segment_id = new_segment_id;
+                        ref_target = new_ref_target;
+                    }
                 }
-                Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() => {
-                    return Ok(init_struct_pointer(
-                        arena, reff, segment_id, cap_table, size,
-                    ))
-                }
-                Some(d) => {
-                    let (new_ref_target, new_reff, new_segment_id) = copy_message(
+            }
+
+            let (old_ptr, old_ref, old_segment_id) =
+                follow_builder_fars(arena, reff, ref_target, segment_id)?;
+            if (*old_ref).kind() != WirePointerKind::Struct {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsNonStructPointerWhereStructPointerWasExpected,
+                ));
+            }
+
+            let old_data_size = (*old_ref).struct_data_size();
+            let old_pointer_count = (*old_ref).struct_ptr_count();
+            let old_pointer_section: *mut WirePointer =
+                old_ptr.add(old_data_size as usize * BYTES_PER_WORD) as *mut _;
+
+            if old_data_size < size.data || old_pointer_count < size.pointers {
+                //# The space allocated for this struct is too small.
+                //# Unlike with readers, we can't just run with it and do
+                //# bounds checks at access time, because how would we
+                //# handle writes? Instead, we have to copy the struct to a
+                //# new space now.
+
+                let new_data_size = ::core::cmp::max(old_data_size, size.data);
+                let new_pointer_count = ::core::cmp::max(old_pointer_count, size.pointers);
+                let total_size = u32::from(new_data_size)
+                    + u32::from(new_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
+
+                //# Don't let allocate() zero out the object just yet.
+                zero_pointer_and_fars(arena, segment_id, reff)?;
+
+                let (ptr, reff, segment_id) =
+                    allocate(arena, reff, segment_id, total_size, WirePointerKind::Struct);
+                (*reff).set_struct_size_from_pieces(new_data_size, new_pointer_count);
+
+                // Copy data section.
+                // Note: copy_nonoverlapping's third argument is an element count, not a byte count.
+                copy_nonoverlapping_check_zero(
+                    old_ptr,
+                    ptr,
+                    old_data_size as usize * BYTES_PER_WORD,
+                );
+
+                //# Copy pointer section.
+                let new_pointer_section: *mut WirePointer =
+                    ptr.add(new_data_size as usize * BYTES_PER_WORD) as *mut _;
+                for i in 0..old_pointer_count as usize {
+                    transfer_pointer(
                         arena,
                         segment_id,
-                        cap_table,
-                        reff,
-                        d.as_ptr() as *const WirePointer,
+                        new_pointer_section.add(i),
+                        old_segment_id,
+                        old_pointer_section.add(i),
                     );
-                    reff = new_reff;
-                    segment_id = new_segment_id;
-                    ref_target = new_ref_target;
                 }
-            }
-        }
 
-        let (old_ptr, old_ref, old_segment_id) =
-            follow_builder_fars(arena, reff, ref_target, segment_id)?;
-        if (*old_ref).kind() != WirePointerKind::Struct {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsNonStructPointerWhereStructPointerWasExpected,
-            ));
-        }
+                ptr::write_bytes(
+                    old_ptr,
+                    0,
+                    (old_data_size as usize + old_pointer_count as usize) * BYTES_PER_WORD,
+                );
 
-        let old_data_size = (*old_ref).struct_data_size();
-        let old_pointer_count = (*old_ref).struct_ptr_count();
-        let old_pointer_section: *mut WirePointer =
-            old_ptr.add(old_data_size as usize * BYTES_PER_WORD) as *mut _;
-
-        if old_data_size < size.data || old_pointer_count < size.pointers {
-            //# The space allocated for this struct is too small.
-            //# Unlike with readers, we can't just run with it and do
-            //# bounds checks at access time, because how would we
-            //# handle writes? Instead, we have to copy the struct to a
-            //# new space now.
-
-            let new_data_size = ::core::cmp::max(old_data_size, size.data);
-            let new_pointer_count = ::core::cmp::max(old_pointer_count, size.pointers);
-            let total_size = u32::from(new_data_size)
-                + u32::from(new_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
-
-            //# Don't let allocate() zero out the object just yet.
-            zero_pointer_and_fars(arena, segment_id, reff)?;
-
-            let (ptr, reff, segment_id) =
-                allocate(arena, reff, segment_id, total_size, WirePointerKind::Struct);
-            (*reff).set_struct_size_from_pieces(new_data_size, new_pointer_count);
-
-            // Copy data section.
-            // Note: copy_nonoverlapping's third argument is an element count, not a byte count.
-            copy_nonoverlapping_check_zero(old_ptr, ptr, old_data_size as usize * BYTES_PER_WORD);
-
-            //# Copy pointer section.
-            let new_pointer_section: *mut WirePointer =
-                ptr.add(new_data_size as usize * BYTES_PER_WORD) as *mut _;
-            for i in 0..old_pointer_count as usize {
-                transfer_pointer(
+                Ok(StructBuilder {
                     arena,
                     segment_id,
-                    new_pointer_section.add(i),
-                    old_segment_id,
-                    old_pointer_section.add(i),
-                );
-            }
-
-            ptr::write_bytes(
-                old_ptr,
-                0,
-                (old_data_size as usize + old_pointer_count as usize) * BYTES_PER_WORD,
-            );
-
-            Ok(StructBuilder {
-                arena,
-                segment_id,
-                cap_table,
-                data: ptr as *mut _,
-                pointers: new_pointer_section,
-                data_size: u32::from(new_data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
-                pointer_count: new_pointer_count,
-            })
-        } else {
-            Ok(StructBuilder {
-                arena,
-                segment_id: old_segment_id,
-                cap_table,
-                data: old_ptr,
-                pointers: old_pointer_section,
-                data_size: u32::from(old_data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
-                pointer_count: old_pointer_count,
-            })
-        }
-    }
-
-    #[inline]
-    pub(crate) unsafe fn init_list_pointer(
-        arena: &mut dyn BuilderArena,
-        reff: *mut WirePointer,
-        segment_id: u32,
-        cap_table: CapTableBuilder,
-        element_count: ElementCount32,
-        element_size: ElementSize,
-    ) -> ListBuilder<'_> {
-        assert!(
-            element_size != InlineComposite,
-            "Should have called initStructListPointer() instead"
-        );
-
-        let data_size = data_bits_per_element(element_size);
-        let pointer_count = pointers_per_element(element_size);
-        let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
-        let word_count = round_bits_up_to_words(u64::from(element_count) * u64::from(step));
-        let (ptr, reff, segment_id) =
-            allocate(arena, reff, segment_id, word_count, WirePointerKind::List);
-
-        (*reff).set_list_size_and_count(element_size, element_count);
-
-        ListBuilder {
-            arena,
-            segment_id,
-            cap_table,
-            ptr,
-            step,
-            element_count,
-            element_size,
-            struct_data_size: data_size,
-            struct_pointer_count: u16::try_from(pointer_count).unwrap(),
-        }
-    }
-
-    #[inline]
-    pub(crate) unsafe fn init_struct_list_pointer(
-        arena: &mut dyn BuilderArena,
-        reff: *mut WirePointer,
-        segment_id: u32,
-        cap_table: CapTableBuilder,
-        element_count: ElementCount32,
-        element_size: StructSize,
-    ) -> ListBuilder<'_> {
-        let words_per_element = element_size.total();
-
-        //# Allocate the list, prefixed by a single WirePointer.
-        let word_count_u64 = u64::from(element_count) * u64::from(words_per_element);
-        assert!(
-            word_count_u64 < (1 << 29),
-            "Inline composite lists are limited to 2**29 words"
-        );
-        let word_count: WordCount32 = WordCount32::try_from(word_count_u64).unwrap();
-        let (ptr, reff, segment_id) = allocate(
-            arena,
-            reff,
-            segment_id,
-            u32::try_from(POINTER_SIZE_IN_WORDS).unwrap() + word_count,
-            WirePointerKind::List,
-        );
-        let ptr = ptr as *mut WirePointer;
-
-        //# Initialize the pointer.
-        (*reff).set_list_inline_composite(word_count);
-        (*ptr).set_kind_and_inline_composite_list_element_count(
-            WirePointerKind::Struct,
-            element_count,
-        );
-        (*ptr).set_struct_size(element_size);
-
-        let ptr1 = ptr.add(POINTER_SIZE_IN_WORDS);
-
-        ListBuilder {
-            arena,
-            segment_id,
-            cap_table,
-            ptr: ptr1 as *mut _,
-            step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
-            element_count,
-            element_size: ElementSize::InlineComposite,
-            struct_data_size: u32::from(element_size.data)
-                * (u32::try_from(BITS_PER_WORD).unwrap()),
-            struct_pointer_count: element_size.pointers,
-        }
-    }
-
-    #[inline]
-    pub(crate) unsafe fn get_writable_list_pointer(
-        arena: &mut dyn BuilderArena,
-        mut orig_ref: *mut WirePointer,
-        mut orig_segment_id: u32,
-        cap_table: CapTableBuilder,
-        element_size: ElementSize,
-        default_value: *const u8,
-    ) -> Result<ListBuilder<'_>> {
-        assert!(
-            element_size != InlineComposite,
-            "Use get_writable_struct_list_pointer() for struct lists"
-        );
-
-        let mut orig_ref_target = WirePointer::mut_target(orig_ref);
-
-        if (*orig_ref).is_null() {
-            if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListBuilder::new_default(arena));
-            }
-            let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
-                arena,
-                orig_segment_id,
-                cap_table,
-                orig_ref,
-                default_value as *const WirePointer,
-            );
-            orig_ref_target = new_orig_ref_target;
-            orig_ref = new_orig_ref;
-            orig_segment_id = new_orig_segment_id;
-        }
-
-        // We must verify that the pointer has the right size. Unlike in
-        // get_writable_struct_list_pointer(), we never need to "upgrade" the data, because this
-        // method is called only for non-struct lists, and there is no allowed upgrade path *to* a
-        // non-struct list, only *from* them.
-
-        let (mut ptr, reff, segment_id) =
-            follow_builder_fars(arena, orig_ref, orig_ref_target, orig_segment_id)?;
-
-        if (*reff).kind() != WirePointerKind::List {
-            return Err(Error::from_kind(ErrorKind::ExistingPointerIsNotAList));
-        }
-
-        let old_size = (*reff).list_element_size();
-
-        if old_size == InlineComposite {
-            // The existing element size is InlineComposite, which means that it is at least two
-            // words, which makes it bigger than the expected element size. Since fields can only
-            // grow when upgraded, the existing data must have been written with a newer version of
-            // the protocol. We therefore never need to upgrade the data in this case, but we do
-            // need to validate that it is a valid upgrade from what we expected.
-
-            // Read the tag to get the actual element count.
-            let tag: *const WirePointer = ptr as *const _;
-
-            if (*tag).kind() != WirePointerKind::Struct {
-                return Err(Error::from_kind(
-                    ErrorKind::InlineCompositeListWithNonStructElementsNotSupported,
-                ));
-            }
-
-            ptr = ptr.add(BYTES_PER_WORD);
-
-            let data_size = (*tag).struct_data_size();
-            let pointer_count = (*tag).struct_ptr_count();
-
-            match element_size {
-                Void => {} // Anything is a valid upgrade from Void.
-                Bit => {
-                    return Err(Error::from_kind(
-                        ErrorKind::FoundStructListWhereBitListWasExpected,
-                    ));
-                }
-                Byte | TwoBytes | FourBytes | EightBytes => {
-                    if data_size < 1 {
-                        return Err(Error::from_kind(
-                            ErrorKind::ExistingListValueIsIncompatibleWithExpectedType,
-                        ));
-                    }
-                }
-                Pointer => {
-                    if pointer_count < 1 {
-                        return Err(Error::from_kind(
-                            ErrorKind::ExistingListValueIsIncompatibleWithExpectedType,
-                        ));
-                    }
-                    // Adjust the pointer to point at the reference segment.
-                    ptr = ptr.add(data_size as usize * BYTES_PER_WORD);
-                }
-                InlineComposite => {
-                    unreachable!()
-                }
-            }
-            // OK, looks valid.
-
-            Ok(ListBuilder {
-                arena,
-                segment_id,
-                cap_table,
-                ptr: ptr as *mut _,
-                element_count: (*tag).inline_composite_list_element_count(),
-                element_size: ElementSize::InlineComposite,
-                step: (*tag).struct_word_size() * u32::try_from(BITS_PER_WORD).unwrap(),
-                struct_data_size: u32::from(data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
-                struct_pointer_count: pointer_count,
-            })
-        } else {
-            let data_size = data_bits_per_element(old_size);
-            let pointer_count = pointers_per_element(old_size);
-
-            if data_size < data_bits_per_element(element_size)
-                || pointer_count < pointers_per_element(element_size)
-            {
-                return Err(Error::from_kind(
-                    ErrorKind::ExistingListValueIsIncompatibleWithExpectedType,
-                ));
-            }
-
-            let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
-
-            Ok(ListBuilder {
-                arena,
-                segment_id,
-                cap_table,
-                ptr: ptr as *mut _,
-                step,
-                element_count: (*reff).list_element_count(),
-                element_size: old_size,
-                struct_data_size: data_size,
-                struct_pointer_count: u16::try_from(pointer_count).unwrap(),
-            })
-        }
-    }
-
-    #[inline]
-    pub(crate) unsafe fn get_writable_struct_list_pointer(
-        arena: &mut dyn BuilderArena,
-        mut orig_ref: *mut WirePointer,
-        mut orig_segment_id: u32,
-        cap_table: CapTableBuilder,
-        element_size: StructSize,
-        default_value: *const u8,
-    ) -> Result<ListBuilder<'_>> {
-        let mut orig_ref_target = WirePointer::mut_target(orig_ref);
-
-        if (*orig_ref).is_null() {
-            if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListBuilder::new_default(arena));
-            }
-            let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
-                arena,
-                orig_segment_id,
-                cap_table,
-                orig_ref,
-                default_value as *const WirePointer,
-            );
-            orig_ref_target = new_orig_ref_target;
-            orig_ref = new_orig_ref;
-            orig_segment_id = new_orig_segment_id;
-        }
-
-        // We must verify that the pointer has the right size and potentially upgrade it if not.
-
-        let (mut old_ptr, old_ref, old_segment_id) =
-            follow_builder_fars(arena, orig_ref, orig_ref_target, orig_segment_id)?;
-
-        if (*old_ref).kind() != WirePointerKind::List {
-            return Err(Error::from_kind(ErrorKind::ExistingPointerIsNotAList));
-        }
-
-        let old_size = (*old_ref).list_element_size();
-
-        if old_size == InlineComposite {
-            // Existing list is InlineComposite, but we need to verify that the sizes match.
-
-            let old_tag: *const WirePointer = old_ptr as *const _;
-            old_ptr = old_ptr.add(BYTES_PER_WORD);
-            if (*old_tag).kind() != WirePointerKind::Struct {
-                return Err(Error::from_kind(
-                    ErrorKind::InlineCompositeListWithNonStructElementsNotSupported,
-                ));
-            }
-
-            let old_data_size = (*old_tag).struct_data_size();
-            let old_pointer_count = (*old_tag).struct_ptr_count();
-            let old_step = u32::from(old_data_size)
-                + u32::from(old_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
-            let element_count = (*old_tag).inline_composite_list_element_count();
-
-            if old_data_size >= element_size.data && old_pointer_count >= element_size.pointers {
-                // Old size is at least as large as we need. Ship it.
-                return Ok(ListBuilder {
+                    cap_table,
+                    data: ptr as *mut _,
+                    pointers: new_pointer_section,
+                    data_size: u32::from(new_data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
+                    pointer_count: new_pointer_count,
+                })
+            } else {
+                Ok(StructBuilder {
                     arena,
                     segment_id: old_segment_id,
                     cap_table,
-                    ptr: old_ptr as *mut _,
-                    element_count,
-                    element_size: ElementSize::InlineComposite,
-                    step: old_step * u32::try_from(BITS_PER_WORD).unwrap(),
-                    struct_data_size: u32::from(old_data_size)
-                        * u32::try_from(BITS_PER_WORD).unwrap(),
-                    struct_pointer_count: old_pointer_count,
-                });
+                    data: old_ptr,
+                    pointers: old_pointer_section,
+                    data_size: u32::from(old_data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
+                    pointer_count: old_pointer_count,
+                })
             }
+        }
+    }
 
-            // The structs in this list are smaller than expected, probably written using an older
-            // version of the protocol. We need to make a copy and expand them.
+    #[inline]
+    pub(crate) unsafe fn init_list_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
+        reff: *mut WirePointer,
+        segment_id: u32,
+        cap_table: Option<&'a mut CapTable>,
+        element_count: ElementCount32,
+        element_size: ElementSize,
+    ) -> ListBuilder<'a> {
+        unsafe {
+            assert!(
+                element_size != InlineComposite,
+                "Should have called initStructListPointer() instead"
+            );
 
-            let new_data_size = ::core::cmp::max(old_data_size, element_size.data);
-            let new_pointer_count = ::core::cmp::max(old_pointer_count, element_size.pointers);
-            let new_step = u32::from(new_data_size)
-                + u32::from(new_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
+            let data_size = data_bits_per_element(element_size);
+            let pointer_count = pointers_per_element(element_size);
+            let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
+            let word_count = round_bits_up_to_words(u64::from(element_count) * u64::from(step));
+            let (ptr, reff, segment_id) =
+                allocate(arena, reff, segment_id, word_count, WirePointerKind::List);
 
-            let total_size_u64 = u64::from(new_step) * u64::from(element_count);
-            if total_size_u64 >= (1 << 29) {
-                return Err(Error::from_kind(ErrorKind::MessageTooLarge(
-                    usize::try_from(total_size_u64).unwrap_or(usize::MAX),
-                )));
-            }
-            let total_size = u32::try_from(total_size_u64).unwrap();
+            (*reff).set_list_size_and_count(element_size, element_count);
 
-            // Don't let allocate() zero out the object just yet.
-            zero_pointer_and_fars(arena, orig_segment_id, orig_ref)?;
-
-            let (mut new_ptr, new_ref, new_segment_id) = allocate(
+            ListBuilder {
                 arena,
-                orig_ref,
-                orig_segment_id,
-                total_size + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
+                segment_id,
+                cap_table,
+                ptr,
+                step,
+                element_count,
+                element_size,
+                struct_data_size: data_size,
+                struct_pointer_count: u16::try_from(pointer_count).unwrap(),
+            }
+        }
+    }
+
+    #[inline]
+    pub(crate) unsafe fn init_struct_list_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
+        reff: *mut WirePointer,
+        segment_id: u32,
+        cap_table: Option<&'a mut CapTable>,
+        element_count: ElementCount32,
+        element_size: StructSize,
+    ) -> ListBuilder<'a> {
+        unsafe {
+            let words_per_element = element_size.total();
+
+            //# Allocate the list, prefixed by a single WirePointer.
+            let word_count_u64 = u64::from(element_count) * u64::from(words_per_element);
+            assert!(
+                word_count_u64 < (1 << 29),
+                "Inline composite lists are limited to 2**29 words"
+            );
+            let word_count: WordCount32 = WordCount32::try_from(word_count_u64).unwrap();
+            let (ptr, reff, segment_id) = allocate(
+                arena,
+                reff,
+                segment_id,
+                u32::try_from(POINTER_SIZE_IN_WORDS).unwrap() + word_count,
                 WirePointerKind::List,
             );
-            (*new_ref).set_list_inline_composite(total_size);
+            let ptr = ptr as *mut WirePointer;
 
-            let new_tag: *mut WirePointer = new_ptr as *mut _;
-            (*new_tag).set_kind_and_inline_composite_list_element_count(
+            //# Initialize the pointer.
+            (*reff).set_list_inline_composite(word_count);
+            (*ptr).set_kind_and_inline_composite_list_element_count(
                 WirePointerKind::Struct,
                 element_count,
             );
-            (*new_tag).set_struct_size_from_pieces(new_data_size, new_pointer_count);
-            new_ptr = new_ptr.add(BYTES_PER_WORD);
+            (*ptr).set_struct_size(element_size);
 
-            let mut src = old_ptr as *mut WirePointer;
-            let mut dst = new_ptr as *mut WirePointer;
-            for _ in 0..element_count {
-                // Copy data section.
-                copy_nonoverlapping_check_zero(src, dst, old_data_size as usize);
+            let ptr1 = ptr.add(POINTER_SIZE_IN_WORDS);
 
-                // Copy pointer section
-                let new_pointer_section = dst.add(new_data_size as usize);
-                let old_pointer_section = src.add(old_data_size as usize);
-                for jj in 0..(old_pointer_count as usize) {
-                    transfer_pointer(
-                        arena,
-                        new_segment_id,
-                        new_pointer_section.add(jj),
-                        old_segment_id,
-                        old_pointer_section.add(jj),
-                    );
-                }
-
-                dst = dst.add(new_step as usize);
-                src = src.add(old_step as usize);
-            }
-
-            // Zero out the old location, making sure to include the tag word.
-            ptr::write_bytes(
-                old_ptr.sub(BYTES_PER_WORD),
-                0,
-                (usize::try_from(u64::from(old_step) * u64::from(element_count)).unwrap()
-                    + POINTER_SIZE_IN_WORDS)
-                    * BYTES_PER_WORD,
-            );
-
-            Ok(ListBuilder {
+            ListBuilder {
                 arena,
-                segment_id: new_segment_id,
+                segment_id,
                 cap_table,
-                ptr: new_ptr,
+                ptr: ptr1 as *mut _,
+                step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
                 element_count,
                 element_size: ElementSize::InlineComposite,
-                step: new_step * u32::try_from(BITS_PER_WORD).unwrap(),
-                struct_data_size: u32::from(new_data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
-                struct_pointer_count: new_pointer_count,
-            })
-        } else {
-            // We're upgrading from a non-struct list.
+                struct_data_size: u32::from(element_size.data)
+                    * (u32::try_from(BITS_PER_WORD).unwrap()),
+                struct_pointer_count: element_size.pointers,
+            }
+        }
+    }
 
-            let old_data_size = data_bits_per_element(old_size);
-            let old_pointer_count = pointers_per_element(old_size);
-            let old_step =
-                old_data_size + old_pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
-            let element_count = (*old_ref).list_element_count();
+    #[inline]
+    pub(crate) unsafe fn get_writable_list_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
+        mut orig_ref: *mut WirePointer,
+        mut orig_segment_id: u32,
+        mut cap_table: Option<&'a mut CapTable>,
+        element_size: ElementSize,
+        default_value: *const u8,
+    ) -> Result<ListBuilder<'a>> {
+        unsafe {
+            assert!(
+                element_size != InlineComposite,
+                "Use get_writable_struct_list_pointer() for struct lists"
+            );
 
-            if old_size == ElementSize::Void {
-                // Nothing to copy, just allocate a new list.
-                Ok(init_struct_list_pointer(
+            let mut orig_ref_target = WirePointer::mut_target(orig_ref);
+
+            if (*orig_ref).is_null() {
+                if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
+                    return Ok(ListBuilder::new_default(arena));
+                }
+                let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
                     arena,
-                    orig_ref,
                     orig_segment_id,
-                    cap_table,
-                    element_count,
-                    element_size,
-                ))
-            } else {
-                // Upgrade to an inline composite list.
+                    cap_table.as_deref_mut(),
+                    orig_ref,
+                    default_value as *const WirePointer,
+                );
+                orig_ref_target = new_orig_ref_target;
+                orig_ref = new_orig_ref;
+                orig_segment_id = new_orig_segment_id;
+            }
 
-                if old_size == ElementSize::Bit {
+            // We must verify that the pointer has the right size. Unlike in
+            // get_writable_struct_list_pointer(), we never need to "upgrade" the data, because this
+            // method is called only for non-struct lists, and there is no allowed upgrade path *to* a
+            // non-struct list, only *from* them.
+
+            let (mut ptr, reff, segment_id) =
+                follow_builder_fars(arena, orig_ref, orig_ref_target, orig_segment_id)?;
+
+            if (*reff).kind() != WirePointerKind::List {
+                return Err(Error::from_kind(ErrorKind::ExistingPointerIsNotAList));
+            }
+
+            let old_size = (*reff).list_element_size();
+
+            if old_size == InlineComposite {
+                // The existing element size is InlineComposite, which means that it is at least two
+                // words, which makes it bigger than the expected element size. Since fields can only
+                // grow when upgraded, the existing data must have been written with a newer version of
+                // the protocol. We therefore never need to upgrade the data in this case, but we do
+                // need to validate that it is a valid upgrade from what we expected.
+
+                // Read the tag to get the actual element count.
+                let tag: *const WirePointer = ptr as *const _;
+
+                if (*tag).kind() != WirePointerKind::Struct {
                     return Err(Error::from_kind(
-                        ErrorKind::FoundBitListWhereStructListWasExpected,
+                        ErrorKind::InlineCompositeListWithNonStructElementsNotSupported,
                     ));
                 }
 
-                let mut new_data_size = element_size.data;
-                let mut new_pointer_count = element_size.pointers;
+                ptr = ptr.add(BYTES_PER_WORD);
 
-                if old_size == ElementSize::Pointer {
-                    new_pointer_count = ::core::cmp::max(new_pointer_count, 1);
-                } else {
-                    // Old list contains data elements, so we need at least one word of data.
-                    new_data_size = ::core::cmp::max(new_data_size, 1);
+                let data_size = (*tag).struct_data_size();
+                let pointer_count = (*tag).struct_ptr_count();
+
+                match element_size {
+                    Void => {} // Anything is a valid upgrade from Void.
+                    Bit => {
+                        return Err(Error::from_kind(
+                            ErrorKind::FoundStructListWhereBitListWasExpected,
+                        ));
+                    }
+                    Byte | TwoBytes | FourBytes | EightBytes => {
+                        if data_size < 1 {
+                            return Err(Error::from_kind(
+                                ErrorKind::ExistingListValueIsIncompatibleWithExpectedType,
+                            ));
+                        }
+                    }
+                    Pointer => {
+                        if pointer_count < 1 {
+                            return Err(Error::from_kind(
+                                ErrorKind::ExistingListValueIsIncompatibleWithExpectedType,
+                            ));
+                        }
+                        // Adjust the pointer to point at the reference segment.
+                        ptr = ptr.add(data_size as usize * BYTES_PER_WORD);
+                    }
+                    InlineComposite => {
+                        unreachable!()
+                    }
+                }
+                // OK, looks valid.
+
+                Ok(ListBuilder {
+                    arena,
+                    segment_id,
+                    cap_table,
+                    ptr: ptr as *mut _,
+                    element_count: (*tag).inline_composite_list_element_count(),
+                    element_size: ElementSize::InlineComposite,
+                    step: (*tag).struct_word_size() * u32::try_from(BITS_PER_WORD).unwrap(),
+                    struct_data_size: u32::from(data_size) * u32::try_from(BITS_PER_WORD).unwrap(),
+                    struct_pointer_count: pointer_count,
+                })
+            } else {
+                let data_size = data_bits_per_element(old_size);
+                let pointer_count = pointers_per_element(old_size);
+
+                if data_size < data_bits_per_element(element_size)
+                    || pointer_count < pointers_per_element(element_size)
+                {
+                    return Err(Error::from_kind(
+                        ErrorKind::ExistingListValueIsIncompatibleWithExpectedType,
+                    ));
                 }
 
+                let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
+
+                Ok(ListBuilder {
+                    arena,
+                    segment_id,
+                    cap_table,
+                    ptr: ptr as *mut _,
+                    step,
+                    element_count: (*reff).list_element_count(),
+                    element_size: old_size,
+                    struct_data_size: data_size,
+                    struct_pointer_count: u16::try_from(pointer_count).unwrap(),
+                })
+            }
+        }
+    }
+
+    #[inline]
+    pub(crate) unsafe fn get_writable_struct_list_pointer<'a>(
+        arena: &'a mut dyn BuilderArena,
+        mut orig_ref: *mut WirePointer,
+        mut orig_segment_id: u32,
+        mut cap_table: Option<&'a mut CapTable>,
+        element_size: StructSize,
+        default_value: *const u8,
+    ) -> Result<ListBuilder<'a>> {
+        unsafe {
+            let mut orig_ref_target = WirePointer::mut_target(orig_ref);
+
+            if (*orig_ref).is_null() {
+                if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
+                    return Ok(ListBuilder::new_default(arena));
+                }
+                let (new_orig_ref_target, new_orig_ref, new_orig_segment_id) = copy_message(
+                    arena,
+                    orig_segment_id,
+                    cap_table.as_deref_mut(),
+                    orig_ref,
+                    default_value as *const WirePointer,
+                );
+                orig_ref_target = new_orig_ref_target;
+                orig_ref = new_orig_ref;
+                orig_segment_id = new_orig_segment_id;
+            }
+
+            // We must verify that the pointer has the right size and potentially upgrade it if not.
+
+            let (mut old_ptr, old_ref, old_segment_id) =
+                follow_builder_fars(arena, orig_ref, orig_ref_target, orig_segment_id)?;
+
+            if (*old_ref).kind() != WirePointerKind::List {
+                return Err(Error::from_kind(ErrorKind::ExistingPointerIsNotAList));
+            }
+
+            let old_size = (*old_ref).list_element_size();
+
+            if old_size == InlineComposite {
+                // Existing list is InlineComposite, but we need to verify that the sizes match.
+
+                let old_tag: *const WirePointer = old_ptr as *const _;
+                old_ptr = old_ptr.add(BYTES_PER_WORD);
+                if (*old_tag).kind() != WirePointerKind::Struct {
+                    return Err(Error::from_kind(
+                        ErrorKind::InlineCompositeListWithNonStructElementsNotSupported,
+                    ));
+                }
+
+                let old_data_size = (*old_tag).struct_data_size();
+                let old_pointer_count = (*old_tag).struct_ptr_count();
+                let old_step = u32::from(old_data_size)
+                    + u32::from(old_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
+                let element_count = (*old_tag).inline_composite_list_element_count();
+
+                if old_data_size >= element_size.data && old_pointer_count >= element_size.pointers
+                {
+                    // Old size is at least as large as we need. Ship it.
+                    return Ok(ListBuilder {
+                        arena,
+                        segment_id: old_segment_id,
+                        cap_table,
+                        ptr: old_ptr as *mut _,
+                        element_count,
+                        element_size: ElementSize::InlineComposite,
+                        step: old_step * u32::try_from(BITS_PER_WORD).unwrap(),
+                        struct_data_size: u32::from(old_data_size)
+                            * u32::try_from(BITS_PER_WORD).unwrap(),
+                        struct_pointer_count: old_pointer_count,
+                    });
+                }
+
+                // The structs in this list are smaller than expected, probably written using an older
+                // version of the protocol. We need to make a copy and expand them.
+
+                let new_data_size = ::core::cmp::max(old_data_size, element_size.data);
+                let new_pointer_count = ::core::cmp::max(old_pointer_count, element_size.pointers);
                 let new_step = u32::from(new_data_size)
                     + u32::from(new_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
 
-                let total_words_u64 = u64::from(new_step) * u64::from(element_count);
-                if total_words_u64 >= (1 << 29) {
+                let total_size_u64 = u64::from(new_step) * u64::from(element_count);
+                if total_size_u64 >= (1 << 29) {
                     return Err(Error::from_kind(ErrorKind::MessageTooLarge(
-                        usize::try_from(total_words_u64).unwrap_or(usize::MAX),
+                        usize::try_from(total_size_u64).unwrap_or(usize::MAX),
                     )));
                 }
-                let total_words = u32::try_from(total_words_u64).unwrap();
+                let total_size = u32::try_from(total_size_u64).unwrap();
 
                 // Don't let allocate() zero out the object just yet.
                 zero_pointer_and_fars(arena, orig_segment_id, orig_ref)?;
@@ -1693,43 +1632,49 @@ mod wire_helpers {
                     arena,
                     orig_ref,
                     orig_segment_id,
-                    total_words + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
+                    total_size + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
                     WirePointerKind::List,
                 );
-                (*new_ref).set_list_inline_composite(total_words);
+                (*new_ref).set_list_inline_composite(total_size);
 
-                let tag: *mut WirePointer = new_ptr as *mut _;
-                (*tag).set_kind_and_inline_composite_list_element_count(
+                let new_tag: *mut WirePointer = new_ptr as *mut _;
+                (*new_tag).set_kind_and_inline_composite_list_element_count(
                     WirePointerKind::Struct,
                     element_count,
                 );
-                (*tag).set_struct_size_from_pieces(new_data_size, new_pointer_count);
+                (*new_tag).set_struct_size_from_pieces(new_data_size, new_pointer_count);
                 new_ptr = new_ptr.add(BYTES_PER_WORD);
 
-                if old_size == ElementSize::Pointer {
-                    let mut dst = new_ptr.add(new_data_size as usize * BYTES_PER_WORD);
-                    let mut src: *mut WirePointer = old_ptr as *mut _;
-                    for _ in 0..element_count {
-                        transfer_pointer(arena, new_segment_id, dst as *mut _, old_segment_id, src);
-                        dst = dst.add(new_step as usize * BYTES_PER_WORD);
-                        src = src.add(1);
+                let mut src = old_ptr as *mut WirePointer;
+                let mut dst = new_ptr as *mut WirePointer;
+                for _ in 0..element_count {
+                    // Copy data section.
+                    copy_nonoverlapping_check_zero(src, dst, old_data_size as usize);
+
+                    // Copy pointer section
+                    let new_pointer_section = dst.add(new_data_size as usize);
+                    let old_pointer_section = src.add(old_data_size as usize);
+                    for jj in 0..(old_pointer_count as usize) {
+                        transfer_pointer(
+                            arena,
+                            new_segment_id,
+                            new_pointer_section.add(jj),
+                            old_segment_id,
+                            old_pointer_section.add(jj),
+                        );
                     }
-                } else {
-                    let mut dst = new_ptr;
-                    let mut src: *mut u8 = old_ptr;
-                    let old_byte_step = old_data_size / u32::try_from(BITS_PER_BYTE).unwrap();
-                    for _ in 0..element_count {
-                        copy_nonoverlapping_check_zero(src, dst, old_byte_step as usize);
-                        src = src.add(old_byte_step as usize);
-                        dst = dst.add(new_step as usize * BYTES_PER_WORD);
-                    }
+
+                    dst = dst.add(new_step as usize);
+                    src = src.add(old_step as usize);
                 }
 
-                // Zero out old location.
+                // Zero out the old location, making sure to include the tag word.
                 ptr::write_bytes(
-                    old_ptr,
+                    old_ptr.sub(BYTES_PER_WORD),
                     0,
-                    round_bits_up_to_bytes(u64::from(old_step) * u64::from(element_count)) as usize,
+                    (usize::try_from(u64::from(old_step) * u64::from(element_count)).unwrap()
+                        + POINTER_SIZE_IN_WORDS)
+                        * BYTES_PER_WORD,
                 );
 
                 Ok(ListBuilder {
@@ -1744,6 +1689,121 @@ mod wire_helpers {
                         * u32::try_from(BITS_PER_WORD).unwrap(),
                     struct_pointer_count: new_pointer_count,
                 })
+            } else {
+                // We're upgrading from a non-struct list.
+
+                let old_data_size = data_bits_per_element(old_size);
+                let old_pointer_count = pointers_per_element(old_size);
+                let old_step =
+                    old_data_size + old_pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
+                let element_count = (*old_ref).list_element_count();
+
+                if old_size == ElementSize::Void {
+                    // Nothing to copy, just allocate a new list.
+                    Ok(init_struct_list_pointer(
+                        arena,
+                        orig_ref,
+                        orig_segment_id,
+                        cap_table,
+                        element_count,
+                        element_size,
+                    ))
+                } else {
+                    // Upgrade to an inline composite list.
+
+                    if old_size == ElementSize::Bit {
+                        return Err(Error::from_kind(
+                            ErrorKind::FoundBitListWhereStructListWasExpected,
+                        ));
+                    }
+
+                    let mut new_data_size = element_size.data;
+                    let mut new_pointer_count = element_size.pointers;
+
+                    if old_size == ElementSize::Pointer {
+                        new_pointer_count = ::core::cmp::max(new_pointer_count, 1);
+                    } else {
+                        // Old list contains data elements, so we need at least one word of data.
+                        new_data_size = ::core::cmp::max(new_data_size, 1);
+                    }
+
+                    let new_step = u32::from(new_data_size)
+                        + u32::from(new_pointer_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
+
+                    let total_words_u64 = u64::from(new_step) * u64::from(element_count);
+                    if total_words_u64 >= (1 << 29) {
+                        return Err(Error::from_kind(ErrorKind::MessageTooLarge(
+                            usize::try_from(total_words_u64).unwrap_or(usize::MAX),
+                        )));
+                    }
+                    let total_words = u32::try_from(total_words_u64).unwrap();
+
+                    // Don't let allocate() zero out the object just yet.
+                    zero_pointer_and_fars(arena, orig_segment_id, orig_ref)?;
+
+                    let (mut new_ptr, new_ref, new_segment_id) = allocate(
+                        arena,
+                        orig_ref,
+                        orig_segment_id,
+                        total_words + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
+                        WirePointerKind::List,
+                    );
+                    (*new_ref).set_list_inline_composite(total_words);
+
+                    let tag: *mut WirePointer = new_ptr as *mut _;
+                    (*tag).set_kind_and_inline_composite_list_element_count(
+                        WirePointerKind::Struct,
+                        element_count,
+                    );
+                    (*tag).set_struct_size_from_pieces(new_data_size, new_pointer_count);
+                    new_ptr = new_ptr.add(BYTES_PER_WORD);
+
+                    if old_size == ElementSize::Pointer {
+                        let mut dst = new_ptr.add(new_data_size as usize * BYTES_PER_WORD);
+                        let mut src: *mut WirePointer = old_ptr as *mut _;
+                        for _ in 0..element_count {
+                            transfer_pointer(
+                                arena,
+                                new_segment_id,
+                                dst as *mut _,
+                                old_segment_id,
+                                src,
+                            );
+                            dst = dst.add(new_step as usize * BYTES_PER_WORD);
+                            src = src.add(1);
+                        }
+                    } else {
+                        let mut dst = new_ptr;
+                        let mut src: *mut u8 = old_ptr;
+                        let old_byte_step = old_data_size / u32::try_from(BITS_PER_BYTE).unwrap();
+                        for _ in 0..element_count {
+                            copy_nonoverlapping_check_zero(src, dst, old_byte_step as usize);
+                            src = src.add(old_byte_step as usize);
+                            dst = dst.add(new_step as usize * BYTES_PER_WORD);
+                        }
+                    }
+
+                    // Zero out old location.
+                    ptr::write_bytes(
+                        old_ptr,
+                        0,
+                        round_bits_up_to_bytes(u64::from(old_step) * u64::from(element_count))
+                            as usize,
+                    );
+
+                    Ok(ListBuilder {
+                        arena,
+                        segment_id: new_segment_id,
+                        cap_table,
+                        ptr: new_ptr,
+                        element_count,
+                        element_size: ElementSize::InlineComposite,
+                        step: new_step * u32::try_from(BITS_PER_WORD).unwrap(),
+                        struct_data_size: u32::from(new_data_size)
+                            * u32::try_from(BITS_PER_WORD).unwrap(),
+                        struct_pointer_count: new_pointer_count,
+                    })
+                }
             }
         }
     }
@@ -1755,26 +1815,28 @@ mod wire_helpers {
         segment_id: u32,
         size: ByteCount32,
     ) -> SegmentAnd<text::Builder<'_>> {
-        assert!(size < (1 << 29), "text size too large");
+        unsafe {
+            assert!(size < (1 << 29), "text size too large");
 
-        //# The byte list must include a NUL terminator.
-        let byte_size = size + 1;
+            //# The byte list must include a NUL terminator.
+            let byte_size = size + 1;
 
-        //# Allocate the space.
-        let (ptr, reff, segment_id) = allocate(
-            arena,
-            reff,
-            segment_id,
-            round_bytes_up_to_words(byte_size),
-            WirePointerKind::List,
-        );
+            //# Allocate the space.
+            let (ptr, reff, segment_id) = allocate(
+                arena,
+                reff,
+                segment_id,
+                round_bytes_up_to_words(byte_size),
+                WirePointerKind::List,
+            );
 
-        //# Initialize the pointer.
-        (*reff).set_list_size_and_count(Byte, byte_size);
+            //# Initialize the pointer.
+            (*reff).set_list_size_and_count(Byte, byte_size);
 
-        SegmentAnd {
-            segment_id,
-            value: text::Builder::new(slice::from_raw_parts_mut(ptr, size as usize)),
+            SegmentAnd {
+                segment_id,
+                value: text::Builder::new(slice::from_raw_parts_mut(ptr, size as usize)),
+            }
         }
     }
 
@@ -1785,20 +1847,22 @@ mod wire_helpers {
         segment_id: u32,
         value: crate::text::Reader<'_>,
     ) -> SegmentAnd<text::Builder<'a>> {
-        let value_bytes = value.as_bytes();
-        // TODO make sure the string is not longer than 2 ** 29.
-        let mut allocation = init_text_pointer(
-            arena,
-            reff,
-            segment_id,
-            u32::try_from(value_bytes.len()).expect("Text len does not fit in u32"),
-        );
-        allocation
-            .value
-            .reborrow()
-            .as_bytes_mut()
-            .copy_from_slice(value_bytes);
-        allocation
+        unsafe {
+            let value_bytes = value.as_bytes();
+            // TODO make sure the string is not longer than 2 ** 29.
+            let mut allocation = init_text_pointer(
+                arena,
+                reff,
+                segment_id,
+                u32::try_from(value_bytes.len()).expect("Text len does not fit in u32"),
+            );
+            allocation
+                .value
+                .reborrow()
+                .as_bytes_mut()
+                .copy_from_slice(value_bytes);
+            allocation
+        }
     }
 
     #[inline]
@@ -1808,47 +1872,50 @@ mod wire_helpers {
         mut segment_id: u32,
         default: Option<&'a [crate::Word]>,
     ) -> Result<text::Builder<'a>> {
-        let ref_target = if (*reff).is_null() {
-            match default {
-                None => return Ok(text::Builder::new(&mut [])),
-                Some(d) => {
-                    let (new_ref_target, new_reff, new_segment_id) = copy_message(
-                        arena,
-                        segment_id,
-                        Default::default(),
-                        reff,
-                        d.as_ptr() as *const _,
-                    );
-                    reff = new_reff;
-                    segment_id = new_segment_id;
-                    new_ref_target
+        unsafe {
+            let ref_target = if (*reff).is_null() {
+                match default {
+                    None => return Ok(text::Builder::new(&mut [])),
+                    Some(d) => {
+                        let (new_ref_target, new_reff, new_segment_id) = copy_message(
+                            arena,
+                            segment_id,
+                            Default::default(),
+                            reff,
+                            d.as_ptr() as *const _,
+                        );
+                        reff = new_reff;
+                        segment_id = new_segment_id;
+                        new_ref_target
+                    }
                 }
+            } else {
+                WirePointer::mut_target(reff)
+            };
+
+            let (ptr, reff, _segment_id) =
+                follow_builder_fars(arena, reff, ref_target, segment_id)?;
+
+            if (*reff).kind() != WirePointerKind::List {
+                return Err(Error::from_kind(ErrorKind::ExistingPointerIsNotAList));
             }
-        } else {
-            WirePointer::mut_target(reff)
-        };
+            if (*reff).list_element_size() != Byte {
+                return Err(Error::from_kind(
+                    ErrorKind::ExistingListPointerIsNotByteSized,
+                ));
+            }
 
-        let (ptr, reff, _segment_id) = follow_builder_fars(arena, reff, ref_target, segment_id)?;
+            let count = (*reff).list_element_count();
+            if count == 0 || *ptr.add((count - 1) as usize) != 0 {
+                return Err(Error::from_kind(ErrorKind::TextBlobMissingNULTerminator));
+            }
 
-        if (*reff).kind() != WirePointerKind::List {
-            return Err(Error::from_kind(ErrorKind::ExistingPointerIsNotAList));
+            // Subtract 1 from the size for the NUL terminator.
+            Ok(text::Builder::with_pos(
+                slice::from_raw_parts_mut(ptr, (count - 1) as usize),
+                (count - 1) as usize,
+            ))
         }
-        if (*reff).list_element_size() != Byte {
-            return Err(Error::from_kind(
-                ErrorKind::ExistingListPointerIsNotByteSized,
-            ));
-        }
-
-        let count = (*reff).list_element_count();
-        if count == 0 || *ptr.add((count - 1) as usize) != 0 {
-            return Err(Error::from_kind(ErrorKind::TextBlobMissingNULTerminator));
-        }
-
-        // Subtract 1 from the size for the NUL terminator.
-        Ok(text::Builder::with_pos(
-            slice::from_raw_parts_mut(ptr, (count - 1) as usize),
-            (count - 1) as usize,
-        ))
     }
 
     #[inline]
@@ -1858,21 +1925,23 @@ mod wire_helpers {
         segment_id: u32,
         size: ByteCount32,
     ) -> SegmentAnd<data::Builder<'_>> {
-        //# Allocate the space.
-        let (ptr, reff, segment_id) = allocate(
-            arena,
-            reff,
-            segment_id,
-            round_bytes_up_to_words(size),
-            WirePointerKind::List,
-        );
+        unsafe {
+            //# Allocate the space.
+            let (ptr, reff, segment_id) = allocate(
+                arena,
+                reff,
+                segment_id,
+                round_bytes_up_to_words(size),
+                WirePointerKind::List,
+            );
 
-        //# Initialize the pointer.
-        (*reff).set_list_size_and_count(Byte, size);
+            //# Initialize the pointer.
+            (*reff).set_list_size_and_count(Byte, size);
 
-        SegmentAnd {
-            segment_id,
-            value: data::builder_from_raw_parts(ptr, size),
+            SegmentAnd {
+                segment_id,
+                value: data::builder_from_raw_parts(ptr, size),
+            }
         }
     }
 
@@ -1883,14 +1952,16 @@ mod wire_helpers {
         segment_id: u32,
         value: &[u8],
     ) -> SegmentAnd<data::Builder<'a>> {
-        let allocation = init_data_pointer(
-            arena,
-            reff,
-            segment_id,
-            value.len().try_into().expect("data too large"),
-        );
-        allocation.value.copy_from_slice(value);
-        allocation
+        unsafe {
+            let allocation = init_data_pointer(
+                arena,
+                reff,
+                segment_id,
+                value.len().try_into().expect("data too large"),
+            );
+            allocation.value.copy_from_slice(value);
+            allocation
+        }
     }
 
     #[inline]
@@ -1900,503 +1971,526 @@ mod wire_helpers {
         mut segment_id: u32,
         default: Option<&'a [crate::Word]>,
     ) -> Result<data::Builder<'a>> {
-        let ref_target = if (*reff).is_null() {
-            match default {
-                None => return Ok(&mut []),
-                Some(d) => {
-                    let (new_ref_target, new_reff, new_segment_id) = copy_message(
-                        arena,
-                        segment_id,
-                        Default::default(),
-                        reff,
-                        d.as_ptr() as *const _,
-                    );
-                    reff = new_reff;
-                    segment_id = new_segment_id;
-                    new_ref_target
+        unsafe {
+            let ref_target = if (*reff).is_null() {
+                match default {
+                    None => return Ok(&mut []),
+                    Some(d) => {
+                        let (new_ref_target, new_reff, new_segment_id) = copy_message(
+                            arena,
+                            segment_id,
+                            Default::default(),
+                            reff,
+                            d.as_ptr() as *const _,
+                        );
+                        reff = new_reff;
+                        segment_id = new_segment_id;
+                        new_ref_target
+                    }
                 }
+            } else {
+                WirePointer::mut_target(reff)
+            };
+
+            let (ptr, reff, _segment_id) =
+                follow_builder_fars(arena, reff, ref_target, segment_id)?;
+
+            if (*reff).kind() != WirePointerKind::List {
+                return Err(Error::from_kind(ErrorKind::ExistingPointerIsNotAList));
             }
-        } else {
-            WirePointer::mut_target(reff)
-        };
+            if (*reff).list_element_size() != Byte {
+                return Err(Error::from_kind(
+                    ErrorKind::ExistingListPointerIsNotByteSized,
+                ));
+            }
 
-        let (ptr, reff, _segment_id) = follow_builder_fars(arena, reff, ref_target, segment_id)?;
-
-        if (*reff).kind() != WirePointerKind::List {
-            return Err(Error::from_kind(ErrorKind::ExistingPointerIsNotAList));
+            Ok(data::builder_from_raw_parts(
+                ptr,
+                (*reff).list_element_count(),
+            ))
         }
-        if (*reff).list_element_size() != Byte {
-            return Err(Error::from_kind(
-                ErrorKind::ExistingListPointerIsNotByteSized,
-            ));
-        }
-
-        Ok(data::builder_from_raw_parts(
-            ptr,
-            (*reff).list_element_count(),
-        ))
     }
 
     pub(crate) unsafe fn set_struct_pointer(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&mut CapTable>,
         reff: *mut WirePointer,
         value: StructReader,
         canonicalize: bool,
     ) -> Result<SegmentAnd<*mut u8>> {
-        let mut data_size: ByteCount32 = round_bits_up_to_bytes(u64::from(value.data_size));
-        let mut ptr_count = value.pointer_count;
+        unsafe {
+            let mut data_size: ByteCount32 = round_bits_up_to_bytes(u64::from(value.data_size));
+            let mut ptr_count = value.pointer_count;
 
-        if canonicalize {
-            // StructReaders should not have bitwidths other than 1, but let's be safe
-            if !(value.data_size == 1
-                || value.data_size % u32::try_from(BITS_PER_BYTE).unwrap() == 0)
-            {
-                return Err(Error::from_kind(
-                    ErrorKind::StructReaderHadBitwidthOtherThan1,
-                ));
+            if canonicalize {
+                // StructReaders should not have bitwidths other than 1, but let's be safe
+                if !(value.data_size == 1
+                    || value
+                        .data_size
+                        .is_multiple_of(u32::try_from(BITS_PER_BYTE).unwrap()))
+                {
+                    return Err(Error::from_kind(
+                        ErrorKind::StructReaderHadBitwidthOtherThan1,
+                    ));
+                }
+
+                if value.data_size == 1 {
+                    if !value.get_bool_field(0) {
+                        data_size = 0;
+                    }
+                } else {
+                    'chop: while data_size != 0 {
+                        let end = data_size;
+                        let mut window = data_size % u32::try_from(BYTES_PER_WORD).unwrap();
+                        if window == 0 {
+                            window = u32::try_from(BYTES_PER_WORD).unwrap();
+                        }
+                        let start = end - window;
+                        let last_word =
+                            &value.get_data_section_as_blob()[start as usize..end as usize];
+                        if last_word == [0; 8] {
+                            data_size -= window;
+                        } else {
+                            break 'chop;
+                        }
+                    }
+                }
+
+                while ptr_count != 0 && value.get_pointer_field(ptr_count as usize - 1).is_null() {
+                    ptr_count -= 1;
+                }
             }
+
+            let data_words = round_bytes_up_to_words(data_size);
+            let total_size: WordCount32 =
+                data_words + u32::from(ptr_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
+
+            let (ptr, reff, segment_id) =
+                allocate(arena, reff, segment_id, total_size, WirePointerKind::Struct);
+            (*reff).set_struct_size_from_pieces(u16::try_from(data_words).unwrap(), ptr_count);
 
             if value.data_size == 1 {
-                if !value.get_bool_field(0) {
-                    data_size = 0;
+                // Data size could be made 0 by truncation
+                if data_size != 0 {
+                    *ptr = u8::from(value.get_bool_field(0))
                 }
             } else {
-                'chop: while data_size != 0 {
-                    let end = data_size;
-                    let mut window = data_size % u32::try_from(BYTES_PER_WORD).unwrap();
-                    if window == 0 {
-                        window = u32::try_from(BYTES_PER_WORD).unwrap();
-                    }
-                    let start = end - window;
-                    let last_word = &value.get_data_section_as_blob()[start as usize..end as usize];
-                    if last_word == [0; 8] {
-                        data_size -= window;
-                    } else {
-                        break 'chop;
-                    }
-                }
+                copy_nonoverlapping_check_zero::<u8>(value.data, ptr, data_size as usize);
             }
 
-            while ptr_count != 0 && value.get_pointer_field(ptr_count as usize - 1).is_null() {
-                ptr_count -= 1;
+            let pointer_section: *mut WirePointer =
+                ptr.add(data_words as usize * BYTES_PER_WORD) as *mut _;
+            for i in 0..ptr_count as usize {
+                deep_copy_pointee(
+                    arena,
+                    segment_id,
+                    cap_table.as_deref_mut(),
+                    pointer_section.add(i),
+                    value.get_pointer_field(i),
+                    canonicalize,
+                )?;
             }
-        }
 
-        let data_words = round_bytes_up_to_words(data_size);
-        let total_size: WordCount32 =
-            data_words + u32::from(ptr_count) * u32::try_from(WORDS_PER_POINTER).unwrap();
-
-        let (ptr, reff, segment_id) =
-            allocate(arena, reff, segment_id, total_size, WirePointerKind::Struct);
-        (*reff).set_struct_size_from_pieces(u16::try_from(data_words).unwrap(), ptr_count);
-
-        if value.data_size == 1 {
-            // Data size could be made 0 by truncation
-            if data_size != 0 {
-                *ptr = u8::from(value.get_bool_field(0))
-            }
-        } else {
-            copy_nonoverlapping_check_zero::<u8>(value.data, ptr, data_size as usize);
-        }
-
-        let pointer_section: *mut WirePointer =
-            ptr.add(data_words as usize * BYTES_PER_WORD) as *mut _;
-        for i in 0..ptr_count as usize {
-            deep_copy_pointee(
-                arena,
+            Ok(SegmentAnd {
                 segment_id,
-                cap_table,
-                pointer_section.add(i),
-                value.get_pointer_field(i),
-                canonicalize,
-            )?;
+                value: ptr,
+            })
         }
-
-        Ok(SegmentAnd {
-            segment_id,
-            value: ptr,
-        })
     }
 
     #[cfg(feature = "alloc")]
     pub(crate) unsafe fn set_capability_pointer(
         _arena: &mut dyn BuilderArena,
         _segment_id: u32,
-        mut cap_table: CapTableBuilder,
+        cap_table: Option<&mut CapTable>,
         reff: *mut WirePointer,
         cap: alloc::boxed::Box<dyn ClientHook>,
     ) {
-        // TODO if ref is not null, zero object.
-        (*reff).set_cap(u32::try_from(cap_table.inject_cap(cap)).unwrap());
+        unsafe {
+            // TODO if ref is not null, zero object.
+            (*reff).set_cap(u32::try_from(inject_cap(cap_table, cap)).unwrap());
+        }
     }
 
     pub(crate) unsafe fn set_list_pointer(
         arena: &mut dyn BuilderArena,
         segment_id: u32,
-        cap_table: CapTableBuilder,
+        mut cap_table: Option<&mut CapTable>,
         reff: *mut WirePointer,
         value: ListReader,
         canonicalize: bool,
     ) -> Result<SegmentAnd<*mut u8>> {
-        let total_size =
-            round_bits_up_to_words(u64::from(value.element_count) * u64::from(value.step));
+        unsafe {
+            let total_size =
+                round_bits_up_to_words(u64::from(value.element_count) * u64::from(value.step));
 
-        if value.element_size != ElementSize::InlineComposite {
-            //# List of non-structs.
-            let (ptr, reff, segment_id) =
-                allocate(arena, reff, segment_id, total_size, WirePointerKind::List);
+            if value.element_size != ElementSize::InlineComposite {
+                //# List of non-structs.
+                let (ptr, reff, segment_id) =
+                    allocate(arena, reff, segment_id, total_size, WirePointerKind::List);
 
-            if value.struct_pointer_count == 1 {
-                //# List of pointers.
-                (*reff).set_list_size_and_count(Pointer, value.element_count);
-                for i in 0..value.element_count {
-                    deep_copy_pointee(
-                        arena,
-                        segment_id,
-                        cap_table,
-                        (ptr as *mut WirePointer).add(i as usize),
-                        value.get_pointer_element(i),
-                        canonicalize,
-                    )?;
-                }
-            } else {
-                //# List of data.
-                let element_size = match value.step {
-                    0 => Void,
-                    1 => Bit,
-                    8 => Byte,
-                    16 => TwoBytes,
-                    32 => FourBytes,
-                    64 => EightBytes,
-                    _ => {
-                        panic!("invalid list step size: {}", value.step)
+                if value.struct_pointer_count == 1 {
+                    //# List of pointers.
+                    (*reff).set_list_size_and_count(Pointer, value.element_count);
+                    for i in 0..value.element_count {
+                        deep_copy_pointee(
+                            arena,
+                            segment_id,
+                            cap_table.as_deref_mut(),
+                            (ptr as *mut WirePointer).add(i as usize),
+                            value.get_pointer_element(i),
+                            canonicalize,
+                        )?;
                     }
-                };
+                } else {
+                    //# List of data.
+                    let element_size = match value.step {
+                        0 => Void,
+                        1 => Bit,
+                        8 => Byte,
+                        16 => TwoBytes,
+                        32 => FourBytes,
+                        64 => EightBytes,
+                        _ => {
+                            panic!("invalid list step size: {}", value.step)
+                        }
+                    };
 
-                (*reff).set_list_size_and_count(element_size, value.element_count);
+                    (*reff).set_list_size_and_count(element_size, value.element_count);
 
-                // Be careful to avoid copying any bytes past the end of the list.
-                // TODO(perf) Is ptr::copy_nonoverlapping faster if word-aligned?
-                // If so, then perhaps we should only drop to the byte-index level
-                // in the canonicalize=true case.
-                let whole_byte_size =
-                    u64::from(value.element_count) * u64::from(value.step) / BITS_PER_BYTE as u64;
-                copy_nonoverlapping_check_zero(
-                    value.ptr,
-                    ptr,
-                    usize::try_from(whole_byte_size).unwrap(),
-                );
+                    // Be careful to avoid copying any bytes past the end of the list.
+                    // TODO(perf) Is ptr::copy_nonoverlapping faster if word-aligned?
+                    // If so, then perhaps we should only drop to the byte-index level
+                    // in the canonicalize=true case.
+                    let whole_byte_size = u64::from(value.element_count) * u64::from(value.step)
+                        / BITS_PER_BYTE as u64;
+                    copy_nonoverlapping_check_zero(
+                        value.ptr,
+                        ptr,
+                        usize::try_from(whole_byte_size).unwrap(),
+                    );
 
-                let leftover_bits = u8::try_from(
-                    u64::from(value.element_count) * u64::from(value.step)
-                        % u64::try_from(BITS_PER_BYTE).unwrap(),
-                )
-                .unwrap();
-                if leftover_bits > 0 {
-                    let mask: u8 = (1 << leftover_bits) - 1;
+                    let leftover_bits = u8::try_from(
+                        u64::from(value.element_count) * u64::from(value.step)
+                            % u64::try_from(BITS_PER_BYTE).unwrap(),
+                    )
+                    .unwrap();
+                    if leftover_bits > 0 {
+                        let mask: u8 = (1 << leftover_bits) - 1;
 
-                    *ptr.add(usize::try_from(whole_byte_size).unwrap()) =
-                        mask & (*value.ptr.add(usize::try_from(whole_byte_size).unwrap()))
+                        *ptr.add(usize::try_from(whole_byte_size).unwrap()) =
+                            mask & (*value.ptr.add(usize::try_from(whole_byte_size).unwrap()))
+                    }
                 }
-            }
 
-            Ok(SegmentAnd {
-                segment_id,
-                value: ptr,
-            })
-        } else {
-            //# List of structs.
+                Ok(SegmentAnd {
+                    segment_id,
+                    value: ptr,
+                })
+            } else {
+                //# List of structs.
 
-            let decl_data_size = value.struct_data_size / u32::try_from(BITS_PER_WORD).unwrap();
-            let decl_pointer_count = value.struct_pointer_count;
+                let decl_data_size = value.struct_data_size / u32::try_from(BITS_PER_WORD).unwrap();
+                let decl_pointer_count = value.struct_pointer_count;
 
-            let mut data_size = 0;
-            let mut ptr_count = 0;
-            let mut total_size = total_size;
+                let mut data_size = 0;
+                let mut ptr_count = 0;
+                let mut total_size = total_size;
 
-            if canonicalize {
-                for ec in 0..value.element_count {
-                    let se = value.get_struct_element(ec);
-                    let mut local_data_size = decl_data_size;
-                    'data_chop: while local_data_size != 0 {
-                        let end = local_data_size * u32::try_from(BYTES_PER_WORD).unwrap();
-                        let window = u32::try_from(BYTES_PER_WORD).unwrap();
-                        let start = end - window;
-                        let last_word =
-                            &se.get_data_section_as_blob()[start as usize..end as usize];
-                        if last_word != [0; 8] {
-                            break 'data_chop;
-                        } else {
-                            local_data_size -= 1;
+                if canonicalize {
+                    for ec in 0..value.element_count {
+                        let se = value.get_struct_element(ec);
+                        let mut local_data_size = decl_data_size;
+                        'data_chop: while local_data_size != 0 {
+                            let end = local_data_size * u32::try_from(BYTES_PER_WORD).unwrap();
+                            let window = u32::try_from(BYTES_PER_WORD).unwrap();
+                            let start = end - window;
+                            let last_word =
+                                &se.get_data_section_as_blob()[start as usize..end as usize];
+                            if last_word != [0; 8] {
+                                break 'data_chop;
+                            } else {
+                                local_data_size -= 1;
+                            }
+                        }
+                        if local_data_size > data_size {
+                            data_size = local_data_size;
+                        }
+                        let mut local_ptr_count = decl_pointer_count;
+                        while local_ptr_count != 0
+                            && se.get_pointer_field(local_ptr_count as usize - 1).is_null()
+                        {
+                            local_ptr_count -= 1;
+                        }
+                        if local_ptr_count > ptr_count {
+                            ptr_count = local_ptr_count;
                         }
                     }
-                    if local_data_size > data_size {
-                        data_size = local_data_size;
-                    }
-                    let mut local_ptr_count = decl_pointer_count;
-                    while local_ptr_count != 0
-                        && se.get_pointer_field(local_ptr_count as usize - 1).is_null()
-                    {
-                        local_ptr_count -= 1;
-                    }
-                    if local_ptr_count > ptr_count {
-                        ptr_count = local_ptr_count;
-                    }
-                }
-                total_size = (data_size + u32::from(ptr_count)) * value.element_count;
-            } else {
-                data_size = decl_data_size;
-                ptr_count = decl_pointer_count;
-            }
-
-            let (ptr, reff, segment_id) = allocate(
-                arena,
-                reff,
-                segment_id,
-                total_size + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
-                WirePointerKind::List,
-            );
-            (*reff).set_list_inline_composite(total_size);
-
-            let tag: *mut WirePointer = ptr as *mut _;
-            (*tag).set_kind_and_inline_composite_list_element_count(
-                WirePointerKind::Struct,
-                value.element_count,
-            );
-            (*tag).set_struct_size_from_pieces(u16::try_from(data_size).unwrap(), ptr_count);
-            let mut dst = ptr.add(BYTES_PER_WORD);
-
-            let mut src: *const u8 = value.ptr;
-            for _ in 0..value.element_count {
-                copy_nonoverlapping_check_zero(src, dst, data_size as usize * BYTES_PER_WORD);
-                dst = dst.add(data_size as usize * BYTES_PER_WORD);
-                src = src.add(decl_data_size as usize * BYTES_PER_WORD);
-
-                for _ in 0..ptr_count {
-                    let src_pr = PointerReader {
-                        arena: value.arena,
-                        segment_id: value.segment_id,
-                        cap_table: value.cap_table,
-                        pointer: src as *const WirePointer,
-                        nesting_limit: value.nesting_limit,
-                    };
-                    deep_copy_pointee(
-                        arena,
-                        segment_id,
-                        cap_table,
-                        dst as *mut _,
-                        src_pr,
-                        canonicalize,
-                    )?;
-                    dst = dst.add(BYTES_PER_WORD);
-                    src = src.add(BYTES_PER_WORD);
+                    total_size = (data_size + u32::from(ptr_count)) * value.element_count;
+                } else {
+                    data_size = decl_data_size;
+                    ptr_count = decl_pointer_count;
                 }
 
-                src = src.add(
-                    decl_pointer_count.checked_sub(ptr_count).unwrap() as usize * BYTES_PER_WORD,
+                let (ptr, reff, segment_id) = allocate(
+                    arena,
+                    reff,
+                    segment_id,
+                    total_size + u32::try_from(POINTER_SIZE_IN_WORDS).unwrap(),
+                    WirePointerKind::List,
                 );
+                (*reff).set_list_inline_composite(total_size);
+
+                let tag: *mut WirePointer = ptr as *mut _;
+                (*tag).set_kind_and_inline_composite_list_element_count(
+                    WirePointerKind::Struct,
+                    value.element_count,
+                );
+                (*tag).set_struct_size_from_pieces(u16::try_from(data_size).unwrap(), ptr_count);
+                let mut dst = ptr.add(BYTES_PER_WORD);
+
+                let mut src: *const u8 = value.ptr;
+                for _ in 0..value.element_count {
+                    copy_nonoverlapping_check_zero(src, dst, data_size as usize * BYTES_PER_WORD);
+                    dst = dst.add(data_size as usize * BYTES_PER_WORD);
+                    src = src.add(decl_data_size as usize * BYTES_PER_WORD);
+
+                    for _ in 0..ptr_count {
+                        let src_pr = PointerReader {
+                            arena: value.arena,
+                            segment_id: value.segment_id,
+                            cap_table: value.cap_table,
+                            pointer: src as *const WirePointer,
+                            nesting_limit: value.nesting_limit,
+                        };
+                        deep_copy_pointee(
+                            arena,
+                            segment_id,
+                            cap_table.as_deref_mut(),
+                            dst as *mut _,
+                            src_pr,
+                            canonicalize,
+                        )?;
+                        dst = dst.add(BYTES_PER_WORD);
+                        src = src.add(BYTES_PER_WORD);
+                    }
+
+                    src = src.add(
+                        decl_pointer_count.checked_sub(ptr_count).unwrap() as usize
+                            * BYTES_PER_WORD,
+                    );
+                }
+                Ok(SegmentAnd {
+                    segment_id,
+                    value: ptr,
+                })
             }
-            Ok(SegmentAnd {
-                segment_id,
-                value: ptr,
-            })
         }
     }
 
     pub(crate) unsafe fn deep_copy_pointee(
         dst_arena: &mut dyn BuilderArena,
         dst_segment_id: u32,
-        dst_cap_table: CapTableBuilder,
+        dst_cap_table: Option<&mut CapTable>,
         dst: *mut WirePointer,
         src: PointerReader,
         canonicalize: bool,
     ) -> Result<SegmentAnd<*mut u8>> {
-        if (*src.pointer).is_null() {
-            ptr::write_bytes(dst, 0, 1);
-            return Ok(SegmentAnd {
-                segment_id: dst_segment_id,
-                value: ptr::null_mut(),
-            });
-        }
-
-        let (mut ptr, src_ptr, src_segment_id) =
-            follow_fars(src.arena, src.pointer, src.segment_id)?;
-
-        match (*src_ptr).kind() {
-            WirePointerKind::Struct => {
-                if src.nesting_limit <= 0 {
-                    return Err(Error::from_kind(
-                        ErrorKind::MessageIsTooDeeplyNestedOrContainsCycles,
-                    ));
-                }
-
-                bounds_check(
-                    src.arena,
-                    src_segment_id,
-                    ptr,
-                    (*src_ptr).struct_word_size() as usize,
-                    WirePointerKind::Struct,
-                )?;
-
-                set_struct_pointer(
-                    dst_arena,
-                    dst_segment_id,
-                    dst_cap_table,
-                    dst,
-                    StructReader {
-                        arena: src.arena,
-                        segment_id: src_segment_id,
-                        cap_table: src.cap_table,
-                        data: ptr,
-                        pointers: ptr.add((*src_ptr).struct_data_size() as usize * BYTES_PER_WORD)
-                            as *const _,
-                        data_size: u32::from((*src_ptr).struct_data_size())
-                            * u32::try_from(BITS_PER_WORD).unwrap(),
-                        pointer_count: (*src_ptr).struct_ptr_count(),
-                        nesting_limit: src.nesting_limit - 1,
-                    },
-                    canonicalize,
-                )
+        unsafe {
+            if (*src.pointer).is_null() {
+                ptr::write_bytes(dst, 0, 1);
+                return Ok(SegmentAnd {
+                    segment_id: dst_segment_id,
+                    value: ptr::null_mut(),
+                });
             }
-            WirePointerKind::List => {
-                let element_size = (*src_ptr).list_element_size();
-                if src.nesting_limit <= 0 {
-                    return Err(Error::from_kind(
-                        ErrorKind::MessageIsTooDeeplyNestedOrContainsCycles,
-                    ));
-                }
 
-                if element_size == InlineComposite {
-                    let word_count = (*src_ptr).list_inline_composite_word_count();
+            let (mut ptr, src_ptr, src_segment_id) =
+                follow_fars(src.arena, src.pointer, src.segment_id)?;
 
-                    // Bounds-check before advancing `ptr` (see note in
-                    // `read_list_pointer`): `ptr` may be out-of-bounds or
-                    // one-past-the-end, so advancing with `.add()` first would
-                    // be undefined behavior.
+            match (*src_ptr).kind() {
+                WirePointerKind::Struct => {
+                    if src.nesting_limit <= 0 {
+                        return Err(Error::from_kind(
+                            ErrorKind::MessageIsTooDeeplyNestedOrContainsCycles,
+                        ));
+                    }
+
                     bounds_check(
                         src.arena,
                         src_segment_id,
                         ptr,
-                        word_count as usize + 1,
-                        WirePointerKind::List,
+                        (*src_ptr).struct_word_size() as usize,
+                        WirePointerKind::Struct,
                     )?;
 
-                    let tag: *const WirePointer = ptr as *const _;
-                    ptr = ptr.add(BYTES_PER_WORD);
-
-                    if (*tag).kind() != WirePointerKind::Struct {
-                        return Err(Error::from_kind(
-                            ErrorKind::InlineCompositeListsOfNonStructTypeAreNotSupported,
-                        ));
-                    }
-
-                    let element_count = (*tag).inline_composite_list_element_count();
-                    let words_per_element = (*tag).struct_word_size();
-
-                    if u64::from(words_per_element) * u64::from(element_count)
-                        > u64::from(word_count)
-                    {
-                        return Err(Error::from_kind(
-                            ErrorKind::InlineCompositeListsElementsOverrunItsWordCount,
-                        ));
-                    }
-
-                    if words_per_element == 0 {
-                        // Watch out for lists of zero-sized structs, which can claim to be
-                        // arbitrarily large without having sent actual data.
-                        amplified_read(src.arena, u64::from(element_count))?;
-                    }
-
-                    set_list_pointer(
+                    set_struct_pointer(
                         dst_arena,
                         dst_segment_id,
                         dst_cap_table,
                         dst,
-                        ListReader {
+                        StructReader {
                             arena: src.arena,
                             segment_id: src_segment_id,
                             cap_table: src.cap_table,
-                            ptr: ptr as *const _,
-                            element_count,
-                            element_size,
-                            step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
-                            struct_data_size: u32::from((*tag).struct_data_size())
+                            data: ptr,
+                            pointers: ptr
+                                .add((*src_ptr).struct_data_size() as usize * BYTES_PER_WORD)
+                                as *const _,
+                            data_size: u32::from((*src_ptr).struct_data_size())
                                 * u32::try_from(BITS_PER_WORD).unwrap(),
-                            struct_pointer_count: (*tag).struct_ptr_count(),
-                            nesting_limit: src.nesting_limit - 1,
-                        },
-                        canonicalize,
-                    )
-                } else {
-                    let data_size = data_bits_per_element(element_size);
-                    let pointer_count = pointers_per_element(element_size);
-                    let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
-                    let element_count = (*src_ptr).list_element_count();
-                    let word_count =
-                        round_bits_up_to_words(u64::from(element_count) * u64::from(step));
-
-                    bounds_check(
-                        src.arena,
-                        src_segment_id,
-                        ptr,
-                        word_count as usize,
-                        WirePointerKind::List,
-                    )?;
-
-                    if element_size == Void {
-                        // Watch out for lists of void, which can claim to be arbitrarily large
-                        // without having sent actual data.
-                        amplified_read(src.arena, u64::from(element_count))?;
-                    }
-
-                    set_list_pointer(
-                        dst_arena,
-                        dst_segment_id,
-                        dst_cap_table,
-                        dst,
-                        ListReader {
-                            arena: src.arena,
-                            segment_id: src_segment_id,
-                            cap_table: src.cap_table,
-                            ptr: ptr as *const _,
-                            element_count,
-                            element_size,
-                            step,
-                            struct_data_size: data_size,
-                            struct_pointer_count: u16::try_from(pointer_count).unwrap(),
+                            pointer_count: (*src_ptr).struct_ptr_count(),
                             nesting_limit: src.nesting_limit - 1,
                         },
                         canonicalize,
                     )
                 }
-            }
-            WirePointerKind::Far => Err(Error::from_kind(ErrorKind::MalformedDoubleFarPointer)),
-            WirePointerKind::Other => {
-                if !(*src_ptr).is_capability() {
+                WirePointerKind::List => {
+                    let element_size = (*src_ptr).list_element_size();
+                    if src.nesting_limit <= 0 {
+                        return Err(Error::from_kind(
+                            ErrorKind::MessageIsTooDeeplyNestedOrContainsCycles,
+                        ));
+                    }
+
+                    if element_size == InlineComposite {
+                        let word_count = (*src_ptr).list_inline_composite_word_count();
+
+                        // Bounds-check before advancing `ptr` (see note in
+                        // `read_list_pointer`): `ptr` may be out-of-bounds or
+                        // one-past-the-end, so advancing with `.add()` first would
+                        // be undefined behavior.
+                        bounds_check(
+                            src.arena,
+                            src_segment_id,
+                            ptr,
+                            word_count as usize + 1,
+                            WirePointerKind::List,
+                        )?;
+
+                        let tag: *const WirePointer = ptr as *const _;
+                        ptr = ptr.add(BYTES_PER_WORD);
+
+                        if (*tag).kind() != WirePointerKind::Struct {
+                            return Err(Error::from_kind(
+                                ErrorKind::InlineCompositeListsOfNonStructTypeAreNotSupported,
+                            ));
+                        }
+
+                        let element_count = (*tag).inline_composite_list_element_count();
+                        let words_per_element = (*tag).struct_word_size();
+
+                        if u64::from(words_per_element) * u64::from(element_count)
+                            > u64::from(word_count)
+                        {
+                            return Err(Error::from_kind(
+                                ErrorKind::InlineCompositeListsElementsOverrunItsWordCount,
+                            ));
+                        }
+
+                        if words_per_element == 0 {
+                            // Watch out for lists of zero-sized structs, which can claim to be
+                            // arbitrarily large without having sent actual data.
+                            amplified_read(src.arena, u64::from(element_count))?;
+                        }
+
+                        set_list_pointer(
+                            dst_arena,
+                            dst_segment_id,
+                            dst_cap_table,
+                            dst,
+                            ListReader {
+                                arena: src.arena,
+                                segment_id: src_segment_id,
+                                cap_table: src.cap_table,
+                                ptr: ptr as *const _,
+                                element_count,
+                                element_size,
+                                step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
+                                struct_data_size: u32::from((*tag).struct_data_size())
+                                    * u32::try_from(BITS_PER_WORD).unwrap(),
+                                struct_pointer_count: (*tag).struct_ptr_count(),
+                                nesting_limit: src.nesting_limit - 1,
+                            },
+                            canonicalize,
+                        )
+                    } else {
+                        let data_size = data_bits_per_element(element_size);
+                        let pointer_count = pointers_per_element(element_size);
+                        let step =
+                            data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
+                        let element_count = (*src_ptr).list_element_count();
+                        let word_count =
+                            round_bits_up_to_words(u64::from(element_count) * u64::from(step));
+
+                        bounds_check(
+                            src.arena,
+                            src_segment_id,
+                            ptr,
+                            word_count as usize,
+                            WirePointerKind::List,
+                        )?;
+
+                        if element_size == Void {
+                            // Watch out for lists of void, which can claim to be arbitrarily large
+                            // without having sent actual data.
+                            amplified_read(src.arena, u64::from(element_count))?;
+                        }
+
+                        set_list_pointer(
+                            dst_arena,
+                            dst_segment_id,
+                            dst_cap_table,
+                            dst,
+                            ListReader {
+                                arena: src.arena,
+                                segment_id: src_segment_id,
+                                cap_table: src.cap_table,
+                                ptr: ptr as *const _,
+                                element_count,
+                                element_size,
+                                step,
+                                struct_data_size: data_size,
+                                struct_pointer_count: u16::try_from(pointer_count).unwrap(),
+                                nesting_limit: src.nesting_limit - 1,
+                            },
+                            canonicalize,
+                        )
+                    }
+                }
+                WirePointerKind::Far => Err(Error::from_kind(ErrorKind::MalformedDoubleFarPointer)),
+                WirePointerKind::Other => {
+                    if !(*src_ptr).is_capability() {
+                        return Err(Error::from_kind(ErrorKind::UnknownPointerType));
+                    }
+                    if canonicalize {
+                        return Err(Error::from_kind(
+                            ErrorKind::CannotCreateACanonicalMessageWithACapability,
+                        ));
+                    }
+                    #[cfg(feature = "alloc")]
+                    match extract_cap(src.cap_table, (*src_ptr).cap_index() as usize) {
+                        Some(cap) => {
+                            set_capability_pointer(
+                                dst_arena,
+                                dst_segment_id,
+                                dst_cap_table,
+                                dst,
+                                cap,
+                            );
+                            Ok(SegmentAnd {
+                                segment_id: dst_segment_id,
+                                value: ptr::null_mut(),
+                            })
+                        }
+                        None => Err(Error::from_kind(
+                            ErrorKind::MessageContainsInvalidCapabilityPointer,
+                        )),
+                    }
+                    #[cfg(not(feature = "alloc"))]
                     return Err(Error::from_kind(ErrorKind::UnknownPointerType));
                 }
-                if canonicalize {
-                    return Err(Error::from_kind(
-                        ErrorKind::CannotCreateACanonicalMessageWithACapability,
-                    ));
-                }
-                #[cfg(feature = "alloc")]
-                match src.cap_table.extract_cap((*src_ptr).cap_index() as usize) {
-                    Some(cap) => {
-                        set_capability_pointer(dst_arena, dst_segment_id, dst_cap_table, dst, cap);
-                        Ok(SegmentAnd {
-                            segment_id: dst_segment_id,
-                            value: ptr::null_mut(),
-                        })
-                    }
-                    None => Err(Error::from_kind(
-                        ErrorKind::MessageContainsInvalidCapabilityPointer,
-                    )),
-                }
-                #[cfg(not(feature = "alloc"))]
-                return Err(Error::from_kind(ErrorKind::UnknownPointerType));
             }
         }
     }
@@ -2405,59 +2499,61 @@ mod wire_helpers {
     pub(crate) unsafe fn read_struct_pointer<'a>(
         mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
-        cap_table: CapTableReader,
+        cap_table: &'a CapTable,
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>,
         nesting_limit: i32,
     ) -> Result<StructReader<'a>> {
-        if (*reff).is_null() {
-            match default {
-                None => return Ok(StructReader::new_default()),
-                Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() => {
-                    return Ok(StructReader::new_default())
-                }
-                Some(d) => {
-                    reff = d.as_ptr() as *const _;
-                    arena = &super::NULL_ARENA;
-                    segment_id = 0;
+        unsafe {
+            if (*reff).is_null() {
+                match default {
+                    None => return Ok(StructReader::new_default()),
+                    Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() => {
+                        return Ok(StructReader::new_default());
+                    }
+                    Some(d) => {
+                        reff = d.as_ptr() as *const _;
+                        arena = &super::NULL_ARENA;
+                        segment_id = 0;
+                    }
                 }
             }
+
+            if nesting_limit <= 0 {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageIsTooDeeplyNestedOrContainsCycles,
+                ));
+            }
+
+            let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+
+            let data_size_words = (*reff).struct_data_size();
+
+            if (*reff).kind() != WirePointerKind::Struct {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsNonStructPointerWhereStructPointerWasExpected,
+                ));
+            }
+
+            bounds_check(
+                arena,
+                segment_id,
+                ptr,
+                (*reff).struct_word_size() as usize,
+                WirePointerKind::Struct,
+            )?;
+
+            Ok(StructReader {
+                arena,
+                segment_id,
+                cap_table,
+                data: ptr,
+                pointers: ptr.add(data_size_words as usize * BYTES_PER_WORD) as *const _,
+                data_size: u32::from(data_size_words) * u32::try_from(BITS_PER_WORD).unwrap(),
+                pointer_count: (*reff).struct_ptr_count(),
+                nesting_limit: nesting_limit - 1,
+            })
         }
-
-        if nesting_limit <= 0 {
-            return Err(Error::from_kind(
-                ErrorKind::MessageIsTooDeeplyNestedOrContainsCycles,
-            ));
-        }
-
-        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
-
-        let data_size_words = (*reff).struct_data_size();
-
-        if (*reff).kind() != WirePointerKind::Struct {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsNonStructPointerWhereStructPointerWasExpected,
-            ));
-        }
-
-        bounds_check(
-            arena,
-            segment_id,
-            ptr,
-            (*reff).struct_word_size() as usize,
-            WirePointerKind::Struct,
-        )?;
-
-        Ok(StructReader {
-            arena,
-            segment_id,
-            cap_table,
-            data: ptr,
-            pointers: ptr.add(data_size_words as usize * BYTES_PER_WORD) as *const _,
-            data_size: u32::from(data_size_words) * u32::try_from(BITS_PER_WORD).unwrap(),
-            pointer_count: (*reff).struct_ptr_count(),
-            nesting_limit: nesting_limit - 1,
-        })
     }
 
     #[inline]
@@ -2465,209 +2561,216 @@ mod wire_helpers {
     pub(crate) unsafe fn read_capability_pointer(
         _arena: &dyn ReaderArena,
         _segment_id: u32,
-        cap_table: CapTableReader,
+        cap_table: &CapTable,
         reff: *const WirePointer,
         _nesting_limit: i32,
     ) -> Result<alloc::boxed::Box<dyn ClientHook>> {
-        if (*reff).is_null() {
-            Err(Error::from_kind(
-                ErrorKind::MessageContainsNullCapabilityPointer,
-            ))
-        } else if !(*reff).is_capability() {
-            Err(Error::from_kind(
-                ErrorKind::MessageContainsNonCapabilityPointerWhereCapabilityPointerWasExpected,
-            ))
-        } else {
-            let n = (*reff).cap_index() as usize;
-            match cap_table.extract_cap(n) {
-                Some(client_hook) => Ok(client_hook),
-                None => Err(Error::from_kind(
-                    ErrorKind::MessageContainsInvalidCapabilityPointer,
-                )),
+        unsafe {
+            if (*reff).is_null() {
+                Err(Error::from_kind(
+                    ErrorKind::MessageContainsNullCapabilityPointer,
+                ))
+            } else if !(*reff).is_capability() {
+                Err(Error::from_kind(
+                    ErrorKind::MessageContainsNonCapabilityPointerWhereCapabilityPointerWasExpected,
+                ))
+            } else {
+                let n = (*reff).cap_index() as usize;
+                match extract_cap(cap_table, n) {
+                    Some(client_hook) => Ok(client_hook),
+                    None => Err(Error::from_kind(
+                        ErrorKind::MessageContainsInvalidCapabilityPointer,
+                    )),
+                }
             }
         }
     }
 
     #[inline]
-    pub(crate) unsafe fn read_list_pointer(
-        mut arena: &dyn ReaderArena,
+    pub(crate) unsafe fn read_list_pointer<'a>(
+        mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
-        cap_table: CapTableReader,
+        cap_table: &'a CapTable,
         mut reff: *const WirePointer,
         default_value: *const u8,
         expected_element_size: Option<ElementSize>,
         nesting_limit: i32,
-    ) -> Result<ListReader<'_>> {
-        if (*reff).is_null() {
-            if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(ListReader::new_default());
+    ) -> Result<ListReader<'a>> {
+        unsafe {
+            if (*reff).is_null() {
+                if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
+                    return Ok(ListReader::new_default());
+                }
+                reff = default_value as *const _;
+                arena = &super::NULL_ARENA;
+                segment_id = 0;
             }
-            reff = default_value as *const _;
-            arena = &super::NULL_ARENA;
-            segment_id = 0;
-        }
 
-        if nesting_limit <= 0 {
-            return Err(Error::from_kind(ErrorKind::NestingLimitExceeded));
-        }
-        let (mut ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+            if nesting_limit <= 0 {
+                return Err(Error::from_kind(ErrorKind::NestingLimitExceeded));
+            }
+            let (mut ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
 
-        if (*reff).kind() != WirePointerKind::List {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsNonListPointerWhereListPointerWasExpected,
-            ));
-        }
+            if (*reff).kind() != WirePointerKind::List {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsNonListPointerWhereListPointerWasExpected,
+                ));
+            }
 
-        let element_size = (*reff).list_element_size();
-        match element_size {
-            InlineComposite => {
-                let word_count = (*reff).list_inline_composite_word_count();
+            let element_size = (*reff).list_element_size();
+            match element_size {
+                InlineComposite => {
+                    let word_count = (*reff).list_inline_composite_word_count();
 
-                // Bounds-check *before* advancing `ptr`. `ptr` comes from
-                // `follow_fars()`, which for double-far pointers returns an
-                // unchecked (possibly out-of-bounds) pointer; even for ordinary
-                // pointers the target may be one-past-the-end of the segment.
-                // Advancing with `.add()` first would be undefined behavior.
-                bounds_check(
-                    arena,
-                    segment_id,
-                    ptr,
-                    word_count as usize + 1,
-                    WirePointerKind::List,
-                )?;
+                    // Bounds-check *before* advancing `ptr`. `ptr` comes from
+                    // `follow_fars()`, which for double-far pointers returns an
+                    // unchecked (possibly out-of-bounds) pointer; even for ordinary
+                    // pointers the target may be one-past-the-end of the segment.
+                    // Advancing with `.add()` first would be undefined behavior.
+                    bounds_check(
+                        arena,
+                        segment_id,
+                        ptr,
+                        word_count as usize + 1,
+                        WirePointerKind::List,
+                    )?;
 
-                let tag: *const WirePointer = ptr as *const WirePointer;
+                    let tag: *const WirePointer = ptr as *const WirePointer;
 
-                ptr = ptr.add(BYTES_PER_WORD);
+                    ptr = ptr.add(BYTES_PER_WORD);
 
-                if (*tag).kind() != WirePointerKind::Struct {
-                    return Err(Error::from_kind(
-                        ErrorKind::InlineCompositeListsOfNonStructTypeAreNotSupported,
-                    ));
-                }
-
-                let size = (*tag).inline_composite_list_element_count();
-                let data_size = (*tag).struct_data_size();
-                let ptr_count = (*tag).struct_ptr_count();
-                let words_per_element = (*tag).struct_word_size();
-
-                if u64::from(size) * u64::from(words_per_element) > u64::from(word_count) {
-                    return Err(Error::from_kind(
-                        ErrorKind::InlineCompositeListsElementsOverrunItsWordCount,
-                    ));
-                }
-
-                if words_per_element == 0 {
-                    // Watch out for lists of zero-sized structs, which can claim to be
-                    // arbitrarily large without having sent actual data.
-                    amplified_read(arena, u64::from(size))?;
-                }
-
-                // If a struct list was not expected, then presumably a non-struct list was upgraded
-                // to a struct list. We need to manipulate the pointer to point at the first field
-                // of the struct. Together with the `step` field, this will allow the struct list to
-                // be accessed as if it were a primitive list without branching.
-
-                // Check whether the size is compatible.
-                match expected_element_size {
-                    None | Some(Void | InlineComposite) => (),
-                    Some(Bit) => {
+                    if (*tag).kind() != WirePointerKind::Struct {
                         return Err(Error::from_kind(
-                            ErrorKind::FoundStructListWhereBitListWasExpected,
+                            ErrorKind::InlineCompositeListsOfNonStructTypeAreNotSupported,
                         ));
                     }
-                    Some(Byte | TwoBytes | FourBytes | EightBytes) => {
-                        if data_size == 0 {
+
+                    let size = (*tag).inline_composite_list_element_count();
+                    let data_size = (*tag).struct_data_size();
+                    let ptr_count = (*tag).struct_ptr_count();
+                    let words_per_element = (*tag).struct_word_size();
+
+                    if u64::from(size) * u64::from(words_per_element) > u64::from(word_count) {
+                        return Err(Error::from_kind(
+                            ErrorKind::InlineCompositeListsElementsOverrunItsWordCount,
+                        ));
+                    }
+
+                    if words_per_element == 0 {
+                        // Watch out for lists of zero-sized structs, which can claim to be
+                        // arbitrarily large without having sent actual data.
+                        amplified_read(arena, u64::from(size))?;
+                    }
+
+                    // If a struct list was not expected, then presumably a non-struct list was upgraded
+                    // to a struct list. We need to manipulate the pointer to point at the first field
+                    // of the struct. Together with the `step` field, this will allow the struct list to
+                    // be accessed as if it were a primitive list without branching.
+
+                    // Check whether the size is compatible.
+                    match expected_element_size {
+                        None | Some(Void | InlineComposite) => (),
+                        Some(Bit) => {
                             return Err(Error::from_kind(
+                                ErrorKind::FoundStructListWhereBitListWasExpected,
+                            ));
+                        }
+                        Some(Byte | TwoBytes | FourBytes | EightBytes) => {
+                            if data_size == 0 {
+                                return Err(Error::from_kind(
                                 ErrorKind::ExpectedAPrimitiveListButGotAListOfPointerOnlyStructs,
                             ));
+                            }
+                        }
+                        Some(Pointer) => {
+                            if ptr_count == 0 {
+                                return Err(Error::from_kind(
+                                    ErrorKind::ExpectedAPointerListButGotAListOfDataOnlyStructs,
+                                ));
+                            }
                         }
                     }
-                    Some(Pointer) => {
-                        if ptr_count == 0 {
+
+                    Ok(ListReader {
+                        arena,
+                        segment_id,
+                        cap_table,
+                        ptr: ptr as *const _,
+                        element_count: size,
+                        element_size,
+                        step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
+                        struct_data_size: u32::from(data_size)
+                            * (u32::try_from(BITS_PER_WORD).unwrap()),
+                        struct_pointer_count: ptr_count,
+                        nesting_limit: nesting_limit - 1,
+                    })
+                }
+                _ => {
+                    // This is a primitive or pointer list, but all such lists can also be interpreted
+                    // as struct lists. We need to compute the data size and pointer count for such
+                    // structs.
+                    let data_size = data_bits_per_element((*reff).list_element_size());
+                    let pointer_count = pointers_per_element((*reff).list_element_size());
+                    let element_count = (*reff).list_element_count();
+                    let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
+
+                    let word_count =
+                        round_bits_up_to_words(u64::from(element_count) * u64::from(step));
+                    bounds_check(
+                        arena,
+                        segment_id,
+                        ptr,
+                        word_count as usize,
+                        WirePointerKind::List,
+                    )?;
+
+                    if element_size == Void {
+                        // Watch out for lists of void, which can claim to be arbitrarily large
+                        // without having sent actual data.
+                        amplified_read(arena, u64::from(element_count))?;
+                    }
+
+                    if let Some(expected_element_size) = expected_element_size {
+                        if element_size == ElementSize::Bit
+                            && expected_element_size != ElementSize::Bit
+                        {
                             return Err(Error::from_kind(
-                                ErrorKind::ExpectedAPointerListButGotAListOfDataOnlyStructs,
+                                ErrorKind::FoundBitListWhereStructListWasExpected,
+                            ));
+                        }
+
+                        // Verify that the elements are at least as large as the expected type. Note that if
+                        // we expected InlineComposite, the expected sizes here will be zero, because bounds
+                        // checking will be performed at field access time. So this check here is for the
+                        // case where we expected a list of some primitive or pointer type.
+
+                        let expected_data_bits_per_element =
+                            data_bits_per_element(expected_element_size);
+                        let expected_pointers_per_element =
+                            pointers_per_element(expected_element_size);
+
+                        if expected_data_bits_per_element > data_size
+                            || expected_pointers_per_element > pointer_count
+                        {
+                            return Err(Error::from_kind(
+                                ErrorKind::MessageContainsListWithIncompatibleElementType,
                             ));
                         }
                     }
+
+                    Ok(ListReader {
+                        arena,
+                        segment_id,
+                        cap_table,
+                        ptr: ptr as *const _,
+                        element_count,
+                        element_size,
+                        step,
+                        struct_data_size: data_size,
+                        struct_pointer_count: u16::try_from(pointer_count).unwrap(),
+                        nesting_limit: nesting_limit - 1,
+                    })
                 }
-
-                Ok(ListReader {
-                    arena,
-                    segment_id,
-                    cap_table,
-                    ptr: ptr as *const _,
-                    element_count: size,
-                    element_size,
-                    step: words_per_element * u32::try_from(BITS_PER_WORD).unwrap(),
-                    struct_data_size: u32::from(data_size)
-                        * (u32::try_from(BITS_PER_WORD).unwrap()),
-                    struct_pointer_count: ptr_count,
-                    nesting_limit: nesting_limit - 1,
-                })
-            }
-            _ => {
-                // This is a primitive or pointer list, but all such lists can also be interpreted
-                // as struct lists. We need to compute the data size and pointer count for such
-                // structs.
-                let data_size = data_bits_per_element((*reff).list_element_size());
-                let pointer_count = pointers_per_element((*reff).list_element_size());
-                let element_count = (*reff).list_element_count();
-                let step = data_size + pointer_count * u32::try_from(BITS_PER_POINTER).unwrap();
-
-                let word_count = round_bits_up_to_words(u64::from(element_count) * u64::from(step));
-                bounds_check(
-                    arena,
-                    segment_id,
-                    ptr,
-                    word_count as usize,
-                    WirePointerKind::List,
-                )?;
-
-                if element_size == Void {
-                    // Watch out for lists of void, which can claim to be arbitrarily large
-                    // without having sent actual data.
-                    amplified_read(arena, u64::from(element_count))?;
-                }
-
-                if let Some(expected_element_size) = expected_element_size {
-                    if element_size == ElementSize::Bit && expected_element_size != ElementSize::Bit
-                    {
-                        return Err(Error::from_kind(
-                            ErrorKind::FoundBitListWhereStructListWasExpected,
-                        ));
-                    }
-
-                    // Verify that the elements are at least as large as the expected type. Note that if
-                    // we expected InlineComposite, the expected sizes here will be zero, because bounds
-                    // checking will be performed at field access time. So this check here is for the
-                    // case where we expected a list of some primitive or pointer type.
-
-                    let expected_data_bits_per_element =
-                        data_bits_per_element(expected_element_size);
-                    let expected_pointers_per_element = pointers_per_element(expected_element_size);
-
-                    if expected_data_bits_per_element > data_size
-                        || expected_pointers_per_element > pointer_count
-                    {
-                        return Err(Error::from_kind(
-                            ErrorKind::MessageContainsListWithIncompatibleElementType,
-                        ));
-                    }
-                }
-
-                Ok(ListReader {
-                    arena,
-                    segment_id,
-                    cap_table,
-                    ptr: ptr as *const _,
-                    element_count,
-                    element_size,
-                    step,
-                    struct_data_size: data_size,
-                    struct_pointer_count: u16::try_from(pointer_count).unwrap(),
-                    nesting_limit: nesting_limit - 1,
-                })
             }
         }
     }
@@ -2679,58 +2782,60 @@ mod wire_helpers {
         mut reff: *const WirePointer,
         default: Option<&[crate::Word]>,
     ) -> Result<text::Reader<'a>> {
-        if (*reff).is_null() {
-            match default {
-                None => return Ok("".into()),
-                Some(d) => {
-                    reff = d.as_ptr() as *const WirePointer;
-                    arena = &super::NULL_ARENA;
-                    segment_id = 0;
+        unsafe {
+            if (*reff).is_null() {
+                match default {
+                    None => return Ok("".into()),
+                    Some(d) => {
+                        reff = d.as_ptr() as *const WirePointer;
+                        arena = &super::NULL_ARENA;
+                        segment_id = 0;
+                    }
                 }
             }
+
+            let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+            let size = (*reff).list_element_count();
+
+            if (*reff).kind() != WirePointerKind::List {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsNonListPointerWhereTextWasExpected,
+                ));
+            }
+
+            if (*reff).list_element_size() != Byte {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsListPointerOfNonBytesWhereTextWasExpected,
+                ));
+            }
+
+            bounds_check(
+                arena,
+                segment_id,
+                ptr,
+                round_bytes_up_to_words(size) as usize,
+                WirePointerKind::List,
+            )?;
+
+            if size == 0 {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsTextThatIsNotNULTerminated,
+                ));
+            }
+
+            let str_ptr = ptr;
+
+            if (*str_ptr.add((size - 1) as usize)) != 0u8 {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsTextThatIsNotNULTerminated,
+                ));
+            }
+
+            Ok(text::Reader(slice::from_raw_parts(
+                str_ptr,
+                size as usize - 1,
+            )))
         }
-
-        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
-        let size = (*reff).list_element_count();
-
-        if (*reff).kind() != WirePointerKind::List {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsNonListPointerWhereTextWasExpected,
-            ));
-        }
-
-        if (*reff).list_element_size() != Byte {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsListPointerOfNonBytesWhereTextWasExpected,
-            ));
-        }
-
-        bounds_check(
-            arena,
-            segment_id,
-            ptr,
-            round_bytes_up_to_words(size) as usize,
-            WirePointerKind::List,
-        )?;
-
-        if size == 0 {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsTextThatIsNotNULTerminated,
-            ));
-        }
-
-        let str_ptr = ptr;
-
-        if (*str_ptr.add((size - 1) as usize)) != 0u8 {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsTextThatIsNotNULTerminated,
-            ));
-        }
-
-        Ok(text::Reader(slice::from_raw_parts(
-            str_ptr,
-            size as usize - 1,
-        )))
     }
 
     #[inline]
@@ -2740,42 +2845,44 @@ mod wire_helpers {
         mut reff: *const WirePointer,
         default: Option<&'a [crate::Word]>,
     ) -> Result<data::Reader<'a>> {
-        if (*reff).is_null() {
-            match default {
-                None => return Ok(&[]),
-                Some(d) => {
-                    reff = d.as_ptr() as *const WirePointer;
-                    arena = &super::NULL_ARENA;
-                    segment_id = 0;
+        unsafe {
+            if (*reff).is_null() {
+                match default {
+                    None => return Ok(&[]),
+                    Some(d) => {
+                        reff = d.as_ptr() as *const WirePointer;
+                        arena = &super::NULL_ARENA;
+                        segment_id = 0;
+                    }
                 }
             }
+
+            let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
+
+            let size: u32 = (*reff).list_element_count();
+
+            if (*reff).kind() != WirePointerKind::List {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsNonListPointerWhereDataWasExpected,
+                ));
+            }
+
+            if (*reff).list_element_size() != Byte {
+                return Err(Error::from_kind(
+                    ErrorKind::MessageContainsListPointerOfNonBytesWhereDataWasExpected,
+                ));
+            }
+
+            bounds_check(
+                arena,
+                segment_id,
+                ptr,
+                round_bytes_up_to_words(size) as usize,
+                WirePointerKind::List,
+            )?;
+
+            Ok(data::reader_from_raw_parts(ptr as *const _, size))
         }
-
-        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
-
-        let size: u32 = (*reff).list_element_count();
-
-        if (*reff).kind() != WirePointerKind::List {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsNonListPointerWhereDataWasExpected,
-            ));
-        }
-
-        if (*reff).list_element_size() != Byte {
-            return Err(Error::from_kind(
-                ErrorKind::MessageContainsListPointerOfNonBytesWhereDataWasExpected,
-            ));
-        }
-
-        bounds_check(
-            arena,
-            segment_id,
-            ptr,
-            round_bytes_up_to_words(size) as usize,
-            WirePointerKind::List,
-        )?;
-
-        Ok(data::reader_from_raw_parts(ptr as *const _, size))
     }
 }
 
@@ -2792,102 +2899,37 @@ pub type CapTable = alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>>;
 #[cfg(not(feature = "alloc"))]
 pub struct CapTable;
 
-#[derive(Copy, Clone, Default)]
-pub enum CapTableReader {
-    #[default]
-    Dummy,
-    Plain(core::ptr::NonNull<CapTable>),
+/// The capability table of a reader that has not been imbued with one.
+#[cfg(feature = "alloc")]
+const EMPTY_CAP_TABLE: &CapTable = &CapTable::new();
+
+#[cfg(not(feature = "alloc"))]
+const EMPTY_CAP_TABLE: &CapTable = &CapTable;
+
+#[cfg(feature = "alloc")]
+fn extract_cap(cap_table: &CapTable, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
+    cap_table
+        .get(index)
+        .and_then(Option::as_ref)
+        .map(|hook| hook.add_ref())
 }
 
-const _: () =
-    assert!(core::mem::size_of::<CapTableReader>() == core::mem::size_of::<*const CapTable>());
-
-impl CapTableReader {
-    pub fn from_ref(cap_table: &CapTable) -> Self {
-        Self::Plain(core::ptr::NonNull::from(cap_table))
-    }
-
-    #[cfg(feature = "alloc")]
-    pub(crate) fn extract_cap(&self, index: usize) -> Option<alloc::boxed::Box<dyn ClientHook>> {
-        match *self {
-            Self::Dummy => None,
-            Self::Plain(hooks) => {
-                let hooks: &alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { hooks.as_ref() };
-                if index >= hooks.len() {
-                    None
-                } else {
-                    hooks[index].as_ref().map(|hook| hook.add_ref())
-                }
-            }
-        }
-    }
-}
-
-#[derive(Copy, Clone, Default)]
-pub enum CapTableBuilder {
-    #[default]
-    Dummy,
-    Plain(core::ptr::NonNull<CapTable>),
-}
-
-const _: () =
-    assert!(core::mem::size_of::<CapTableBuilder>() == core::mem::size_of::<*mut CapTable>());
-
-impl CapTableBuilder {
-    pub fn into_reader(self) -> CapTableReader {
-        match self {
-            Self::Dummy => CapTableReader::Dummy,
-            Self::Plain(hooks) => CapTableReader::Plain(hooks),
-        }
-    }
-
-    pub fn from_ref(cap_table: &mut CapTable) -> Self {
-        Self::Plain(core::ptr::NonNull::from(cap_table))
-    }
-
-    #[cfg(feature = "alloc")]
-    pub(crate) fn inject_cap(&mut self, cap: alloc::boxed::Box<dyn ClientHook>) -> usize {
-        match *self {
-            Self::Dummy => {
-                panic!(
-                    "Called inject_cap() on a null capability table. You need \
-                     to call imbue_mut() on this message before adding capabilities."
-                );
-            }
-            Self::Plain(mut hooks) => {
-                let hooks: &mut alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { hooks.as_mut() };
-                hooks.push(Some(cap));
-                hooks.len() - 1
-            }
-        }
-    }
-
-    #[cfg(feature = "alloc")]
-    pub fn drop_cap(&mut self, index: usize) {
-        match *self {
-            Self::Dummy => {
-                panic!(
-                    "Called drop_cap() on a null capability table. You need \
-                     to call imbue_mut() on this message before adding capabilities."
-                );
-            }
-            Self::Plain(mut hooks) => {
-                let hooks: &mut alloc::vec::Vec<Option<alloc::boxed::Box<dyn ClientHook>>> =
-                    unsafe { hooks.as_mut() };
-                if index < hooks.len() {
-                    hooks[index] = None;
-                }
-            }
-        }
-    }
+#[cfg(feature = "alloc")]
+fn inject_cap(cap_table: Option<&mut CapTable>, cap: alloc::boxed::Box<dyn ClientHook>) -> usize {
+    let Some(cap_table) = cap_table else {
+        panic!(
+            "Called inject_cap() on a null capability table. You need \
+             to call imbue_mut() on this message before adding capabilities."
+        );
+    };
+    cap_table.push(Some(cap));
+    cap_table.len() - 1
 }
 
 #[derive(Clone, Copy)]
 pub struct PointerReader<'a> {
     arena: &'a dyn ReaderArena,
-    cap_table: CapTableReader,
+    cap_table: &'a CapTable,
     pointer: *const WirePointer,
     segment_id: u32,
     nesting_limit: i32,
@@ -2898,7 +2940,7 @@ impl<'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             pointer: ptr::null(),
             nesting_limit: 0x7fffffff,
         }
@@ -2921,7 +2963,7 @@ impl<'a> PointerReader<'a> {
         Ok(PointerReader {
             arena,
             segment_id,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             pointer: location as *const _,
             nesting_limit,
         })
@@ -2939,7 +2981,7 @@ impl<'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             pointer: location as *const _,
             nesting_limit: 0x7fffffff,
         }
@@ -2959,13 +3001,13 @@ impl<'a> PointerReader<'a> {
         Ok(PointerReader {
             arena,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             pointer: segment_start as *const _,
             nesting_limit: arena.nesting_limit(),
         })
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableReader) {
+    pub fn imbue(&mut self, cap_table: &'a CapTable) {
         self.cap_table = cap_table;
     }
 
@@ -3092,7 +3134,7 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_pointer_type(&self) -> Result<PointerType> {
+    pub(crate) fn get_pointer_type(&self) -> Result<PointerType> {
         if self.is_null() {
             Ok(PointerType::Null)
         } else {
@@ -3114,7 +3156,10 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub fn is_canonical(&self, read_head: &Cell<*const u8>) -> Result<bool> {
+    /// # Safety
+    /// `read_head` must point into (or one past the end of) the segment that
+    /// this pointer lives in.
+    pub(crate) unsafe fn is_canonical(&self, read_head: &Cell<*const u8>) -> Result<bool> {
         if self.pointer.is_null() || unsafe { !(*self.pointer).is_positional() } {
             return Ok(false);
         }
@@ -3128,8 +3173,9 @@ impl<'a> PointerReader<'a> {
                 if st.get_data_section_size() == 0 && st.get_pointer_section_size() == 0 {
                     Ok(self.pointer as *const _ == st.get_location())
                 } else {
-                    let result =
-                        st.is_canonical(read_head, read_head, &mut data_trunc, &mut ptr_trunc)?;
+                    let result = unsafe {
+                        st.is_canonical(read_head, read_head, &mut data_trunc, &mut ptr_trunc)?
+                    };
                     Ok(result && data_trunc && ptr_trunc)
                 }
             }
@@ -3145,13 +3191,20 @@ impl<'a> PointerReader<'a> {
 pub struct PointerBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
     segment_id: u32,
-    cap_table: CapTableBuilder,
+    cap_table: Option<&'a mut CapTable>,
     pointer: *mut WirePointer,
 }
 
 impl<'a> PointerBuilder<'a> {
+    /// # Safety
+    /// `location` must point to a valid, word-aligned `WirePointer` within segment
+    /// `segment_id` of `arena`.
     #[inline]
-    pub fn get_root(arena: &'a mut dyn BuilderArena, segment_id: u32, location: *mut u8) -> Self {
+    pub(crate) unsafe fn get_root(
+        arena: &'a mut dyn BuilderArena,
+        segment_id: u32,
+        location: *mut u8,
+    ) -> Self {
         PointerBuilder {
             arena,
             cap_table: Default::default(),
@@ -3164,12 +3217,13 @@ impl<'a> PointerBuilder<'a> {
     pub fn reborrow(&mut self) -> PointerBuilder<'_> {
         PointerBuilder {
             arena: self.arena,
+            cap_table: self.cap_table.as_deref_mut(),
             ..*self
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableBuilder) {
-        self.cap_table = cap_table;
+    pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
+        self.cap_table = Some(cap_table);
     }
 
     #[inline]
@@ -3264,7 +3318,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::read_capability_pointer(
                 self.arena.as_reader(),
                 self.segment_id,
-                self.cap_table.into_reader(),
+                self.cap_table.as_deref().unwrap_or(EMPTY_CAP_TABLE),
                 self.pointer,
                 i32::MAX,
             )
@@ -3334,7 +3388,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::set_struct_pointer(
                 self.arena,
                 self.segment_id,
-                self.cap_table,
+                self.cap_table.as_deref_mut(),
                 self.pointer,
                 *value,
                 canonicalize,
@@ -3348,7 +3402,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::set_list_pointer(
                 self.arena,
                 self.segment_id,
-                self.cap_table,
+                self.cap_table.as_deref_mut(),
                 self.pointer,
                 *value,
                 canonicalize,
@@ -3375,7 +3429,7 @@ impl<'a> PointerBuilder<'a> {
             wire_helpers::set_capability_pointer(
                 self.arena,
                 self.segment_id,
-                self.cap_table,
+                self.cap_table.as_deref_mut(),
                 self.pointer,
                 cap,
             );
@@ -3395,7 +3449,7 @@ impl<'a> PointerBuilder<'a> {
                 wire_helpers::deep_copy_pointee(
                     self.arena,
                     self.segment_id,
-                    self.cap_table,
+                    self.cap_table.as_deref_mut(),
                     self.pointer,
                     other,
                     canonicalize,
@@ -3416,7 +3470,7 @@ impl<'a> PointerBuilder<'a> {
         PointerReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: self.cap_table.into_reader(),
+            cap_table: self.cap_table.as_deref().unwrap_or(EMPTY_CAP_TABLE),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff,
         }
@@ -3426,7 +3480,7 @@ impl<'a> PointerBuilder<'a> {
         PointerReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: self.cap_table.into_reader(),
+            cap_table: self.cap_table.map_or(EMPTY_CAP_TABLE, |t| t),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff,
         }
@@ -3436,7 +3490,7 @@ impl<'a> PointerBuilder<'a> {
 #[derive(Clone, Copy)]
 pub struct StructReader<'a> {
     arena: &'a dyn ReaderArena,
-    cap_table: CapTableReader,
+    cap_table: &'a CapTable,
     data: *const u8,
     pointers: *const WirePointer,
     segment_id: u32,
@@ -3450,7 +3504,7 @@ impl<'a> StructReader<'a> {
         StructReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             data: ptr::null(),
             pointers: ptr::null(),
             data_size: 0,
@@ -3459,7 +3513,7 @@ impl<'a> StructReader<'a> {
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableReader) {
+    pub fn imbue(&mut self, cap_table: &'a CapTable) {
         self.cap_table = cap_table
     }
 
@@ -3590,7 +3644,10 @@ impl<'a> StructReader<'a> {
         self.data
     }
 
-    pub fn is_canonical(
+    /// # Safety
+    /// `read_head` and `ptr_head` must point into (or one past the end of) the
+    /// segment that this struct lives in.
+    pub(crate) unsafe fn is_canonical(
         &self,
         read_head: &Cell<*const u8>,
         ptr_head: &Cell<*const u8>,
@@ -3601,7 +3658,10 @@ impl<'a> StructReader<'a> {
             return Ok(false);
         }
 
-        if self.get_data_section_size() % u32::try_from(BITS_PER_WORD).unwrap() != 0 {
+        if !self
+            .get_data_section_size()
+            .is_multiple_of(u32::try_from(BITS_PER_WORD).unwrap())
+        {
             // legacy non-word-size struct
             return Ok(false);
         }
@@ -3630,10 +3690,10 @@ impl<'a> StructReader<'a> {
         });
 
         for ptr_idx in 0..self.pointer_count {
-            if !self
-                .get_pointer_field(ptr_idx as usize)
-                .is_canonical(ptr_head)?
-            {
+            if !unsafe {
+                self.get_pointer_field(ptr_idx as usize)
+                    .is_canonical(ptr_head)?
+            } {
                 return Ok(false);
             }
         }
@@ -3644,7 +3704,7 @@ impl<'a> StructReader<'a> {
 
 pub struct StructBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
-    cap_table: CapTableBuilder,
+    cap_table: Option<&'a mut CapTable>,
     data: *mut u8,
     pointers: *mut WirePointer,
     segment_id: u32,
@@ -3657,6 +3717,7 @@ impl<'a> StructBuilder<'a> {
     pub fn reborrow(&mut self) -> StructBuilder<'_> {
         StructBuilder {
             arena: self.arena,
+            cap_table: self.cap_table.as_deref_mut(),
             ..*self
         }
     }
@@ -3664,7 +3725,7 @@ impl<'a> StructBuilder<'a> {
     pub fn as_reader(&self) -> StructReader<'_> {
         StructReader {
             arena: self.arena.as_reader(),
-            cap_table: self.cap_table.into_reader(),
+            cap_table: self.cap_table.as_deref().unwrap_or(EMPTY_CAP_TABLE),
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
@@ -3677,7 +3738,7 @@ impl<'a> StructBuilder<'a> {
     pub fn into_reader(self) -> StructReader<'a> {
         StructReader {
             arena: self.arena.as_reader(),
-            cap_table: self.cap_table.into_reader(),
+            cap_table: self.cap_table.map_or(EMPTY_CAP_TABLE, |t| t),
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
@@ -3687,8 +3748,8 @@ impl<'a> StructBuilder<'a> {
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableBuilder) {
-        self.cap_table = cap_table
+    pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
+        self.cap_table = Some(cap_table)
     }
 
     #[inline]
@@ -3835,7 +3896,7 @@ impl<'a> StructBuilder<'a> {
                 wire_helpers::deep_copy_pointee(
                     self.arena,
                     self.segment_id,
-                    self.cap_table,
+                    self.cap_table.as_deref_mut(),
                     self.pointers.add(i),
                     other.get_pointer_field(i),
                     false,
@@ -3850,7 +3911,7 @@ impl<'a> StructBuilder<'a> {
 #[derive(Clone, Copy)]
 pub struct ListReader<'a> {
     arena: &'a dyn ReaderArena,
-    cap_table: CapTableReader,
+    cap_table: &'a CapTable,
     ptr: *const u8,
     segment_id: u32,
     element_count: ElementCount32,
@@ -3866,7 +3927,7 @@ impl<'a> ListReader<'a> {
         ListReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: Default::default(),
+            cap_table: EMPTY_CAP_TABLE,
             ptr: ptr::null(),
             element_count: 0,
             element_size: ElementSize::Void,
@@ -3877,7 +3938,7 @@ impl<'a> ListReader<'a> {
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableReader) {
+    pub fn imbue(&mut self, cap_table: &'a CapTable) {
         self.cap_table = cap_table
     }
 
@@ -3966,7 +4027,10 @@ impl<'a> ListReader<'a> {
                     return Ok(false);
                 }
                 read_head.set(self.ptr);
-                if self.struct_data_size % u32::try_from(BITS_PER_WORD).unwrap() != 0 {
+                if !self
+                    .struct_data_size
+                    .is_multiple_of(u32::try_from(BITS_PER_WORD).unwrap())
+                {
                     return Ok(false);
                 }
                 let struct_size = (self.struct_data_size / u32::try_from(BITS_PER_WORD).unwrap())
@@ -3989,12 +4053,14 @@ impl<'a> ListReader<'a> {
                 for idx in 0..self.element_count {
                     let mut data_trunc = false;
                     let mut ptr_trunc = false;
-                    if !self.get_struct_element(idx).is_canonical(
-                        read_head,
-                        &pointer_head,
-                        &mut data_trunc,
-                        &mut ptr_trunc,
-                    )? {
+                    if !unsafe {
+                        self.get_struct_element(idx).is_canonical(
+                            read_head,
+                            &pointer_head,
+                            &mut data_trunc,
+                            &mut ptr_trunc,
+                        )?
+                    } {
                         return Ok(false);
                     }
                     list_data_trunc |= data_trunc;
@@ -4014,7 +4080,7 @@ impl<'a> ListReader<'a> {
                         .add(self.element_count as usize * BYTES_PER_WORD)
                 });
                 for idx in 0..self.element_count {
-                    if !self.get_pointer_element(idx).is_canonical(read_head)? {
+                    if !unsafe { self.get_pointer_element(idx).is_canonical(read_head)? } {
                         return Ok(false);
                     }
                 }
@@ -4067,7 +4133,7 @@ impl<'a> ListReader<'a> {
 
 pub struct ListBuilder<'a> {
     arena: &'a mut dyn BuilderArena,
-    cap_table: CapTableBuilder,
+    cap_table: Option<&'a mut CapTable>,
     ptr: *mut u8,
     segment_id: u32,
     element_count: ElementCount32,
@@ -4097,7 +4163,7 @@ impl<'a> ListBuilder<'a> {
         ListReader {
             arena: self.arena.as_reader(),
             segment_id: self.segment_id,
-            cap_table: self.cap_table.into_reader(),
+            cap_table: self.cap_table.map_or(EMPTY_CAP_TABLE, |t| t),
             ptr: self.ptr as *const _,
             element_count: self.element_count,
             element_size: self.element_size,
@@ -4112,12 +4178,13 @@ impl<'a> ListBuilder<'a> {
     pub fn reborrow(&mut self) -> ListBuilder<'_> {
         ListBuilder {
             arena: self.arena,
+            cap_table: self.cap_table.as_deref_mut(),
             ..*self
         }
     }
 
-    pub fn imbue(&mut self, cap_table: CapTableBuilder) {
-        self.cap_table = cap_table
+    pub fn imbue(&mut self, cap_table: &'a mut CapTable) {
+        self.cap_table = Some(cap_table)
     }
 
     #[inline]

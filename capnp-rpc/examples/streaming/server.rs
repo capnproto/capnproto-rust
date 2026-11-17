@@ -4,12 +4,12 @@ use std::{
 };
 
 use crate::streaming_capnp::{byte_stream, receiver};
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use capnp::Error;
 
-use futures::channel::oneshot;
 use futures::AsyncReadExt;
+use futures::channel::oneshot;
 use sha2::{Digest, Sha256};
 
 struct ByteStreamImpl {

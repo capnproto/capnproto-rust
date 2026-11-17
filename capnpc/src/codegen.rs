@@ -23,11 +23,11 @@ use std::collections;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use capnp::schema_capnp;
 use capnp::Error;
+use capnp::schema_capnp;
 
 use self::FormattedText::{BlankLine, Branch, Indent, Line};
-use crate::codegen_types::{do_branding, Leaf, RustNodeInfo, RustTypeInfo, TypeParameterTexts};
+use crate::codegen_types::{Leaf, RustNodeInfo, RustTypeInfo, TypeParameterTexts, do_branding};
 use crate::convert_io_err;
 use crate::pointer_constants::generate_pointer_constant;
 
@@ -433,7 +433,7 @@ fn format_u64(value: u64) -> String {
     let mut later_loop = false;
 
     for ch in hex[2..].chars() {
-        if later_loop && place % 4 == 0 {
+        if later_loop && place.is_multiple_of(4) {
             separated.push('_');
         }
 
@@ -811,10 +811,13 @@ pub fn getter_text(
                 }
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
-                        format!("::core::convert::TryFrom::try_from(self.{member}.get_data_field::<u16>({offset}))")
+                        format!(
+                            "::core::convert::TryFrom::try_from(self.{member}.get_data_field::<u16>({offset}))"
+                        )
                     } else {
                         format!(
-                                "::core::convert::TryFrom::try_from(self.{member}.get_data_field_mask::<u16>({offset}, {d}))")
+                            "::core::convert::TryFrom::try_from(self.{member}.get_data_field_mask::<u16>({offset}, {d}))"
+                        )
                     }
                 }
 
@@ -837,23 +840,40 @@ pub fn getter_text(
                     };
 
                     if is_reader {
-                        fmt!(ctx,
-                            "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), {default})")
+                        fmt!(
+                            ctx,
+                            "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), {default})"
+                        )
                     } else {
-                        fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})")
+                        fmt!(
+                            ctx,
+                            "{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), {default})"
+                        )
                     }
                 }
 
                 (type_::Interface(_), value::Interface(_)) => {
-                    fmt!(ctx,"match self.{member}.get_pointer_field({offset}).get_capability() {{ ::core::result::Result::Ok(c) => ::core::result::Result::Ok({capnp}::capability::FromClientHook::new(c)), ::core::result::Result::Err(e) => ::core::result::Result::Err(e)}}")
+                    fmt!(
+                        ctx,
+                        "self.{member}.get_pointer_field({offset}).get_capability().map({capnp}::capability::FromClientHook::new)"
+                    )
                 }
                 (type_::AnyPointer(_), value::AnyPointer(_)) => {
                     if !raw_type.is_parameter()? {
-                        fmt!(ctx,"{capnp}::any_pointer::{module_string}::new(self.{member}.get_pointer_field({offset}))")
+                        fmt!(
+                            ctx,
+                            "{capnp}::any_pointer::{module_string}::new(self.{member}.get_pointer_field({offset}))"
+                        )
                     } else if is_reader {
-                        fmt!(ctx,"{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), ::core::option::Option::None)")
+                        fmt!(
+                            ctx,
+                            "{capnp}::traits::FromPointerReader::get_from_pointer(&self.{member}.get_pointer_field({offset}), ::core::option::Option::None)"
+                        )
                     } else {
-                        fmt!(ctx,"{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), ::core::option::Option::None)")
+                        fmt!(
+                            ctx,
+                            "{capnp}::traits::FromPointerBuilder::get_from_pointer(self.{member}.get_pointer_field({offset}), ::core::option::Option::None)"
+                        )
                     }
                 }
                 _ => return Err(Error::failed("default value was of wrong type".to_string())),
@@ -1283,23 +1303,16 @@ fn used_params_of_type(
     use capnp::schema_capnp::type_;
     match ty.which()? {
         type_::List(ls) => {
-            let et = ls.get_element_type()?;
-            used_params_of_type(ctx, et, used_params)?;
+            used_params_of_type(ctx, ls.get_element_type()?, used_params)?;
         }
         type_::Enum(e) => {
-            let node_id = e.get_type_id();
-            let brand = e.get_brand()?;
-            used_params_of_brand(ctx, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, e.get_brand()?, used_params)?;
         }
         type_::Struct(s) => {
-            let node_id = s.get_type_id();
-            let brand = s.get_brand()?;
-            used_params_of_brand(ctx, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, s.get_brand()?, used_params)?;
         }
         type_::Interface(i) => {
-            let node_id = i.get_type_id();
-            let brand = i.get_brand()?;
-            used_params_of_brand(ctx, node_id, brand, used_params)?;
+            used_params_of_brand(ctx, i.get_brand()?, used_params)?;
         }
 
         type_::AnyPointer(ap) => {
@@ -1316,47 +1329,55 @@ fn used_params_of_type(
     Ok(())
 }
 
+// We need `used_params_of_*` to work around the fact that Rust does not allow
+// typedefs with unused type parameters.
 fn used_params_of_brand(
     ctx: &GeneratorContext,
-    node_id: u64,
     brand: schema_capnp::brand::Reader,
     used_params: &mut HashSet<String>,
 ) -> capnp::Result<()> {
     use schema_capnp::brand;
-    let scopes = brand.get_scopes()?;
-    let mut brand_scopes = HashMap::new();
-    for scope in scopes {
-        brand_scopes.insert(scope.get_scope_id(), scope);
-    }
-    let brand_scopes = brand_scopes; // freeze
-    let mut current_node_id = node_id;
-    while let Some(current_node) = ctx.node_map.get(&current_node_id) {
-        let params = current_node.get_parameters()?;
-        match brand_scopes.get(&current_node_id) {
-            None => (),
-            Some(scope) => match scope.which()? {
-                brand::scope::Inherit(()) => {
-                    for param in params {
-                        used_params.insert(param.get_name()?.to_string()?);
-                    }
+    for scope in brand.get_scopes()? {
+        match scope.which()? {
+            brand::scope::Inherit(()) => {
+                let scope_id = scope.get_scope_id();
+                for param in ctx.node_map[&scope_id].get_parameters()? {
+                    used_params.insert(param.get_name()?.to_string()?);
                 }
-                brand::scope::Bind(bindings_list_opt) => {
-                    let bindings_list = bindings_list_opt?;
-                    assert_eq!(bindings_list.len(), params.len());
-                    for binding in bindings_list {
-                        match binding.which()? {
-                            brand::binding::Unbound(()) => (),
-                            brand::binding::Type(t) => {
-                                used_params_of_type(ctx, t?, used_params)?;
-                            }
+            }
+            brand::scope::Bind(bindings_list) => {
+                for binding in bindings_list? {
+                    match binding.which()? {
+                        brand::binding::Unbound(()) => (),
+                        brand::binding::Type(t) => {
+                            used_params_of_type(ctx, t?, used_params)?;
                         }
                     }
                 }
-            },
+            }
         }
-        current_node_id = current_node.get_scope_id();
     }
     Ok(())
+}
+
+fn filter_used_params(params: &TypeParameterTexts, used_params: &HashSet<String>) -> String {
+    params
+        .expanded_list
+        .iter()
+        .filter(|s| used_params.contains(*s))
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn get_ty_params_of_brand(
+    ctx: &GeneratorContext,
+    brand: schema_capnp::brand::Reader,
+    params: &TypeParameterTexts,
+) -> ::capnp::Result<String> {
+    let mut used_params = HashSet::new();
+    used_params_of_brand(ctx, brand, &mut used_params)?;
+    Ok(filter_used_params(params, &used_params))
 }
 
 // return (the 'Which' enum, the 'which()' accessor, typedef, default_decls)
@@ -1472,16 +1493,7 @@ fn generate_union(
         "Which{}{}",
         if is_reader { "Reader" } else { "Builder" },
         if !ty_params.is_empty() {
-            format!(
-                "<'a,{}>",
-                params
-                    .expanded_list
-                    .iter()
-                    .filter(|s: &&String| used_params.contains(*s))
-                    .cloned()
-                    .collect::<Vec<String>>()
-                    .join(",")
-            )
+            format!("<'a,{}>", filter_used_params(params, &used_params))
         } else {
             "".to_string()
         }
@@ -1498,7 +1510,8 @@ fn generate_union(
 
     let getter_result = Branch(vec![
         line("#[inline]"),
-        Line(fmt!(ctx,
+        Line(fmt!(
+            ctx,
             "pub fn which(self) -> ::core::result::Result<{concrete_type}, {capnp}::NotInSchema> {{"
         )),
         indent(vec![
@@ -1602,23 +1615,33 @@ fn generate_pipeline_getter(
         field::Slot(reg_field) => {
             let typ = reg_field.get_type()?;
             match typ.which()? {
-                type_::Struct(_) | type_::AnyPointer(_) => {
-                    Ok(Branch(vec![
-                        Line(format!("pub fn get_{}(&self) -> {} {{", camel_to_snake_case(name), typ.type_string(ctx, Leaf::Pipeline)?)),
-                        indent(Line(fmt!(ctx,"{capnp}::capability::FromTypelessPipeline::new(self._typeless.get_pointer_field({}))", reg_field.get_offset()))),
-                        line("}")
-                    ]))
-                }
-                type_::Interface(_) => {
-                    Ok(Branch(vec![
-                        Line(format!("pub fn get_{}(&self) -> {} {{", camel_to_snake_case(name), typ.type_string(ctx, Leaf::Client)?)),
-                        indent(Line(fmt!(ctx,"{capnp}::capability::FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())", reg_field.get_offset()))),
-                        line("}")
-                    ]))
-                }
-                _ => {
-                    Ok(Branch(Vec::new()))
-                }
+                type_::Struct(_) | type_::AnyPointer(_) => Ok(Branch(vec![
+                    Line(format!(
+                        "pub fn get_{}(&self) -> {} {{",
+                        camel_to_snake_case(name),
+                        typ.type_string(ctx, Leaf::Pipeline)?
+                    )),
+                    indent(Line(fmt!(
+                        ctx,
+                        "{capnp}::capability::FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
+                        reg_field.get_offset()
+                    ))),
+                    line("}"),
+                ])),
+                type_::Interface(_) => Ok(Branch(vec![
+                    Line(format!(
+                        "pub fn get_{}(&self) -> {} {{",
+                        camel_to_snake_case(name),
+                        typ.type_string(ctx, Leaf::Client)?
+                    )),
+                    indent(Line(fmt!(
+                        ctx,
+                        "{capnp}::capability::FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
+                        reg_field.get_offset()
+                    ))),
+                    line("}"),
+                ])),
+                _ => Ok(Branch(Vec::new())),
             }
         }
     }
@@ -1795,16 +1818,21 @@ fn generate_get_annotation_types(
 
     if !node_reader.get_is_generic() {
         Ok(Branch(vec![
-            Line(fmt!(ctx,"pub(crate) fn get_annotation_types(child_index: Option<u16>, index: u32) -> {capnp}::introspect::Type {{")),
+            Line(fmt!(
+                ctx,
+                "pub(crate) fn get_annotation_types(child_index: Option<u16>, index: u32) -> {capnp}::introspect::Type {{"
+            )),
             indent(body),
             Line("}".into()),
         ]))
     } else {
         let params = node_reader.parameters_texts(ctx);
         Ok(Branch(vec![
-            Line(fmt!(ctx,
+            Line(fmt!(
+                ctx,
                 "pub(crate) fn get_annotation_types<{0}>(child_index: Option<u16>, index: u32) -> {capnp}::introspect::Type {1} {{",
-                params.params, params.where_clause
+                params.params,
+                params.where_clause
             )),
             indent(body),
             Line("}".into()),
@@ -1883,102 +1911,6 @@ fn generate_members_by_name(
     members_by_name_string += "];";
 
     Ok(Branch(vec![Line(members_by_name_string)]))
-}
-
-// We need this to work around the fact that Rust does not allow typedefs
-// with unused type parameters.
-fn get_ty_params_of_brand(
-    ctx: &GeneratorContext,
-    brand: schema_capnp::brand::Reader,
-) -> ::capnp::Result<String> {
-    let mut acc = HashSet::new();
-    get_ty_params_of_brand_helper(ctx, &mut acc, brand)?;
-    let mut result = String::new();
-    for (scope_id, parameter_index) in acc.into_iter() {
-        let node = ctx.node_map[&scope_id];
-        let p = node.get_parameters()?.get(u32::from(parameter_index));
-        result.push_str(p.get_name()?.to_str()?);
-        result.push(',');
-    }
-
-    Ok(result)
-}
-
-fn get_ty_params_of_type_helper(
-    ctx: &GeneratorContext,
-    accumulator: &mut HashSet<(u64, u16)>,
-    typ: schema_capnp::type_::Reader,
-) -> ::capnp::Result<()> {
-    use capnp::schema_capnp::type_;
-    match typ.which()? {
-        type_::Void(())
-        | type_::Bool(())
-        | type_::Int8(())
-        | type_::Int16(())
-        | type_::Int32(())
-        | type_::Int64(())
-        | type_::Uint8(())
-        | type_::Uint16(())
-        | type_::Uint32(())
-        | type_::Uint64(())
-        | type_::Float32(())
-        | type_::Float64(())
-        | type_::Text(_)
-        | type_::Data(_) => {}
-        type_::AnyPointer(p) => {
-            match p.which()? {
-                type_::any_pointer::Unconstrained(_) => (),
-                type_::any_pointer::Parameter(p) => {
-                    accumulator.insert((p.get_scope_id(), p.get_parameter_index()));
-                }
-                type_::any_pointer::ImplicitMethodParameter(_) => {
-                    // XXX
-                }
-            }
-        }
-        type_::List(list) => {
-            get_ty_params_of_type_helper(ctx, accumulator, list.get_element_type()?)?
-        }
-        type_::Enum(e) => {
-            get_ty_params_of_brand_helper(ctx, accumulator, e.get_brand()?)?;
-        }
-        type_::Struct(s) => {
-            get_ty_params_of_brand_helper(ctx, accumulator, s.get_brand()?)?;
-        }
-        type_::Interface(interf) => {
-            get_ty_params_of_brand_helper(ctx, accumulator, interf.get_brand()?)?;
-        }
-    }
-    Ok(())
-}
-
-fn get_ty_params_of_brand_helper(
-    ctx: &GeneratorContext,
-    accumulator: &mut HashSet<(u64, u16)>,
-    brand: schema_capnp::brand::Reader,
-) -> ::capnp::Result<()> {
-    for scope in brand.get_scopes()? {
-        let scope_id = scope.get_scope_id();
-        match scope.which()? {
-            schema_capnp::brand::scope::Bind(bind) => {
-                for binding in bind? {
-                    match binding.which()? {
-                        schema_capnp::brand::binding::Unbound(()) => {}
-                        schema_capnp::brand::binding::Type(t) => {
-                            get_ty_params_of_type_helper(ctx, accumulator, t?)?
-                        }
-                    }
-                }
-            }
-            schema_capnp::brand::scope::Inherit(()) => {
-                let parameters = ctx.node_map[&scope_id].get_parameters()?;
-                for idx in 0..parameters.len() {
-                    accumulator.insert((scope_id, idx as u16));
-                }
-            }
-        }
-    }
-    Ok(())
 }
 
 fn generate_node(
@@ -2161,32 +2093,57 @@ fn generate_node(
                 preamble.push(BlankLine);
             }
 
-            let builder_struct_size =
-                Branch(vec![
-                    Line(fmt!(ctx,"impl <{0}> {capnp}::traits::HasStructSize for Builder<'_,{0}> {1} {{",
-                                 params.params, params.where_clause)),
-                                 indent(Line(
-                        fmt!(ctx,"const STRUCT_SIZE: {capnp}::private::layout::StructSize = {capnp}::private::layout::StructSize {{ data: {}, pointers: {} }};", data_size as usize, pointer_size as usize))),
-                   line("}")]);
+            let builder_struct_size = Branch(vec![
+                Line(fmt!(
+                    ctx,
+                    "impl <{0}> {capnp}::traits::HasStructSize for Builder<'_,{0}> {1} {{",
+                    params.params,
+                    params.where_clause
+                )),
+                indent(Line(fmt!(
+                    ctx,
+                    "const STRUCT_SIZE: {capnp}::private::layout::StructSize = {capnp}::private::layout::StructSize {{ data: {}, pointers: {} }};",
+                    data_size as usize,
+                    pointer_size as usize
+                ))),
+                line("}"),
+            ]);
 
             private_mod_interior.push(Line(format!(
                 "pub(crate) const TYPE_ID: u64 = {};",
                 format_u64(node_id)
             )));
 
-            let from_pointer_builder_impl =
-                Branch(vec![
-                    Line(fmt!(ctx,"impl <'a,{0}> {capnp}::traits::FromPointerBuilder<'a> for Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
-                    indent(vec![
-                        Line(fmt!(ctx,"fn init_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, _size: u32) -> Self {{")),
-                        indent(Line(fmt!(ctx,"builder.init_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE).into()"))),
-                        line("}"),
-                        Line(fmt!(ctx,"fn get_from_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [{capnp}::Word]>) -> {capnp}::Result<Self> {{")),
-                        indent(Line(fmt!(ctx,"::core::result::Result::Ok(builder.get_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE, default)?.into())"))),
-                        line("}")
-                    ]),
+            let from_pointer_builder_impl = Branch(vec![
+                Line(fmt!(
+                    ctx,
+                    "impl <'a,{0}> {capnp}::traits::FromPointerBuilder<'a> for Builder<'a,{0}> {1} {{",
+                    params.params,
+                    params.where_clause
+                )),
+                indent(vec![
+                    Line(fmt!(
+                        ctx,
+                        "fn init_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, _size: u32) -> Self {{"
+                    )),
+                    indent(Line(fmt!(
+                        ctx,
+                        "builder.init_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE).into()"
+                    ))),
                     line("}"),
-                    BlankLine]);
+                    Line(fmt!(
+                        ctx,
+                        "fn get_from_pointer(builder: {capnp}::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [{capnp}::Word]>) -> {capnp}::Result<Self> {{"
+                    )),
+                    indent(Line(fmt!(
+                        ctx,
+                        "::core::result::Result::Ok(builder.get_struct(<Self as {capnp}::traits::HasStructSize>::STRUCT_SIZE, default)?.into())"
+                    ))),
+                    line("}"),
+                ]),
+                line("}"),
+                BlankLine,
+            ]);
 
             let accessors = vec![
                 Branch(preamble),
@@ -2294,7 +2251,7 @@ fn generate_node(
                     params.params, params.where_clause)),
                 indent(vec![
                     Line(fmt!(ctx,"fn imbue(&mut self, cap_table: &'a {capnp}::private::layout::CapTable) {{")),
-                    indent(Line(fmt!(ctx,"self.reader.imbue({capnp}::private::layout::CapTableReader::from_ref(cap_table))"))),
+                    indent(line("self.reader.imbue(cap_table)")),
                     line("}")
                 ]),
                 line("}"),
@@ -2360,7 +2317,7 @@ fn generate_node(
                              params.params, params.where_clause)),
                 indent(vec![
                         Line(fmt!(ctx,"fn imbue_mut(&mut self, cap_table: &'a mut {capnp}::private::layout::CapTable) {{")),
-                        indent(Line(fmt!(ctx,"self.builder.imbue({capnp}::private::layout::CapTableBuilder::from_ref(cap_table))"))),
+                        indent(line("self.builder.imbue(cap_table)")),
                         line("}")]),
                 line("}"),
                 BlankLine,
@@ -2572,7 +2529,7 @@ fn generate_node(
                 } else {
                     (
                         ctx.scope_map[&param_node.get_id()].clone(),
-                        get_ty_params_of_brand(ctx, method.get_param_brand()?)?,
+                        get_ty_params_of_brand(ctx, method.get_param_brand()?, &params)?,
                     )
                 };
                 let param_type = do_branding(
@@ -2608,7 +2565,7 @@ fn generate_node(
                     } else {
                         (
                             ctx.scope_map[&result_node.get_id()].clone(),
-                            get_ty_params_of_brand(ctx, method.get_result_brand()?)?,
+                            get_ty_params_of_brand(ctx, method.get_result_brand()?, &params)?,
                         )
                     };
                     let result_type = do_branding(
@@ -3031,8 +2988,8 @@ fn generate_node(
                                         capitalize_first_letter(get_enumerant_name(enumerant)?);
                                     let type_string = typ.type_string(ctx, Leaf::Owned)?;
                                     Line(format!(
-                                        "pub const {}: {} = {}::{};",
-                                        styled_name, &type_string, &type_string, variant
+                                        "pub const {}: {type_string} = {type_string}::{};",
+                                        styled_name, variant
                                     ))
                                 } else {
                                     return Err(Error::failed(format!(

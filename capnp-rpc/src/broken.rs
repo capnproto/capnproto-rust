@@ -19,11 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use capnp::Error;
 use capnp::any_pointer;
 use capnp::private::capability::{
     ClientHook, ParamsHook, PipelineHook, PipelineOp, RequestHook, ResultsHook,
 };
-use capnp::Error;
 
 use capnp::capability::{Promise, RemotePromise};
 use capnp::traits::ImbueMut;

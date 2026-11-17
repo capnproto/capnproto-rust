@@ -21,9 +21,9 @@
 
 #![cfg(feature = "alloc")]
 
+use crate::MessageSize;
 use crate::any_pointer;
 use crate::capability::{Params, Promise, RemotePromise, Request, Results};
-use crate::MessageSize;
 
 /// An opaque process-local invocation origin. Never serialized or attached to a capability.
 ///

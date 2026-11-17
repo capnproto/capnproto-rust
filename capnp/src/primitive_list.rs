@@ -23,13 +23,13 @@
 
 use core::marker;
 
+use crate::Result;
 use crate::introspect;
 use crate::private::layout::{
-    data_bits_per_element, ElementSize, ListBuilder, ListReader, PointerBuilder, PointerReader,
-    PrimitiveElement,
+    ElementSize, ListBuilder, ListReader, PointerBuilder, PointerReader, PrimitiveElement,
+    data_bits_per_element,
 };
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter};
-use crate::Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned<T> {
@@ -136,11 +136,9 @@ impl<T: PrimitiveElement> Reader<'_, T> {
         if self.reader.get_element_size() == T::element_size() {
             let bytes = self.reader.into_raw_bytes();
             let bits_per_element = data_bits_per_element(T::element_size()) as usize;
-            let slice_length = if bits_per_element > 0 {
-                8 * bytes.len() / bits_per_element
-            } else {
-                // This is a List(Void).
-                self.len() as usize
+            let slice_length = match (8 * bytes.len()).checked_div(bits_per_element) {
+                Some(n) => n,
+                None => self.len() as usize, // This is a List(Void).
             };
             if slice_length == 0 {
                 Some(&[])
@@ -158,10 +156,14 @@ impl<T: PrimitiveElement> Reader<'_, T> {
 const fn check_slice_supported<T: PrimitiveElement>() {
     if core::mem::size_of::<T>() > 1 {
         if !cfg!(target_endian = "little") {
-            panic!("cannot call as_slice on primitive list of multi-byte elements on non-little endian targets");
+            panic!(
+                "cannot call as_slice on primitive list of multi-byte elements on non-little endian targets"
+            );
         }
         if cfg!(feature = "unaligned") {
-            panic!("cannot call as_slice on primitive list of multi-byte elements when unaligned feature is enabled");
+            panic!(
+                "cannot call as_slice on primitive list of multi-byte elements when unaligned feature is enabled"
+            );
         }
     }
 }
@@ -230,11 +232,9 @@ where
         if self.builder.get_element_size() == T::element_size() {
             let bytes = self.builder.as_raw_bytes();
             let bits_per_element = data_bits_per_element(T::element_size()) as usize;
-            let slice_length = if bits_per_element > 0 {
-                8 * bytes.len() / bits_per_element
-            } else {
-                // This is a List(Void).
-                self.len() as usize
+            let slice_length = match (8 * bytes.len()).checked_div(bits_per_element) {
+                Some(n) => n,
+                None => self.len() as usize, // This is a List(Void).
             };
             if slice_length == 0 {
                 Some(&mut [])

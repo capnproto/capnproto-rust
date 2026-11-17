@@ -25,11 +25,11 @@ use crate::test_capnp::{
     test_streaming,
 };
 
-use capnp::capability::FromClientHook;
 use capnp::Error;
+use capnp::capability::FromClientHook;
 
-use futures::channel::oneshot;
 use futures::TryFutureExt;
+use futures::channel::oneshot;
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -566,6 +566,17 @@ impl test_more_stuff::Server for TestMoreStuff {
             .get()
             .set_cap(capnp_rpc::new_client(TestSelfImpl::new()));
         Ok(())
+    }
+
+    async fn throw_exception_with_detail(
+        self: Rc<Self>,
+        _params: test_more_stuff::ThrowExceptionWithDetailParams,
+        _results: test_more_stuff::ThrowExceptionWithDetailResults,
+    ) -> Result<(), Error> {
+        let mut err = Error::failed("test exception".to_string());
+        err.set_detail(1, b"foo".to_vec());
+        err.set_detail(2, b"bar".to_vec());
+        Err(err)
     }
 }
 

@@ -58,9 +58,9 @@
 //!
 //! For a more complete example, see <https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator>
 
+use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::ClientHook;
-use capnp::Error;
 use futures::channel::oneshot;
 use futures::{Future, FutureExt, TryFutureExt};
 use std::cell::RefCell;
@@ -71,7 +71,7 @@ use std::task::{Context, Poll};
 pub use crate::rpc::Disconnector;
 use crate::task_set::TaskSet;
 
-pub use crate::reconnect::{auto_reconnect, lazy_auto_reconnect, SetTarget};
+pub use crate::reconnect::{SetTarget, auto_reconnect, lazy_auto_reconnect};
 
 /// Code generated from
 /// [rpc.capnp](https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/rpc.capnp).
@@ -87,7 +87,7 @@ pub mod rpc_twoparty_capnp;
 /// enclosing function with `Promise::err(e)`.
 #[macro_export]
 macro_rules! pry {
-    ($expr:expr) => {
+    ($expr:expr_2021) => {
         match $expr {
             ::std::result::Result::Ok(val) => val,
             ::std::result::Result::Err(err) => {
@@ -298,6 +298,19 @@ impl<VatId> RpcSystem<VatId> {
         let accept_loop = result.accept_loop();
         handle.add(accept_loop);
         result
+    }
+
+    /// Sets the callback used to log errors from this RpcSystem's background tasks.
+    ///
+    /// The default handler attempts to write errors to stderr.
+    /// The replacement is called synchronously while polling this `RpcSystem`,
+    /// including for tasks that were already running when the handler was set.
+    /// Set the handler before spawning the system to handle errors from its first poll.
+    ///
+    /// This callback is intended only for reporting errors. It should return promptly.
+    pub fn set_background_error_handler(&mut self, handler: impl FnMut(Error) + 'static) {
+        self.tasks
+            .set_reaper(Box::new(BackgroundErrorHandler(handler)));
     }
 
     /// Connects to the given vat and returns its bootstrap interface, returns
@@ -526,7 +539,19 @@ where
 struct SystemTaskReaper;
 impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
-        println!("ERROR: {error}");
+        use std::io::Write;
+        // Unlike println!, this does not panic on I/O errors, such as when
+        // nonblocking stderr's buffer is full. Reporting a background task
+        // failure should not panic while the RpcSystem is being polled.
+        let _ = writeln!(std::io::stderr().lock(), "ERROR: {error}");
+    }
+}
+
+struct BackgroundErrorHandler<F>(F);
+
+impl<F: FnMut(Error)> crate::task_set::TaskReaper<Error> for BackgroundErrorHandler<F> {
+    fn task_failed(&mut self, error: Error) {
+        (self.0)(error);
     }
 }
 

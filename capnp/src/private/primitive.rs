@@ -29,7 +29,7 @@ macro_rules! primitive_impl(
 
 #[cfg(not(feature = "unaligned"))]
 macro_rules! primitive_impl(
-    ($typ:ty, $n:expr) => (
+    ($typ:ty, $n:expr_2021) => (
         impl Primitive for $typ {
             type Raw = Self;
 

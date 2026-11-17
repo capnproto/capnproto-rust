@@ -1,4 +1,4 @@
-use capnp_rpc::{auto_reconnect, new_future_client, rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{RpcSystem, auto_reconnect, new_future_client, rpc_twoparty_capnp, twoparty};
 use futures::AsyncReadExt as _;
 use tokio::net::ToSocketAddrs;
 

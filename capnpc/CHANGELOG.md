@@ -1,3 +1,11 @@
+## v0.28.1
+- Simplify generated code for capability getters.
+- Fix bug where type parameters were generated in nondeterministic
+  order in certain situations involving nested scopes.
+
+## v0.28.0
+- Adjust generated code for updated `imbue()` API in base crate.
+
 ## v0.27.0
 - Adjust generated code for updated base crate API.
 

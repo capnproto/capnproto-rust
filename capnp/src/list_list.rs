@@ -21,10 +21,10 @@
 
 //! List of lists.
 
+use crate::Result;
 use crate::introspect;
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use crate::traits::{FromPointerBuilder, FromPointerReader, IndexMove, ListIter, SetterInput};
-use crate::Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned<T>

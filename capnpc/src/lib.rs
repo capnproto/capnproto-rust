@@ -31,10 +31,10 @@
 //!
 //! ```ignore
 //! [dependencies]
-//! capnp = "0.27" # Note this is a different library than capnp*c*
+//! capnp = "0.28" # Note this is a different library than capnp*c*
 //!
 //! [build-dependencies]
-//! capnpc = "0.27"
+//! capnpc = "0.28"
 //! ```
 //!
 //! In your build.rs:
@@ -84,10 +84,7 @@ pub(crate) fn convert_io_err(err: std::io::Error) -> capnp::Error {
         | io::ErrorKind::NotConnected => capnp::ErrorKind::Disconnected,
         _ => capnp::ErrorKind::Failed,
     };
-    capnp::Error {
-        extra: format!("{err}"),
-        kind,
-    }
+    capnp::Error::new(kind, format!("{err}"))
 }
 
 fn run_command(
@@ -301,7 +298,7 @@ impl CompilerCommand {
                     "Failed to execute `capnp --version`: {error}. \
                      Please verify that version 0.5.2 or higher of the capnp executable \
                      is installed on your system. See https://capnproto.org/install.html"
-                )))
+                )));
             }
             Ok(output) => {
                 if !output.status.success() {
@@ -393,7 +390,12 @@ impl CompilerCommand {
 #[test]
 #[cfg_attr(miri, ignore)]
 fn compiler_command_new_no_out_dir() {
-    std::env::remove_var("OUT_DIR");
-    let error = CompilerCommand::new().run().unwrap_err().extra;
-    assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
+    // FIXME: Audit that the environment access only happens in single-threaded code.
+    unsafe { std::env::remove_var("OUT_DIR") };
+    let error = CompilerCommand::new().run().unwrap_err();
+    assert!(
+        error
+            .extra()
+            .starts_with("Could not access `OUT_DIR` environment variable")
+    );
 }

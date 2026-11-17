@@ -21,8 +21,8 @@
 
 //! Sequence of bytes.
 
-use crate::private::layout::{PointerBuilder, PointerReader};
 use crate::Result;
+use crate::private::layout::{PointerBuilder, PointerReader};
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
@@ -41,7 +41,7 @@ impl crate::introspect::Introspect for Owned {
 pub type Reader<'a> = &'a [u8];
 
 pub(crate) unsafe fn reader_from_raw_parts<'a>(p: *const u8, len: u32) -> Reader<'a> {
-    ::core::slice::from_raw_parts(p, len as usize)
+    unsafe { ::core::slice::from_raw_parts(p, len as usize) }
 }
 
 impl<'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
@@ -56,7 +56,7 @@ impl<'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
 pub type Builder<'a> = &'a mut [u8];
 
 pub(crate) unsafe fn builder_from_raw_parts<'a>(p: *mut u8, len: u32) -> Builder<'a> {
-    ::core::slice::from_raw_parts_mut(p, len as usize)
+    unsafe { ::core::slice::from_raw_parts_mut(p, len as usize) }
 }
 
 impl<'a> crate::traits::FromPointerBuilder<'a> for Builder<'a> {

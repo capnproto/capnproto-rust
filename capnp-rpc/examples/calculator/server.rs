@@ -22,12 +22,12 @@
 use std::cell::RefCell;
 
 use ::capnp::message::HeapAllocator;
+use capnp::Error;
 use capnp::capability::Promise;
 use capnp::primitive_list;
-use capnp::Error;
 
 use ::capnp_rpc::ImbuedMessageBuilder;
-use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use crate::calculator_capnp::calculator;
 

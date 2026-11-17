@@ -1,3 +1,13 @@
+## v0.28.0
+- Add `Error::details` to enable attaching arbitrary extra data to errors.
+- Hide the `Error::extra` field behind an accessor method `.extra()`.
+- Simplify `CapTable` management.
+- Remove deprecated Type::loose_equals() method.
+- Make fields private in `any_pointer::Pipeline` and `capability::Response`.
+- Change several `capnp::private` items from `pub` visibility to `pub(crate)` visibility.
+- Bump capnp schema files to the latest from the upstream v2 branch.
+- Bump minimium required rust version to 1.87.0.
+
 ## v0.27.3
 - Avoid possible undefined behavior in is_canonical().
 - Fix overflows possible on 32-bit targets.
