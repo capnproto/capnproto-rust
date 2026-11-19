@@ -1,3 +1,6 @@
+## v0.28.1
+- Reimplement `capnp::serialize_packed` in safe code.
+
 ## v0.28.0
 - Add `Error::details` to enable attaching arbitrary extra data to errors.
 - Hide the `Error::extra` field behind an accessor method `.extra()`.
