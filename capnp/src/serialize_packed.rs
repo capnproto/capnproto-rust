@@ -23,7 +23,6 @@
 //! [packed stream encoding](https://capnproto.org/encoding.html#packing).
 
 use crate::io::{BufRead, Read, Write};
-use core::{mem, ptr, slice};
 
 use crate::message;
 use crate::serialize;
@@ -45,189 +44,219 @@ impl<R> PackedRead<R>
 where
     R: BufRead,
 {
-    fn get_read_buffer(&mut self) -> Result<(*const u8, *const u8)> {
-        let buf = self.inner.fill_buf()?;
-        Ok((buf.as_ptr(), buf.as_ptr().wrapping_add(buf.len())))
+    // Called only after consuming every byte of the current input buffer.
+    fn refill(&mut self, buffer_len: &mut usize) -> Result<&[u8]> {
+        self.inner.consume(*buffer_len);
+        let input = self.inner.fill_buf()?;
+        if input.is_empty() {
+            return Err(Error::from_kind(ErrorKind::PrematureEndOfPackedInput));
+        }
+        *buffer_len = input.len();
+        Ok(input)
     }
 }
 
-#[inline]
-fn ptr_sub<T>(p1: *const T, p2: *const T) -> usize {
-    (p1 as usize - p2 as usize) / mem::size_of::<T>()
+// Unpacks 4 output bytes (half a Cap'n Proto word) according to a 4-bit tag.
+//
+// Each bit in the tag corresponds to one output byte (bit 0 -> byte 0, ...,
+// bit 3 -> byte 3): a 1 bit copies the next byte from the packed input, and a
+// 0 bit emits a zero byte. An 8-bit word tag splits into two 4-bit halves that
+// both use this 16-entry table.
+//
+// Why only two shifts?
+// Split the 4 output bytes into two adjacent pairs: bytes 0..2 and bytes 2..4.
+// Within a pair, at most two bytes are present. If both are present, they are
+// also adjacent in the packed input, so a single bit-shift moves the entire
+// pair into position. Any absent byte in the pair is then zeroed by masking
+// with `present_bytes`.
+//
+// Example: tag 0b1101 (bits 0, 2, 3 set) unpacks input [a, b, c, ..] into
+// [a, 0, b, c]. Loaded little-endian into a u64, shifting left by 8*k moves
+// bytes right by k positions in byte-array order:
+//   packed:                            [a, b, c, ..]
+//   low_pair  = (packed << 0) & low:   [a, b, 0, 0]   (bytes 0..2)
+//   high_pair = (packed << 8) & high:  [0, 0, b, c]   (bytes 2..4)
+//   low_pair | high_pair:              [a, b, b, c]
+//   & present_bytes (0xffff_00ff):     [a, 0, b, c]   (clears stray b)
+#[derive(Clone, Copy)]
+struct UnpackHalf {
+    /// Left-shift in bits for output byte pairs [0..2, 2..4].
+    shifts: [u8; 2],
+    /// Number of packed input bytes consumed by this half (0..=4).
+    packed_len: u8,
+    /// Little-endian byte mask with 0xff at each present output byte and 0x00 elsewhere.
+    present_bytes: u32,
 }
 
-macro_rules! refresh_buffer(
-    ($this:expr_2021, $size:ident, $in_ptr:ident, $in_end:ident, $out:ident,
-     $outBuf:ident, $buffer_begin:ident) => (
-        {
-            $this.inner.consume($size);
-            let (b, e) = $this.get_read_buffer()?;
-            $in_ptr = b;
-            $in_end = e;
-            $size = ptr_sub($in_end, $in_ptr);
-            $buffer_begin = b;
-            if $size == 0 {
-                return Err(Error::from_kind(ErrorKind::PrematureEndOfPackedInput));
+impl UnpackHalf {
+    #[inline]
+    fn unpack(&self, packed: u64) -> u64 {
+        let low_pair = (packed << self.shifts[0]) & 0x0000_ffff;
+        let high_pair = (packed << self.shifts[1]) & 0xffff_0000;
+        (low_pair | high_pair) & u64::from(self.present_bytes)
+    }
+}
+
+static UNPACK_HALVES: [UnpackHalf; 16] = {
+    let mut halves = [UnpackHalf {
+        shifts: [0; 2],
+        packed_len: 0,
+        present_bytes: 0,
+    }; 16];
+    let mut tag = 0;
+    while tag < halves.len() {
+        let entry = &mut halves[tag];
+        let mut out_idx = 0u8;
+        while out_idx < 4 {
+            if tag & (1 << out_idx) != 0 {
+                // `entry.packed_len` is this byte's index in the packed input.
+                // Shifting left by `8 * (out_idx - in_idx)` moves it to `out_idx`.
+                // If both bytes of a pair are present, `out_idx` and `in_idx`
+                // both increment by 1, yielding the exact same shift.
+                entry.shifts[(out_idx / 2) as usize] = 8 * (out_idx - entry.packed_len);
+                entry.present_bytes |= 0xff << (out_idx * 8);
+                entry.packed_len += 1;
             }
+            out_idx += 1;
         }
-        );
-    );
+        tag += 1;
+    }
+    halves
+};
+
+// Number of packed payload bytes (i.e. `tag.count_ones()`) for each 8-bit tag.
+// Precomputed so the read loop can advance the input slice in a single lookup.
+static PACKED_LENGTHS: [u8; 256] = {
+    let mut lengths = [0; 256];
+    let mut tag = 0;
+    while tag < lengths.len() {
+        lengths[tag] = UNPACK_HALVES[tag & 15].packed_len + UNPACK_HALVES[tag >> 4].packed_len;
+        tag += 1;
+    }
+    lengths
+};
+
+#[inline]
+fn unpack_word(tag: u8, bytes: &[u8; 8]) -> [u8; 8] {
+    let low = &UNPACK_HALVES[usize::from(tag & 15)];
+    let high = &UNPACK_HALVES[usize::from(tag >> 4)];
+    let packed = u64::from_le_bytes(*bytes);
+    let lower = low.unpack(packed);
+    // Discard the lower half's packed bytes so the upper half's bytes start at byte 0.
+    let upper = high.unpack(packed >> (8 * low.packed_len));
+    (lower | (upper << 32)).to_le_bytes()
+}
+
+// On a refill error, leave the output written up to the first missing packed byte.
+#[cold]
+fn unpack_incomplete_word(tag: u8, packed: &[u8], word: &mut [u8; 8]) {
+    let mut packed = packed.iter();
+    for (bit, dest) in word.iter_mut().enumerate() {
+        if tag & (1 << bit) == 0 {
+            *dest = 0;
+        } else if let Some(&byte) = packed.next() {
+            *dest = byte;
+        } else {
+            break;
+        }
+    }
+}
 
 impl<R> Read for PackedRead<R>
 where
     R: BufRead,
 {
-    fn read(&mut self, out_buf: &mut [u8]) -> Result<usize> {
-        let len = out_buf.len();
+    fn read(&mut self, mut output: &mut [u8]) -> Result<usize> {
+        let len = output.len();
         if len == 0 {
             return Ok(0);
         }
-
         assert!(
             len.is_multiple_of(8),
             "PackedRead reads must be word-aligned."
         );
 
-        unsafe {
-            let out_buf_start = out_buf.as_mut_ptr();
-            let mut out = out_buf_start;
-            let out_end: *mut u8 = out.wrapping_add(len);
-
-            let (mut in_ptr, mut in_end) = self.get_read_buffer()?;
-            let mut buffer_begin = in_ptr;
-            let mut size = ptr_sub(in_end, in_ptr);
-            if size == 0 {
-                return Ok(0);
+        let mut input = self.inner.fill_buf()?;
+        if input.is_empty() {
+            return Ok(0);
+        }
+        let mut buffer_len = input.len();
+        while let Some((word, rest)) = output.split_first_chunk_mut::<8>() {
+            output = rest;
+            if input.is_empty() {
+                input = self.refill(&mut buffer_len)?;
+            }
+            let tag = input[0];
+            input = &input[1..];
+            if tag == 0 {
+                word.fill(0);
+            } else {
+                let packed_len = usize::from(PACKED_LENGTHS[usize::from(tag)]);
+                let mut padded = [0; 8];
+                let bytes = if let Some(bytes) = input.first_chunk::<8>() {
+                    input = &input[packed_len..];
+                    bytes
+                } else {
+                    // Gather only this word's packed bytes, leaving the next tag or run count unread.
+                    let mut copied = 0;
+                    while packed_len - copied > input.len() {
+                        padded[copied..copied + input.len()].copy_from_slice(input);
+                        copied += input.len();
+                        input = self.refill(&mut buffer_len).inspect_err(|_| {
+                            unpack_incomplete_word(tag, &padded[..copied], word);
+                        })?;
+                    }
+                    let (last, rest) = input.split_at(packed_len - copied);
+                    padded[copied..packed_len].copy_from_slice(last);
+                    input = rest;
+                    &padded
+                };
+                *word = if tag == 0xff {
+                    *bytes
+                } else {
+                    unpack_word(tag, bytes)
+                };
             }
 
-            loop {
-                let tag: u8;
-
-                assert_eq!(
-                    ptr_sub(out, out_buf_start) % 8,
-                    0,
-                    "Output pointer should always be aligned here."
-                );
-
-                if ptr_sub(in_end, in_ptr) < 10 {
-                    if ptr_sub(in_end, in_ptr) == 0 {
-                        refresh_buffer!(self, size, in_ptr, in_end, out, out_buf, buffer_begin);
-                        continue;
-                    }
-
-                    //# We have at least 1, but not 10, bytes available. We need to read
-                    //# slowly, doing a bounds check on each byte.
-
-                    tag = *in_ptr;
-                    in_ptr = in_ptr.add(1);
-
-                    for i in 0..8 {
-                        if (tag & (1u8 << i)) != 0 {
-                            if ptr_sub(in_end, in_ptr) == 0 {
-                                refresh_buffer!(
-                                    self,
-                                    size,
-                                    in_ptr,
-                                    in_end,
-                                    out,
-                                    out_buf,
-                                    buffer_begin
-                                );
-                            }
-                            *out = *in_ptr;
-                            out = out.add(1);
-                            in_ptr = in_ptr.add(1);
-                        } else {
-                            *out = 0;
-                            out = out.add(1);
-                        }
-                    }
-
-                    if ptr_sub(in_end, in_ptr) == 0 && (tag == 0 || tag == 0xff) {
-                        refresh_buffer!(self, size, in_ptr, in_end, out, out_buf, buffer_begin);
-                    }
-                } else {
-                    tag = *in_ptr;
-                    in_ptr = in_ptr.add(1);
-
-                    for n in 0..8 {
-                        let is_nonzero = (tag & (1u8 << n)) != 0;
-                        *out = (*in_ptr) & ((-i8::from(is_nonzero)) as u8);
-                        out = out.add(1);
-                        in_ptr = in_ptr.add(is_nonzero as usize);
-                    }
+            if tag == 0 || tag == 0xff {
+                if input.is_empty() {
+                    input = self.refill(&mut buffer_len)?;
                 }
+                let (&count, rest) = input.split_first().unwrap();
+                input = rest;
+                let (run, rest) = output
+                    .split_at_mut_checked(usize::from(count) * 8)
+                    .ok_or_else(|| {
+                        Error::from_kind(ErrorKind::PackedInputDidNotEndCleanlyOnASegmentBoundary)
+                    })?;
+                output = rest;
+
                 if tag == 0 {
-                    assert!(
-                        ptr_sub(in_end, in_ptr) > 0,
-                        "Should always have non-empty buffer here."
-                    );
-
-                    let run_length: usize = (*in_ptr) as usize * 8;
-                    in_ptr = in_ptr.add(1);
-
-                    if run_length > ptr_sub(out_end, out) {
-                        return Err(Error::from_kind(
-                            ErrorKind::PackedInputDidNotEndCleanlyOnASegmentBoundary,
-                        ));
+                    run.fill(0);
+                } else if let Some((literal, rest)) = input.split_at_checked(run.len()) {
+                    run.copy_from_slice(literal);
+                    input = rest;
+                } else {
+                    // Finish a literal run directly into the caller's buffer.
+                    let (buffered, remaining) = run.split_at_mut(input.len());
+                    buffered.copy_from_slice(input);
+                    self.inner.consume(buffer_len);
+                    self.inner.read_exact(remaining)?;
+                    if output.is_empty() {
+                        return Ok(len);
                     }
-
-                    ptr::write_bytes(out, 0, run_length);
-                    out = out.add(run_length);
-                } else if tag == 0xff {
-                    assert!(
-                        ptr_sub(in_end, in_ptr) > 0,
-                        "Should always have non-empty buffer here"
-                    );
-
-                    let mut run_length: usize = (*in_ptr) as usize * 8;
-                    in_ptr = in_ptr.add(1);
-
-                    if run_length > ptr_sub(out_end, out) {
-                        return Err(Error::from_kind(
-                            ErrorKind::PackedInputDidNotEndCleanlyOnASegmentBoundary,
-                        ));
+                    input = self.inner.fill_buf()?;
+                    buffer_len = input.len();
+                    if input.is_empty() {
+                        return Err(Error::from_kind(ErrorKind::PrematureEndOfPackedInput));
                     }
-
-                    let in_remaining = ptr_sub(in_end, in_ptr);
-                    if in_remaining >= run_length {
-                        //# Fast path.
-                        ptr::copy_nonoverlapping(in_ptr, out, run_length);
-                        out = out.add(run_length);
-                        in_ptr = in_ptr.add(run_length);
-                    } else {
-                        //# Copy over the first buffer, then do one big read for the rest.
-                        ptr::copy_nonoverlapping(in_ptr, out, in_remaining);
-                        out = out.add(in_remaining);
-                        run_length -= in_remaining;
-
-                        self.inner.consume(size);
-                        {
-                            let buf = slice::from_raw_parts_mut::<u8>(out, run_length);
-                            self.inner.read_exact(buf)?;
-                        }
-
-                        out = out.add(run_length);
-
-                        if out == out_end {
-                            return Ok(len);
-                        } else {
-                            let (b, e) = self.get_read_buffer()?;
-                            in_ptr = b;
-                            in_end = e;
-                            size = ptr_sub(e, b);
-                            buffer_begin = in_ptr;
-                            continue;
-                        }
-                    }
-                }
-
-                if out == out_end {
-                    self.inner.consume(ptr_sub(in_ptr, buffer_begin));
-                    return Ok(len);
                 }
             }
         }
+
+        let consumed = buffer_len - input.len();
+        self.inner.consume(consumed);
+        Ok(len)
     }
 }
 
@@ -304,141 +333,52 @@ impl<W> Write for PackedWrite<W>
 where
     W: Write,
 {
-    fn write_all(&mut self, in_buf: &[u8]) -> Result<()> {
-        unsafe {
-            let mut buf_idx: usize = 0;
-            let mut buf: [u8; 64] = [0; 64];
-
-            let mut in_ptr: *const u8 = in_buf.as_ptr();
-            let in_end: *const u8 = in_buf.as_ptr().wrapping_add(in_buf.len());
-
-            while in_ptr < in_end {
-                if buf_idx + 10 > buf.len() {
-                    //# Oops, we're out of space. We need at least 10
-                    //# bytes for the fast path, since we don't
-                    //# bounds-check on every byte.
-                    self.inner.write_all(&buf[..buf_idx])?;
-                    buf_idx = 0;
-                }
-
-                let tag_pos = buf_idx;
-                buf_idx += 1;
-
-                let bit0 = u8::from(*in_ptr != 0);
-                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
-                buf_idx += bit0 as usize;
-                in_ptr = in_ptr.add(1);
-
-                let bit1 = u8::from(*in_ptr != 0);
-                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
-                buf_idx += bit1 as usize;
-                in_ptr = in_ptr.add(1);
-
-                let bit2 = u8::from(*in_ptr != 0);
-                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
-                buf_idx += bit2 as usize;
-                in_ptr = in_ptr.add(1);
-
-                let bit3 = u8::from(*in_ptr != 0);
-                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
-                buf_idx += bit3 as usize;
-                in_ptr = in_ptr.add(1);
-
-                let bit4 = u8::from(*in_ptr != 0);
-                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
-                buf_idx += bit4 as usize;
-                in_ptr = in_ptr.add(1);
-
-                let bit5 = u8::from(*in_ptr != 0);
-                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
-                buf_idx += bit5 as usize;
-                in_ptr = in_ptr.add(1);
-
-                let bit6 = u8::from(*in_ptr != 0);
-                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
-                buf_idx += bit6 as usize;
-                in_ptr = in_ptr.add(1);
-
-                let bit7 = u8::from(*in_ptr != 0);
-                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
-                buf_idx += bit7 as usize;
-                in_ptr = in_ptr.add(1);
-
-                let tag: u8 = bit0
-                    | (bit1 << 1)
-                    | (bit2 << 2)
-                    | (bit3 << 3)
-                    | (bit4 << 4)
-                    | (bit5 << 5)
-                    | (bit6 << 6)
-                    | (bit7 << 7);
-
-                *buf.get_unchecked_mut(tag_pos) = tag;
-
-                if tag == 0 {
-                    //# An all-zero word is followed by a count of
-                    //# consecutive zero words (not including the first
-                    //# one).
-
-                    let mut in_word: *const [u8; 8] = in_ptr as *const [u8; 8];
-                    let mut limit: *const [u8; 8] = in_end as *const [u8; 8];
-                    if ptr_sub(limit, in_word) > 255 {
-                        limit = in_word.add(255);
-                    }
-                    while in_word < limit && *in_word == [0; 8] {
-                        in_word = in_word.add(1);
-                    }
-
-                    *buf.get_unchecked_mut(buf_idx) = ptr_sub(in_word, in_ptr as *const [u8; 8])
-                        .try_into()
-                        .unwrap();
-                    buf_idx += 1;
-                    in_ptr = in_word as *const u8;
-                } else if tag == 0xff {
-                    //# An all-nonzero word is followed by a count of
-                    //# consecutive uncompressed words, followed by the
-                    //# uncompressed words themselves.
-
-                    //# Count the number of consecutive words in the input
-                    //# which have no more than a single zero-byte. We look
-                    //# for at least two zeros because that's the point
-                    //# where our compression scheme becomes a net win.
-                    let run_start = in_ptr;
-                    let mut limit = in_end;
-                    if ptr_sub(limit, in_ptr) > 255 * 8 {
-                        limit = in_ptr.add(255 * 8);
-                    }
-
-                    while in_ptr < limit {
-                        let mut c = 0;
-
-                        for _ in 0..8 {
-                            c += u8::from(*in_ptr == 0);
-                            in_ptr = in_ptr.add(1);
-                        }
-
-                        if c >= 2 {
-                            //# Un-read the word with multiple zeros, since
-                            //# we'll want to compress that one.
-                            in_ptr = in_ptr.sub(8);
-                            break;
-                        }
-                    }
-
-                    let count: usize = ptr_sub(in_ptr, run_start);
-                    *buf.get_unchecked_mut(buf_idx) = (count / 8).try_into().unwrap();
-                    buf_idx += 1;
-
-                    self.inner.write_all(&buf[..buf_idx])?;
-                    buf_idx = 0;
-                    self.inner
-                        .write_all(slice::from_raw_parts::<u8>(run_start, count))?;
-                }
+    fn write_all(&mut self, mut input: &[u8]) -> Result<()> {
+        assert!(input.len().is_multiple_of(8));
+        let mut buf = [0u8; 64];
+        let mut used = 0;
+        while let Some((word, rest)) = input.split_first_chunk::<8>() {
+            input = rest;
+            // Reserve a tag, up to eight data bytes, and an optional run length.
+            if used > buf.len() - 10 {
+                self.inner.write_all(&buf[..used])?;
+                used = 0;
             }
-
-            self.inner.write_all(&buf[..buf_idx])?;
-            Ok(())
+            let tag_pos = used;
+            used += 1;
+            let mut tag = 0u8;
+            for (bit, &byte) in word.iter().enumerate() {
+                buf[used] = byte;
+                let present = u8::from(byte != 0);
+                used += usize::from(present);
+                tag |= present << bit;
+            }
+            buf[tag_pos] = tag;
+            if tag == 0 {
+                let count = input[..input.len().min(255 * 8)]
+                    .chunks_exact(8)
+                    .take_while(|w| *w == [0; 8])
+                    .count();
+                buf[used] = u8::try_from(count).unwrap();
+                used += 1;
+                input = &input[count * 8..];
+            } else if tag == 0xff {
+                // Keep writing words verbatim until packing would save space.
+                let count = input[..input.len().min(255 * 8)]
+                    .chunks_exact(8)
+                    .take_while(|w| w.iter().filter(|&&b| b == 0).count() < 2)
+                    .count();
+                buf[used] = u8::try_from(count).unwrap();
+                used += 1;
+                let (run, rest) = input.split_at(count * 8);
+                input = rest;
+                self.inner.write_all(&buf[..used])?;
+                used = 0;
+                self.inner.write_all(run)?;
+            }
         }
+        self.inner.write_all(&buf[..used])?;
+        Ok(())
     }
 }
 
@@ -485,6 +425,68 @@ mod tests {
 
         assert!(packed_read.inner.is_empty()); // nothing left to read
         assert_eq!(bytes, unpacked);
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn unpack_across_buffer_boundaries() {
+        for tag in 0..=u8::MAX {
+            let mut packed = vec![tag];
+            let mut expected = [0; 8];
+            for (bit, byte) in expected.iter_mut().enumerate() {
+                if tag & (1 << bit) != 0 {
+                    *byte = bit as u8 + 1;
+                    packed.push(*byte);
+                }
+            }
+            let mut expected = expected.to_vec();
+            if tag == 0 || tag == 0xff {
+                packed.push(2);
+                if tag == 0 {
+                    expected.extend_from_slice(&[0; 16]);
+                } else {
+                    packed.extend(1..=16);
+                    expected.extend(1..=16);
+                }
+            }
+            // Leave a full word of lookahead so every tag also exercises the
+            // buffered decoder, including tags with only one packed byte.
+            packed.extend_from_slice(&[0xff, 41, 42, 43, 44, 45, 46, 47, 48, 0]);
+
+            for split in 0..=packed.len() {
+                let (first, second) = packed.split_at(split);
+                let mut reader = PackedRead {
+                    inner: std::io::Read::chain(first, second),
+                };
+                let mut actual = vec![0xff; expected.len()];
+                reader.read_exact(&mut actual).unwrap();
+                assert_eq!(actual, expected, "tag {tag:#x}, split {split}");
+                let mut last = [0; 8];
+                reader.read_exact(&mut last).unwrap();
+                assert_eq!(last, [41, 42, 43, 44, 45, 46, 47, 48]);
+                assert_eq!(reader.read(&mut last).unwrap(), 0);
+            }
+        }
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn truncated_literal_run_across_refills() {
+        let packed = [
+            0xff, 1, 2, 3, 4, 5, 6, 7, 8, 1, 9, 10, 11, 12, 13, 14, 15, 16,
+        ];
+        for end in 1..packed.len() {
+            let mut reader = PackedRead {
+                inner: std::io::BufReader::with_capacity(1, &packed[..end]),
+            };
+            let error = reader.read(&mut [0; 16]).unwrap_err();
+            let expected = if end < 10 {
+                ErrorKind::PrematureEndOfPackedInput
+            } else {
+                ErrorKind::FailedToFillTheWholeBuffer
+            };
+            assert_eq!(error.kind, expected, "truncated at byte {end}");
+        }
     }
 
     pub(crate) fn check_packing(unpacked: &[u8], packed: &[u8]) {
@@ -634,6 +636,17 @@ mod tests {
         // In this case, the error is only due to the fact that the unpacked data does not
         // fill up the given output buffer.
         helper(&[1, 1]);
+    }
+
+    #[test]
+    fn truncated_word_writes_only_the_decodable_prefix() {
+        let mut reader = PackedRead {
+            inner: &[0b0101_0100, 11][..],
+        };
+        let mut word = [99; 8];
+        let error = reader.read(&mut word).unwrap_err();
+        assert_eq!(error.kind, ErrorKind::PrematureEndOfPackedInput);
+        assert_eq!(word, [0, 0, 11, 0, 99, 99, 99, 99]);
     }
 
     #[test]
