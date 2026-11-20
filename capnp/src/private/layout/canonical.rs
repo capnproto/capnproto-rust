@@ -87,8 +87,8 @@ impl Walk<'_> {
                 }
                 let pointers = target + usize::from(wire.struct_data_size());
                 let end = target + words;
-                let truncated = self.section_is_truncated(target, pointers)
-                    && self.section_is_truncated(pointers, end);
+                let truncated = self.has_no_trailing_zero_word(target, pointers)
+                    && self.has_no_trailing_zero_word(pointers, end);
                 Ok(self.pointers(pointers, end, nesting_limit - 1)? && truncated)
             }
             WirePointerKind::List => {
@@ -101,7 +101,7 @@ impl Walk<'_> {
         }
     }
 
-    fn section_is_truncated(&self, start: usize, end: usize) -> bool {
+    fn has_no_trailing_zero_word(&self, start: usize, end: usize) -> bool {
         start == end || *self.word(end - 1) != [0; BYTES_PER_WORD]
     }
 
@@ -170,8 +170,8 @@ impl Walk<'_> {
             let start = target + 1 + i * stride;
             let pointers = start + usize::from(tag.struct_data_size());
             let end = start + stride;
-            data_truncated |= self.section_is_truncated(start, pointers);
-            pointers_truncated |= self.section_is_truncated(pointers, end);
+            data_truncated |= self.has_no_trailing_zero_word(start, pointers);
+            pointers_truncated |= self.has_no_trailing_zero_word(pointers, end);
             // Reaching a pointer through a struct element uses one more nesting level.
             if !self.pointers(pointers, end, nesting_limit - 1)? {
                 return Ok(false);
