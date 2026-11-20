@@ -298,30 +298,15 @@ where
 
     /// Checks whether the message is [canonical](https://capnproto.org/encoding.html#canonicalization).
     pub fn is_canonical(&self) -> Result<bool> {
-        let (segment_start, seg_len) = self.arena.get_segment(0)?;
-
+        let segment = self.arena.get_segment_bytes(0)?;
         if self.arena.get_segment(1).is_ok() {
-            // TODO(cleanup, apibump): should there be a nicer way to ask the arena how many
-            // segments there are?
-
-            // There is more than one segment, so the message cannot be canonical.
             return Ok(false);
         }
-
-        let pointer_reader = unsafe {
-            layout::PointerReader::get_root(
-                &self.arena,
-                0,
-                segment_start,
-                self.arena.nesting_limit(),
-            )
-        }?;
-        let read_head = ::core::cell::Cell::new(unsafe { segment_start.add(BYTES_PER_WORD) });
-        let root_is_canonical = unsafe { pointer_reader.is_canonical(&read_head)? };
-        let all_words_consumed = (read_head.get() as usize - segment_start as usize)
-            / BYTES_PER_WORD
-            == seg_len as usize;
-        Ok(root_is_canonical && all_words_consumed)
+        layout::canonical::check(
+            segment,
+            self.arena.read_limiter(),
+            self.arena.nesting_limit(),
+        )
     }
 
     /// Gets the [canonical](https://capnproto.org/encoding.html#canonicalization) form

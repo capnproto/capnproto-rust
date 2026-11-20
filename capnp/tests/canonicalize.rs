@@ -21,6 +21,32 @@
 
 use capnp::message;
 
+#[test]
+fn canonical_struct_list_charges_each_word_and_nesting_level() {
+    let words = [
+        capnp::word(1, 0, 0, 0, 39, 0, 0, 0), // Inline composite, four body words.
+        capnp::word(8, 0, 0, 0, 1, 0, 1, 0),  // Two elements, each with data and a pointer.
+        capnp::word(42, 0, 0, 0, 0, 0, 0, 0),
+        capnp::word(0, 0, 0, 0, 0, 0, 0, 0),
+        capnp::word(0, 0, 0, 0, 0, 0, 0, 0),
+        capnp::word(1, 0, 0, 0, 10, 0, 0, 0), // The second element points to a byte list.
+        capnp::word(7, 0, 0, 0, 0, 0, 0, 0),
+    ];
+    let segments = [capnp::Word::words_to_bytes(&words)];
+    let check = |limit, depth| {
+        let mut options = message::ReaderOptions::new();
+        options
+            .traversal_limit_in_words(Some(limit))
+            .nesting_limit(depth);
+        message::Reader::new(&segments[..], options)
+            .is_canonical()
+            .map_err(|e| e.kind)
+    };
+    assert_eq!(check(7, 3), Ok(true));
+    assert_eq!(check(6, 3), Err(capnp::ErrorKind::ReadLimitExceeded));
+    assert_eq!(check(7, 2), Err(capnp::ErrorKind::NestingLimitExceeded));
+}
+
 #[cfg(feature = "alloc")]
 #[test]
 fn canonicalize_succeeds_on_null_message() {

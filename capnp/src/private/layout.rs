@@ -19,7 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use core::cell::Cell;
+pub(crate) mod canonical;
+
 use core::mem;
 use core::ptr;
 
@@ -107,13 +108,6 @@ pub(crate) enum WirePointerKind {
     List = 1,
     Far = 2,
     Other = 3,
-}
-
-pub(crate) enum PointerType {
-    Null,
-    Struct,
-    List,
-    Capability,
 }
 
 impl WirePointerKind {
@@ -239,6 +233,23 @@ impl WirePointer {
     #[inline]
     pub(crate) fn inline_composite_list_element_count(&self) -> ElementCount32 {
         self.offset_and_kind.get() >> 2
+    }
+
+    /// Checks that the elements fit and returns the number of words they occupy.
+    fn check_inline_composite_tag(&self, word_count: u32) -> Result<u32> {
+        if self.kind() != WirePointerKind::Struct {
+            return Err(Error::from_kind(
+                ErrorKind::InlineCompositeListsOfNonStructTypeAreNotSupported,
+            ));
+        }
+        let used_words = u64::from(self.inline_composite_list_element_count())
+            * u64::from(self.struct_word_size());
+        if used_words > u64::from(word_count) {
+            return Err(Error::from_kind(
+                ErrorKind::InlineCompositeListsElementsOverrunItsWordCount,
+            ));
+        }
+        Ok(u32::try_from(used_words).unwrap())
     }
 
     #[inline]
@@ -2593,7 +2604,7 @@ mod wire_helpers {
         cap_table: &'a CapTable,
         mut reff: *const WirePointer,
         default_value: *const u8,
-        expected_element_size: Option<ElementSize>,
+        expected_element_size: ElementSize,
         nesting_limit: i32,
     ) -> Result<ListReader<'a>> {
         unsafe {
@@ -2639,22 +2650,12 @@ mod wire_helpers {
 
                     ptr = ptr.add(BYTES_PER_WORD);
 
-                    if (*tag).kind() != WirePointerKind::Struct {
-                        return Err(Error::from_kind(
-                            ErrorKind::InlineCompositeListsOfNonStructTypeAreNotSupported,
-                        ));
-                    }
+                    (*tag).check_inline_composite_tag(word_count)?;
 
                     let size = (*tag).inline_composite_list_element_count();
                     let data_size = (*tag).struct_data_size();
                     let ptr_count = (*tag).struct_ptr_count();
                     let words_per_element = (*tag).struct_word_size();
-
-                    if u64::from(size) * u64::from(words_per_element) > u64::from(word_count) {
-                        return Err(Error::from_kind(
-                            ErrorKind::InlineCompositeListsElementsOverrunItsWordCount,
-                        ));
-                    }
 
                     if words_per_element == 0 {
                         // Watch out for lists of zero-sized structs, which can claim to be
@@ -2669,20 +2670,20 @@ mod wire_helpers {
 
                     // Check whether the size is compatible.
                     match expected_element_size {
-                        None | Some(Void | InlineComposite) => (),
-                        Some(Bit) => {
+                        Void | InlineComposite => (),
+                        Bit => {
                             return Err(Error::from_kind(
                                 ErrorKind::FoundStructListWhereBitListWasExpected,
                             ));
                         }
-                        Some(Byte | TwoBytes | FourBytes | EightBytes) => {
+                        Byte | TwoBytes | FourBytes | EightBytes => {
                             if data_size == 0 {
                                 return Err(Error::from_kind(
                                 ErrorKind::ExpectedAPrimitiveListButGotAListOfPointerOnlyStructs,
                             ));
                             }
                         }
-                        Some(Pointer) => {
+                        Pointer => {
                             if ptr_count == 0 {
                                 return Err(Error::from_kind(
                                     ErrorKind::ExpectedAPointerListButGotAListOfDataOnlyStructs,
@@ -2730,32 +2731,28 @@ mod wire_helpers {
                         amplified_read(arena, u64::from(element_count))?;
                     }
 
-                    if let Some(expected_element_size) = expected_element_size {
-                        if element_size == ElementSize::Bit
-                            && expected_element_size != ElementSize::Bit
-                        {
-                            return Err(Error::from_kind(
-                                ErrorKind::FoundBitListWhereStructListWasExpected,
-                            ));
-                        }
+                    if element_size == ElementSize::Bit && expected_element_size != ElementSize::Bit
+                    {
+                        return Err(Error::from_kind(
+                            ErrorKind::FoundBitListWhereStructListWasExpected,
+                        ));
+                    }
 
-                        // Verify that the elements are at least as large as the expected type. Note that if
-                        // we expected InlineComposite, the expected sizes here will be zero, because bounds
-                        // checking will be performed at field access time. So this check here is for the
-                        // case where we expected a list of some primitive or pointer type.
+                    // Verify that the elements are at least as large as the expected type. Note that if
+                    // we expected InlineComposite, the expected sizes here will be zero, because bounds
+                    // checking will be performed at field access time. So this check here is for the
+                    // case where we expected a list of some primitive or pointer type.
 
-                        let expected_data_bits_per_element =
-                            data_bits_per_element(expected_element_size);
-                        let expected_pointers_per_element =
-                            pointers_per_element(expected_element_size);
+                    let expected_data_bits_per_element =
+                        data_bits_per_element(expected_element_size);
+                    let expected_pointers_per_element = pointers_per_element(expected_element_size);
 
-                        if expected_data_bits_per_element > data_size
-                            || expected_pointers_per_element > pointer_count
-                        {
-                            return Err(Error::from_kind(
-                                ErrorKind::MessageContainsListWithIncompatibleElementType,
-                            ));
-                        }
+                    if expected_data_bits_per_element > data_size
+                        || expected_pointers_per_element > pointer_count
+                    {
+                        return Err(Error::from_kind(
+                            ErrorKind::MessageContainsListWithIncompatibleElementType,
+                        ));
                     }
 
                     Ok(ListReader {
@@ -3073,26 +3070,7 @@ impl<'a> PointerReader<'a> {
                 self.cap_table,
                 reff,
                 default_value,
-                Some(expected_element_size),
-                self.nesting_limit,
-            )
-        }
-    }
-
-    fn get_list_any_size(self, default_value: *const u8) -> Result<ListReader<'a>> {
-        let reff = if self.pointer.is_null() {
-            zero_pointer()
-        } else {
-            self.pointer
-        };
-        unsafe {
-            wire_helpers::read_list_pointer(
-                self.arena,
-                self.segment_id,
-                self.cap_table,
-                reff,
-                default_value,
-                None,
+                expected_element_size,
                 self.nesting_limit,
             )
         }
@@ -3131,59 +3109,6 @@ impl<'a> PointerReader<'a> {
                 reff,
                 self.nesting_limit,
             )
-        }
-    }
-
-    pub(crate) fn get_pointer_type(&self) -> Result<PointerType> {
-        if self.is_null() {
-            Ok(PointerType::Null)
-        } else {
-            let (_, reff, _) =
-                unsafe { wire_helpers::follow_fars(self.arena, self.pointer, self.segment_id)? };
-
-            match unsafe { (*reff).kind() } {
-                WirePointerKind::Far => Err(Error::from_kind(ErrorKind::UnexpectedFarPointer)),
-                WirePointerKind::Struct => Ok(PointerType::Struct),
-                WirePointerKind::List => Ok(PointerType::List),
-                WirePointerKind::Other => {
-                    if unsafe { (*reff).is_capability() } {
-                        Ok(PointerType::Capability)
-                    } else {
-                        Err(Error::from_kind(ErrorKind::UnknownPointerType))
-                    }
-                }
-            }
-        }
-    }
-
-    /// # Safety
-    /// `read_head` must point into (or one past the end of) the segment that
-    /// this pointer lives in.
-    pub(crate) unsafe fn is_canonical(&self, read_head: &Cell<*const u8>) -> Result<bool> {
-        if self.pointer.is_null() || unsafe { !(*self.pointer).is_positional() } {
-            return Ok(false);
-        }
-
-        match self.get_pointer_type()? {
-            PointerType::Null => Ok(true),
-            PointerType::Struct => {
-                let mut data_trunc = false;
-                let mut ptr_trunc = false;
-                let st = self.get_struct(None)?;
-                if st.get_data_section_size() == 0 && st.get_pointer_section_size() == 0 {
-                    Ok(self.pointer as *const _ == st.get_location())
-                } else {
-                    let result = unsafe {
-                        st.is_canonical(read_head, read_head, &mut data_trunc, &mut ptr_trunc)?
-                    };
-                    Ok(result && data_trunc && ptr_trunc)
-                }
-            }
-            PointerType::List => unsafe {
-                self.get_list_any_size(ptr::null())?
-                    .is_canonical(read_head, self.pointer)
-            },
-            PointerType::Capability => Ok(false),
         }
     }
 }
@@ -3517,14 +3442,6 @@ impl<'a> StructReader<'a> {
         self.cap_table = cap_table
     }
 
-    pub(crate) fn get_data_section_size(&self) -> BitCount32 {
-        self.data_size
-    }
-
-    pub(crate) fn get_pointer_section_size(&self) -> WirePointerCount16 {
-        self.pointer_count
-    }
-
     pub(crate) fn get_pointer_section_as_list(&self) -> ListReader<'a> {
         ListReader {
             arena: self.arena,
@@ -3638,67 +3555,6 @@ impl<'a> StructReader<'a> {
         // TODO when we have read limiting: segment->unread()
 
         Ok(result)
-    }
-
-    fn get_location(&self) -> *const u8 {
-        self.data
-    }
-
-    /// # Safety
-    /// `read_head` and `ptr_head` must point into (or one past the end of) the
-    /// segment that this struct lives in.
-    pub(crate) unsafe fn is_canonical(
-        &self,
-        read_head: &Cell<*const u8>,
-        ptr_head: &Cell<*const u8>,
-        data_trunc: &mut bool,
-        ptr_trunc: &mut bool,
-    ) -> Result<bool> {
-        if self.get_location() != read_head.get() {
-            return Ok(false);
-        }
-
-        if !self
-            .get_data_section_size()
-            .is_multiple_of(u32::try_from(BITS_PER_WORD).unwrap())
-        {
-            // legacy non-word-size struct
-            return Ok(false);
-        }
-
-        let data_size = self.get_data_section_size() / u32::try_from(BITS_PER_WORD).unwrap();
-
-        // mark whether the struct is properly truncated
-        if data_size != 0 {
-            *data_trunc = self.get_data_field::<u64>((data_size - 1) as usize) != 0;
-        } else {
-            *data_trunc = true;
-        }
-
-        if self.pointer_count != 0 {
-            *ptr_trunc = !self
-                .get_pointer_field(self.pointer_count as usize - 1)
-                .is_null();
-        } else {
-            *ptr_trunc = true;
-        }
-
-        read_head.set(unsafe {
-            read_head
-                .get()
-                .add((data_size as usize + self.pointer_count as usize) * BYTES_PER_WORD)
-        });
-
-        for ptr_idx in 0..self.pointer_count {
-            if !unsafe {
-                self.get_pointer_field(ptr_idx as usize)
-                    .is_canonical(ptr_head)?
-            } {
-                return Ok(false);
-            }
-        }
-
-        Ok(true)
     }
 }
 
@@ -4010,123 +3866,6 @@ impl<'a> ListReader<'a> {
             cap_table: self.cap_table,
             pointer: unsafe { self.ptr.add(offset) } as *const _,
             nesting_limit: self.nesting_limit,
-        }
-    }
-
-    pub(crate) unsafe fn is_canonical(
-        &self,
-        read_head: &Cell<*const u8>,
-        reff: *const WirePointer,
-    ) -> Result<bool> {
-        match self.element_size {
-            ElementSize::InlineComposite => {
-                // The tag word should be at `read_head`, followed by the elements. Compare
-                // before advancing: `read_head` may be at the end of the segment, so
-                // advancing it with `.add()` first could be undefined behavior.
-                if !core::ptr::eq(self.ptr, read_head.get().wrapping_add(BYTES_PER_WORD)) {
-                    return Ok(false);
-                }
-                read_head.set(self.ptr);
-                if !self
-                    .struct_data_size
-                    .is_multiple_of(u32::try_from(BITS_PER_WORD).unwrap())
-                {
-                    return Ok(false);
-                }
-                let struct_size = (self.struct_data_size / u32::try_from(BITS_PER_WORD).unwrap())
-                    + u32::from(self.struct_pointer_count);
-                let word_count = unsafe { (*reff).list_inline_composite_word_count() };
-                if struct_size * self.element_count != word_count {
-                    return Ok(false);
-                }
-                if struct_size == 0 {
-                    return Ok(true);
-                }
-                let list_end = unsafe {
-                    read_head
-                        .get()
-                        .add((self.element_count * struct_size) as usize * BYTES_PER_WORD)
-                };
-                let pointer_head = Cell::new(list_end);
-                let mut list_data_trunc = false;
-                let mut list_ptr_trunc = false;
-                for idx in 0..self.element_count {
-                    let mut data_trunc = false;
-                    let mut ptr_trunc = false;
-                    if !unsafe {
-                        self.get_struct_element(idx).is_canonical(
-                            read_head,
-                            &pointer_head,
-                            &mut data_trunc,
-                            &mut ptr_trunc,
-                        )?
-                    } {
-                        return Ok(false);
-                    }
-                    list_data_trunc |= data_trunc;
-                    list_ptr_trunc |= ptr_trunc;
-                }
-                assert_eq!(read_head.get(), list_end);
-                read_head.set(pointer_head.get());
-                Ok(list_data_trunc && list_ptr_trunc)
-            }
-            ElementSize::Pointer => {
-                if !core::ptr::eq(self.ptr, read_head.get()) {
-                    return Ok(false);
-                }
-                read_head.set(unsafe {
-                    read_head
-                        .get()
-                        .add(self.element_count as usize * BYTES_PER_WORD)
-                });
-                for idx in 0..self.element_count {
-                    if !unsafe { self.get_pointer_element(idx).is_canonical(read_head)? } {
-                        return Ok(false);
-                    }
-                }
-                Ok(true)
-            }
-            element_size => {
-                if !core::ptr::eq(self.ptr, read_head.get()) {
-                    return Ok(false);
-                }
-                let bit_size =
-                    u64::from(self.element_count) * u64::from(data_bits_per_element(element_size));
-                let mut word_size = bit_size / BITS_PER_WORD as u64;
-                if bit_size % BITS_PER_WORD as u64 != 0 {
-                    word_size += 1
-                }
-
-                let byte_size = bit_size / BITS_PER_BYTE as u64;
-                let mut byte_read_head: *const u8 = read_head.get();
-                byte_read_head = unsafe { byte_read_head.add(usize::try_from(byte_size).unwrap()) };
-                let read_head_end = unsafe {
-                    read_head
-                        .get()
-                        .add(usize::try_from(word_size).unwrap() * BYTES_PER_WORD)
-                };
-
-                let leftover_bits = u8::try_from(bit_size % BITS_PER_BYTE as u64).unwrap();
-                if leftover_bits > 0 {
-                    let mask: u8 = !((1 << leftover_bits) - 1);
-                    let partial_byte = unsafe { *byte_read_head };
-
-                    if partial_byte & mask != 0 {
-                        return Ok(false);
-                    }
-                    byte_read_head = unsafe { byte_read_head.add(1) };
-                }
-
-                while byte_read_head != read_head_end {
-                    if unsafe { *byte_read_head } != 0 {
-                        return Ok(false);
-                    }
-                    byte_read_head = unsafe { byte_read_head.add(1) };
-                }
-
-                read_head.set(read_head_end);
-                Ok(true)
-            }
         }
     }
 }
