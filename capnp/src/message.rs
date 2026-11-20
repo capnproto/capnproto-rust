@@ -960,17 +960,11 @@ unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
         word_size: u32,
         words_used: u32,
     ) {
-        let seg_ptr = self.scratch_space.as_mut_ptr();
-        if ptr.as_ptr() == seg_ptr {
+        if ptr.as_ptr() == self.scratch_space.as_mut_ptr() {
             // Rezero the slice to allow reuse of the allocator. We only need to write
             // words that we know might contain nonzero values.
-            unsafe {
-                core::ptr::write_bytes(
-                    seg_ptr, // miri isn't happy if we use ptr instead
-                    0u8,
-                    (words_used as usize) * BYTES_PER_WORD,
-                );
-            }
+            let used_bytes = words_used as usize * BYTES_PER_WORD;
+            self.scratch_space[..used_bytes].fill(0);
             self.scratch_space_allocated = false;
         } else {
             unsafe {
@@ -1053,17 +1047,11 @@ unsafe impl Allocator for SingleSegmentAllocator<'_> {
         _word_size: u32,
         words_used: u32,
     ) {
-        let seg_ptr = self.segment.as_mut_ptr();
-        if ptr.as_ptr() == seg_ptr {
+        if ptr.as_ptr() == self.segment.as_mut_ptr() {
             // Rezero the slice to allow reuse of the allocator. We only need to write
             // words that we know might contain nonzero values.
-            unsafe {
-                core::ptr::write_bytes(
-                    seg_ptr, // miri isn't happy if we use ptr instead
-                    0u8,
-                    (words_used as usize) * BYTES_PER_WORD,
-                );
-            }
+            let used_bytes = words_used as usize * BYTES_PER_WORD;
+            self.segment[..used_bytes].fill(0);
             self.segment_allocated = false;
         }
     }
