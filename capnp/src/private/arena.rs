@@ -148,6 +148,24 @@ where
     pub(crate) fn get_segments(&self) -> &S {
         &self.segments
     }
+
+    pub(crate) fn read_limiter(&self) -> &ReadLimiter {
+        &self.read_limiter
+    }
+
+    /// Returns the complete words of the segment as a borrowed byte slice.
+    pub(crate) fn get_segment_bytes(&self, id: u32) -> Result<&[u8]> {
+        let segment = self
+            .segments
+            .get_segment(id)
+            .ok_or_else(|| Error::from_kind(ErrorKind::InvalidSegmentId(id)))?;
+        #[cfg(not(feature = "unaligned"))]
+        if !(segment.as_ptr() as usize).is_multiple_of(BYTES_PER_WORD) {
+            return Err(Error::from_kind(ErrorKind::UnalignedSegment));
+        }
+        let words = u32::try_from(segment.len() / BYTES_PER_WORD).unwrap();
+        Ok(&segment[..words as usize * BYTES_PER_WORD])
+    }
 }
 
 unsafe impl<S> ReaderArena for ReaderArenaImpl<S>
@@ -155,22 +173,11 @@ where
     S: ReaderSegments,
 {
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
-        match self.segments.get_segment(id) {
-            Some(seg) => {
-                #[cfg(not(feature = "unaligned"))]
-                {
-                    if !(seg.as_ptr() as usize).is_multiple_of(BYTES_PER_WORD) {
-                        return Err(Error::from_kind(ErrorKind::UnalignedSegment));
-                    }
-                }
-
-                Ok((
-                    seg.as_ptr(),
-                    u32::try_from(seg.len() / BYTES_PER_WORD).unwrap(),
-                ))
-            }
-            None => Err(Error::from_kind(ErrorKind::InvalidSegmentId(id))),
-        }
+        let segment = self.get_segment_bytes(id)?;
+        Ok((
+            segment.as_ptr(),
+            u32::try_from(segment.len() / BYTES_PER_WORD).unwrap(),
+        ))
     }
 
     fn contains_interval(&self, id: u32, start: *const u8, size_in_words: usize) -> Result<()> {

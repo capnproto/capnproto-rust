@@ -105,6 +105,17 @@ impl<T> WireValue<T>
 where
     T: Primitive,
 {
+    pub(crate) fn new(value: T) -> Self
+    where
+        T::Raw: Default,
+    {
+        let mut wire = Self {
+            value: T::Raw::default(),
+        };
+        wire.set(value);
+        wire
+    }
+
     /// Reads the value, swapping bytes on big-endian processors.
     #[inline]
     pub(crate) fn get(&self) -> T {
