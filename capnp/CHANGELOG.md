@@ -1,3 +1,8 @@
+## v0.28.2
+- Move more logic into safe code.
+- Add a bounds check in PointerReader::get_root_from_arena(). Downstream code should not be
+  directly calling this function, but it is public.
+
 ## v0.28.1
 - Reimplement `capnp::serialize_packed` in safe code.
 
