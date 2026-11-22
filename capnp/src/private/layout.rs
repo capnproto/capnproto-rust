@@ -1852,31 +1852,6 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub(crate) unsafe fn set_text_pointer<'a>(
-        arena: &'a mut dyn BuilderArena,
-        reff: *mut WirePointer,
-        segment_id: u32,
-        value: crate::text::Reader<'_>,
-    ) -> SegmentAnd<text::Builder<'a>> {
-        unsafe {
-            let value_bytes = value.as_bytes();
-            // TODO make sure the string is not longer than 2 ** 29.
-            let mut allocation = init_text_pointer(
-                arena,
-                reff,
-                segment_id,
-                u32::try_from(value_bytes.len()).expect("Text len does not fit in u32"),
-            );
-            allocation
-                .value
-                .reborrow()
-                .as_bytes_mut()
-                .copy_from_slice(value_bytes);
-            allocation
-        }
-    }
-
-    #[inline]
     pub(crate) unsafe fn get_writable_text_pointer<'a>(
         arena: &'a mut dyn BuilderArena,
         mut reff: *mut WirePointer,
@@ -1953,25 +1928,6 @@ mod wire_helpers {
                 segment_id,
                 value: data::builder_from_raw_parts(ptr, size),
             }
-        }
-    }
-
-    #[inline]
-    pub(crate) unsafe fn set_data_pointer<'a>(
-        arena: &'a mut dyn BuilderArena,
-        reff: *mut WirePointer,
-        segment_id: u32,
-        value: &[u8],
-    ) -> SegmentAnd<data::Builder<'a>> {
-        unsafe {
-            let allocation = init_data_pointer(
-                arena,
-                reff,
-                segment_id,
-                value.len().try_into().expect("data too large"),
-            );
-            allocation.value.copy_from_slice(value);
-            allocation
         }
     }
 
@@ -3296,12 +3252,14 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
+    #[inline]
     pub fn init_text(self, size: ByteCount32) -> text::Builder<'a> {
         unsafe {
             wire_helpers::init_text_pointer(self.arena, self.pointer, self.segment_id, size).value
         }
     }
 
+    #[inline]
     pub fn init_data(self, size: ByteCount32) -> data::Builder<'a> {
         unsafe {
             wire_helpers::init_data_pointer(self.arena, self.pointer, self.segment_id, size).value
@@ -3337,15 +3295,17 @@ impl<'a> PointerBuilder<'a> {
     }
 
     pub fn set_text(&mut self, value: crate::text::Reader<'_>) {
-        unsafe {
-            wire_helpers::set_text_pointer(self.arena, self.pointer, self.segment_id, value);
-        }
+        let bytes = value.as_bytes();
+        let len = u32::try_from(bytes.len()).expect("Text len does not fit in u32");
+        self.reborrow()
+            .init_text(len)
+            .as_bytes_mut()
+            .copy_from_slice(bytes);
     }
 
     pub fn set_data(&mut self, value: &[u8]) {
-        unsafe {
-            wire_helpers::set_data_pointer(self.arena, self.pointer, self.segment_id, value);
-        }
+        let len = u32::try_from(value.len()).expect("data too large");
+        self.reborrow().init_data(len).copy_from_slice(value);
     }
 
     #[cfg(feature = "alloc")]
