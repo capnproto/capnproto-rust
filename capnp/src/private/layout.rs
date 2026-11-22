@@ -2899,29 +2899,6 @@ impl<'a> PointerReader<'a> {
         }
     }
 
-    pub(crate) unsafe fn get_root(
-        arena: &'a dyn ReaderArena,
-        segment_id: u32,
-        location: *const u8,
-        nesting_limit: i32,
-    ) -> Result<Self> {
-        wire_helpers::bounds_check(
-            arena,
-            segment_id,
-            location as *const _,
-            POINTER_SIZE_IN_WORDS,
-            WirePointerKind::Struct,
-        )?;
-
-        Ok(PointerReader {
-            arena,
-            segment_id,
-            cap_table: EMPTY_CAP_TABLE,
-            pointer: location as *const _,
-            nesting_limit,
-        })
-    }
-
     pub fn reborrow(&self) -> PointerReader<'_> {
         PointerReader {
             arena: self.arena,
@@ -2941,7 +2918,13 @@ impl<'a> PointerReader<'a> {
     }
 
     pub fn get_root_from_arena(arena: &'a dyn ReaderArena) -> Result<Self> {
-        let (segment_start, _seg_len) = arena.get_segment(0)?;
+        let (segment_start, segment_len) = arena.get_segment(0)?;
+        // Builder arenas skip interval checks, so check for the root word here.
+        if segment_len == 0 {
+            return Err(Error::from_kind(
+                ErrorKind::MessageContainsOutOfBoundsPointer,
+            ));
+        }
 
         wire_helpers::bounds_check(
             arena,
@@ -3502,14 +3485,7 @@ impl<'a> StructReader<'a> {
         };
 
         for i in 0..self.pointer_count as usize {
-            unsafe {
-                result += wire_helpers::total_size(
-                    self.arena,
-                    self.segment_id,
-                    self.pointers.add(i),
-                    self.nesting_limit,
-                )?;
-            }
+            result += self.get_pointer_field(i).total_size()?;
         }
 
         // TODO when we have read limiting: segment->unread()

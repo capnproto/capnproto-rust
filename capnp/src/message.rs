@@ -275,15 +275,7 @@ where
     }
 
     fn get_root_internal(&self) -> Result<any_pointer::Reader<'_>> {
-        let (segment_start, _seg_len) = self.arena.get_segment(0)?;
-        let pointer_reader = unsafe {
-            layout::PointerReader::get_root(
-                &self.arena,
-                0,
-                segment_start,
-                self.arena.nesting_limit(),
-            )
-        }?;
+        let pointer_reader = layout::PointerReader::get_root_from_arena(&self.arena)?;
         Ok(any_pointer::Reader::new(pointer_reader))
     }
 
@@ -517,21 +509,12 @@ where
     }
 
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
-        if self.arena.is_empty() {
-            any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
+        let pointer_reader = if self.arena.is_empty() {
+            layout::PointerReader::new_default()
         } else {
-            let (segment_start, _segment_len) = self.arena.get_segment(0)?;
-            let pointer_reader = unsafe {
-                layout::PointerReader::get_root(
-                    self.arena.as_reader(),
-                    0,
-                    segment_start,
-                    0x7fffffff,
-                )
-            }?;
-            let root = any_pointer::Reader::new(pointer_reader);
-            root.get_as()
-        }
+            layout::PointerReader::get_root_from_arena(self.arena.as_reader())?
+        };
+        any_pointer::Reader::new(pointer_reader).get_as()
     }
 
     /// Sets the root to a deep copy of the given value.

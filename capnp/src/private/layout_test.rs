@@ -41,6 +41,29 @@ fn test_at_alignments(words: &[crate::Word], verify: &dyn Fn(PointerReader)) {
 }
 
 #[test]
+fn root_requires_an_allocated_word() {
+    use crate::message::SingleSegmentAllocator;
+    use crate::private::arena::{BuilderArena, BuilderArenaImpl};
+
+    let mut words = [crate::word(0, 0, 0, 0, 0, 0, 0, 0)];
+    let allocator = SingleSegmentAllocator::new(crate::Word::words_to_bytes_mut(&mut words));
+    let mut arena = BuilderArenaImpl::new(allocator);
+    arena.allocate_segment(1).unwrap();
+
+    let result = PointerReader::get_root_from_arena(&arena);
+    assert!(
+        matches!(result, Err(e) if e.kind == crate::ErrorKind::MessageContainsOutOfBoundsPointer)
+    );
+
+    assert_eq!(arena.allocate(0, 1), Some(0));
+    assert!(
+        PointerReader::get_root_from_arena(&arena)
+            .unwrap()
+            .is_null()
+    );
+}
+
+#[test]
 fn simple_raw_data_struct() {
     let data: &[crate::Word] = &[
         crate::word(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
