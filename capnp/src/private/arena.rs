@@ -237,57 +237,78 @@ struct BuilderSegment {
     allocated: u32,
 }
 
-#[cfg(feature = "alloc")]
-type BuilderSegmentArray = alloc::vec::Vec<BuilderSegment>;
-
-#[cfg(not(feature = "alloc"))]
+/// The segments of a message being built. The first is kept inline, so that a message that fits
+/// in one segment, as most do, costs no allocation for the array.
 #[derive(Default)]
 struct BuilderSegmentArray {
-    // In the no-alloc case, we only allow a single segment.
-    segment: Option<BuilderSegment>,
+    first: Option<BuilderSegment>,
+    #[cfg(feature = "alloc")]
+    rest: alloc::vec::Vec<BuilderSegment>,
 }
 
-#[cfg(not(feature = "alloc"))]
 impl BuilderSegmentArray {
-    fn iter(&self) -> core::option::Iter<'_, BuilderSegment> {
-        self.segment.iter()
-    }
-
     fn len(&self) -> usize {
-        match self.segment {
-            Some(_) => 1,
+        match self.first {
             None => 0,
+            #[cfg(feature = "alloc")]
+            Some(_) => 1 + self.rest.len(),
+            #[cfg(not(feature = "alloc"))]
+            Some(_) => 1,
         }
     }
 
     fn push(&mut self, segment: BuilderSegment) {
-        if self.segment.is_some() {
-            panic!("multiple segments are not supported in no-alloc mode")
+        if self.first.is_none() {
+            self.first = Some(segment);
+            return;
         }
-        self.segment = Some(segment);
+        #[cfg(feature = "alloc")]
+        self.rest.push(segment);
+        #[cfg(not(feature = "alloc"))]
+        panic!("multiple segments are not supported in no-alloc mode")
+    }
+
+    #[cfg(feature = "alloc")]
+    fn iter(&self) -> impl Iterator<Item = &BuilderSegment> {
+        self.first.iter().chain(self.rest.iter())
+    }
+
+    #[cfg(not(feature = "alloc"))]
+    fn iter(&self) -> impl Iterator<Item = &BuilderSegment> {
+        self.first.iter()
     }
 }
 
-#[cfg(not(feature = "alloc"))]
 impl core::ops::Index<usize> for BuilderSegmentArray {
     type Output = BuilderSegment;
 
     fn index(&self, index: usize) -> &Self::Output {
-        assert_eq!(index, 0);
-        match &self.segment {
-            Some(s) => s,
-            None => panic!("no segment"),
+        match (index, &self.first) {
+            (0, Some(s)) => s,
+            (0, None) => panic!("no segment"),
+            #[cfg(feature = "alloc")]
+            (index, _) => self
+                .rest
+                .get(index - 1)
+                .unwrap_or_else(|| panic!("no segment {index}")),
+            #[cfg(not(feature = "alloc"))]
+            (index, _) => panic!("no segment {index}"),
         }
     }
 }
 
-#[cfg(not(feature = "alloc"))]
 impl core::ops::IndexMut<usize> for BuilderSegmentArray {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        assert_eq!(index, 0);
-        match &mut self.segment {
-            Some(s) => s,
-            None => panic!("no segment"),
+        match (index, &mut self.first) {
+            (0, Some(s)) => s,
+            (0, None) => panic!("no segment"),
+            #[cfg(feature = "alloc")]
+            (index, _) => self
+                .rest
+                .get_mut(index - 1)
+                .unwrap_or_else(|| panic!("no segment {index}")),
+            #[cfg(not(feature = "alloc"))]
+            (index, _) => panic!("no segment {index}"),
         }
     }
 }
@@ -349,7 +370,7 @@ where
             #[cfg(feature = "alloc")]
             {
                 let mut v = alloc::vec::Vec::with_capacity(reff.segments.len());
-                for seg in &reff.segments {
+                for seg in reff.segments.iter() {
                     // See safety argument in above branch.
                     let slice = unsafe {
                         slice::from_raw_parts(
@@ -480,15 +501,7 @@ where
 
     fn deallocate_all(&mut self) {
         if let Some(a) = &mut self.allocator {
-            #[cfg(feature = "alloc")]
-            for seg in &self.segments {
-                unsafe {
-                    a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
-                }
-            }
-
-            #[cfg(not(feature = "alloc"))]
-            if let Some(seg) = &self.segments.segment {
+            for seg in self.segments.iter() {
                 unsafe {
                     a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
                 }
