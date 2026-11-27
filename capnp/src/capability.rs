@@ -60,6 +60,17 @@ pub struct Promise<T, E> {
 enum PromiseInner<T, E> {
     Immediate(Result<T, E>),
     Deferred(Pin<alloc::boxed::Box<dyn Future<Output = core::result::Result<T, E>> + 'static>>),
+    /// An untyped response's future, retyped by the function as it completes. A response of any
+    /// type is just its hook, so retyping one needs no future of its own.
+    Response(
+        Pin<
+            alloc::boxed::Box<
+                dyn Future<Output = core::result::Result<Response<any_pointer::Owned>, E>>
+                    + 'static,
+            >,
+        >,
+        fn(Response<any_pointer::Owned>) -> T,
+    ),
     Empty,
 }
 
@@ -105,7 +116,32 @@ impl<T, E> Future for Promise<T, E> {
                 }
             }
             PromiseInner::Deferred(ref mut f) => f.as_mut().poll(cx),
+            PromiseInner::Response(ref mut f, retype) => f.as_mut().poll(cx).map(|r| r.map(retype)),
         }
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<E> Promise<Response<any_pointer::Owned>, E> {
+    /// The promise of the same response, typed as `Results`. Unlike mapping the promise through
+    /// a new future, this allocates nothing.
+    fn into_typed<Results>(self) -> Promise<Response<Results>, E> {
+        fn retype<Results>(response: Response<any_pointer::Owned>) -> Response<Results> {
+            Response {
+                hook: response.hook,
+                marker: PhantomData,
+            }
+        }
+        let inner = match self.inner {
+            PromiseInner::Immediate(r) => PromiseInner::Immediate(r.map(retype)),
+            PromiseInner::Deferred(f) => PromiseInner::Response(f, retype),
+            // Only this function makes a `Response` variant, and its function is always a
+            // `retype`, which only moves the hook; so this `retype` alone gives what the two
+            // together would.
+            PromiseInner::Response(f, _) => PromiseInner::Response(f, retype),
+            PromiseInner::Empty => PromiseInner::Empty,
+        };
+        Promise { inner }
     }
 }
 
@@ -216,14 +252,8 @@ where
         let RemotePromise {
             promise, pipeline, ..
         } = self.hook.send();
-        let typed_promise = Promise::from_future(async move {
-            Ok(Response {
-                hook: promise.await?.hook,
-                marker: PhantomData,
-            })
-        });
         RemotePromise {
-            promise: typed_promise,
+            promise: promise.into_typed(),
             pipeline: FromTypelessPipeline::new(pipeline),
         }
     }
@@ -489,4 +519,87 @@ pub async fn get_resolved_cap<C: FromClientHook>(cap: C) -> C {
         hook = resolved;
     }
     FromClientHook::new(hook)
+}
+
+#[cfg(all(test, feature = "alloc"))]
+mod tests {
+    use core::future::Future;
+    use core::marker::PhantomData;
+    use core::pin::Pin;
+    use core::task::{Context, Poll, Waker};
+
+    use alloc::string::ToString;
+
+    use super::{Promise, Response};
+    use crate::Error;
+    use crate::any_pointer;
+    use crate::private::capability::ResponseHook;
+
+    struct UnreadHook;
+
+    impl ResponseHook for UnreadHook {
+        fn get(&self) -> crate::Result<any_pointer::Reader<'_>> {
+            Err(Error::failed("not read in these tests".into()))
+        }
+    }
+
+    /// An untyped response, and the address of its hook.
+    fn response() -> (Response<any_pointer::Owned>, *const ()) {
+        let hook: alloc::boxed::Box<dyn ResponseHook> = alloc::boxed::Box::new(UnreadHook);
+        let address = &*hook as *const dyn ResponseHook as *const ();
+        let response = Response {
+            marker: PhantomData,
+            hook,
+        };
+        (response, address)
+    }
+
+    fn poll<T>(mut promise: Promise<T, Error>) -> Result<T, Error> {
+        match Pin::new(&mut promise).poll(&mut Context::from_waker(Waker::noop())) {
+            Poll::Ready(result) => result,
+            Poll::Pending => panic!("the promise is pending"),
+        }
+    }
+
+    fn hook_address<T>(response: &Response<T>) -> *const () {
+        &*response.hook as *const dyn ResponseHook as *const ()
+    }
+
+    #[test]
+    fn into_typed_keeps_an_immediate_response() {
+        let (untyped, address) = response();
+        let typed = poll(Promise::ok(untyped).into_typed::<crate::text::Owned>()).unwrap();
+        assert_eq!(hook_address(&typed), address);
+    }
+
+    #[test]
+    fn into_typed_keeps_an_error() {
+        let promise =
+            Promise::<Response<any_pointer::Owned>, Error>::err(Error::failed("boom".into()));
+        let error = poll(promise.into_typed::<crate::text::Owned>())
+            .err()
+            .unwrap();
+        assert!(error.to_string().contains("boom"));
+    }
+
+    #[test]
+    fn into_typed_keeps_a_deferred_response() {
+        let (untyped, address) = response();
+        let promise = Promise::from_future(async move { Ok(untyped) });
+        let typed = poll(promise.into_typed::<crate::text::Owned>()).unwrap();
+        assert_eq!(hook_address(&typed), address);
+    }
+
+    #[test]
+    fn into_typed_twice_keeps_the_response() {
+        let (untyped, address) = response();
+        let promise = Promise::from_future(async move { Ok(untyped) });
+        let typed = poll(
+            promise
+                .into_typed::<any_pointer::Owned>()
+                .into_typed::<crate::text::Owned>(),
+        )
+        .unwrap();
+        assert_eq!(hook_address(&typed), address);
+    }
 }
