@@ -1,3 +1,6 @@
+## v0.28.2
+- automatically use size_hint in foo_request() methods where the params are data-only
+
 ## v0.28.1
 - Simplify generated code for capability getters.
 - Fix bug where type parameters were generated in nondeterministic
