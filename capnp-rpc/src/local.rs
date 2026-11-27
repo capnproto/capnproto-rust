@@ -204,6 +204,14 @@ impl ResultsDoneHook for ResultsDone {
     }
 }
 
+/// First segment size for a local message holding params that match `size`: the hinted
+/// words, capped as for RPC calls, plus the root pointer. Capabilities go in the cap table
+/// rather than the message, so the hint's cap count needs no room.
+fn params_words(size: ::capnp::MessageSize) -> u32 {
+    // The cap keeps this in range.
+    size.word_count.min(crate::rpc::MAX_SIZE_HINT_WORDS) as u32 + 1
+}
+
 pub(crate) struct Request {
     message: message::Builder<::capnp::message::HeapAllocator>,
     cap_table: Vec<Option<Box<dyn ClientHook>>>,
@@ -218,12 +226,16 @@ impl Request {
     pub(crate) fn new(
         interface_id: u64,
         method_id: u16,
-        _size_hint: Option<::capnp::MessageSize>,
+        size_hint: Option<::capnp::MessageSize>,
         client: Box<dyn ClientHook>,
     ) -> Self {
         let (pipeline_sender, pipeline) = crate::queued::Pipeline::new();
+        let allocator = match size_hint {
+            Some(size) => message::HeapAllocator::new().first_segment_words(params_words(size)),
+            None => message::HeapAllocator::new(),
+        };
         Self {
-            message: message::Builder::new_default(),
+            message: message::Builder::new(allocator),
             cap_table: Vec::new(),
             interface_id,
             method_id,
@@ -608,5 +620,40 @@ where
 
     fn when_resolved(&self) -> Promise<(), Error> {
         crate::rpc::default_when_resolved_impl(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hint(word_count: u64, cap_count: u32) -> Option<::capnp::MessageSize> {
+        Some(::capnp::MessageSize {
+            word_count,
+            cap_count,
+        })
+    }
+
+    /// Fills a local request's params with `words` words of data and returns how many
+    /// segments its message ends up with.
+    fn segments_for_params(size_hint: Option<::capnp::MessageSize>, words: u32) -> usize {
+        let client = crate::broken::new_cap(Error::failed("unused".into()));
+        let mut request = Request::new(0, 0, size_hint, client);
+        request.get().initn_as::<capnp::data::Builder>(words * 8);
+        request.message.get_segments_for_output().len()
+    }
+
+    #[test]
+    fn hinted_request_whose_params_fill_the_hint_uses_one_segment() {
+        assert_eq!(segments_for_params(hint(2000, 0), 2000), 1);
+        // The default 1024-word first segment is too small for the same params.
+        assert_eq!(segments_for_params(None, 2000), 2);
+    }
+
+    #[test]
+    fn local_size_hint_is_capped() {
+        assert_eq!(params_words(hint(0, 0).unwrap()), 1);
+        assert_eq!(params_words(hint(0, u32::MAX).unwrap()), 1);
+        assert_eq!(params_words(hint(u64::MAX, 0).unwrap()), (1 << 20) + 1);
     }
 }

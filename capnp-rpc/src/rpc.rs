@@ -1850,41 +1850,54 @@ fn get_call(message: &mut Box<dyn crate::OutgoingMessage>) -> ::capnp::Result<ca
 const DEFAULT_CALL_FIRST_SEGMENT_WORDS: u32 = 1024;
 
 /// Upper bound on a size hint, so that a bad hint cannot allocate a huge segment.
-const MAX_SIZE_HINT_WORDS: u64 = 1 << 20;
+pub(crate) const MAX_SIZE_HINT_WORDS: u64 = 1 << 20;
+
+/// `StructSize::total()`, computed here because it is not a `const fn` in the capnp versions
+/// that capnp-rpc supports. A pointer is one word, and both casts widen from u16.
+const fn struct_words<T: ::capnp::traits::HasStructSize>() -> u32 {
+    T::STRUCT_SIZE.data as u32 + T::STRUCT_SIZE.pointers as u32
+}
+
+/// Words for one cap table entry: a CapDescriptor, with room for a PromisedAnswer.
+const CAP_DESCRIPTOR_WORDS: u32 =
+    struct_words::<cap_descriptor::Builder>() + struct_words::<promised_answer::Builder>();
+
+/// Words for the Message and Call around the params: the root pointer, the payload, and a
+/// target with room for a promised answer and 16 words of pipeline ops.
+const CALL_ENVELOPE_WORDS: u32 = 1
+    + struct_words::<message::Builder>()
+    + struct_words::<call::Builder>()
+    + struct_words::<payload::Builder>()
+    + struct_words::<message_target::Builder>()
+    + struct_words::<promised_answer::Builder>()
+    + 16;
 
 /// Sizes the first segment of a call message so that params matching `size_hint` fit in it,
 /// as the C++ implementation does in `firstSegmentSize()`.
 fn call_first_segment_words(size_hint: Option<::capnp::MessageSize>) -> u32 {
     size_hint.map_or(DEFAULT_CALL_FIRST_SEGMENT_WORDS, |size| {
-        payload_content_words(size) + call_envelope_words()
+        payload_content_words(size) + CALL_ENVELOPE_WORDS
     })
 }
 
 /// Words for the hinted params plus the cap table describing their capabilities.
 fn payload_content_words(size: ::capnp::MessageSize) -> u32 {
-    let descriptor_words =
-        struct_words::<cap_descriptor::Builder>() + struct_words::<promised_answer::Builder>();
     let cap_count = u64::from(size.cap_count);
     let list_tag_words = u64::from(cap_count > 0);
     let words = size
         .word_count
-        .saturating_add(cap_count * u64::from(descriptor_words) + list_tag_words)
+        .saturating_add(cap_count * u64::from(CAP_DESCRIPTOR_WORDS) + list_tag_words)
         .min(MAX_SIZE_HINT_WORDS);
     // The cap above keeps this in range.
     words as u32
 }
 
-/// Words for the Message and Call around the params: the root pointer, the payload, and a
-/// target with room for a promised answer and 16 words of pipeline ops.
-fn call_envelope_words() -> u32 {
-    let message_words = 1 + struct_words::<message::Builder>() + struct_words::<call::Builder>();
-    let target_words =
-        struct_words::<message_target::Builder>() + struct_words::<promised_answer::Builder>() + 16;
-    message_words + struct_words::<payload::Builder>() + target_words
-}
-
-fn struct_words<T: ::capnp::traits::HasStructSize>() -> u32 {
-    T::STRUCT_SIZE.total()
+/// The size of the params of a request that is being redirected, to hint the replacement.
+fn params_size(call_builder: call::Builder<'_>) -> Option<::capnp::MessageSize> {
+    call_builder
+        .get_params()
+        .and_then(|params| params.get_content().target_size())
+        .ok()
 }
 
 impl<VatId> Request<VatId>
@@ -2070,7 +2083,7 @@ impl<VatId> RequestHook for Request<VatId> {
             let mut replacement = redirect.new_call(
                 call_builder.reborrow().get_interface_id(),
                 call_builder.reborrow().get_method_id(),
-                None,
+                params_size(call_builder.reborrow()),
             );
 
             replacement
@@ -2141,7 +2154,7 @@ impl<VatId> RequestHook for Request<VatId> {
             let mut replacement = redirect.new_call(
                 call_builder.reborrow().get_interface_id(),
                 call_builder.reborrow().get_method_id(),
-                None,
+                params_size(call_builder.reborrow()),
             );
 
             replacement
@@ -4128,6 +4141,94 @@ mod request_size_tests {
         let capped = (1 << 20) + 31;
         assert_eq!(first_segment_words_for(hint(u64::MAX, 1)), capped);
         assert_eq!(first_segment_words_for(hint(0, u32::MAX)), capped);
+    }
+
+    /// A capability from outside the connection that records the size hint of each call
+    /// made on it.
+    struct HintRecordingHook {
+        inner: Box<dyn ClientHook>,
+        hints: Rc<RefCell<Vec<Option<capnp::MessageSize>>>>,
+    }
+
+    impl ClientHook for HintRecordingHook {
+        fn add_ref(&self) -> Box<dyn ClientHook> {
+            Box::new(Self {
+                inner: self.inner.add_ref(),
+                hints: self.hints.clone(),
+            })
+        }
+        fn new_call(
+            &self,
+            interface: u64,
+            method: u16,
+            hint: Option<capnp::MessageSize>,
+        ) -> capnp::capability::Request<any_pointer::Owned, any_pointer::Owned> {
+            self.hints.borrow_mut().push(hint);
+            self.inner.new_call(interface, method, hint)
+        }
+        fn call(
+            &self,
+            interface: u64,
+            method: u16,
+            params: Box<dyn ParamsHook>,
+            results: Box<dyn ResultsHook>,
+        ) -> Promise<(), Error> {
+            self.inner.call(interface, method, params, results)
+        }
+        fn get_brand(&self) -> usize {
+            self.inner.get_brand()
+        }
+        fn get_ptr(&self) -> usize {
+            self.inner.get_ptr()
+        }
+        fn get_resolved(&self) -> Option<Box<dyn ClientHook>> {
+            None
+        }
+        fn when_more_resolved(&self) -> Option<Promise<Box<dyn ClientHook>, Error>> {
+            None
+        }
+        fn when_resolved(&self) -> Promise<(), Error> {
+            default_when_resolved_impl(self)
+        }
+    }
+
+    /// Builds a call with 1000 words of params on an imported promise, resolves the promise
+    /// to a capability outside the connection, then sends the call, which makes the RPC
+    /// system redirect it. Returns the size hints the redirected call was made with.
+    fn hints_for_redirected_call(streaming: bool) -> Vec<Option<capnp::MessageSize>> {
+        let (_tasks, state, _recorded) = new_connection_state();
+        let promise = ConnectionState::import(&state, 7, true);
+        let mut request = promise.new_call(0, 0, None);
+        request.get().initn_as::<capnp::data::Builder>(8 * 1000);
+
+        let hints = Rc::new(RefCell::new(Vec::new()));
+        let resolution = Box::new(HintRecordingHook {
+            inner: broken::new_cap(Error::failed("unused".into())),
+            hints: hints.clone(),
+        });
+        let promise_client = state.imports.borrow().slots[&7]
+            .promise_client_to_resolve
+            .as_ref()
+            .and_then(Weak::upgrade)
+            .unwrap();
+        promise_client.borrow_mut().resolve(Ok(resolution));
+
+        if streaming {
+            drop(request.hook.send_streaming());
+        } else {
+            drop(request.send());
+        }
+        hints.take()
+    }
+
+    #[test]
+    fn redirected_call_passes_its_params_size_on() {
+        let expected = Some(capnp::MessageSize {
+            word_count: 1000,
+            cap_count: 0,
+        });
+        assert_eq!(hints_for_redirected_call(false), [expected]);
+        assert_eq!(hints_for_redirected_call(true), [expected]);
     }
 
     #[test]
