@@ -387,6 +387,30 @@ macro_rules! fmt(
 
 pub(crate) use fmt;
 
+/// The size hint that a generated `*_request()` method passes for its params, as a Rust
+/// expression. A params struct with no pointer fields always takes up exactly its data
+/// section and holds no capabilities, so its size is known here. Any other params struct
+/// gets `None`: its size depends on what the caller puts in it, and hinting just the struct
+/// would make every call with pointer content spill into a second segment.
+///
+/// The size is written as a literal rather than read from the params type's `STRUCT_SIZE`,
+/// because for generic params that would need trait bounds the client impl does not have.
+fn params_size_hint(
+    ctx: &GeneratorContext,
+    param_node: schema_capnp::node::Reader,
+) -> ::capnp::Result<String> {
+    if let schema_capnp::node::Struct(st) = param_node.which()? {
+        if st.get_pointer_count() == 0 {
+            return Ok(fmt!(
+                ctx,
+                "::core::option::Option::Some({capnp}::MessageSize {{ word_count: {}, cap_count: 0 }})",
+                st.get_data_word_count()
+            ));
+        }
+    }
+    Ok("::core::option::Option::None".into())
+}
+
 fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<String> {
     if let Some(stem) = path.as_ref().file_stem() {
         stem.to_owned()
@@ -2540,6 +2564,8 @@ fn generate_node(
                     &param_scopes.join("::"),
                 )?;
 
+                let params_size_hint = params_size_hint(ctx, *param_node)?;
+
                 mod_interior.push(Line(fmt!(
                     ctx,
                     "pub type {}Params<{}> = {capnp}::capability::Params<{}>;",
@@ -2600,7 +2626,7 @@ fn generate_node(
                     )));
 
                     client_impl_interior.push(indent(Line(format!(
-                        "self.client.new_call(_private::TYPE_ID, {ordinal}, ::core::option::Option::None)"
+                        "self.client.new_call(_private::TYPE_ID, {ordinal}, {params_size_hint})"
                     ))));
                     client_impl_interior.push(line("}"));
                 } else {
@@ -2625,7 +2651,7 @@ fn generate_node(
                         param_type
                     )));
                     client_impl_interior.push(indent(Line(format!(
-                        "self.client.new_streaming_call(_private::TYPE_ID, {ordinal}, ::core::option::Option::None)"
+                        "self.client.new_streaming_call(_private::TYPE_ID, {ordinal}, {params_size_hint})"
                     ))));
 
                     client_impl_interior.push(line("}"));
