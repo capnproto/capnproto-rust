@@ -1401,3 +1401,86 @@ fn method_throws_exception_with_detail() {
         Ok(())
     });
 }
+
+/// Wraps a capability and records the size hint of each call made on it.
+struct HintRecordingHook {
+    inner: Box<dyn capnp::private::capability::ClientHook>,
+    hints: std::rc::Rc<std::cell::RefCell<Vec<Option<capnp::MessageSize>>>>,
+}
+
+impl capnp::private::capability::ClientHook for HintRecordingHook {
+    fn add_ref(&self) -> Box<dyn capnp::private::capability::ClientHook> {
+        Box::new(Self {
+            inner: self.inner.add_ref(),
+            hints: self.hints.clone(),
+        })
+    }
+    fn new_call(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        size_hint: Option<capnp::MessageSize>,
+    ) -> capnp::capability::Request<capnp::any_pointer::Owned, capnp::any_pointer::Owned> {
+        self.hints.borrow_mut().push(size_hint);
+        self.inner.new_call(interface_id, method_id, size_hint)
+    }
+    fn call(
+        &self,
+        interface_id: u64,
+        method_id: u16,
+        params: Box<dyn capnp::private::capability::ParamsHook>,
+        results: Box<dyn capnp::private::capability::ResultsHook>,
+    ) -> Promise<(), Error> {
+        self.inner.call(interface_id, method_id, params, results)
+    }
+    fn get_brand(&self) -> usize {
+        self.inner.get_brand()
+    }
+    fn get_ptr(&self) -> usize {
+        self.inner.get_ptr()
+    }
+    fn get_resolved(&self) -> Option<Box<dyn capnp::private::capability::ClientHook>> {
+        self.inner.get_resolved()
+    }
+    fn when_more_resolved(
+        &self,
+    ) -> Option<Promise<Box<dyn capnp::private::capability::ClientHook>, Error>> {
+        self.inner.when_more_resolved()
+    }
+    fn when_resolved(&self) -> Promise<(), Error> {
+        self.inner.when_resolved()
+    }
+}
+
+#[test]
+fn generated_requests_hint_the_size_of_pointer_free_params() {
+    let hints = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    let server: test_capnp::test_interface::Client =
+        capnp_rpc::new_client(impls::TestInterface::new());
+    let hook: Box<dyn capnp::private::capability::ClientHook> = Box::new(HintRecordingHook {
+        inner: server.client.hook,
+        hints: hints.clone(),
+    });
+    let exact = |word_count| {
+        Some(capnp::MessageSize {
+            word_count,
+            cap_count: 0,
+        })
+    };
+
+    let client = test_capnp::test_interface::Client::new(hook.add_ref());
+    let _ = client.foo_request(); // (i :UInt32, j :Bool)
+    let _ = client.bar_request(); // ()
+    let _ = client.baz_request(); // (s :TestAllTypes)
+    assert_eq!(hints.take(), [exact(1), exact(0), None]);
+
+    let client = test_capnp::test_extends::Client::new(hook.add_ref());
+    let _ = client.corge_request(); // TestAllTypes
+    assert_eq!(hints.take(), [None]);
+
+    // These requests are never sent, so the server's type does not matter.
+    let client = test_capnp::test_streaming::Client::new(hook);
+    let _ = client.do_stream_i_request(); // (i :UInt32, throwError :Bool) -> stream
+    let _ = client.finish_stream_request(); // ()
+    assert_eq!(hints.take(), [exact(1), exact(0)]);
+}

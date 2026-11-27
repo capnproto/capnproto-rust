@@ -275,15 +275,7 @@ where
     }
 
     fn get_root_internal(&self) -> Result<any_pointer::Reader<'_>> {
-        let (segment_start, _seg_len) = self.arena.get_segment(0)?;
-        let pointer_reader = unsafe {
-            layout::PointerReader::get_root(
-                &self.arena,
-                0,
-                segment_start,
-                self.arena.nesting_limit(),
-            )
-        }?;
+        let pointer_reader = layout::PointerReader::get_root_from_arena(&self.arena)?;
         Ok(any_pointer::Reader::new(pointer_reader))
     }
 
@@ -298,30 +290,15 @@ where
 
     /// Checks whether the message is [canonical](https://capnproto.org/encoding.html#canonicalization).
     pub fn is_canonical(&self) -> Result<bool> {
-        let (segment_start, seg_len) = self.arena.get_segment(0)?;
-
+        let segment = self.arena.get_segment_bytes(0)?;
         if self.arena.get_segment(1).is_ok() {
-            // TODO(cleanup, apibump): should there be a nicer way to ask the arena how many
-            // segments there are?
-
-            // There is more than one segment, so the message cannot be canonical.
             return Ok(false);
         }
-
-        let pointer_reader = unsafe {
-            layout::PointerReader::get_root(
-                &self.arena,
-                0,
-                segment_start,
-                self.arena.nesting_limit(),
-            )
-        }?;
-        let read_head = ::core::cell::Cell::new(unsafe { segment_start.add(BYTES_PER_WORD) });
-        let root_is_canonical = unsafe { pointer_reader.is_canonical(&read_head)? };
-        let all_words_consumed = (read_head.get() as usize - segment_start as usize)
-            / BYTES_PER_WORD
-            == seg_len as usize;
-        Ok(root_is_canonical && all_words_consumed)
+        layout::canonical::check(
+            segment,
+            self.arena.read_limiter(),
+            self.arena.nesting_limit(),
+        )
     }
 
     /// Gets the [canonical](https://capnproto.org/encoding.html#canonicalization) form
@@ -532,21 +509,12 @@ where
     }
 
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
-        if self.arena.is_empty() {
-            any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
+        let pointer_reader = if self.arena.is_empty() {
+            layout::PointerReader::new_default()
         } else {
-            let (segment_start, _segment_len) = self.arena.get_segment(0)?;
-            let pointer_reader = unsafe {
-                layout::PointerReader::get_root(
-                    self.arena.as_reader(),
-                    0,
-                    segment_start,
-                    0x7fffffff,
-                )
-            }?;
-            let root = any_pointer::Reader::new(pointer_reader);
-            root.get_as()
-        }
+            layout::PointerReader::get_root_from_arena(self.arena.as_reader())?
+        };
+        any_pointer::Reader::new(pointer_reader).get_as()
     }
 
     /// Sets the root to a deep copy of the given value.
@@ -960,17 +928,11 @@ unsafe impl Allocator for ScratchSpaceHeapAllocator<'_> {
         word_size: u32,
         words_used: u32,
     ) {
-        let seg_ptr = self.scratch_space.as_mut_ptr();
-        if ptr.as_ptr() == seg_ptr {
+        if ptr.as_ptr() == self.scratch_space.as_mut_ptr() {
             // Rezero the slice to allow reuse of the allocator. We only need to write
             // words that we know might contain nonzero values.
-            unsafe {
-                core::ptr::write_bytes(
-                    seg_ptr, // miri isn't happy if we use ptr instead
-                    0u8,
-                    (words_used as usize) * BYTES_PER_WORD,
-                );
-            }
+            let used_bytes = words_used as usize * BYTES_PER_WORD;
+            self.scratch_space[..used_bytes].fill(0);
             self.scratch_space_allocated = false;
         } else {
             unsafe {
@@ -1053,17 +1015,11 @@ unsafe impl Allocator for SingleSegmentAllocator<'_> {
         _word_size: u32,
         words_used: u32,
     ) {
-        let seg_ptr = self.segment.as_mut_ptr();
-        if ptr.as_ptr() == seg_ptr {
+        if ptr.as_ptr() == self.segment.as_mut_ptr() {
             // Rezero the slice to allow reuse of the allocator. We only need to write
             // words that we know might contain nonzero values.
-            unsafe {
-                core::ptr::write_bytes(
-                    seg_ptr, // miri isn't happy if we use ptr instead
-                    0u8,
-                    (words_used as usize) * BYTES_PER_WORD,
-                );
-            }
+            let used_bytes = words_used as usize * BYTES_PER_WORD;
+            self.segment[..used_bytes].fill(0);
             self.segment_allocated = false;
         }
     }

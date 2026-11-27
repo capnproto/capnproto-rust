@@ -542,6 +542,8 @@ interface TestImplicitMethodParamsInGeneric(V) {
   call2 @2 [T, U] TestGenerics(T, U) -> TestAllTypes;
   call3 @3 [T, U] TestAllTypes -> TestAllTypes;
   call4 @4 [T, U] TestGenerics(V, V) -> TestGenerics(V, AnyPointer);
+  call5 @5 [T] (x :UInt32) -> ();
+  # Pointer-free params in a generic scope, which get a size hint from the generated code.
 }
 
 struct TestGenericsUnion(Foo, Bar) {

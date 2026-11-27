@@ -1,3 +1,6 @@
+## v0.28.1
+- start actually using the size_hint for outgoing requests.
+
 ## v0.28.0
 - By default, log background errors to stderr instead of stdout.
 
